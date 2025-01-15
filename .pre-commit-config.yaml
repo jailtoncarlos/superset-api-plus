@@ -1,0 +1,92 @@
+default_language_version:
+  python: python3
+fail_fast: true
+default_stages: [commit]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+        files: .*\.(yaml|yml)$
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+        stages: [push]
+#        args: [ --autofix,
+#                --no-ensure-ascii ]
+
+  - repo: local
+    hooks:
+      - id: debug-statements
+        name: Check project for debug imports
+        entry: python bin/debug-statements.py
+        types:
+          - python
+        pass_filenames: true
+        language: system
+      - id: prints
+        name: Check project for prints
+        entry: python bin/print-statements.py
+        types:
+          - python
+        pass_filenames: true
+        language: system
+      - id: black
+        name: The Python code formatter
+        language: system
+        entry: sh -c 'python bin/black.py'
+        types:
+          - python
+        pass_filenames: false
+      - id: pylint
+        name: The Python code linter
+        language: system
+        entry: sh -c 'python bin/pylint.py'
+        types:
+          - python
+        pass_filenames: false
+
+  # Formatação automática do código para JavaScript, TypeScript, CSS e outros formatos.
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.5.1
+    hooks:
+      - id: prettier
+        files: \.(js|ts|jsx|tsx|css|less|html|json|markdown|md|yaml|yml)$
+
+  # formatar automaticamente o código Python.
+  - repo: https://github.com/psf/black
+    rev: 21.12b0
+    hooks:
+      - id: black
+
+  # corrigir automaticamente os problemas de imports
+  - repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.15.2
+    hooks:
+      - id: isort
+#        args: [--profile=black]
+        language_version: python3
+
+  - repo: https://github.com/myint/autoflake
+    rev: v1.4
+    hooks:
+      - id: autoflake
+#        args: ["--remove-all-unused-imports"]
+
+  # ferramenta de formatação de código para C, C++, Objective-C e outros formatos relacionados.
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v13.0.0
+    hooks:
+      - id: clang-format
+
+  # Corrige automaticamente problemas de estilo de código Python, como espaços em branco em excesso, indentação incorreta, entre outros.
+  - repo: https://github.com/pre-commit/mirrors-autopep8
+    rev: v1.5
+    hooks:
+      - id: autopep8
+#        args: ["--select=E231"]
