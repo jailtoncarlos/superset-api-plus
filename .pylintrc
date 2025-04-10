@@ -1,0 +1,81 @@
+[MASTER]
+ignore=.github,submodules
+
+# Caminho de módulos adicionais a serem incluídos.
+# init-hook='import sys; sys.path.append("submodules/app")'
+
+# Plugins opcionais do pylint
+# load-plugins=pylint_django
+# django-settings-module=djud.settings
+
+# Limite de complexidade permitido para uma função/método
+# max-complexity=10
+
+# Limite de profundidade de recursão no código
+# max-recursion-depth=20
+
+# Definir o encoding padrão
+# encoding=utf-8
+
+[MESSAGES CONTROL]
+# Desabilitar categorias de mensagens específicas
+disable=C0114,  # Missing module docstring
+        C0115,  # Ignora docstrings ausentes em classes
+        C0116,  # Missing function or method docstring
+#        C0301,  # Desativa avisos de linhas que excedem o limite de largura especificado. O black já etsá formatando.
+        R0801,  # Duplicated code
+#        R0902,  # Too many instance attributes
+#        R0903,  # Too few public methods
+#        R0904,  # Too many public methods
+#        R0913,  # Too many arguments
+#        R0914,  # Too many local variables
+#        R0915,  # Too many statements
+#        R1705,  # Unnecessary "else" after "return"
+#        R1706   # Simplifiable "if" statement
+
+[REPORTS]
+# Define o tipo de relatório, removendo os mais detalhados
+output-format=colorized
+reports=no
+score=yes
+
+[FORMAT]
+# Número máximo de caracteres por linha
+max-line-length=80
+
+# Número de linhas permitidas em uma função antes do aviso
+# max-function-length=50
+
+# Número de linhas antes e depois de uma função ou classe
+function-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Separação de seções e importações
+good-names=i,j,k,ex,Run,_,pk,id,db
+
+[DESIGN]
+# Limites de design e complexidade
+max-args=10  # Número máximo de argumentos permitidos em funções/métodos
+max-locals=50  # Número máximo de variáveis locais permitidas
+max-returns=6  # Número máximo de pontos de retorno permitidos em uma função
+max-branches=12  # Número máximo de ramos permitidos em estruturas de decisão
+max-statements=100  # Número máximo de declarações permitidas em uma função
+max-parents=7  # Número máximo de classes base permitidas
+max-attributes=10  # Número máximo de atributos permitidos em uma classe
+min-public-methods=0  # Número mínimo de métodos públicos permitidos
+max-public-methods=20  # Número máximo de métodos públicos permitidos
+
+[TYPECHECK]
+# Ignorar certos erros de tipagem para evitar avisos desnecessários
+ignored-modules=logging,django
+ignored-classes=builtins.object,QLObjectS,SQLAlchemy,sqlalchemy.orm.decl_api.Base,optparse.Values,thread._local,_thread._local
+
+
+# [IMPORTS]
+# Permitir imports padrão mesmo se não usados explicitamente no código
+# known-standard-library=numpy, pandas, os, sys
+# known-third-party=requests, flask, django
+
+[LOGGING]
+# Configura o nível de logging
+logging-format-style=new
+logging-modules=logging

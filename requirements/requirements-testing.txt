@@ -1,0 +1,5 @@
+# Testes
+## Framework de testes para Python, mais poderoso e flexível que unittest.
+pytest>=8.3.4
+## Gera relatórios de cobertura de código para testes com pytest
+pytest-cov>=6.0.0
