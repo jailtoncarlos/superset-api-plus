@@ -3,13 +3,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Union, Literal, get_args, Dict
 
-from supersetapiclient.base.base import Object, ObjectField, default_string
-from supersetapiclient.charts.filters import AdhocFilterClause
-from supersetapiclient.charts.types import FilterOperatorType, TimeGrain, FilterExpressionType, SqlMapType, \
+from supersetapiplus.base.base import Object, ObjectField, default_string
+from supersetapiplus.charts.filters import AdhocFilterClause
+from supersetapiplus.charts.types import FilterOperatorType, TimeGrain, FilterExpressionType, SqlMapType, \
     GenericDataType, HorizontalAlignType, NumberFormatType, CurrentPositionType, CurrencyCodeType, MetricType, \
     FilterClausesType, ColumnType
-from supersetapiclient.exceptions import ValidationError
-from supersetapiclient.typing import FilterValues, Optional
+from supersetapiplus.exceptions import ValidationError
+from supersetapiplus.typing import FilterValues, Optional
 
 logger = logging.getLogger(__name__)
 

@@ -3,9 +3,9 @@ from typing import Dict
 from anytree import RenderTree, search
 from typing_extensions import Self
 
-from supersetapiclient.dashboards.itemposition import ItemPosition, RootItemPosition, \
+from supersetapiplus.dashboards.itemposition import ItemPosition, RootItemPosition, \
     GridItemPosition
-from supersetapiclient.dashboards.nodeposisition import NodePosition, \
+from supersetapiplus.dashboards.nodeposisition import NodePosition, \
     NodePositionParse, GridNodePosition, RootNodePosition
 
 

@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-from supersetapiclient.base.enum_str import StringEnum
+from supersetapiplus.base.enum_str import StringEnum
 
 
 class ChartType(StringEnum):

@@ -12,7 +12,7 @@ This is a Alpha version. Stability is not guaranteed.
 Setup a superset client:
 
 ```python3
-from supersetapiclient.client import SupersetClient
+from supersetapiplus.client import SupersetClient
 
 client = SupersetClient(
     host="http://localhost:8080",

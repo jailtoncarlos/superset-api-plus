@@ -1,5 +1,4 @@
 import os
-
 from setuptools import find_packages, setup
 
 
@@ -13,17 +12,24 @@ def read(file_path):
 
 
 setup(
-    name="supersetapiclient",
+    name="supersetapiplus",
     version="0.5.0",
-    description="Framework para facilita a obtenção de parâmetros e "
-                "configurações necessárias para consulta de dados no TabNet Web",
-    long_description=read("README.md"),  # Lê diretamente do arquivo README.md
+    description="A framework to simplify access to Superset API endpoints and automate dashboard configuration.",
+    long_description=read("README.md"),  # Reads directly from the README.md file
     long_description_content_type="text/markdown",
     author="Jailton Paiva",
     author_email="jailtoncarlos@gmail.com",
-    keywords=["superset", "superset api", "superset-api-client", "supersetapiclient"],
+    url="https://github.com/jailtoncarlos/superset-api-plus",
+    keywords=[
+        "superset",
+        "superset api",
+        "apache superset",
+        "superset dashboard automation",
+        "supersetapiplus",
+    ],
     classifiers=[
-        "Development Status :: 1 - Planning",
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Operating System :: OS Independent",
@@ -38,6 +44,5 @@ setup(
     python_requires=">=3.7",
     install_requires=read("requirements/requirements-packaging.txt"),
     packages=find_packages(exclude=["tests*"]),
-    url="",
     include_package_data=True,
 )

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from supersetapiclient.base.base import Object
-from supersetapiclient.base.types import DatasourceType
+from supersetapiplus.base.base import Object
+from supersetapiplus.base.types import DatasourceType
 
 
 @dataclass

@@ -5,20 +5,20 @@ from dataclasses import dataclass, field
 from typing import List
 from typing_extensions import Self
 
-from supersetapiclient.base.base import Object, ObjectFactories, default_string, raise_for_status, ObjectField
-from supersetapiclient.base.types import DatasourceType
-from supersetapiclient.charts.filters import AdhocFilterClause
-from supersetapiclient.charts.options import Option
-from supersetapiclient.charts.queries import QueryFilterClause, QueryObject, Column, AdhocMetricColumn, OrderBy
+from supersetapiplus.base.base import Object, ObjectFactories, default_string, raise_for_status, ObjectField
+from supersetapiplus.base.types import DatasourceType
+from supersetapiplus.charts.filters import AdhocFilterClause
+from supersetapiplus.charts.options import Option
+from supersetapiplus.charts.queries import QueryFilterClause, QueryObject, Column, AdhocMetricColumn, OrderBy
 
-from supersetapiclient.charts.query_context import QueryContext, DataSource
-from supersetapiclient.charts.types import ChartType, FilterOperatorType, FilterClausesType, FilterExpressionType, \
+from supersetapiplus.charts.query_context import QueryContext, DataSource
+from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, FilterExpressionType, \
     MetricType, MetricType
-from supersetapiclient.dashboards.dashboards import Dashboard
-from supersetapiclient.dashboards.itemposition import ItemPosition
-from supersetapiclient.exceptions import NotFound, ChartValidationError, ValidationError
-from supersetapiclient.typing import NotToJson, Optional
-from supersetapiclient.utils import dict_compare
+from supersetapiplus.dashboards.dashboards import Dashboard
+from supersetapiplus.dashboards.itemposition import ItemPosition
+from supersetapiplus.exceptions import NotFound, ChartValidationError, ValidationError
+from supersetapiplus.typing import NotToJson, Optional
+from supersetapiplus.utils import dict_compare
 
 
 @dataclass
@@ -46,7 +46,7 @@ class Chart(Object):
 
     def __post_init__(self):
         super().__post_init__()
-        from supersetapiclient.dashboards.dashboards import Dashboard
+        from supersetapiplus.dashboards.dashboards import Dashboard
         self._dashboards = [Dashboard(dashboard_title='')]
 
         if self.id is None:

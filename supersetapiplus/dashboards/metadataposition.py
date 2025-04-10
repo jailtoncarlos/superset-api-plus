@@ -1,12 +1,12 @@
 import json
 from dataclasses import dataclass
 
-from supersetapiclient.base.base import Object
-from supersetapiclient.dashboards.itemposition import TabItemPosition, MarkdownItemPosition, ItemPosition, \
+from supersetapiplus.base.base import Object
+from supersetapiplus.dashboards.itemposition import TabItemPosition, MarkdownItemPosition, ItemPosition, \
     ChartItemPosition, ColumnItemPosition
-from supersetapiclient.dashboards.nodeposisition import MarkdownNodePosition, TabNodePosition, NodePosition, \
+from supersetapiplus.dashboards.nodeposisition import MarkdownNodePosition, TabNodePosition, NodePosition, \
     ChartNodePosition
-from supersetapiclient.dashboards.treenodeposisition import TreeNodePosition
+from supersetapiplus.dashboards.treenodeposisition import TreeNodePosition
 
 
 @dataclass

@@ -2,13 +2,13 @@
 import json
 from dataclasses import dataclass, field
 from typing import List
-from supersetapiclient.base.base import Object, ObjectFactories, default_string, json_field, ObjectField
-from supersetapiclient.dashboards.itemposition import ItemPosition
-from supersetapiclient.dashboards.metadata import Metadata
-from supersetapiclient.dashboards.metadataposition import Metadataposition
-from supersetapiclient.dashboards.nodeposisition import RowNodePosition
-from supersetapiclient.exceptions import DashboardValidationError
-from supersetapiclient.typing import NotToJson, Optional
+from supersetapiplus.base.base import Object, ObjectFactories, default_string, json_field, ObjectField
+from supersetapiplus.dashboards.itemposition import ItemPosition
+from supersetapiplus.dashboards.metadata import Metadata
+from supersetapiplus.dashboards.metadataposition import Metadataposition
+from supersetapiplus.dashboards.nodeposisition import RowNodePosition
+from supersetapiplus.exceptions import DashboardValidationError
+from supersetapiplus.typing import NotToJson, Optional
 
 
 def defult_metadata():

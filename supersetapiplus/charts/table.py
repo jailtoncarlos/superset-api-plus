@@ -1,16 +1,16 @@
 """Charts."""
-from supersetapiclient.base.base import ObjectField
-from supersetapiclient.charts.charts import Chart
-from supersetapiclient.charts.options import Option
-from supersetapiclient.charts.queries import AdhocMetric, Column, QueryObject, Metric, ColumnConfig, AdhocMetricColumn, \
+from supersetapiplus.base.base import ObjectField
+from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.options import Option
+from supersetapiplus.charts.queries import AdhocMetric, Column, QueryObject, Metric, ColumnConfig, AdhocMetricColumn, \
     OrderBy, MetricsMixin
-from supersetapiclient.charts.query_context import QueryContext
+from supersetapiplus.charts.query_context import QueryContext
 from dataclasses import dataclass, field
 from typing import List, Dict
-from supersetapiclient.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, FilterExpressionType, \
+from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, FilterExpressionType, \
     NumberFormatType, HorizontalAlignType, MetricType
-from supersetapiclient.exceptions import ValidationError
-from supersetapiclient.typing import Optional
+from supersetapiplus.exceptions import ValidationError
+from supersetapiplus.typing import Optional
 
 
 @dataclass

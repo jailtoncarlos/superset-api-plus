@@ -2,9 +2,9 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from supersetapiclient.base.base import Object, ObjectFactories, QueryStringFilter
-from supersetapiclient.base.datasource import DataSource
-from supersetapiclient.exceptions import NotFound
+from supersetapiplus.base.base import Object, ObjectFactories, QueryStringFilter
+from supersetapiplus.base.datasource import DataSource
+from supersetapiplus.exceptions import NotFound
 
 
 @dataclass

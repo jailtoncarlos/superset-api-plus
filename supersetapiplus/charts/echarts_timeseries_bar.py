@@ -2,16 +2,16 @@
 from dataclasses import dataclass, field
 from typing import List, Dict
 
-from supersetapiclient.base.base import default_string, ObjectField
-from supersetapiclient.charts.charts import Chart
-from supersetapiclient.charts.options import Option
-from supersetapiclient.charts.queries import MetricsMixin, AdhocMetricColumn, AdhocMetric, CurrencyFormat, OrderBy, \
+from supersetapiplus.base.base import default_string, ObjectField
+from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.options import Option
+from supersetapiplus.charts.queries import MetricsMixin, AdhocMetricColumn, AdhocMetric, CurrencyFormat, OrderBy, \
     QueryObject
-from supersetapiclient.charts.query_context import QueryContext
-from supersetapiclient.charts.types import ChartType, LegendOrientationType, LegendType, DateFormatType, \
+from supersetapiplus.charts.query_context import QueryContext
+from supersetapiplus.charts.types import ChartType, LegendOrientationType, LegendType, DateFormatType, \
     NumberFormatType, TimeGrain, Orientation, ContributionType, SortSeriesType, StackStylyType, \
     TitlepositionType, LabelRotation, ComparisonType, MetricType, FilterExpressionType
-from supersetapiclient.typing import Optional
+from supersetapiplus.typing import Optional
 
 
 @dataclass

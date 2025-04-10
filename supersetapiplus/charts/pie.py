@@ -1,18 +1,18 @@
 """Charts."""
 from typing import List
 
-from supersetapiclient.charts.charts import Chart
-from supersetapiclient.charts.options import Option
-from supersetapiclient.charts.queries import Metric, CurrencyFormat, AdhocMetricColumn, AdhocMetric, OrderBy, \
+from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.options import Option
+from supersetapiplus.charts.queries import Metric, CurrencyFormat, AdhocMetricColumn, AdhocMetric, OrderBy, \
     MetricHelper, MetricMixin, QueryObject
-from supersetapiclient.charts.query_context import QueryContext
+from supersetapiplus.charts.query_context import QueryContext
 from dataclasses import dataclass, field
-from supersetapiclient.base.base import default_string, ObjectField
-from supersetapiclient.charts.types import ChartType, LabelType, LegendOrientationType, LegendType, DateFormatType, \
+from supersetapiplus.base.base import default_string, ObjectField
+from supersetapiplus.charts.types import ChartType, LabelType, LegendOrientationType, LegendType, DateFormatType, \
     NumberFormatType, MetricType
-from supersetapiclient.exceptions import ValidationError
-from supersetapiclient.typing import Optional
-from supersetapiclient.utils import dict_compare
+from supersetapiplus.exceptions import ValidationError
+from supersetapiplus.typing import Optional
+from supersetapiplus.utils import dict_compare
 
 
 @dataclass

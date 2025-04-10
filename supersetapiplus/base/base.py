@@ -5,10 +5,10 @@ from abc import abstractmethod
 from contextlib import suppress
 from enum import Enum
 from typing_extensions import Self
-from supersetapiclient.base.parse import ParseMixin
-from supersetapiclient.client import QueryStringFilter
-from supersetapiclient.typing import NotToJson, Optional
-from supersetapiclient.utils import dict_hash
+from supersetapiplus.base.parse import ParseMixin
+from supersetapiplus.client import QueryStringFilter
+from supersetapiplus.typing import NotToJson, Optional
+from supersetapiplus.utils import dict_hash
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ from typing import List, Union, Dict, get_args, get_origin, Any, Literal, Mutabl
 import yaml
 from requests import HTTPError
 
-from supersetapiclient.exceptions import BadRequestError, ComplexBadRequestError, MultipleFound, NotFound, \
+from supersetapiplus.exceptions import BadRequestError, ComplexBadRequestError, MultipleFound, NotFound, \
     LoadJsonError, ValidationError
 
 

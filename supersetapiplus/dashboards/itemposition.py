@@ -4,10 +4,10 @@ import json
 from enum import Enum
 from dataclasses import dataclass, field, asdict, make_dataclass
 from typing import List
-from supersetapiclient.base.enum_str import StringEnum
-from supersetapiclient.base.parse import ParseMixin
-from supersetapiclient.exceptions import ItemPositionValidationError, NodePositionValidationError
-from supersetapiclient.utils import generate_uuid
+from supersetapiplus.base.enum_str import StringEnum
+from supersetapiplus.base.parse import ParseMixin
+from supersetapiplus.exceptions import ItemPositionValidationError, NodePositionValidationError
+from supersetapiplus.utils import generate_uuid
 
 def _asdict(data):
     return {

@@ -6,10 +6,10 @@ from abc import ABC, abstractmethod
 
 from typing_extensions import Self
 
-from supersetapiclient.base.parse import ParseMixin
-from supersetapiclient.dashboards.itemposition import ItemPositionType, ItemPosition, TabsItemPosition, \
+from supersetapiplus.base.parse import ParseMixin
+from supersetapiplus.dashboards.itemposition import ItemPositionType, ItemPosition, TabsItemPosition, \
     TabItemPosition, MarkdownItemPosition, RowItemPosition, GridItemPosition, DividerItemPosition, ColumnItemPosition
-from supersetapiclient.exceptions import AcceptChildError, NodePositionValidationError
+from supersetapiplus.exceptions import AcceptChildError, NodePositionValidationError
 
 logger = logging.getLogger(__name__)
 

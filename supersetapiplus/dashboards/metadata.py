@@ -1,8 +1,8 @@
 import json
 from dataclasses import dataclass, field
 from typing import List, Dict
-from supersetapiclient.base.base import Object, default_string, ObjectField
-from supersetapiclient.typing import Optional
+from supersetapiplus.base.base import Object, default_string, ObjectField
+from supersetapiplus.typing import Optional
 
 
 @dataclass

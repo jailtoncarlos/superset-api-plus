@@ -5,7 +5,7 @@ import logging
 import urllib.parse
 from typing import List
 
-from supersetapiclient.query_string import QueryStringFilter
+from supersetapiplus.query_string import QueryStringFilter
 
 try:
     from functools import cached_property
@@ -17,14 +17,14 @@ import requests.adapters
 import requests.exceptions
 import requests_oauthlib
 
-from supersetapiclient.assets import Assets
-from supersetapiclient.base.base import raise_for_status
-from supersetapiclient.charts.charts import Charts
-from supersetapiclient.dashboards.dashboards import Dashboards
-from supersetapiclient.databases import Databases
-from supersetapiclient.datasets import Datasets
-from supersetapiclient.exceptions import QueryLimitReached
-from supersetapiclient.saved_queries import SavedQueries
+from supersetapiplus.assets import Assets
+from supersetapiplus.base.base import raise_for_status
+from supersetapiplus.charts.charts import Charts
+from supersetapiplus.dashboards.dashboards import Dashboards
+from supersetapiplus.databases import Databases
+from supersetapiplus.datasets import Datasets
+from supersetapiplus.exceptions import QueryLimitReached
+from supersetapiplus.saved_queries import SavedQueries
 
 logger = logging.getLogger(__name__)
 

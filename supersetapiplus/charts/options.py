@@ -1,13 +1,13 @@
 from abc import abstractmethod, ABC
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
-from supersetapiclient.base.base import Object, ObjectField
-from supersetapiclient.charts.filters import AdhocFilterClause
-from supersetapiclient.charts.queries import OrderByTyping, MetricsMixin, AdhocMetric, AdhocMetricColumn, OrderBy, \
+from supersetapiplus.base.base import Object, ObjectField
+from supersetapiplus.charts.filters import AdhocFilterClause
+from supersetapiplus.charts.queries import OrderByTyping, MetricsMixin, AdhocMetric, AdhocMetricColumn, OrderBy, \
     MetricHelper
-from supersetapiclient.charts.types import ChartType, FilterOperatorType, FilterClausesType, \
+from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, \
     FilterExpressionType, MetricType
-from supersetapiclient.exceptions import ValidationError
+from supersetapiplus.exceptions import ValidationError
 
 class OptionGroupByMixin:
     def _add_simple_groupby(self, column_name:str):

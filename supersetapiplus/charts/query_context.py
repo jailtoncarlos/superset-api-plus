@@ -3,12 +3,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
 
-from supersetapiclient.base.base import Object, ObjectField
-from supersetapiclient.base.datasource import DataSource
-from supersetapiclient.charts.options import Option
-from supersetapiclient.charts.queries import QueryObject, AdhocMetricColumn, OrderBy, ColumnsMixin
-from supersetapiclient.charts.types import FilterOperatorType, FilterClausesType, MetricType, FilterExpressionType
-from supersetapiclient.exceptions import ChartValidationError, ValidationError
+from supersetapiplus.base.base import Object, ObjectField
+from supersetapiplus.base.datasource import DataSource
+from supersetapiplus.charts.options import Option
+from supersetapiplus.charts.queries import QueryObject, AdhocMetricColumn, OrderBy, ColumnsMixin
+from supersetapiplus.charts.types import FilterOperatorType, FilterClausesType, MetricType, FilterExpressionType
+from supersetapiplus.exceptions import ChartValidationError, ValidationError
 
 
 @dataclass
