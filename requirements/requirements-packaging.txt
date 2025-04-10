@@ -1,0 +1,16 @@
+# Configurações de desenvolvimento
+## Permite carregar variáveis de ambiente a partir de arquivos .env
+python-dotenv>=1.0.1
+# Biblioteca mais popular para análise e manipulação de dados em Python,
+# permitindo trabalhar com DataFrames e Séries.
+pandas>=2.2.3
+# Biblioteca fundamental para computação numérica em Python, permitindo
+# manipulação eficiente de arrays e operações matemáticas avançadas.
+requests>= 2.32.3
+
+requests-oauthlib>=2.0.0
+pyyaml>=6.0.2
+cached_property==2.0.1
+anytree>=2.12.1
+shortuuid>=1.0.13
+ordered-set>=4.1.0
