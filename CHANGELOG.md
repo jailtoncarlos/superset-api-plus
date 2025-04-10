@@ -42,3 +42,12 @@
 
 * **Remoção do arquivo `MANIFEST.in`:**
     * Arquivo removido por não ser mais necessário no novo empacotamento.
+
+
+### Continuous Integration
+
+* Atualizado o workflow `python-package.yaml`:
+  * Removido suporte ao Python 3.7 (EOL e incompatível com Ubuntu 24.04)
+  * Adicionadas versões 3.10, 3.11 e 3.12 à matriz de testes
+  * Substituídas ferramentas de lint (`black`, `flake8`, `isort`) por `ruff`
+  * Corrigido nome do pacote `supersetapiplus` na execução de testes com `pytest --cov`
