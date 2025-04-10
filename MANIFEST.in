@@ -1,4 +1,0 @@
-include README.md
-recursive-include tabnet_framework/tests *.py
-include tabnet_framework/settings.py
-recursive-exclude * __pycache__ *.py[co]
