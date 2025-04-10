@@ -13,7 +13,7 @@ def read(file_path):
 
 setup(
     name="supersetapiplus",
-    version="0.5.0",
+    version="1.0.0a1",
     description="A framework to simplify access to Superset API endpoints and automate dashboard configuration.",
     long_description=read("README.md"),  # Reads directly from the README.md file
     long_description_content_type="text/markdown",
