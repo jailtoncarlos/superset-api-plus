@@ -131,6 +131,7 @@ pip install .[test]
 
 # Or install both at once
 pip install .[dev,test]
+```
 
 ---
 
