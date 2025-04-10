@@ -118,13 +118,19 @@ supersetapiplus/
 
 ---
 
-## Development
+## Development Setup
+
+To install development and testing dependencies using `pyproject.toml` extras:
 
 ```bash
-pip install -r requirements/requirements-dev.txt
-pre-commit install
-pre-commit run --all-files
-```
+# Install development dependencies (linters, tools, debuggers)
+pip install .[dev]
+
+# Install testing dependencies
+pip install .[test]
+
+# Or install both at once
+pip install .[dev,test]
 
 ---
 
