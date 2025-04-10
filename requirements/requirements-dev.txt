@@ -1,0 +1,44 @@
+# Utilitários
+## Formata dados em tabelas de forma legível, útil para exibir informações
+## em CLI ou relatórios.
+tabulate>=0.9.0
+
+# Depuração
+## Versão aprimorada do pdb (debugger padrão do Python) com suporte a IPython,
+## permitindo debugs interativos e mais poderoso
+ipdb>=0.13.13
+
+
+# Shell interativo
+# Shell interativo aprimorado para Python, com autocompletar, histórico e
+# introspecção avançada.
+ipython==8.32.0
+
+# Qualidade de Codigo - Garantir código limpo e organizado
+## Executa checks automáticos antes de cada commit (git commit), garantindo que
+## o código siga padrões definidos.
+pre-commit>=4.1.0
+## Analisador estático de código que verifica erros de estilo e más práticas.
+pylint>=3.3.4
+## Formatador automático de código opinionado, reformatando o código para
+## manter um padrão consistente
+black==25.1.0
+## Ferramenta de análise estática de código, focada em verificar erros de estilo.
+flake8>=7.1.1
+## Organiza importações do Python automaticamente, agrupando e ordenando
+## alfabeticamente.
+isort==6.0.0
+## Atualiza código legado para versões mais recentes do Python.
+pyupgrade==3.19.0
+## Verifica se o código segue as boas práticas de programação definidas pela
+## comunidade.
+mypy==1.15.0
+
+
+twine>=6.1.0
+
+## pytest
+## requests-mock
+## pytest-docker
+## pytest-cov
+## coveralls
