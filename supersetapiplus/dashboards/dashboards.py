@@ -1,7 +1,7 @@
 """Dashboards."""
 import json
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Type
 from supersetapiplus.base.base import Object, ObjectFactories, default_string, json_field, ObjectField
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.dashboards.metadata import Metadata
@@ -14,6 +14,7 @@ from supersetapiplus.typing import NotToJson, Optional
 def defult_metadata():
     return Metadata()
 
+
 def defult_metadata_position():
     return Metadataposition()
 
@@ -23,6 +24,7 @@ class Dashboard(Object):
     JSON_FIELDS = ['json_metadata', 'position_json']
 
     dashboard_title: str
+
     published: bool = field(default=False)
     id: NotToJson[int] = None
     css: str = default_string()
@@ -110,7 +112,6 @@ class Dashboard(Object):
 
 class Dashboards(ObjectFactories):
     endpoint = "dashboard/"
-    base_object = Dashboard
 
-    def get_base_object(self, data):
-        return self.base_object
+    def _default_object_class(self) -> Type[Object]:
+        return Dashboard

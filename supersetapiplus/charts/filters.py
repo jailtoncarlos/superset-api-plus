@@ -11,11 +11,11 @@ from supersetapiplus.typing import Optional
 
 @dataclass
 class AdhocFilterClause(Object):
-    expressionType: FilterExpressionType = FilterExpressionType.SIMPLE
+    expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.SIMPLE)
     subject: str = None
     operator: FilterOperatorType = None
     comparator: str = None
-    clause: str = FilterClausesType.WHERE
+    clause: FilterClausesType = field(default_factory=lambda: FilterClausesType.WHERE)
     sqlExpression: str = None
     operatorId: Optional[str] = None
 

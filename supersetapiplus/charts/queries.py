@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Union, Literal, get_args, Dict
+from typing import List, Union, Literal, get_args, Dict, Protocol, runtime_checkable
 
 from supersetapiplus.base.base import Object, ObjectField, default_string
 from supersetapiplus.charts.filters import AdhocFilterClause
@@ -21,9 +21,10 @@ class CurrencyFormat(Object):
 
 @dataclass
 class ColumnConfig(Object):
-    horizontalAlign: HorizontalAlignType = HorizontalAlignType.LEFT
-    d3NumberFormat: Optional[NumberFormatType] = NumberFormatType.ORIGINAL_VALUE
-    d3SmallNumberFormat: Optional[NumberFormatType] = NumberFormatType.ORIGINAL_VALUE
+    horizontalAlign: HorizontalAlignType = field(default_factory=lambda: HorizontalAlignType.LEFT)
+    d3NumberFormat: Optional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
+    d3SmallNumberFormat: Optional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
+
     alignPositiveNegative: Optional[bool] = None
     colorPositiveNegative: Optional[bool] = None
     showCellBars: Optional[bool] = None
@@ -51,7 +52,7 @@ Column = Union[AdhocColumn, str]
 class QueryFilterClause(Object):
     col: Column
     val: Optional[FilterValues]
-    op: FilterOperatorType = FilterOperatorType.EQUALS
+    op: FilterOperatorType = field(default_factory=lambda: FilterOperatorType.EQUALS)
 
 
 @dataclass
@@ -65,7 +66,7 @@ class AdhocMetricColumn(Object):
     groupby: bool = True
     is_dttm: bool = False
     python_date_format: Optional[str] = None
-    type: SqlMapType = None
+    type: Optional[SqlMapType] = None
     type_generic: Optional[GenericDataType] = None
 
     def validate(self, data: dict):
@@ -92,10 +93,10 @@ class AdhocMetric(Object):
     aggregate: Optional[MetricType]
     timeGrain: Optional[str]
     columnType: Optional[ColumnType]
-    label: Optional[str] = default_string()
-    expressionType: FilterExpressionType = FilterExpressionType.CUSTOM_SQL
-    hasCustomLabel: Optional[bool] = False
+    expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
     column: Optional[AdhocMetricColumn] = ObjectField(cls=AdhocMetricColumn, default_factory=AdhocMetricColumn)
+    label: Optional[str] = default_string()
+    hasCustomLabel: Optional[bool] = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -168,12 +169,19 @@ class MetricHelper:
                                   solution=f'Use o enum types.MetricType')
 
 
-class MetricsMixin:
-    def _add_simple_metric(self, metric:str, automatic_order: OrderBy):
+@runtime_checkable
+class SupportsMetrics(Protocol):
+    # This is a protocol that defines the expected structure of classes that have metrics.
+    metrics: List[Metric]
+
+
+class MetricsListMixin:
+    def _add_simple_metric(self: SupportsMetrics, metric: str, automatic_order: OrderBy):
         MetricHelper.check_metric(metric)
         self.metrics.append(metric)
 
-    def _add_custom_metric(self, label: str,
+    def _add_custom_metric(self: SupportsMetrics,
+                           label: str,
                            automatic_order: OrderBy,
                            column: AdhocMetricColumn,
                            sql_expression: str = None,
@@ -182,14 +190,20 @@ class MetricsMixin:
         self.metrics.append(metric)
 
 
-class MetricMixin:
-    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
+@runtime_checkable
+class SupportsMetric(Protocol):
+    # This is a protocol that defines the expected structure of classes that have metric.
+    metric: Metric
+
+
+class SingleMetricMixin:
+    def _add_simple_metric(self: SupportsMetric, metric: str, automatic_order: OrderBy):
         MetricHelper.check_metric(metric)
         self.metric = metric
         if automatic_order and automatic_order.automate:
             self.sort_by_metric = True
 
-    def _add_custom_metric(self, label: str,
+    def _add_custom_metric(self: SupportsMetric, label: str,
                            automatic_order: OrderBy,
                            column: AdhocMetricColumn,
                            sql_expression: str = None,
@@ -201,18 +215,30 @@ class MetricMixin:
         self.metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
 
 
+@runtime_checkable
+class SupportsColumns(Protocol):
+    # This is a protocol that defines the expected structure of classes that have metric.
+    columns: Optional[List[Metric]]
+
+
 class ColumnsMixin:
-    def _add_simple_columns(self, column_name:str):
+    def _add_simple_columns(self: SupportsColumns, column_name:str):
         self.columns.append(column_name)
 
-    def _add_custom_columns(self, label: str,
-                           column: AdhocMetricColumn = None,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
+    def _add_custom_columns(self: SupportsColumns, label: str,
+                            column: AdhocMetricColumn = None,
+                            sql_expression: str = None,
+                            aggregate: MetricType = None):
         metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
         self.columns.append(metric)
         if column:
             column.expressionType = FilterExpressionType.CUSTOM_SQL
+
+
+@runtime_checkable
+class SupportsOrderby(Protocol):
+    # This is a protocol that defines the expected structure of classes that have metric.
+    orderby: Optional[List[OrderByTyping]]
 
 
 class OrderByMixin:
@@ -230,7 +256,7 @@ class OrderByMixin:
 
 
 @dataclass
-class QueryObject(Object, MetricsMixin, ColumnsMixin, OrderByMixin):
+class QueryObject(Object, MetricsListMixin, ColumnsMixin, OrderByMixin):
     row_limit: Optional[int] = 100
     series_limit: Optional[int] = 0
     series_limit_metric: Optional[Metric] = ObjectField(cls=AdhocMetric, default_factory=AdhocMetric)
@@ -239,8 +265,8 @@ class QueryObject(Object, MetricsMixin, ColumnsMixin, OrderByMixin):
 
     filters: List[QueryFilterClause] = ObjectField(cls=QueryFilterClause, default_factory=list)
     extras: QuerieExtra = ObjectField(cls=QuerieExtra, default_factory=QuerieExtra)
-    columns: Optional[List[Metric]] =  ObjectField(cls=AdhocMetric, default_factory=list)
-    metrics: Optional[List[Metric]] =  ObjectField(cls=AdhocMetric, default_factory=list)
+    columns: Optional[List[Metric]] = ObjectField(cls=AdhocMetric, default_factory=list)
+    metrics: Optional[List[Metric]] = ObjectField(cls=AdhocMetric, default_factory=list)
 
     applied_time_extras: Dict = field(default_factory=dict)
     url_params: Dict = field(default_factory=dict)

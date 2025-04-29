@@ -3,11 +3,12 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from supersetapiplus.base.base import Object, ObjectField
 from supersetapiplus.charts.filters import AdhocFilterClause
-from supersetapiplus.charts.queries import OrderByTyping, MetricsMixin, AdhocMetric, AdhocMetricColumn, OrderBy, \
+from supersetapiplus.charts.queries import OrderByTyping, MetricsListMixin, AdhocMetric, AdhocMetricColumn, OrderBy, \
     MetricHelper
 from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, \
     FilterExpressionType, MetricType
 from supersetapiplus.exceptions import ValidationError
+
 
 class OptionGroupByMixin:
     def _add_simple_groupby(self, column_name:str):
@@ -27,16 +28,28 @@ class OptionGroupByMixin:
 @dataclass
 class Option(Object, OptionGroupByMixin):
     viz_type: ChartType = None
-    slice_id: [int] = None
+    slice_id: Optional[int] = None
 
     datasource: str = None
 
     extra_form_data: Dict = field(default_factory=dict)
     row_limit: int = 100
 
-    adhoc_filters: List[AdhocFilterClause] =  ObjectField(cls=AdhocFilterClause, default_factory=list)
+    adhoc_filters: List[AdhocFilterClause] = ObjectField(cls=AdhocFilterClause, default_factory=list)
     dashboards: List[int] = field(default_factory=list)
     groupby: Optional[List[OrderByTyping]] = ObjectField(cls=AdhocMetric, default_factory=list)
+
+    @abstractmethod
+    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _add_custom_metric(self, label: str,
+                           automatic_order: OrderBy,
+                           column: AdhocMetricColumn,
+                           sql_expression: str = None,
+                           aggregate: MetricType = None):
+        raise NotImplementedError()
 
     def __post_init__(self):
         super().__post_init__()
@@ -74,16 +87,5 @@ class Option(Object, OptionGroupByMixin):
                                                 sqlExpression=sql_expression)
         self.adhoc_filters.append(adhoc_filter_clause)
 
-    @abstractmethod
-    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def _add_custom_metric(self, label: str,
-                           automatic_order: OrderBy,
-                           column: AdhocMetricColumn,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
-        raise NotImplementedError()
 
 

@@ -1,8 +1,9 @@
 """Charts."""
 import copy
 import json
+from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Type
 from typing_extensions import Self
 
 from supersetapiplus.base.base import Object, ObjectFactories, default_string, raise_for_status, ObjectField
@@ -36,18 +37,27 @@ class Chart(Object):
 
     cache_timeout: NotToJson[int] = field(default=None)
 
-    params: Option = field(default_factory=Option)
+    params: Option = field(init=False)  # Não instanciar Option diretamente!
     query_context: QueryContext = ObjectField(cls=QueryContext, default_factory=QueryContext)
 
-    datasource_type: DatasourceType = DatasourceType.TABLE
+    datasource_type: DatasourceType = field(default_factory=lambda: DatasourceType.TABLE)
     dashboards: List[Dashboard] = ObjectField(cls=Dashboard, default_factory=list)
 
+
     _slice_name_override: NotToJson[str] = default_string()
+
+    @classmethod
+    @abstractmethod
+    def _default_option_class(cls) -> type[Option]:
+        ...
 
     def __post_init__(self):
         super().__post_init__()
         from supersetapiplus.dashboards.dashboards import Dashboard
         self._dashboards = [Dashboard(dashboard_title='')]
+
+        if not hasattr(self, "params") or self.params is None:
+            self.params = self._default_option_class()()  # Assume que existe esse método na subclasse concreta
 
         if self.id is None:
             if self.datasource_id is None:
@@ -74,7 +84,10 @@ class Chart(Object):
     def instance(cls,
                  slice_name: str,
                  datasource: DataSource,
-                 options: Option = Option()):
+                 options: Option = None):
+
+        if options is None:
+            options = cls._default_option_class()()  # delega para a subclasse
 
         new_chart = cls(slice_name=slice_name,
                         datasource_id=datasource.id,
@@ -200,17 +213,9 @@ class Chart(Object):
 
 class Charts(ObjectFactories):
     endpoint = "chart/"
-    base_object = Chart
 
-    def get_base_object(self, data):
-        type_ = data['viz_type']
-        if type_:
-            m = self.base_object.__module__.split('.')
-            m.pop(-1)
-            m.append(type_)
-            module_name = '.'.join(m)
-            return self.base_object.get_class(type_, module_name)
-        return self.base_object
+    def _default_object_class(self) -> Type[Object]:
+        return Chart
 
     def get_chart_data(self, slice_id: str, dashboard_id: int) -> dict:
         chart = self.client.charts.get(slice_id)

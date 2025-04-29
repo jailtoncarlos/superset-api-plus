@@ -3,7 +3,7 @@ from supersetapiplus.base.base import ObjectField
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import AdhocMetric, Column, QueryObject, Metric, ColumnConfig, AdhocMetricColumn, \
-    OrderBy, MetricsMixin
+    OrderBy, MetricsListMixin
 from supersetapiplus.charts.query_context import QueryContext
 from dataclasses import dataclass, field
 from typing import List, Dict
@@ -14,10 +14,10 @@ from supersetapiplus.typing import Optional
 
 
 @dataclass
-class TableOption(Option, MetricsMixin):
+class TableOption(Option, MetricsListMixin):
     row_limit: int = 1000
-    viz_type: ChartType = ChartType.TABLE
-    query_mode: QueryModeType = QueryModeType.AGGREGATE
+    viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
+    query_mode: QueryModeType = field(default_factory=lambda: QueryModeType.AGGREGATE)
 
     order_by_cols: List = field(default_factory=list)
 
@@ -26,7 +26,7 @@ class TableOption(Option, MetricsMixin):
     order_desc: bool = False
     show_totals: Optional[bool] = False
 
-    table_timestamp_format: DateFormatType = DateFormatType.SMART_DATE
+    table_timestamp_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
     page_length: Optional[int] = None
     include_search: Optional[bool] = False
     show_cell_bars: bool = True
@@ -42,8 +42,7 @@ class TableOption(Option, MetricsMixin):
     granularity_sqla: Optional[str] = None
 
     metrics: Optional[List[Metric]] = ObjectField(cls=AdhocMetric, default_factory=list)
-    # columns: List[Column] = field(default_factory=list)
-    column_config: Optional[Dict[str,ColumnConfig]] = ObjectField(cls=ColumnConfig, dict_right=True, default_factory=dict)
+    column_config: Optional[Dict[str, ColumnConfig]] = ObjectField(cls=ColumnConfig, dict_right=True, default_factory=dict)
 
     def __post_init__(self):
         super().__post_init__()
@@ -110,12 +109,13 @@ class TableQueryContext(QueryContext):
                 raise ValidationError(message='The metrics definition in formdata is not included in queries.metrics.',
                                       solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
 
-    def _get_query_object_class(self):
+    def _default_query_object_class(self) -> type[QueryObject]:
         return TableQueryObject
+
 
 @dataclass
 class TableChart(Chart):
-    viz_type: ChartType = ChartType.TABLE
+    viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
     params: TableOption = ObjectField(cls=TableOption, default_factory=TableOption)
     query_context: TableQueryContext = ObjectField(cls=TableQueryContext, default_factory=TableQueryContext)
 
@@ -138,3 +138,7 @@ class TableChart(Chart):
         if column_config:
             self.params._add_column_config(label, column_config)
             self.query_context.form_data._add_column_config(label, column_config)
+
+    @classmethod
+    def _default_option_class(cls) -> type[Option]:
+        return TableOption

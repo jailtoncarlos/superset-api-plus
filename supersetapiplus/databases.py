@@ -1,6 +1,6 @@
 """Databases."""
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Type
 
 from supersetapiplus.base.base import Object, ObjectFactories, default_string, json_field
 
@@ -46,7 +46,6 @@ class Database(Object):
 
 class Databases(ObjectFactories):
     endpoint = "database/"
-    base_object = Database
 
     @property
     def test_connection_url(self):
@@ -60,3 +59,6 @@ class Databases(ObjectFactories):
         o = {c: getattr(obj, c) for c in connection_columns}
         response = self.client.post(url, json=o)
         return response.json().get("message") == "OK"
+
+    def _default_object_class(self) -> Type[Object]:
+        return Database

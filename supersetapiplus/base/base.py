@@ -1,7 +1,7 @@
 """Base classes."""
 import dataclasses
 import logging
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from contextlib import suppress
 from enum import Enum
 from typing_extensions import Self
@@ -21,7 +21,7 @@ except ImportError:  # pragma: no cover
 import json
 import os.path
 from pathlib import Path
-from typing import List, Union, Dict, get_args, get_origin, Any, Literal, MutableMapping
+from typing import List, Union, Dict, get_args, get_origin, Any, Literal, MutableMapping, Type
 
 import yaml
 from requests import HTTPError
@@ -30,20 +30,20 @@ from supersetapiplus.exceptions import BadRequestError, ComplexBadRequestError, 
     LoadJsonError, ValidationError
 
 
-class ObjectField(dataclasses.Field):
-    def __init__(self, cls, dict_left:bool=False, dict_right:bool=False, *args, **kwargs):
-        kwargs['default'] = kwargs.get('default', dataclasses.MISSING)
-        kwargs['default_factory'] = kwargs.get('default_factory', dataclasses.MISSING)
-        kwargs['init'] = kwargs.get('init', True)
-        kwargs['repr'] = kwargs.get('repr', True)
-        kwargs['compare'] = kwargs.get('compare', True)
-        kwargs['metadata'] = kwargs.get('metadata', None)
-        kwargs['hash'] = kwargs.get('hash', None)
-        super().__init__(*args, **kwargs)
+def ObjectField(cls=None, dict_left=False, dict_right=False, **kwargs):
+    kwargs.setdefault("default", dataclasses.MISSING)
+    kwargs.setdefault("default_factory", dataclasses.MISSING)
+    kwargs.setdefault("init", True)
+    kwargs.setdefault("repr", True)
+    kwargs.setdefault("compare", True)
+    kwargs.setdefault("hash", None)
+    kwargs.setdefault("kw_only", False)
 
-        self.cls = cls
-        self.dict_left = dict_left
-        self.dict_right = dict_right
+    metadata = kwargs.pop("metadata", {})
+    metadata["cls"] = cls
+    metadata["dict_left"] = dict_left
+    metadata["dict_right"] = dict_right
+    return dataclasses.field(metadata=metadata, **kwargs)
 
 
 class ObjectDecoder(json.JSONEncoder):
@@ -59,15 +59,18 @@ def json_field(**kwargs):
 
     return dataclasses.field(repr=False, **kwargs)
 
+
 def default_string(**kwargs):
     if not kwargs.get('default'):
         kwargs['default']=''
     return dataclasses.field(repr=False, **kwargs)
 
+
 def default_bool(**kwargs):
     if not kwargs.get('default'):
         kwargs['default']=False
     return dataclasses.field(repr=False)
+
 
 def raise_for_status(response):
     try:
@@ -85,11 +88,15 @@ def raise_for_status(response):
         raise BadRequestError(*e.args, request=e.request, response=e.response, message=error_msg) from None
 
 
-class Object(ParseMixin):
+class Object(ParseMixin, ABC):
     _factory = None
     JSON_FIELDS = []
 
     _extra_fields: Dict = {}
+
+    @abstractmethod
+    def validate(self, data: dict):
+        pass
 
     def __post_init__(self):
         for f in self.JSON_FIELDS:
@@ -105,17 +112,13 @@ class Object(ParseMixin):
                     and not get_origin(field.type) is Optional:
                         setattr(self, field.name, field.default)
 
-    @abstractmethod
-    def validate(self, data: dict):
-        pass
-
     @property
     def extra_fields(self):
         return self._extra_fields
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
-            return NotImplemented
+            return NotImplementedError()
         dict_self = vars(self)
         dict_self.pop('_extra_fields', None)
         dict_other = vars(other)
@@ -183,9 +186,7 @@ class Object(ParseMixin):
 
     @classmethod
     def _subclass_object(cls, field: dataclasses.Field):
-        if hasattr(field, 'cls'):
-            return field.cls
-        return None
+        return field.metadata.get("cls")
 
     @classmethod
     def from_json(cls, data: dict) -> Self:
@@ -425,9 +426,8 @@ class Object(ParseMixin):
         return jdict
 
 
-class ObjectFactories:
+class ObjectFactories(ABC):
     endpoint = ""
-    base_object: Object = None
 
     _INFO_QUERY = {"keys": ["add_columns", "edit_columns"]}
 
@@ -440,9 +440,18 @@ class ObjectFactories:
         self.client = client
 
     @abstractmethod
+    def _default_object_class(self) -> type[Object]:
+        ...
+
     def get_base_object(self, data):
-        logger.error(f'Abstract Method "get_base_object" not implemented, self: {self}')
-        raise NotImplemented()
+        type_ = data['viz_type']
+        if type_:
+            m = self._default_object_class().__module__.split('.')
+            m.pop(-1)
+            m.append(type_)
+            module_name = '.'.join(m)
+            return self._default_object_class().get_class(type_, module_name)
+        return self._default_object_class()
 
     @cached_property
     def _infos(self):

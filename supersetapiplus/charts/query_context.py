@@ -17,10 +17,14 @@ class FormData(Option):
 
 
 @dataclass
-class QueryContext(Object, ABC):
+class QueryContext(Object):
     datasource: DataSource = ObjectField(cls=DataSource, default_factory=DataSource)
     queries: List[QueryObject] = ObjectField(cls=QueryObject, default_factory=list)
     form_data: FormData = ObjectField(cls=FormData, default_factory=FormData)
+
+    @abstractmethod
+    def _default_query_object_class(self) -> type[QueryObject]:
+        raise NotImplementedError()
 
     def __post_init__(self):
         self._automatic_order: OrderBy = None
@@ -43,20 +47,16 @@ class QueryContext(Object, ABC):
     def add_dashboard(self, dashboard_id):
         self.form_data.add_dashboard(dashboard_id)
 
-    @abstractmethod
-    def _get_query_object_class(self):
-        raise NotImplementedError()
-
     @property
     def first_queries(self):
         if self.queries and len(self.queries) > 1:
             raise ChartValidationError("""There are more than one query in the queries list.
                                        We don't know which one to include the filter in.""")
         if not self.queries:
-            QueryObjectClass = self._get_query_object_class()
+            QueryObjectClass = self._default_query_object_class()
             self.queries: List[QueryObjectClass] = []
         if len(self.queries) == 0:
-            QueryObjectClass = self._get_query_object_class()
+            QueryObjectClass = self._default_query_object_class()
             self.queries.append(QueryObjectClass())
         return self.queries[-1]
 

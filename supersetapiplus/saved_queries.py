@@ -1,6 +1,6 @@
 """Saved queries."""
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Type
 
 from supersetapiplus.base.base import Object, ObjectFactories, default_string
 
@@ -31,3 +31,6 @@ class SavedQuery(Object):
 class SavedQueries(ObjectFactories):
     endpoint = "saved_query/"
     base_object = SavedQuery
+
+    def _default_object_class(self) -> Type[Object]:
+        return SavedQuery
