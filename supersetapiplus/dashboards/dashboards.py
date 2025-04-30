@@ -1,18 +1,19 @@
 """Dashboards."""
-import json
 from dataclasses import dataclass, field
-from typing import List
-from supersetapiplus.base.base import Object, ObjectFactories, default_string, json_field, ObjectField
+from typing import List, Type
+
+from supersetapiplus.base.base import Object, ObjectFactories, default_string, object_field
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.dashboards.metadataposition import Metadataposition
 from supersetapiplus.dashboards.nodeposisition import RowNodePosition
 from supersetapiplus.exceptions import DashboardValidationError
-from supersetapiplus.typing import NotToJson, Optional
+from supersetapiplus.typing import NotToJson
 
 
 def defult_metadata():
     return Metadata()
+
 
 def defult_metadata_position():
     return Metadataposition()
@@ -23,18 +24,20 @@ class Dashboard(Object):
     JSON_FIELDS = ['json_metadata', 'position_json']
 
     dashboard_title: str
+
     published: bool = field(default=False)
     id: NotToJson[int] = None
     css: str = default_string()
     slug: str = None
 
-    json_metadata: Metadata = ObjectField(cls=Metadata, default_factory=Metadata)
-    position_json: Metadataposition = ObjectField(cls=Metadataposition, default_factory=Metadataposition)
+    json_metadata: Metadata = object_field(cls=Metadata, default_factory=Metadata)
+    position_json: Metadataposition = object_field(cls=Metadataposition, default_factory=Metadataposition)
     # charts: List[Chart] = field(default_factory=Chart)
 
     def __post_init__(self):
         super().__post_init__()
         self._charts_slice_names = []
+
 
     @classmethod
     def from_json(cls, data: dict):
@@ -110,7 +113,6 @@ class Dashboard(Object):
 
 class Dashboards(ObjectFactories):
     endpoint = "dashboard/"
-    base_object = Dashboard
 
-    def get_base_object(self, data):
-        return self.base_object
+    def _default_object_class(self) -> Type[Object]:
+        return Dashboard

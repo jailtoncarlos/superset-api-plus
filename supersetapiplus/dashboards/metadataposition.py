@@ -1,4 +1,3 @@
-import json
 from dataclasses import dataclass
 
 from supersetapiplus.base.base import Object

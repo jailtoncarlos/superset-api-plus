@@ -28,6 +28,7 @@ from supersetapiplus.saved_queries import SavedQueries
 
 logger = logging.getLogger(__name__)
 
+
 class SupersetClient:
     """A Superset Client."""
 

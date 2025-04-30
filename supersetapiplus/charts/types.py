@@ -11,7 +11,7 @@ class ChartType(StringEnum):
 
 #https://github.com/apache/superset/blob/8553b06155249c3583cf0dcd22221ec06cbb833d/superset-frontend/plugins/plugin-chart-echarts/src/types.ts
 class LegendType(StringEnum):
-    PLAIN ='plain'
+    PLAIN = 'plain'
     SCROLL = 'scroll'
 
 
@@ -20,6 +20,7 @@ class LegendOrientationType(StringEnum):
     TOP = 'top'
     LEFT = 'left'
     RIGHT = 'right'
+
 
 class NumberFormatType(StringEnum):
     ORIGINAL_VALUE = '~g'
@@ -35,12 +36,12 @@ class NumberFormatType(StringEnum):
     FLOAT_1_POINT = ',.1f'
     FLOAT_2_POINT = ',.2f'
     FLOAT_3_POINT = ',.3f'
-    FLOAT = FLOAT_2_POINT;
+    FLOAT = FLOAT_2_POINT
 
     FLOAT_SIGNED_1_POINT = '+,.1f'
     FLOAT_SIGNED_2_POINT = '+,.2f'
     FLOAT_SIGNED_3_POINT = '+,.3f'
-    FLOAT_SIGNED = FLOAT_SIGNED_2_POINT;
+    FLOAT_SIGNED = FLOAT_SIGNED_2_POINT
 
     INTEGER = ',d'
     INTEGER_SIGNED = '+,d'
@@ -52,12 +53,12 @@ class NumberFormatType(StringEnum):
     PERCENT_SIGNED_1_POINT = '+,.1%'
     PERCENT_SIGNED_2_POINT = '+,.2%'
     PERCENT_SIGNED_3_POINT = '+,.3%'
-    PERCENT_SIGNED = PERCENT_SIGNED_2_POINT;
+    PERCENT_SIGNED = PERCENT_SIGNED_2_POINT
 
     SI_1_DIGIT = '.1s'
     SI_2_DIGIT = '.2s'
     SI_3_DIGIT = '.3s'
-    SI = SI_3_DIGIT;
+    SI = SI_3_DIGIT
 
     DURATION = 'DURATION' #Duration in ms (66000 => 1m 6s)
     DURATION_SUB = 'DURATION_SUB' #Duration in ms (100.40008 => 100ms 400µs 80ns)
@@ -96,8 +97,9 @@ class TimeGrain(StringEnum):
     QUARTER_YEAR = "P0.25Y"
     YEAR = "P1Y"
 
+
 class LabelType(StringEnum):
-    CATEGORY_NAME ='key'
+    CATEGORY_NAME = 'key'
     VALUE = 'value'
     PERCENTAGE = 'percent'
     CATEGORY_AND_VALUE = 'key_value'
@@ -146,9 +148,11 @@ class FilterExpressionType(StringEnum):
     SIMPLE = 'SIMPLE'
     CUSTOM_SQL = 'SQL'
 
+
 class ColumnType(StringEnum):
     BASE_AXIS = 'BASE_AXIS'
     SERIES = 'SERIES'
+
 
 class SqlMapType(StringEnum):
     BOOLEAN = "BOOLEAN"
@@ -176,9 +180,10 @@ class GenericDataType(IntEnum):
     # MAP = 6
     # ROW = 7
 
+
 class FilterClausesType(StringEnum):
-  HAVING = 'HAVING'
-  WHERE = 'WHERE'
+    HAVING = 'HAVING'
+    WHERE = 'WHERE'
 
 
 class QueryModeType(StringEnum):
@@ -202,6 +207,7 @@ class MetricType(StringEnum):
 #     AVG = "AVG"
 #     MIN = "MIN"
 #     MAX = "MAX"
+
 
 class CurrencyCodeType(StringEnum):
     AED = 'AED'
@@ -367,31 +373,36 @@ class CurrentPositionType(StringEnum):
     PREFIX = 'prefix'
     SUFFIX = 'suffix'
 
+
 class HorizontalAlignType(StringEnum):
     LEFT = 'left'
     RIGHT = 'right'
     CENTER = 'center'
 
+
 class Orientation(StringEnum):
-    HORIZONTAL =  'horizontal'
+    HORIZONTAL = 'horizontal'
     VERTICAL = 'vertical'
 
 
 class ContributionType(StringEnum):
-  ROW = 'row',
-  COLUMN = 'column'
+    ROW = 'row',
+    COLUMN = 'column'
+
 
 class SortSeriesType(StringEnum):
-  NAME = 'name',
-  MAX = 'max',
-  MIN = 'min',
-  SUM = 'sum',
-  AVG = 'avg',
+    NAME = 'name',
+    MAX = 'max',
+    MIN = 'min',
+    SUM = 'sum',
+    AVG = 'avg',
+
 
 class StackStylyType(StringEnum):
     STACK = 'Stack'
     STREAM = 'Stream'
     NONE = 'None'
+
 
 class TitlepositionType(StringEnum):
     LEFT = 'Left'
@@ -404,7 +415,7 @@ class LabelRotation(IntEnum):
 
 
 class ComparisonType(StringEnum):
-  VALUES = 'values',
-  DIFFERENCE = 'difference',
-  PERCENTAGE = 'percentage',
-  RATIO = 'ratio',
+    VALUES = 'values'
+    DIFFERENCE = 'difference'
+    PERCENTAGE = 'percentage'
+    RATIO = 'ratio'

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from supersetapiplus.base.base import Object
 from supersetapiplus.base.types import DatasourceType
@@ -7,4 +7,4 @@ from supersetapiplus.base.types import DatasourceType
 @dataclass
 class DataSource(Object):
     id: int = None
-    type: DatasourceType = DatasourceType.TABLE
+    type: DatasourceType = field(default_factory=lambda: DatasourceType.TABLE)

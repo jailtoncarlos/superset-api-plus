@@ -1,19 +1,19 @@
 import logging
+from abc import ABC, abstractmethod
 from typing import List
 
-from anytree import Node, RenderTree
-from abc import ABC, abstractmethod
-
+from anytree import Node
 from typing_extensions import Self
 
 from supersetapiplus.base.parse import ParseMixin
 from supersetapiplus.dashboards.itemposition import ItemPositionType, ItemPosition, TabsItemPosition, \
-    TabItemPosition, MarkdownItemPosition, RowItemPosition, GridItemPosition, DividerItemPosition, ColumnItemPosition
+    TabItemPosition, MarkdownItemPosition, RowItemPosition, ColumnItemPosition
 from supersetapiplus.exceptions import AcceptChildError, NodePositionValidationError
 
 logger = logging.getLogger(__name__)
 
-class NodePosition(Node, ParseMixin):
+
+class NodePosition(Node, ParseMixin, ABC):
     def __init__(self, item: ItemPosition, parent: Self=None):
         super().__init__(item.id, parent)
         self._is_sibling_left = False
@@ -24,6 +24,10 @@ class NodePosition(Node, ParseMixin):
         if parent and not parent.item.ACCEPT_CHILD:
             raise AcceptChildError()
         self._add_child(parent)
+
+    @abstractmethod
+    def _validate(self, item: ItemPosition):
+        return
 
     def _add_child(self,  parent: Self):
         if parent:
@@ -41,10 +45,6 @@ class NodePosition(Node, ParseMixin):
     @property
     def type_(self):
         return ItemPositionType(self.item.type_)
-
-    @abstractmethod
-    def _validate(self, item: ItemPosition):
-        return
 
     def get_new_node_position(self, item: ItemPosition, parent: Self):
         return NodePositionParse.get_instance(item, item.type_, parent)

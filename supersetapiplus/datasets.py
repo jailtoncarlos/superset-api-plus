@@ -1,6 +1,6 @@
 """Dashboards."""
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Type
 
 from supersetapiplus.base.base import Object, ObjectFactories, QueryStringFilter
 from supersetapiplus.base.datasource import DataSource
@@ -46,7 +46,6 @@ class Dataset(Object):
 
 class Datasets(ObjectFactories):
     endpoint = "dataset/"
-    base_object = Dataset
 
     # list of supported filters
     # http://localhost:8088/api/v1/dataset/_info?q=(keys:!(filters))
@@ -64,3 +63,6 @@ class Datasets(ObjectFactories):
         else:
             raise NotFound(f'Attribut result does not exist in object response.')
         return DataSource(**data)
+
+    def _default_object_class(self) -> Type[Object]:
+        return Dataset

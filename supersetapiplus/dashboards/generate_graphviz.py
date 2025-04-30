@@ -1,9 +1,11 @@
 import os
+
 import graphviz
 
 from supersetapiplus.dashboards.itemposition import ItemPositionType
 from supersetapiplus.dashboards.nodeposisition import NodePosition
 from supersetapiplus.dashboards.treenodeposisition import TreeNodePosition
+
 
 class GenerateGraphMixin:
     def _add_nodes_edges(self, graph, node: NodePosition, treenode: TreeNodePosition):

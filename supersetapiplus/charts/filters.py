@@ -1,7 +1,6 @@
-import json
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import Object, default_string
+from supersetapiplus.base.base import Object
 from supersetapiplus.charts.types import FilterOperatorType, FilterExpressionType, FilterClausesType
 from supersetapiplus.typing import Optional
 
@@ -11,14 +10,13 @@ from supersetapiplus.typing import Optional
 
 @dataclass
 class AdhocFilterClause(Object):
-    expressionType: FilterExpressionType = FilterExpressionType.SIMPLE
+    expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.SIMPLE)
     subject: str = None
     operator: FilterOperatorType = None
     comparator: str = None
-    clause: str = FilterClausesType.WHERE
+    clause: FilterClausesType = field(default_factory=lambda: FilterClausesType.WHERE)
     sqlExpression: str = None
     operatorId: Optional[str] = None
 
     isExtra: bool = False
     isNew: bool = False
-
