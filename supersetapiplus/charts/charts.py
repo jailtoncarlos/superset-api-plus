@@ -4,17 +4,17 @@ import json
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Type
+
 from typing_extensions import Self
 
-from supersetapiplus.base.base import Object, ObjectFactories, default_string, raise_for_status, ObjectField
+from supersetapiplus.base.base import Object, ObjectFactories, default_string, raise_for_status, object_field
 from supersetapiplus.base.types import DatasourceType
-from supersetapiplus.charts.filters import AdhocFilterClause
+from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import QueryFilterClause, QueryObject, Column, AdhocMetricColumn, OrderBy
-
+from supersetapiplus.charts.queries import QueryObject, AdhocMetricColumn
 from supersetapiplus.charts.query_context import QueryContext, DataSource
 from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, FilterExpressionType, \
-    MetricType, MetricType
+    MetricType
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.exceptions import NotFound, ChartValidationError, ValidationError
@@ -38,10 +38,10 @@ class Chart(Object):
     cache_timeout: NotToJson[int] = field(default=None)
 
     params: Option = field(init=False)  # Não instanciar Option diretamente!
-    query_context: QueryContext = ObjectField(cls=QueryContext, default_factory=QueryContext)
+    query_context: QueryContext = object_field(cls=QueryContext, default_factory=QueryContext)
 
     datasource_type: DatasourceType = field(default_factory=lambda: DatasourceType.TABLE)
-    dashboards: List[Dashboard] = ObjectField(cls=Dashboard, default_factory=list)
+    dashboards: List[Dashboard] = object_field(cls=Dashboard, default_factory=list)
 
 
     _slice_name_override: NotToJson[str] = default_string()

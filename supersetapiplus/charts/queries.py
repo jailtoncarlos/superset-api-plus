@@ -1,13 +1,13 @@
 import logging
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Union, Literal, get_args, Dict, Protocol, runtime_checkable
+from typing import List, Union, Dict, Protocol, runtime_checkable
 
-from supersetapiplus.base.base import Object, ObjectField, default_string
-from supersetapiplus.charts.filters import AdhocFilterClause
-from supersetapiplus.charts.types import FilterOperatorType, TimeGrain, FilterExpressionType, SqlMapType, \
-    GenericDataType, HorizontalAlignType, NumberFormatType, CurrentPositionType, CurrencyCodeType, MetricType, \
-    FilterClausesType, ColumnType
+from supersetapiplus.base.base import Object, object_field
+from supersetapiplus.charts.metric import AdhocMetricColumn, MetricHelper, Metric, OrderByTyping, MetricsListMixin, \
+    AdhocMetric
+from supersetapiplus.charts.types import FilterOperatorType, TimeGrain, FilterExpressionType, HorizontalAlignType, \
+    NumberFormatType, CurrentPositionType, CurrencyCodeType, MetricType, \
+    ColumnType
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import FilterValues, Optional
 
@@ -29,7 +29,7 @@ class ColumnConfig(Object):
     colorPositiveNegative: Optional[bool] = None
     showCellBars: Optional[bool] = None
     columnWidth: Optional[int] = None
-    currency_format: Optional[CurrencyFormat] = ObjectField(cls=CurrencyFormat, default_factory=CurrencyFormat)
+    currency_format: Optional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
 
 
 @dataclass
@@ -47,172 +47,15 @@ class AdhocColumn(Object):
     timeGrain: Optional[str]
     columnType: Optional[ColumnType]
 
+
 Column = Union[AdhocColumn, str]
+
+
 @dataclass
 class QueryFilterClause(Object):
     col: Column
     val: Optional[FilterValues]
     op: FilterOperatorType = field(default_factory=lambda: FilterOperatorType.EQUALS)
-
-
-@dataclass
-class AdhocMetricColumn(Object):
-    column_name: str = default_string()
-    id: Optional[int] = None
-    verbose_name: Optional[str] = None
-    description: Optional[str] = None
-    expression: Optional[str] = None
-    filterable: bool = True
-    groupby: bool = True
-    is_dttm: bool = False
-    python_date_format: Optional[str] = None
-    type: Optional[SqlMapType] = None
-    type_generic: Optional[GenericDataType] = None
-
-    def validate(self, data: dict):
-        if not self.column_name or self.type:
-            raise ValidationError(message='At least the column_name and type fields must be informed.',
-                                  solution='')
-
-    def is_empty(self):
-        if self.id is None \
-            and self.verbose_name is None\
-            and self.description is None\
-            and self.expression is None\
-            and self.python_date_format is None\
-            and self.type is None\
-            and self.type_generic is None:
-            return True
-        else:
-            return False
-
-
-@dataclass
-class AdhocMetric(Object):
-    sqlExpression: Optional[str]
-    aggregate: Optional[MetricType]
-    timeGrain: Optional[str]
-    columnType: Optional[ColumnType]
-    expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
-    column: Optional[AdhocMetricColumn] = ObjectField(cls=AdhocMetricColumn, default_factory=AdhocMetricColumn)
-    label: Optional[str] = default_string()
-    hasCustomLabel: Optional[bool] = False
-
-    def __post_init__(self):
-        super().__post_init__()
-        if isinstance(self.column, AdhocMetricColumn) and self.column.is_empty():
-            self.column: Optional[AdhocMetricColumn] = None
-
-
-Metric = Union[AdhocMetric, Literal['count', 'sum', 'avg', 'min', 'max', 'count distinct']]
-OrderByTyping = tuple[Metric, bool]
-
-class OrderBy:
-    def __init__(self, automate:bool=True, sort_ascending: bool = True):
-        self._automate = automate
-        self._sort_ascending = sort_ascending
-
-    def __str__(self):
-        return f'automate: {self._automate}, sort_ascending: {self._sort_ascending}'
-
-    @property
-    def automate(self):
-        self._automate
-
-    @property
-    def sort_ascending(self):
-        self._sort_ascending
-
-
-class MetricHelper:
-    @classmethod
-    def get_metric(cls, label: str,
-                   column: AdhocMetricColumn = None,
-                   sql_expression: str = None,
-                   aggregate: MetricType = MetricType.COUNT):
-        expression_type = FilterExpressionType.SIMPLE
-        if sql_expression:
-            expression_type = FilterExpressionType.CUSTOM_SQL
-
-        if aggregate:
-            cls.check_aggregate(aggregate)
-            aggregate = str(aggregate).upper()
-
-        has_custom_label = False
-        if label:
-            has_custom_label = True
-
-        _metric = {
-            "expressionType": str(expression_type),
-            "hasCustomLabel": has_custom_label,
-            'column': column,
-            'sqlExpression': sql_expression,
-            'aggregate': aggregate
-        }
-        if has_custom_label:
-            _metric['label'] = label
-
-        return AdhocMetric(**_metric)
-
-    @classmethod
-    def check_metric(cls, value):
-        simple_metrics = get_args(get_args(Metric)[-1])
-        if str(value) not in simple_metrics:
-            raise ValidationError(message='Metric not found.',
-                                  solution=f'Use one of the options:{simple_metrics}')
-
-    @classmethod
-    def check_aggregate(cls, value):
-        list_aggregates = [e.value for e in MetricType]
-        if str(value) not in list_aggregates:
-            raise ValidationError(message='Aggregate not found.',
-                                  solution=f'Use o enum types.MetricType')
-
-
-@runtime_checkable
-class SupportsMetrics(Protocol):
-    # This is a protocol that defines the expected structure of classes that have metrics.
-    metrics: List[Metric]
-
-
-class MetricsListMixin:
-    def _add_simple_metric(self: SupportsMetrics, metric: str, automatic_order: OrderBy):
-        MetricHelper.check_metric(metric)
-        self.metrics.append(metric)
-
-    def _add_custom_metric(self: SupportsMetrics,
-                           label: str,
-                           automatic_order: OrderBy,
-                           column: AdhocMetricColumn,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
-        metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
-        self.metrics.append(metric)
-
-
-@runtime_checkable
-class SupportsMetric(Protocol):
-    # This is a protocol that defines the expected structure of classes that have metric.
-    metric: Metric
-
-
-class SingleMetricMixin:
-    def _add_simple_metric(self: SupportsMetric, metric: str, automatic_order: OrderBy):
-        MetricHelper.check_metric(metric)
-        self.metric = metric
-        if automatic_order and automatic_order.automate:
-            self.sort_by_metric = True
-
-    def _add_custom_metric(self: SupportsMetric, label: str,
-                           automatic_order: OrderBy,
-                           column: AdhocMetricColumn,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
-        if not aggregate:
-            raise ValidationError(message='Argument aggregate cannot be empty.')
-        if automatic_order and automatic_order.automate:
-            self.sort_by_metric = True
-        self.metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
 
 
 @runtime_checkable
@@ -259,14 +102,14 @@ class OrderByMixin:
 class QueryObject(Object, MetricsListMixin, ColumnsMixin, OrderByMixin):
     row_limit: Optional[int] = 100
     series_limit: Optional[int] = 0
-    series_limit_metric: Optional[Metric] = ObjectField(cls=AdhocMetric, default_factory=AdhocMetric)
+    series_limit_metric: Optional[Metric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
     order_desc: bool = True
-    orderby: Optional[List[OrderByTyping]] = ObjectField(cls=AdhocMetric, default_factory=list)
+    orderby: Optional[List[OrderByTyping]] = object_field(cls=AdhocMetric, default_factory=list)
 
-    filters: List[QueryFilterClause] = ObjectField(cls=QueryFilterClause, default_factory=list)
-    extras: QuerieExtra = ObjectField(cls=QuerieExtra, default_factory=QuerieExtra)
-    columns: Optional[List[Metric]] = ObjectField(cls=AdhocMetric, default_factory=list)
-    metrics: Optional[List[Metric]] = ObjectField(cls=AdhocMetric, default_factory=list)
+    filters: List[QueryFilterClause] = object_field(cls=QueryFilterClause, default_factory=list)
+    extras: QuerieExtra = object_field(cls=QuerieExtra, default_factory=QuerieExtra)
+    columns: Optional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
+    metrics: Optional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
 
     applied_time_extras: Dict = field(default_factory=dict)
     url_params: Dict = field(default_factory=dict)

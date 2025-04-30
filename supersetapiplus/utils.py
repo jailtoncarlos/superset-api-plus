@@ -1,7 +1,7 @@
+import logging
 import re
 import unicodedata
 
-import logging
 import shortuuid
 
 logger = logging.getLogger(__name__)

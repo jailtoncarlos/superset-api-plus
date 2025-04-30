@@ -2,15 +2,9 @@
 import dataclasses
 import logging
 from abc import abstractmethod, ABC
-from contextlib import suppress
 from enum import Enum
-from typing_extensions import Self
-from supersetapiplus.base.parse import ParseMixin
-from supersetapiplus.client import QueryStringFilter
-from supersetapiplus.typing import NotToJson, Optional
-from supersetapiplus.utils import dict_hash
 
-logger = logging.getLogger(__name__)
+from typing_extensions import Self
 
 try:
     from functools import cached_property
@@ -21,29 +15,43 @@ except ImportError:  # pragma: no cover
 import json
 import os.path
 from pathlib import Path
-from typing import List, Union, Dict, get_args, get_origin, Any, Literal, MutableMapping, Type
+from typing import List, Union, Dict, get_origin
 
 import yaml
 from requests import HTTPError
 
 from supersetapiplus.exceptions import BadRequestError, ComplexBadRequestError, MultipleFound, NotFound, \
-    LoadJsonError, ValidationError
+    LoadJsonError
+from supersetapiplus.base.parse import ParseMixin
+from supersetapiplus.client import QueryStringFilter
+from supersetapiplus.typing import NotToJson, Optional
+from supersetapiplus.utils import dict_hash
 
+logger = logging.getLogger(__name__)
 
-def ObjectField(cls=None, dict_left=False, dict_right=False, **kwargs):
-    kwargs.setdefault("default", dataclasses.MISSING)
-    kwargs.setdefault("default_factory", dataclasses.MISSING)
-    kwargs.setdefault("init", True)
-    kwargs.setdefault("repr", True)
-    kwargs.setdefault("compare", True)
-    kwargs.setdefault("hash", None)
-    kwargs.setdefault("kw_only", False)
+def object_field(*, cls=None, default=dataclasses.MISSING, default_factory=dataclasses.MISSING,
+                 init=True, repr=True, hash=None, compare=True,
+                 metadata=None, kw_only=dataclasses.MISSING,
+                 dict_left=False, dict_right=False):
 
-    metadata = kwargs.pop("metadata", {})
-    metadata["cls"] = cls
-    metadata["dict_left"] = dict_left
-    metadata["dict_right"] = dict_right
-    return dataclasses.field(metadata=metadata, **kwargs)
+    if default is not dataclasses.MISSING and default_factory is not dataclasses.MISSING:
+        raise ValueError('cannot specify both default and default_factory')
+
+    metadata = metadata or {}
+    metadata.update({
+        "cls": cls,
+        "dict_left": dict_left,
+        "dict_right": dict_right,
+    })
+
+    return dataclasses.field(default=default,
+                 default_factory=default_factory,
+                 init=init,
+                 repr=repr,
+                 hash=hash,
+                 compare=compare,
+                 metadata=metadata,
+                 kw_only=kw_only)
 
 
 class ObjectDecoder(json.JSONEncoder):
@@ -73,19 +81,51 @@ def default_bool(**kwargs):
 
 
 def raise_for_status(response):
+    """
+    Realiza a verificação de status da resposta HTTP.
+    Em caso de erro, loga detalhes completos da requisição e da resposta.
+    """
     try:
         response.raise_for_status()
     except HTTPError as e:
-        # Attempt to propagate the server error message
+        request = response.request
+        request_headers = '\n'.join(f'{k}: {v}' for k, v in request.headers.items())
+        response_headers = '\n'.join(f'{k}: {v}' for k, v in response.headers.items())
         try:
-            error_msg = response.json()["message"]
+            response_body = response.text
         except Exception:
-            try:
-                errors = response.json()["errors"]
-            except Exception:
-                raise e
-            raise ComplexBadRequestError(*e.args, request=e.request, response=e.response, errors=errors) from None
-        raise BadRequestError(*e.args, request=e.request, response=e.response, message=error_msg) from None
+            response_body = "<não foi possível decodificar o corpo da resposta>"
+
+        logger.error("Erro na requisição HTTP")
+        logger.error(f"Request URL: {request.url}")
+        logger.error(f"Request Method: {request.method}")
+        logger.error(f"Request Headers:\n{request_headers}")
+        if request.body:
+            logger.error(f"Request Body:\n{request.body}")
+        else:
+            logger.error("Request Body: <vazio>")
+
+        logger.error(f"Response Status Code: {response.status_code}")
+        logger.error(f"Response Headers:\n{response_headers}")
+        logger.error(f"Response Body:\n{response_body}")
+
+        # Tenta extrair mensagens detalhadas
+        try:
+            error_msg = response.json().get("message")
+        except Exception:
+            error_msg = None
+
+        try:
+            errors = response.json().get("errors")
+        except Exception:
+            errors = None
+
+        if errors:
+            raise ComplexBadRequestError(*e.args, request=request, response=response, errors=errors) from None
+        elif error_msg:
+            raise BadRequestError(*e.args, request=request, response=response, message=error_msg) from None
+        else:
+            raise e
 
 
 class Object(ParseMixin, ABC):
@@ -94,9 +134,8 @@ class Object(ParseMixin, ABC):
 
     _extra_fields: Dict = {}
 
-    @abstractmethod
     def validate(self, data: dict):
-        pass
+        raise NotImplementedError("validate method not implemented")
 
     def __post_init__(self):
         for f in self.JSON_FIELDS:
@@ -186,7 +225,28 @@ class Object(ParseMixin, ABC):
 
     @classmethod
     def _subclass_object(cls, field: dataclasses.Field):
-        return field.metadata.get("cls")
+        # return field.metadata.get("cls")
+        """
+        Retorna a classe que herda de Object definida em default_factory do campo.
+
+        Isso evita problemas com tipos genéricos (List, Optional, etc).
+
+        Args:
+            field (Field): Um campo de dataclass
+
+        Returns:
+            Classe que herda de Object, ou None
+        """
+        if field.metadata.get("cls"):
+            return field.metadata.get("cls")
+
+        default_factory = getattr(field, 'default_factory', None)
+
+        if default_factory and default_factory is not dataclasses.MISSING:
+            if isinstance(default_factory, type) and issubclass(default_factory, Object):
+                return default_factory
+
+        return None
 
     @classmethod
     def from_json(cls, data: dict) -> Self:
@@ -200,6 +260,7 @@ class Object(ParseMixin, ABC):
             obj = cls(**data)
 
             for field_name in cls.JSON_FIELDS:
+                logger.debug(f'field_name: {field_name} found in JSON_FIELDS')
                 data_value = data.get(field_name)
                 if isinstance(data_value, str):
                     field = cls.get_field(field_name)
@@ -212,14 +273,14 @@ class Object(ParseMixin, ABC):
                     setattr(obj, field_name, value)
 
             for field_name, data_value in data.items():
-                logger.debug(f'field_name: {field_name}; data_value: {data_value}')
+                logger.debug(f'field_name: {field_name}; data_value type: {type(data_value)}; data_value: {data_value}')
                 if field_name in cls.JSON_FIELDS:
                     continue
                 if isinstance(data_value, dict):
                     field = cls.get_field(field_name)
                     ObjectClass = cls._subclass_object(field)
                     value = None
-                    if ObjectClass and field.dict_right:
+                    if ObjectClass and field.metadata.get('dict_right'):
                         value = {}
                         for k, field_value in data_value.items():
                             value[k] = ObjectClass.from_json(field_value)
@@ -348,10 +409,10 @@ class Object(ParseMixin, ABC):
                 ObjectClass = self._subclass_object(field)
                 if ObjectClass:
                     _value = {}
-                    if field.dict_left:
+                    if field.metadata.get('dict_left'):
                         for obj, value_ in value.items():
                             _value[obj.to_dict()] = value_
-                    elif field.dict_right:
+                    elif field.metadata.get('dict_right'):
                         for k, obj in value.items():
                             _value[k] = obj.to_dict()
                     value = _value

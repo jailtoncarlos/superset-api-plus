@@ -1,14 +1,14 @@
 """Charts."""
-from supersetapiplus.base.base import ObjectField
-from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import AdhocMetric, Column, QueryObject, Metric, ColumnConfig, AdhocMetricColumn, \
-    OrderBy, MetricsListMixin
-from supersetapiplus.charts.query_context import QueryContext
 from dataclasses import dataclass, field
 from typing import List, Dict
-from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, FilterExpressionType, \
-    NumberFormatType, HorizontalAlignType, MetricType
+
+from supersetapiplus.base.base import object_field
+from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.metric import MetricsListMixin, AdhocMetric, Metric, AdhocMetricColumn, OrderBy
+from supersetapiplus.charts.options import Option
+from supersetapiplus.charts.queries import ColumnConfig, QueryObject
+from supersetapiplus.charts.query_context import QueryContext
+from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import Optional
 
@@ -41,8 +41,8 @@ class TableOption(Option, MetricsListMixin):
     time_range: Optional[str] = 'No filter'
     granularity_sqla: Optional[str] = None
 
-    metrics: Optional[List[Metric]] = ObjectField(cls=AdhocMetric, default_factory=list)
-    column_config: Optional[Dict[str, ColumnConfig]] = ObjectField(cls=ColumnConfig, dict_right=True, default_factory=dict)
+    metrics: Optional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
+    column_config: Optional[Dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True, default_factory=dict)
 
     def __post_init__(self):
         super().__post_init__()
@@ -89,8 +89,8 @@ class TableQueryObject(QueryObject):
 
 @dataclass
 class TableQueryContext(QueryContext):
-    form_data: TableFormData = ObjectField(cls=TableFormData, default_factory=TableFormData)
-    queries: List[TableQueryObject] = ObjectField(cls=QueryObject, default_factory=list)
+    form_data: TableFormData = object_field(cls=TableFormData, default_factory=TableFormData)
+    queries: List[TableQueryObject] = object_field(cls=QueryObject, default_factory=list)
 
     def validate(self, data: dict):
         super().validate(data)
@@ -116,8 +116,8 @@ class TableQueryContext(QueryContext):
 @dataclass
 class TableChart(Chart):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
-    params: TableOption = ObjectField(cls=TableOption, default_factory=TableOption)
-    query_context: TableQueryContext = ObjectField(cls=TableQueryContext, default_factory=TableQueryContext)
+    params: TableOption = object_field(cls=TableOption, default_factory=TableOption)
+    query_context: TableQueryContext = object_field(cls=TableQueryContext, default_factory=TableQueryContext)
 
     def add_simple_metric(self, metric: MetricType,
                           automatic_order: OrderBy = OrderBy(),

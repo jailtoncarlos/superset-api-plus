@@ -2,26 +2,25 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from supersetapiplus.base.base import default_string, ObjectField
+from supersetapiplus.base.base import default_string, object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import MetricsListMixin, AdhocMetricColumn, AdhocMetric, CurrencyFormat, OrderBy, \
-    QueryObject
+from supersetapiplus.charts.queries import AdhocMetric, CurrencyFormat, QueryObject
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, LegendOrientationType, LegendType, DateFormatType, \
     NumberFormatType, TimeGrain, Orientation, ContributionType, SortSeriesType, StackStylyType, \
-    TitlepositionType, LabelRotation, ComparisonType, MetricType, FilterExpressionType
+    TitlepositionType, LabelRotation, ComparisonType, FilterExpressionType
 from supersetapiplus.typing import Optional
 
 
 @dataclass
-class TimeSeriesBarOption(Option, MetricsListMixin):
+class TimeSeriesBarOption(Option):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
     color_scheme: str = default_string(default='supersetColors')
 
     time_grain_sqla: Optional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
 
-    x_axis: AdhocMetric = ObjectField(cls=AdhocMetric, default_factory=AdhocMetric)
+    x_axis: AdhocMetric = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
     x_axis_sort_asc: bool = True
 
     x_axis_sort_series: SortSeriesType = field(default_factory=lambda: SortSeriesType.NAME)
@@ -54,7 +53,7 @@ class TimeSeriesBarOption(Option, MetricsListMixin):
     x_axis_time_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
     xAxisLabelRotation: LabelRotation = field(default_factory=lambda: LabelRotation.ZERO)
     y_axis_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
-    currency_format: Optional[CurrencyFormat] = ObjectField(cls=CurrencyFormat, default_factory=CurrencyFormat)
+    currency_format: Optional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
     logAxis: bool = False
     minorSplitLine: bool = False
     truncateYAxis: bool = False
@@ -102,8 +101,8 @@ class TimeSeriesBarQueryObject(QueryObject):
 
 @dataclass
 class TimeSeriesBarQueryContext(QueryContext):
-    queries: List[TimeSeriesBarQueryObject] = ObjectField(cls=TimeSeriesBarQueryObject, default_factory=list)
-    form_data: TimeSeriesBarFormData = ObjectField(cls=TimeSeriesBarFormData, default_factory=TimeSeriesBarFormData)
+    queries: List[TimeSeriesBarQueryObject] = object_field(cls=TimeSeriesBarQueryObject, default_factory=list)
+    form_data: TimeSeriesBarFormData = object_field(cls=TimeSeriesBarFormData, default_factory=TimeSeriesBarFormData)
 
     def _default_query_object_class(self) -> type[QueryObject]:
         return TimeSeriesBarQueryObject
@@ -112,8 +111,8 @@ class TimeSeriesBarQueryContext(QueryContext):
 @dataclass
 class EchartsTimeseriesBarChart(Chart):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
-    params: TimeSeriesBarOption = ObjectField(cls=TimeSeriesBarOption, default_factory=TimeSeriesBarOption)
-    query_context: TimeSeriesBarQueryContext = ObjectField(cls=TimeSeriesBarQueryContext,
+    params: TimeSeriesBarOption = object_field(cls=TimeSeriesBarOption, default_factory=TimeSeriesBarOption)
+    query_context: TimeSeriesBarQueryContext = object_field(cls=TimeSeriesBarQueryContext,
                                                            default_factory=TimeSeriesBarQueryContext)
 
     def y_axis(self, label: str,

@@ -1,14 +1,13 @@
 import logging
+from abc import ABC, abstractmethod
 from typing import List
 
-from anytree import Node, RenderTree
-from abc import ABC, abstractmethod
-
+from anytree import Node
 from typing_extensions import Self
 
 from supersetapiplus.base.parse import ParseMixin
 from supersetapiplus.dashboards.itemposition import ItemPositionType, ItemPosition, TabsItemPosition, \
-    TabItemPosition, MarkdownItemPosition, RowItemPosition, GridItemPosition, DividerItemPosition, ColumnItemPosition
+    TabItemPosition, MarkdownItemPosition, RowItemPosition, ColumnItemPosition
 from supersetapiplus.exceptions import AcceptChildError, NodePositionValidationError
 
 logger = logging.getLogger(__name__)

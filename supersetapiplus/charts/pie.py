@@ -1,22 +1,21 @@
 """Charts."""
+from dataclasses import dataclass, field
 from typing import List
 
+from supersetapiplus.base.base import default_string, object_field
 from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.metric import SingleMetricMixin
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import Metric, CurrencyFormat, AdhocMetricColumn, AdhocMetric, OrderBy, \
-    MetricHelper, SingleMetricMixin, QueryObject
+from supersetapiplus.charts.queries import Metric, CurrencyFormat, AdhocMetric, QueryObject
 from supersetapiplus.charts.query_context import QueryContext
-from dataclasses import dataclass, field
-from supersetapiplus.base.base import default_string, ObjectField
 from supersetapiplus.charts.types import ChartType, LabelType, LegendOrientationType, LegendType, DateFormatType, \
-    NumberFormatType, MetricType
+    NumberFormatType
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import Optional
-from supersetapiplus.utils import dict_compare
 
 
 @dataclass
-class PieOption(SingleMetricMixin, Option):
+class PieOption(Option, SingleMetricMixin):
     viz_type: ChartType = field(default_factory=lambda: ChartType.PIE)
     color_scheme: str = default_string(default='supersetColors')
     legendType: LegendType = field(default_factory=lambda: LegendType.SCROLL)
@@ -25,7 +24,7 @@ class PieOption(SingleMetricMixin, Option):
     show_legend: bool = True
     show_labels: bool = True
     legendMargin: Optional[str] = ''
-    currency_format: Optional[CurrencyFormat] = ObjectField(cls=CurrencyFormat, default_factory=CurrencyFormat)
+    currency_format: Optional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
     number_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
     date_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
     donut: Optional[bool] = False
@@ -35,7 +34,7 @@ class PieOption(SingleMetricMixin, Option):
     innerRadius: int = 30
     outerRadius: int = 70
     show_labels_threshold: int = 5
-    metric: Metric = ObjectField(AdhocMetric, default=None)
+    metric: Metric = object_field(cls=AdhocMetric, default=None)
     sort_by_metric: bool = False
 
 
@@ -75,8 +74,8 @@ class PieQueryObject(QueryObject):
 
 @dataclass
 class PieQueryContext(QueryContext):
-    form_data: PieFormData = ObjectField(cls=PieFormData, default_factory=PieFormData)
-    queries: List[PieQueryObject] = ObjectField(cls=QueryObject, default_factory=list)
+    form_data: PieFormData = object_field(cls=PieFormData, default_factory=PieFormData)
+    queries: List[PieQueryObject] = object_field(cls=QueryObject, default_factory=list)
 
     def validate(self, data: dict):
         super().validate(data)
@@ -115,8 +114,8 @@ class PieQueryContext(QueryContext):
 @dataclass
 class PieChart(Chart):
     viz_type: ChartType = field(default_factory=lambda: ChartType.PIE)
-    params: PieOption = ObjectField(cls=PieOption, default_factory=PieOption)
-    query_context: PieQueryContext = ObjectField(cls=PieQueryContext, default_factory=PieQueryContext)
+    params: PieOption = object_field(cls=PieOption, default_factory=PieOption)
+    query_context: PieQueryContext = object_field(cls=PieQueryContext, default_factory=PieQueryContext)
 
     def validate(self, data: dict):
         super().validate(data)

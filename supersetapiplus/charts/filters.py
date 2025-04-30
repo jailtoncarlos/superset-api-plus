@@ -1,7 +1,6 @@
-import json
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import Object, default_string
+from supersetapiplus.base.base import Object
 from supersetapiplus.charts.types import FilterOperatorType, FilterExpressionType, FilterClausesType
 from supersetapiplus.typing import Optional
 
@@ -21,4 +20,3 @@ class AdhocFilterClause(Object):
 
     isExtra: bool = False
     isNew: bool = False
-

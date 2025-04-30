@@ -1,8 +1,8 @@
 """Custom Exception."""
 import json
-import traceback
 
 from requests import HTTPError
+
 
 class NotFound(Exception):
     pass
