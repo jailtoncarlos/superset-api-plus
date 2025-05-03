@@ -398,21 +398,54 @@ class Object(ParseMixin, ABC):
 
     @classmethod
     def get_field(cls, name):
+        """
+        Retorna o campo da dataclass com o nome fornecido.
+
+        Este método percorre todos os campos definidos na dataclass e retorna
+        aquele cujo nome coincide com o argumento fornecido.
+
+        Args:
+            name (str): Nome do campo a ser localizado.
+
+        Returns:
+            dataclasses.Field: Campo correspondente ao nome fornecido, ou None se não encontrado.
+        """
         for f in cls.fields():
             if f.name == name:
                 return f
 
     @classmethod
     def field_names(cls) -> list:
-        """Get field names."""
+        """
+        Retorna uma lista com os nomes de todos os campos definidos na dataclass.
+
+        Campos cujo valor padrão seja uma instância da própria classe `Object`
+        são ignorados, pois representam subobjetos complexos.
+
+        Returns:
+            list: Lista de strings contendo os nomes dos campos relevantes.
+        """
         fields = []
         for f in cls.fields():
+            # Ignora campos cujo default é uma instância de Object
             if not isinstance(f.default, Object):
                 fields.append(f.name)
         return fields
 
     @classmethod
     def required_fields(cls, data) -> dict:
+        """
+        Extrai os campos obrigatórios da dataclass a partir dos dados fornecidos.
+
+        Um campo é considerado obrigatório se não possuir valor padrão (`MISSING`)
+        e não for um campo complexo baseado em `SerializeObject`.
+
+        Args:
+            data (dict): Dicionário com os dados brutos a serem verificados.
+
+        Returns:
+            dict: Subconjunto dos dados contendo apenas os campos obrigatórios.
+        """
         rdata = {}
         for f in cls.fields():
             if f.default is dataclasses.MISSING and not isinstance(f.default, Object):
@@ -436,27 +469,35 @@ class Object(ParseMixin, ABC):
 
     @classmethod
     def _subclass_object(cls, field: dataclasses.Field):
-        # return field.metadata.get("cls")
         """
-        Retorna a classe que herda de Object definida em default_factory do campo.
+        Recupera a classe que herda de `Object` associada a um campo de dataclass.
 
-        Isso evita problemas com tipos genéricos (List, Optional, etc).
+        Esta função é utilizada para determinar dinamicamente o tipo de objeto que deve
+        ser instanciado durante a desserialização de estruturas aninhadas.
+
+        A busca pelo tipo de classe é feita em dois níveis:
+        1. A partir da metadata do campo (`cls`) — normalmente passada via `object_field`.
+        2. A partir da `default_factory`, caso ela seja uma subclasse de `Object`.
 
         Args:
-            field (Field): Um campo de dataclass
+            field (dataclasses.Field): Campo da dataclass cujo tipo será analisado.
 
         Returns:
-            Classe que herda de Object, ou None
+            Optional[Type[Object]]: Classe que herda de `Object`, caso encontrada; caso contrário, `None`.
         """
+
+        # Primeiro tenta recuperar a classe diretamente da metadata, se disponível
         if field.metadata.get("cls"):
             return field.metadata.get("cls")
 
+        # Em seguida tenta deduzir a partir do default_factory
         default_factory = getattr(field, 'default_factory', None)
 
         if default_factory and default_factory is not dataclasses.MISSING:
             if isinstance(default_factory, type) and issubclass(default_factory, Object):
                 return default_factory
 
+        # Se nenhuma das abordagens funcionar, retorna None
         return None
 
     @classmethod
