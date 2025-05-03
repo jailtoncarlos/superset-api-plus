@@ -7,13 +7,13 @@ import pytest
 import requests
 import requests.exceptions
 
-from supersetapiclient.charts.charts import Chart
-from supersetapiclient.client import SupersetClient, raise_for_status
-from supersetapiclient.dashboards.dashboards import Dashboard
-from supersetapiclient.databases import Database
-from supersetapiclient.datasets import Dataset
-from supersetapiclient.exceptions import BadRequestError, ComplexBadRequestError, MultipleFound, NotFound, QueryLimitReached
-from supersetapiclient.saved_queries import SavedQuery
+from supersetapiplus.charts.charts import Chart
+from supersetapiplus.client import SupersetClient, raise_for_status
+from supersetapiplus.dashboards.dashboards import Dashboard
+from supersetapiplus.databases import Database
+from supersetapiplus.datasets import Dataset
+from supersetapiplus.exceptions import BadRequestError, ComplexBadRequestError, MultipleFound, NotFound, QueryLimitReached
+from supersetapiplus.saved_queries import SavedQuery
 
 
 def random_str(length, lowercase=False):
