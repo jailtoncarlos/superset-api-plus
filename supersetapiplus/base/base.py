@@ -151,10 +151,32 @@ def default_string(**kwargs):
     return dataclasses.field(repr=False, **kwargs)
 
 
-def default_bool(**kwargs):
+def default_string(**kwargs):
+    """
+    Cria um campo para dataclass com valor padrão do tipo string vazia ('') e
+    oculto na representação textual do objeto (`repr=False`).
+
+    Esta função é usada para atributos opcionais de string que devem iniciar
+    com valor vazio por padrão, sem a necessidade de definir `default=''` explicitamente
+    em cada campo.
+
+    Args:
+        **kwargs: Argumentos adicionais passados ao construtor `dataclasses.field`.
+
+    Returns:
+        dataclasses.Field: Campo configurado com `default=''` e `repr=False`.
+
+    Exemplo:
+        class Example(Object):
+            nome: str = default_string()
+    """
     if not kwargs.get('default'):
-        kwargs['default']=False
-    return dataclasses.field(repr=False)
+        # Define string vazia como valor padrão se não fornecido explicitamente
+        kwargs['default'] = ''
+
+    # Cria o campo ocultando-o da representação textual da instância
+    return dataclasses.field(repr=False, **kwargs)
+
 
 
 def raise_for_status(response):
