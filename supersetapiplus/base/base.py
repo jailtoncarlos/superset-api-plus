@@ -333,8 +333,39 @@ class Object(ParseMixin, ABC):
         dict_other.pop('_extra_fields', None)
         return dict_self == dict_other
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
+    def __eq__(self, other):
+        """
+        Compara a instância atual com outro objeto para verificar igualdade estrutural.
+
+        Este método sobrescreve o operador `==` para comparar objetos do tipo `Object`.
+        A comparação é feita com base nos atributos internos (`__dict__`) de cada objeto, com exceção
+        do atributo `_extra_fields`, que é ignorado por não compor o núcleo da estrutura serializável.
+
+        Args:
+            other (object): Objeto a ser comparado.
+
+        Returns:
+            bool: `True` se os objetos forem equivalentes em todos os atributos relevantes; `False` caso contrário.
+                  Retorna `NotImplemented` se o objeto comparado não for do mesmo tipo.
+
+        Exceções:
+            NotImplementedError: Caso o objeto `other` não seja do mesmo tipo da instância atual.
+        """
+
+        # Verifica se os objetos são da mesma classe. Caso contrário, não implementa comparação.
+        if not isinstance(other, type(self)):
+            return NotImplementedError()
+
+        # Obtém os atributos da instância atual e remove o campo _extra_fields da comparação
+        dict_self = vars(self)
+        dict_self.pop('_extra_fields', None)
+
+        # Obtém os atributos do objeto comparado e remove o campo _extra_fields da comparação
+        dict_other = vars(other)
+        dict_other.pop('_extra_fields', None)
+
+        # Retorna True se os dicionários forem iguais (atributos equivalentes)
+        return dict_self == dict_other
 
     def __hash__(self):
         dict_self = vars(self)
