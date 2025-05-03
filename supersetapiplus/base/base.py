@@ -88,10 +88,32 @@ def object_field(*, cls=None, default=dataclasses.MISSING, default_factory=datac
 
 
 class ObjectDecoder(json.JSONEncoder):
+    """
+    Codificador JSON personalizado para serializar objetos que contenham instâncias de Enum.
+
+    Essa classe sobrescreve o método `default` do `json.JSONEncoder` para garantir que
+    valores do tipo `Enum` sejam convertidos para suas representações em string
+    (usualmente `value`), facilitando a serialização de objetos que utilizam Enums
+    como atributos.
+
+    Exemplo:
+        >>> class Status(Enum):
+        ...     OK = "ok"
+        ...     FAIL = "fail"
+        >>> json.dumps({'status': Status.OK}, cls=ObjectDecoder)
+        '{"status": "ok"}'
+
+    Métodos:
+        default(obj): Retorna `str(obj.value)` se `obj` for uma instância de Enum,
+                      caso contrário, delega para o comportamento padrão.
+    """
+
     def default(self, obj):
+        # Converte instâncias de Enum para o valor associado em formato string
         if isinstance(obj, Enum):
-            return str(obj.value)  # Converte o Enum para seu valor (string)
-        return super(self).default(obj)
+            return str(obj.value)
+        # Para outros tipos, usa a implementação padrão do JSONEncoder
+        return super().default(obj)
 
 
 def json_field(**kwargs):
