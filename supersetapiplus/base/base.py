@@ -33,10 +33,39 @@ def object_field(*, cls=None, default=dataclasses.MISSING, default_factory=datac
                  init=True, repr=True, hash=None, compare=True,
                  metadata=None, kw_only=dataclasses.MISSING,
                  dict_left=False, dict_right=False):
+    """
+    Cria um campo personalizado para uso em dataclasses, adicionando suporte a metadados
+    especializados utilizados no framework supersetapiplus, como serialização customizada
+    de dicionários com chaves ou valores do tipo Object.
 
+    Essa função encapsula a chamada a `dataclasses.field`, adicionando metadados
+    úteis para desserialização automática de estruturas JSON aninhadas.
+
+    Parâmetros:
+        cls (type, opcional): Classe que herda de `Object` associada ao campo. Útil para
+            instanciar objetos aninhados durante o `from_json`.
+        default: Valor padrão do campo. Incompatível com `default_factory` se ambos forem definidos.
+        default_factory: Função que retorna o valor padrão do campo. Não pode ser usado com `default`.
+        init (bool): Se o campo deve ser incluído no método `__init__`. Padrão é True.
+        repr (bool): Se o campo deve ser incluído na representação gerada por `__repr__`. Padrão é True.
+        hash (bool | None): Se o campo deve ser considerado no cálculo de hash. Se None, segue o padrão do `dataclass`.
+        compare (bool): Se o campo deve ser considerado em operações de comparação. Padrão é True.
+        metadata (dict, opcional): Dicionário com metadados adicionais. Pode ser usado por lógicas externas.
+        kw_only (bool): Define se o campo deve ser obrigatório como keyword-only no `__init__`. Introduzido no Python 3.10.
+        dict_left (bool): Se True, indica que o campo é um dicionário onde a chave é uma instância de `Object`.
+        dict_right (bool): Se True, indica que o campo é um dicionário onde o valor é uma instância de `Object`.
+
+    Retorna:
+        dataclasses.Field: Instância configurada de campo para uso em uma dataclass.
+
+    Levanta:
+        ValueError: Caso `default` e `default_factory` sejam definidos simultaneamente.
+    """
+    # Garante que apenas um entre default e default_factory seja definido
     if default is not dataclasses.MISSING and default_factory is not dataclasses.MISSING:
         raise ValueError('cannot specify both default and default_factory')
 
+    # Inicializa metadados, garantindo inclusão das chaves específicas
     metadata = metadata or {}
     metadata.update({
         "cls": cls,
@@ -44,14 +73,18 @@ def object_field(*, cls=None, default=dataclasses.MISSING, default_factory=datac
         "dict_right": dict_right,
     })
 
-    return dataclasses.field(default=default,
-                 default_factory=default_factory,
-                 init=init,
-                 repr=repr,
-                 hash=hash,
-                 compare=compare,
-                 metadata=metadata,
-                 kw_only=kw_only)
+    # Retorna o campo com todos os parâmetros configurados
+    return dataclasses.field(
+        default=default,
+        default_factory=default_factory,
+        init=init,
+        repr=repr,
+        hash=hash,
+        compare=compare,
+        metadata=metadata,
+        kw_only=kw_only
+    )
+
 
 
 class ObjectDecoder(json.JSONEncoder):
