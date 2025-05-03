@@ -8,7 +8,7 @@ import requests
 import requests.exceptions
 import requests_mock  # noqa
 
-from supersetapiclient.client import SupersetClient
+from supersetapiplus.client import SupersetClient
 
 # Testing configuration
 SUPERSET_HOST = "localhost"

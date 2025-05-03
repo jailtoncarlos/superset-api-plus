@@ -1,4 +1,4 @@
-from supersetapiclient.client import SupersetClient
+from supersetapiplus.client import SupersetClient
 
 client = SupersetClient(
     host="http://localhost:8080",
