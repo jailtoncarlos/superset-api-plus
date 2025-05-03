@@ -368,8 +368,25 @@ class Object(ParseMixin, ABC):
         return dict_self == dict_other
 
     def __hash__(self):
+        """
+        Gera um hash único para a instância da classe com base em seus atributos internos.
+
+        Este método sobrescreve o comportamento padrão de `__hash__` para permitir que
+        objetos da classe `Object` possam ser utilizados como chaves em dicionários ou
+        armazenados em conjuntos (`set`). O campo `_extra_fields` é explicitamente removido
+        da base de cálculo do hash por não fazer parte da estrutura essencial serializável do objeto.
+
+        Returns:
+            int: Valor de hash calculado com base nos atributos principais do objeto.
+        """
+
+        # Obtém todos os atributos da instância
         dict_self = vars(self)
+
+        # Remove o campo _extra_fields para garantir consistência no hash
         dict_self.pop('_extra_fields', None)
+
+        # Gera o hash a partir da função utilitária definida no projeto
         return dict_hash(dict_self)
 
     @classmethod
