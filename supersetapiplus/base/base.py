@@ -289,24 +289,36 @@ class Object(ParseMixin, ABC):
 
     def __post_init__(self):
         """
-        Executa lógica de pós-inicialização para campos JSON e valores padrão.
+        Executa ações pós-inicialização para instâncias da classe Object.
 
-        - Desserializa campos definidos em `JSON_FIELDS` se estiverem em formato string.
-        - Atribui valores padrão a campos não informados, exceto os marcados com `SerializableOptional`.
+        Este método é chamado automaticamente após a criação de instâncias de dataclasses.
+        Ele possui duas responsabilidades principais:
+
+        1. Desserializar os campos definidos em `JSON_FIELDS` que tenham sido passados como strings.
+           Esses campos são esperados em formato JSON e, portanto, convertidos para estruturas Python.
+
+        2. Atribuir valores padrão explícitos para campos que:
+            - Possuem valor padrão definido.
+            - Não foram preenchidos (valor `None`) durante a instância.
+            - Não são campos do tipo `SerializableOptional`.
+
+        Isso garante que os campos obrigatórios possuam valores apropriados,
+        melhorando a consistência do estado interno do objeto logo após sua criação.
         """
 
+        # Converte os campos definidos como JSON_FIELDS que foram passados como string em dicionários Python
         for f in self.JSON_FIELDS:
             value = getattr(self, f) or "{}"
             if isinstance(value, str):
                 setattr(self, f, json.loads(value))
 
-        # Loop through the fields
+        # Itera sobre todos os campos da dataclass
         for field in self.fields():
-            # If there is a default and the value of the field is none we can assign a value
+            # Se o campo tem valor padrão, está como None e não é SerializableOptional, define seu valor padrão
             if not isinstance(field.default, dataclasses._MISSING_TYPE) \
                     and getattr(self, field.name) is None \
                     and not get_origin(field.type) is SerializableOptional:
-                        setattr(self, field.name, field.default)
+                setattr(self, field.name, field.default)
 
     @property
     def extra_fields(self):
