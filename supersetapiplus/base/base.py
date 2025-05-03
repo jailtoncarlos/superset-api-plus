@@ -197,11 +197,26 @@ def default_bool(**kwargs):
     return dataclasses.field(repr=False, **kwargs)
 
 
-
 def raise_for_status(response):
     """
-    Realiza a verificação de status da resposta HTTP.
-    Em caso de erro, loga detalhes completos da requisição e da resposta.
+    Verifica o status da resposta HTTP e, em caso de erro, lança exceções detalhadas.
+
+    Esta função estende o comportamento padrão de `requests.Response.raise_for_status()`
+    adicionando logs detalhados da requisição e da resposta, além de lançar exceções
+    personalizadas baseadas no conteúdo retornado pela API.
+
+    Exceções levantadas:
+        - BadRequestError: Se a resposta contiver uma mensagem de erro simples.
+        - ComplexBadRequestError: Se a resposta contiver múltiplos erros detalhados.
+        - HTTPError: Para outros erros HTTP não tratados especificamente.
+
+    Args:
+        response (requests.Response): Objeto de resposta da biblioteca `requests`.
+
+    Raises:
+        BadRequestError: Quando a resposta HTTP contém um campo `message`.
+        ComplexBadRequestError: Quando a resposta HTTP contém um campo `errors`.
+        HTTPError: Exceção genérica lançada pelo método `raise_for_status()`.
     """
     try:
         response.raise_for_status()
@@ -209,25 +224,24 @@ def raise_for_status(response):
         request = response.request
         request_headers = '\n'.join(f'{k}: {v}' for k, v in request.headers.items())
         response_headers = '\n'.join(f'{k}: {v}' for k, v in response.headers.items())
+
+        # Tenta obter o corpo da resposta como texto
         try:
             response_body = response.text
         except Exception:
             response_body = "<não foi possível decodificar o corpo da resposta>"
 
+        # Log detalhado da requisição e resposta
         logger.error("Erro na requisição HTTP")
         logger.error(f"Request URL: {request.url}")
         logger.error(f"Request Method: {request.method}")
         logger.error(f"Request Headers:\n{request_headers}")
-        if request.body:
-            logger.error(f"Request Body:\n{request.body}")
-        else:
-            logger.error("Request Body: <vazio>")
-
+        logger.error(f"Request Body:\n{request.body or '<vazio>'}")
         logger.error(f"Response Status Code: {response.status_code}")
         logger.error(f"Response Headers:\n{response_headers}")
         logger.error(f"Response Body:\n{response_body}")
 
-        # Tenta extrair mensagens detalhadas
+        # Tentativas de extrair mensagens específicas da resposta JSON
         try:
             error_msg = response.json().get("message")
         except Exception:
@@ -238,6 +252,7 @@ def raise_for_status(response):
         except Exception:
             errors = None
 
+        # Lança exceções específicas baseadas nos campos presentes
         if errors:
             raise ComplexBadRequestError(*e.args, request=request, response=response, errors=errors) from None
         elif error_msg:
@@ -247,6 +262,23 @@ def raise_for_status(response):
 
 
 class Object(ParseMixin, ABC):
+    """
+    Classe base abstrata para representação de objetos que interagem com a API do Superset.
+
+    Esta classe fornece funcionalidades para:
+    - Serialização e desserialização de objetos via JSON.
+    - Validação de dados.
+    - Conversão para dicionário (`to_dict`) e JSON (`to_json`).
+    - Suporte a campos extras não modelados diretamente.
+    - Comparação, hashing e carregamento de dados.
+
+    A classe assume que cada subclasse será uma `dataclass` com campos definidos para refletir a estrutura esperada da API.
+
+    Attributes:
+        _factory: Referência à factory que gerencia instâncias desse objeto.
+        JSON_FIELDS (List[str]): Lista de campos que devem ser serializados como JSON.
+        _extra_fields (Dict): Armazena campos não mapeados diretamente nos atributos da classe.
+    """
     _factory = None
     JSON_FIELDS = []
 
@@ -256,6 +288,13 @@ class Object(ParseMixin, ABC):
         raise NotImplementedError("validate method not implemented")
 
     def __post_init__(self):
+        """
+        Executa lógica de pós-inicialização para campos JSON e valores padrão.
+
+        - Desserializa campos definidos em `JSON_FIELDS` se estiverem em formato string.
+        - Atribui valores padrão a campos não informados, exceto os marcados com `SerializableOptional`.
+        """
+
         for f in self.JSON_FIELDS:
             value = getattr(self, f) or "{}"
             if isinstance(value, str):
