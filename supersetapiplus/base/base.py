@@ -385,13 +385,24 @@ class Object(ParseMixin, ABC):
 
     @classmethod
     def fields(cls) -> set:
-        """Get field names."""
+        """
+        Retorna o conjunto de campos definidos na dataclass.
+
+        Este método combina os campos definidos explicitamente na metaclasse
+        `__dataclass_fields__` com os campos obtidos por meio da função `dataclasses.fields`.
+        É utilizado para recuperar todas as declarações de atributos da classe herdada de `Object`.
+
+        Returns:
+            set: Conjunto de objetos do tipo `dataclasses.Field` representando os campos da classe.
+        """
         _fields = set()
 
+        # Adiciona campos definidos diretamente na metaclasse
         for n, f in cls.__dataclass_fields__.items():
             if isinstance(f, dataclasses.Field):
                 _fields.add(f)
 
+        # Adiciona também os campos descobertos via dataclasses.fields (pode incluir heranças)
         _fields.update(dataclasses.fields(cls))
 
         return _fields
@@ -453,17 +464,36 @@ class Object(ParseMixin, ABC):
         return rdata
 
     @classmethod
-    def __get_extra_fields(cls, data:dict) -> dict:
+    def __get_extra_fields(cls, data: dict) -> dict:
+        """
+        Extrai os campos extras não definidos como atributos na classe.
+
+        Este método identifica e separa os pares chave-valor do dicionário `data`
+        que não correspondem a nenhum campo definido na classe. Esses campos
+        são considerados "extras" e são removidos do dicionário original, sendo
+        retornados separadamente.
+
+        Args:
+            data (dict): Dicionário contendo os dados de entrada, geralmente obtido de uma resposta JSON.
+
+        Returns:
+            dict: Dicionário com os campos extras não reconhecidos como atributos da classe.
+        """
+        # Recupera os nomes dos campos definidos na classe
+        # Identifica as chaves presentes no dicionário de dados
+        # Calcula a diferença para encontrar as chaves não esperadas
+        # Remove e armazena os campos não definidos no modelo da classe
+
         if not data:
             return {}
 
-        field_names = set(cls.field_names())
+        field_names = set(cls.field_names())  # Recupera os nomes dos campos definidos na classe
 
-        data_keys = set(data.keys())
-        extra_fields_keys = data_keys - field_names
+        data_keys = set(data.keys())  # Chaves presentes no dicionário recebido
+        extra_fields_keys = data_keys - field_names  # Identifica chaves desconhecidas
         extra_fields = {}
         for field_name in extra_fields_keys:
-            extra_fields[field_name] = data.pop(field_name)
+            extra_fields[field_name] = data.pop(field_name)  # Remove os campos extras do dicionário original
 
         return extra_fields
 
