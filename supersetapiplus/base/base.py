@@ -710,7 +710,26 @@ class Object(ParseMixin, ABC):
         return data
 
     def to_dict(self, columns=[]) -> dict:
+        """
+        Serializa o objeto em um dicionário Python, convertendo todos os campos relevantes.
+
+        A serialização considera colunas explicitamente listadas ou, se omitidas, todas as colunas do objeto.
+        Campos do tipo `Object`, `Enum`, listas, tuplas e dicionários aninhados são tratados de forma especial
+        para garantir compatibilidade com formatos JSON.
+
+        Tuplas são convertidas recursivamente com suporte a `Object` e `Enum`.
+        Dicionários com metadados `dict_left` ou `dict_right` são transformados respeitando as direções
+        especificadas.
+
+        Args:
+            columns (list, optional): Lista de nomes de campos a serem incluídos.
+                Se vazia, todos os campos definidos na classe serão serializados.
+
+        Returns:
+            dict: Dicionário representando o estado atual do objeto, com os campos convertidos.
+        """
         def prepare_value_tuple(field_value):
+            """Prepara elementos de tupla para conversão recursiva."""
             values_data = []
             if isinstance(field_value, tuple):
                 l1 = field_value[0]
@@ -726,18 +745,25 @@ class Object(ParseMixin, ABC):
                 values_data.append((l1, l2))
             return values_data
 
+        # Junta colunas explícitas com as definidas na classe
         columns_names = set(columns or [])
         columns_names.update(self.field_names())
         data = {}
         for c in columns_names:
-            if not hasattr(self, c):
-                # Column that is not implemented yet
+            if not hasattr(self, c): # Ignora colunas ainda não implementadas
                 continue
+
             value = getattr(self, c)
+
+            # Converte Enums para string
             if isinstance(value, Enum):
                 value = str(value)
+
+            # Converte objetos recursivamente
             elif value and isinstance(value, Object):
                 value = value.to_dict(columns)
+
+            # Converte listas de objetos, tuplas ou enums
             elif value and isinstance(value, list):
                 values_data = []
                 for field_value in value:
@@ -750,6 +776,8 @@ class Object(ParseMixin, ABC):
                     else:
                         values_data.append(field_value)
                     value = values_data
+
+            # Converte dicionários de objetos baseados em metadados
             elif value and isinstance(value, dict):
                 field = self.get_field(c)
                 ObjectClass = self._subclass_object(field)
@@ -762,10 +790,11 @@ class Object(ParseMixin, ABC):
                         for k, obj in value.items():
                             _value[k] = obj.to_dict()
                     value = _value
+
+            # Converte tuplas simples
             elif value and isinstance(value, tuple):
                 value = prepare_value_tuple(value)
             data[c] = value
-            # logger.debug(f'return data {data}')
         return data
 
     def to_json(self, columns=[]) -> dict:
