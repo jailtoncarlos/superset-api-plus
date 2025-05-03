@@ -46,14 +46,14 @@ class AdhocMetricColumn(Object):
 
 @dataclass
 class AdhocMetric(Object):
-    sqlExpression: Optional[str]
-    aggregate: Optional[MetricType]
-    timeGrain: Optional[str]
-    columnType: Optional[ColumnType]
     expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
     column: Optional[AdhocMetricColumn] = object_field(cls=AdhocMetricColumn, default_factory=AdhocMetricColumn)
     label: Optional[str] = default_string()
     hasCustomLabel: Optional[bool] = False
+    sqlExpression: Optional[str] = None
+    aggregate: Optional[MetricType] = None
+    timeGrain: Optional[str] = None
+    columnType: Optional[ColumnType] = None
 
     def __post_init__(self):
         super().__post_init__()

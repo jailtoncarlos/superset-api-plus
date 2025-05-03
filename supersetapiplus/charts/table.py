@@ -8,9 +8,17 @@ from supersetapiplus.charts.metric import MetricsListMixin, AdhocMetric, Metric,
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import ColumnConfig, QueryObject
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType
+from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType, ColumnType
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import Optional
+
+
+# class TableAdhocMetric(AdhocMetric):
+#     """Class to represent a table metric."""
+#     sqlExpression: Optional[str] = field(init=False, repr=False, default=None)
+#     aggregate: Optional[MetricType] = field(init=False, repr=False, default=None)
+#     timeGrain: Optional[str] = field(init=False, repr=False, default=None)
+#     columnType: Optional[ColumnType] = field(init=False, repr=False, default=None)
 
 
 @dataclass

@@ -252,6 +252,7 @@ class Object(ParseMixin, ABC):
     def from_json(cls, data: dict) -> Self:
         extra_fields = cls.__get_extra_fields(data)
         field_name = None
+        field_value = None
         data_value = None
         try:
             # if not isinstance(data, dict):
@@ -306,6 +307,7 @@ class Object(ParseMixin, ABC):
                                     extra_fields={extra_fields}
                                 """
                                 logger.warning(msg)
+                                raise
                         else:
                             value.append(field_value)
                     setattr(obj, field_name, value)
@@ -314,15 +316,17 @@ class Object(ParseMixin, ABC):
 
             obj._extra_fields = extra_fields
         except Exception as err:
-            msg = f"""{err}
+            msg = f"""Error deserializing list item
                 cls={cls}
                 field_name={field_name}
+                item_value={field_value}
                 data_value={data_value}
                 data={data}
                 extra_fields={extra_fields}
+                causa original: {err}
             """
             logger.exception(msg)
-            raise LoadJsonError(err)
+            raise LoadJsonError(msg) from err
         return obj
 
     @classmethod
@@ -417,7 +421,7 @@ class Object(ParseMixin, ABC):
                             _value[k] = obj.to_dict()
                     value = _value
             elif value and isinstance(value, tuple):
-                value = prepare_value_tuple(field_value)
+                value = prepare_value_tuple(value)
             data[c] = value
             # logger.debug(f'return data {data}')
         return data
