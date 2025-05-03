@@ -117,10 +117,32 @@ class ObjectDecoder(json.JSONEncoder):
 
 
 def json_field(**kwargs):
-    if not kwargs.get('default'):
-        kwargs['default']=None
+    """
+    Cria um campo para dataclass que será utilizado para armazenar estruturas JSON.
 
+    Esse campo é configurado para não aparecer na representação (`repr=False`) e
+    recebe um valor padrão `None`, caso nenhum `default` seja explicitamente fornecido.
+
+    Esta função é útil para atributos que armazenam strings JSON ou objetos
+    que serão posteriormente serializados/desserializados.
+
+    Args:
+        **kwargs: Argumentos adicionais para o construtor `dataclasses.field`.
+
+    Returns:
+        dataclasses.Field: Campo configurado para uso em dataclass.
+
+    Exemplo:
+        class Example(Object):
+            payload: dict = json_field()
+    """
+    if not kwargs.get('default'):
+        # Define valor padrão como None se não for explicitamente informado
+        kwargs['default'] = None
+
+    # Cria o campo ocultando-o da representação textual da instância
     return dataclasses.field(repr=False, **kwargs)
+
 
 
 def default_string(**kwargs):
