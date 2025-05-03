@@ -532,7 +532,26 @@ class Object(ParseMixin, ABC):
 
     @classmethod
     def from_json(cls, data: dict) -> Self:
-        extra_fields = cls.__get_extra_fields(data)
+        """
+         Constrói uma instância da classe a partir de um dicionário JSON.
+
+         Este método realiza o processo de desserialização, instanciando um objeto da classe
+         a partir de um dicionário que representa seus atributos. Campos adicionais não
+         definidos na classe são capturados em `_extra_fields`. O método também é capaz de
+         desserializar campos JSON aninhados, listas de objetos e objetos com metadados
+         específicos, incluindo estruturas que fazem uso de `dict_right`.
+
+         Args:
+             data (dict): Dicionário contendo os dados a serem mapeados para uma instância da classe.
+
+         Returns:
+             Self: Uma nova instância da classe, populada com os dados informados.
+
+         Raises:
+             LoadJsonError: Em caso de falha ao mapear algum campo, incluindo erros de estrutura,
+                            tipo ou parsing de campos compostos.
+         """
+        extra_fields = cls.__get_extra_fields(data) # Separa campos não definidos na classe
         field_name = None
         field_value = None
         data_value = None
@@ -540,8 +559,9 @@ class Object(ParseMixin, ABC):
             # if not isinstance(data, dict):
             #     return data
 
-            obj = cls(**data)
+            obj = cls(**data) # Tenta instanciar diretamente com os dados
 
+            # Trata os campos explicitamente listados como JSON_FIELDS
             for field_name in cls.JSON_FIELDS:
                 logger.debug(f'field_name: {field_name} found in JSON_FIELDS')
                 data_value = data.get(field_name)
@@ -555,6 +575,7 @@ class Object(ParseMixin, ABC):
 
                     setattr(obj, field_name, value)
 
+            # Itera sobre todos os campos restantes no dicionário
             for field_name, data_value in data.items():
                 logger.debug(f'field_name: {field_name}; data_value type: {type(data_value)}; data_value: {data_value}')
                 if field_name in cls.JSON_FIELDS:
@@ -564,12 +585,15 @@ class Object(ParseMixin, ABC):
                     ObjectClass = cls._subclass_object(field)
                     value = None
                     if ObjectClass and field.metadata.get('dict_right'):
+                        # Campo do tipo dict[str, Object]
                         value = {}
                         for k, field_value in data_value.items():
                             value[k] = ObjectClass.from_json(field_value)
                     elif ObjectClass:
+                        # Campo do tipo Object
                         value = ObjectClass.from_json(data_value)
                     else:
+                        # Campo do tipo dict genérico
                         value = data_value
                     setattr(obj, field_name, value)
                 elif isinstance(data_value, list):
@@ -594,9 +618,10 @@ class Object(ParseMixin, ABC):
                             value.append(field_value)
                     setattr(obj, field_name, value)
                 else:
+                    # Campo simples (str, int, bool, etc.)
                     setattr(obj, field_name, data_value)
 
-            obj._extra_fields = extra_fields
+            obj._extra_fields = extra_fields # Armazena campos não definidos formalmente
         except Exception as err:
             msg = f"""Error deserializing list item
                 cls={cls}
@@ -744,6 +769,7 @@ class Object(ParseMixin, ABC):
         return data
 
     def to_json(self, columns=[]) -> dict:
+
         data = self.to_dict(columns)
         self.validate(data)
 
