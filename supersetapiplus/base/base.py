@@ -542,13 +542,45 @@ class Object(ParseMixin, ABC):
 
     @classmethod
     def remove_exclude_keys(cls, data, parent_field_name=''):
+        """
+        Remove campos do dicionário de dados que devem ser excluídos da serialização JSON.
+
+        Este método recursivo percorre os dados (dicionário ou lista) e remove as chaves cujos
+        tipos são marcados com `SerializableOptional` ou `SerializableNotToJson`, indicando que
+        não devem ser incluídos na exportação JSON final.
+
+        Os critérios de exclusão são:
+        - Campos do tipo `SerializableOptional` com valor `None` e sem valor padrão;
+        - Campos do tipo `SerializableOptional` com valor igual ao padrão;
+        - Campos do tipo `SerializableNotToJson`, independentemente do valor.
+
+        Args:
+            data (Union[list, dict, any]): Estrutura a ser verificada (geralmente o resultado de `to_dict()`).
+            parent_field_name (str, optional): Nome do campo pai usado para localizar subcampos. Default é string vazia.
+
+        Returns:
+            Union[list, dict, any]: Estrutura com os campos excluídos conforme os critérios definidos.
+        """
+
         def is_exclude(field_name, parent_field, data):
+            """
+            Verifica se um campo deve ser excluído com base em seus metadados e valor.
+
+            Args:
+                field_name (str): Nome do campo a verificar.
+                parent_field (str): Campo pai (usado para buscar tipo herdado).
+                data (dict): Dicionário de dados da instância.
+
+            Returns:
+                bool: True se o campo deve ser excluído; False caso contrário.
+            """
             field = cls.get_field(field_name)
             _is_exclude = False
             try:
                 if not field and parent_field:
                     ObjectClass = cls._subclass_object(parent_field)
                     field = ObjectClass.get_field(field_name)
+                # Exclui se for SerializableOptional e valor ausente ou igual ao default
                 if get_origin(field.type) is SerializableOptional:
                     if not data[field.name] and field.default is dataclasses.MISSING:
                         _is_exclude = True
@@ -556,26 +588,29 @@ class Object(ParseMixin, ABC):
                         _is_exclude = True
                     else:
                         _is_exclude = False
+                # Exclui sempre que o campo for marcado como NotToJson
                 if get_origin(field.type) is SerializableNotToJson:
                     _is_exclude = True
             except Exception:
                 pass
             return _is_exclude
 
+        # Caso seja uma lista, aplica recursivamente aos elementos
         if isinstance(data, list):
-            # If it is a list, we apply the function to each element in the list
             newdata = []
             for item in data:
                 if not is_exclude(parent_field_name, parent_field_name, data):
                     newdata.append(cls.remove_exclude_keys(item, parent_field_name))
             return newdata
+
+        # Caso seja um dicionário, verifica cada chave individualmente
         if isinstance(data, dict):
-            # If it's a dictionary, we loop through its keys and values
             return {
                 key: cls.remove_exclude_keys(value, key) for key, value in data.items()
                 if not is_exclude(key, cls.get_field(parent_field_name), data)
             }
-        # If it is neither a list nor a dictionary, we return the value as is
+
+        # Qualquer outro tipo de dado é retornado inalterado
         return data
 
     def to_dict(self, columns=[]) -> dict:
@@ -636,12 +671,6 @@ class Object(ParseMixin, ABC):
             data[c] = value
             # logger.debug(f'return data {data}')
         return data
-
-#    dictionary = {'fruit': {"Grapes": "10", "color": "green"}, 'vegetable': {"chilli": "4", "color": "red"},}
-#    json.dumps(dictionary, indent=3)
-#    obj.to_json()
-#   json.dumps(self.to_dict(columns), indent=3)
-#   print(json.dumps(self.to_dict(columns), indent=3))
 
     def to_json(self, columns=[]) -> dict:
         data = self.to_dict(columns)
