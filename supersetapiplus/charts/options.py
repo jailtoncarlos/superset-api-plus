@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, runtime_checkable, Protocol
 
-from supersetapiplus.base.base import Object, object_field
+from supersetapiplus.base.base import SerializableModel, object_field
 from supersetapiplus.charts.filters import AdhocFilterClause
 from supersetapiplus.charts.metric import OrderByTyping, AdhocMetricColumn, MetricHelper, AdhocMetric, OrderBy
 from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, \
@@ -34,7 +34,7 @@ class OptionListGroupByMixin:
 
 
 @dataclass
-class Option(Object, OptionListGroupByMixin):
+class Option(SerializableModel, OptionListGroupByMixin):
     viz_type: ChartType = None
     slice_id: Optional[int] = None
 

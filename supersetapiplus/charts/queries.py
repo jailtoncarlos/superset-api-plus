@@ -2,66 +2,66 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Union, Dict, Protocol, runtime_checkable
 
-from supersetapiplus.base.base import Object, object_field
+from supersetapiplus.base.base import SerializableModel, object_field
 from supersetapiplus.charts.metric import AdhocMetricColumn, MetricHelper, Metric, OrderByTyping, MetricsListMixin, \
     AdhocMetric
 from supersetapiplus.charts.types import FilterOperatorType, TimeGrain, FilterExpressionType, HorizontalAlignType, \
     NumberFormatType, CurrentPositionType, CurrencyCodeType, MetricType, \
     ColumnType
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import FilterValues, Optional
+from supersetapiplus.typing import FilterValues, SerializableOptional
 
 logger = logging.getLogger(__name__)
 
 @dataclass
-class CurrencyFormat(Object):
+class CurrencyFormat(SerializableModel):
     symbolPosition: CurrentPositionType = None
     symbol: CurrencyCodeType = None
 
 
 @dataclass
-class ColumnConfig(Object):
+class ColumnConfig(SerializableModel):
     horizontalAlign: HorizontalAlignType = field(default_factory=lambda: HorizontalAlignType.LEFT)
-    d3NumberFormat: Optional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
-    d3SmallNumberFormat: Optional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
+    d3NumberFormat: SerializableOptional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
+    d3SmallNumberFormat: SerializableOptional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
 
-    alignPositiveNegative: Optional[bool] = None
-    colorPositiveNegative: Optional[bool] = None
-    showCellBars: Optional[bool] = None
-    columnWidth: Optional[int] = None
-    currency_format: Optional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
+    alignPositiveNegative: SerializableOptional[bool] = None
+    colorPositiveNegative: SerializableOptional[bool] = None
+    showCellBars: SerializableOptional[bool] = None
+    columnWidth: SerializableOptional[int] = None
+    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
 
 
 @dataclass
-class QuerieExtra(Object):
-    time_grain_sqla: Optional[TimeGrain] = None
+class QuerieExtra(SerializableModel):
+    time_grain_sqla: SerializableOptional[TimeGrain] = None
     having: str = ''
     where: str = ''
 
 
 @dataclass
-class AdhocColumn(Object):
-    hasCustomLabel: Optional[bool]
+class AdhocColumn(SerializableModel):
+    hasCustomLabel: SerializableOptional[bool]
     label: str
     sqlExpression: str
-    timeGrain: Optional[str]
-    columnType: Optional[ColumnType]
+    timeGrain: SerializableOptional[str]
+    columnType: SerializableOptional[ColumnType]
 
 
 Column = Union[AdhocColumn, str]
 
 
 @dataclass
-class QueryFilterClause(Object):
+class QueryFilterClause(SerializableModel):
     col: Column
-    val: Optional[FilterValues]
+    val: SerializableOptional[FilterValues]
     op: FilterOperatorType = field(default_factory=lambda: FilterOperatorType.EQUALS)
 
 
 @runtime_checkable
 class SupportsColumns(Protocol):
     # This is a protocol that defines the expected structure of classes that have metric.
-    columns: Optional[List[Metric]]
+    columns: SerializableOptional[List[Metric]]
 
 
 class ColumnsMixin:
@@ -81,7 +81,7 @@ class ColumnsMixin:
 @runtime_checkable
 class SupportsOrderby(Protocol):
     # This is a protocol that defines the expected structure of classes that have metric.
-    orderby: Optional[List[OrderByTyping]]
+    orderby: SerializableOptional[List[OrderByTyping]]
 
 
 class OrderByMixin:
@@ -99,17 +99,17 @@ class OrderByMixin:
 
 
 @dataclass
-class QueryObject(Object, MetricsListMixin, ColumnsMixin, OrderByMixin):
-    row_limit: Optional[int] = 100
-    series_limit: Optional[int] = 0
-    series_limit_metric: Optional[Metric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
+class QuerySerializableModel(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
+    row_limit: SerializableOptional[int] = 100
+    series_limit: SerializableOptional[int] = 0
+    series_limit_metric: SerializableOptional[Metric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
     order_desc: bool = True
-    orderby: Optional[List[OrderByTyping]] = object_field(cls=AdhocMetric, default_factory=list)
+    orderby: SerializableOptional[List[OrderByTyping]] = object_field(cls=AdhocMetric, default_factory=list)
 
     filters: List[QueryFilterClause] = object_field(cls=QueryFilterClause, default_factory=list)
     extras: QuerieExtra = object_field(cls=QuerieExtra, default_factory=QuerieExtra)
-    columns: Optional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
-    metrics: Optional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
+    columns: SerializableOptional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
+    metrics: SerializableOptional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
 
     applied_time_extras: Dict = field(default_factory=dict)
     url_params: Dict = field(default_factory=dict)

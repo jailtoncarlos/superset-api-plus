@@ -2,29 +2,29 @@ import logging
 from dataclasses import dataclass, field
 from typing import Union, Literal, get_args, Protocol, runtime_checkable, List
 
-from supersetapiplus.base.base import Object, default_string, object_field
+from supersetapiplus.base.base import SerializableModel, default_string, object_field
 from supersetapiplus.charts.types import FilterExpressionType, SqlMapType, \
     GenericDataType, MetricType, \
     ColumnType
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import Optional
+from supersetapiplus.typing import SerializableOptional
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class AdhocMetricColumn(Object):
+class AdhocMetricColumn(SerializableModel):
     column_name: str = default_string()
-    id: Optional[int] = None
-    verbose_name: Optional[str] = None
-    description: Optional[str] = None
-    expression: Optional[str] = None
+    id: SerializableOptional[int] = None
+    verbose_name: SerializableOptional[str] = None
+    description: SerializableOptional[str] = None
+    expression: SerializableOptional[str] = None
     filterable: bool = True
     groupby: bool = True
     is_dttm: bool = False
-    python_date_format: Optional[str] = None
-    type: Optional[SqlMapType] = None
-    type_generic: Optional[GenericDataType] = None
+    python_date_format: SerializableOptional[str] = None
+    type: SerializableOptional[SqlMapType] = None
+    type_generic: SerializableOptional[GenericDataType] = None
 
     def validate(self, data: dict):
         if not self.column_name or self.type:
@@ -45,20 +45,20 @@ class AdhocMetricColumn(Object):
 
 
 @dataclass
-class AdhocMetric(Object):
-    sqlExpression: Optional[str]
-    aggregate: Optional[MetricType]
-    timeGrain: Optional[str]
-    columnType: Optional[ColumnType]
+class AdhocMetric(SerializableModel):
     expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
-    column: Optional[AdhocMetricColumn] = object_field(cls=AdhocMetricColumn, default_factory=AdhocMetricColumn)
-    label: Optional[str] = default_string()
-    hasCustomLabel: Optional[bool] = False
+    column: SerializableOptional[AdhocMetricColumn] = object_field(cls=AdhocMetricColumn, default_factory=AdhocMetricColumn)
+    label: SerializableOptional[str] = default_string()
+    hasCustomLabel: SerializableOptional[bool] = False
+    sqlExpression: SerializableOptional[str] = None
+    aggregate: SerializableOptional[MetricType] = None
+    timeGrain: SerializableOptional[str] = None
+    columnType: SerializableOptional[ColumnType] = None
 
     def __post_init__(self):
         super().__post_init__()
         if isinstance(self.column, AdhocMetricColumn) and self.column.is_empty():
-            self.column: Optional[AdhocMetricColumn] = None
+            self.column: SerializableOptional[AdhocMetricColumn] = None
 
 
 Metric = Union[AdhocMetric, Literal['count', 'sum', 'avg', 'min', 'max', 'count distinct']]

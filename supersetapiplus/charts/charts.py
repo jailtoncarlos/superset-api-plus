@@ -7,35 +7,35 @@ from typing import List, Type
 
 from typing_extensions import Self
 
-from supersetapiplus.base.base import Object, ObjectFactories, default_string, raise_for_status, object_field
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string, raise_for_status, object_field
 from supersetapiplus.base.types import DatasourceType
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import QueryObject, AdhocMetricColumn
+from supersetapiplus.charts.queries import QuerySerializableModel, AdhocMetricColumn
 from supersetapiplus.charts.query_context import QueryContext, DataSource
 from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, FilterExpressionType, \
     MetricType
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.exceptions import NotFound, ChartValidationError, ValidationError
-from supersetapiplus.typing import NotToJson, Optional
+from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.utils import dict_compare
 
 
 @dataclass
-class Chart(Object):
+class Chart(SerializableModel):
     JSON_FIELDS = ['params', 'query_context']
 
     slice_name: str
     datasource_id: int = None
-    description: Optional[str] = field(default=None)
+    description: SerializableOptional[str] = field(default=None)
 
     viz_type: ChartType = None
 
     # For post charts, optional fields are not used.
-    id: NotToJson[int] = None
+    id: SerializableNotToJson[int] = None
 
-    cache_timeout: NotToJson[int] = field(default=None)
+    cache_timeout: SerializableNotToJson[int] = field(default=None)
 
     params: Option = field(init=False)  # Não instanciar Option diretamente!
     query_context: QueryContext = object_field(cls=QueryContext, default_factory=QueryContext)
@@ -44,7 +44,7 @@ class Chart(Object):
     dashboards: List[Dashboard] = object_field(cls=Dashboard, default_factory=list)
 
 
-    _slice_name_override: NotToJson[str] = default_string()
+    _slice_name_override: SerializableNotToJson[str] = default_string()
 
     @classmethod
     @abstractmethod
@@ -96,7 +96,7 @@ class Chart(Object):
         options.datasource = f'{datasource.id}__{datasource.type}'
         # options.groupby = groupby
 
-        ClassQuerie = QueryObject.get_class(type_=str(new_chart.viz_type))
+        ClassQuerie = QuerySerializableModel.get_class(type_=str(new_chart.viz_type))
 
         # query = ClassQuerie(columns=groupby)
         # new_chart.query_context.queries.append(query)
@@ -211,10 +211,10 @@ class Chart(Object):
         return obj
 
 
-class Charts(ObjectFactories):
+class Charts(ApiModelFactories):
     endpoint = "chart/"
 
-    def _default_object_class(self) -> Type[Object]:
+    def _default_object_class(self) -> Type[SerializableModel]:
         return Chart
 
     def get_chart_data(self, slice_id: str, dashboard_id: int) -> dict:

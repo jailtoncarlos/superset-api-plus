@@ -6,12 +6,12 @@ from supersetapiplus.base.base import default_string, object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import Metric, CurrencyFormat, AdhocMetric, QueryObject
+from supersetapiplus.charts.queries import Metric, CurrencyFormat, AdhocMetric, QuerySerializableModel
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, LabelType, LegendOrientationType, LegendType, DateFormatType, \
     NumberFormatType
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import Optional
+from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
@@ -23,14 +23,14 @@ class PieOption(Option, SingleMetricMixin):
     label_type: LabelType = field(default_factory=lambda: LabelType.CATEGORY_NAME)
     show_legend: bool = True
     show_labels: bool = True
-    legendMargin: Optional[str] = ''
-    currency_format: Optional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
+    legendMargin: SerializableOptional[str] = ''
+    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
     number_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
     date_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
-    donut: Optional[bool] = False
-    label_line: Optional[bool] = False
+    donut: SerializableOptional[bool] = False
+    label_line: SerializableOptional[bool] = False
     labels_outside: bool = True
-    show_total: Optional[bool] = False
+    show_total: SerializableOptional[bool] = False
     innerRadius: int = 30
     outerRadius: int = 70
     show_labels_threshold: int = 5
@@ -67,7 +67,7 @@ class PieFormData(PieOption):
     pass
 
 
-class PieQueryObject(QueryObject):
+class PieQueryObject(QuerySerializableModel):
     ...
 
 
@@ -75,7 +75,7 @@ class PieQueryObject(QueryObject):
 @dataclass
 class PieQueryContext(QueryContext):
     form_data: PieFormData = object_field(cls=PieFormData, default_factory=PieFormData)
-    queries: List[PieQueryObject] = object_field(cls=QueryObject, default_factory=list)
+    queries: List[PieQueryObject] = object_field(cls=QuerySerializableModel, default_factory=list)
 
     def validate(self, data: dict):
         super().validate(data)
@@ -107,7 +107,7 @@ class PieQueryContext(QueryContext):
                     raise ValidationError(message='The metric definition in formdata is not included in queries.orderby.',
                                           solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
 
-    def _default_query_object_class(self) -> type[QueryObject]:
+    def _default_query_object_class(self) -> type[QuerySerializableModel]:
         return PieQueryObject
 
 

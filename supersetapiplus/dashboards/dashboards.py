@@ -2,13 +2,13 @@
 from dataclasses import dataclass, field
 from typing import List, Type
 
-from supersetapiplus.base.base import Object, ObjectFactories, default_string, object_field
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string, object_field
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.dashboards.metadataposition import Metadataposition
 from supersetapiplus.dashboards.nodeposisition import RowNodePosition
 from supersetapiplus.exceptions import DashboardValidationError
-from supersetapiplus.typing import NotToJson
+from supersetapiplus.typing import SerializableNotToJson
 
 
 def defult_metadata():
@@ -20,13 +20,13 @@ def defult_metadata_position():
 
 
 @dataclass
-class Dashboard(Object):
+class Dashboard(SerializableModel):
     JSON_FIELDS = ['json_metadata', 'position_json']
 
     dashboard_title: str
 
     published: bool = field(default=False)
-    id: NotToJson[int] = None
+    id: SerializableNotToJson[int] = None
     css: str = default_string()
     slug: str = None
 
@@ -111,8 +111,8 @@ class Dashboard(Object):
                 chart.delete()
 
 
-class Dashboards(ObjectFactories):
+class Dashboards(ApiModelFactories):
     endpoint = "dashboard/"
 
-    def _default_object_class(self) -> Type[Object]:
+    def _default_object_class(self) -> Type[SerializableModel]:
         return Dashboard
