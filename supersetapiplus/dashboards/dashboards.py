@@ -8,7 +8,7 @@ from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.dashboards.metadataposition import Metadataposition
 from supersetapiplus.dashboards.nodeposisition import RowNodePosition
 from supersetapiplus.exceptions import DashboardValidationError
-from supersetapiplus.typing import NotToJson
+from supersetapiplus.typing import SerializableNotToJson
 
 
 def defult_metadata():
@@ -26,7 +26,7 @@ class Dashboard(Object):
     dashboard_title: str
 
     published: bool = field(default=False)
-    id: NotToJson[int] = None
+    id: SerializableNotToJson[int] = None
     css: str = default_string()
     slug: str = None
 

@@ -10,7 +10,7 @@ from supersetapiplus.charts.queries import ColumnConfig, QueryObject
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType, ColumnType
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import Optional
+from supersetapiplus.typing import SerializableOptional
 
 
 # class TableAdhocMetric(AdhocMetric):
@@ -29,28 +29,28 @@ class TableOption(Option, MetricsListMixin):
 
     order_by_cols: List = field(default_factory=list)
 
-    server_pagination: Optional[bool] = False
+    server_pagination: SerializableOptional[bool] = False
     server_page_length: int = 0
     order_desc: bool = False
-    show_totals: Optional[bool] = False
+    show_totals: SerializableOptional[bool] = False
 
     table_timestamp_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
-    page_length: Optional[int] = None
-    include_search: Optional[bool] = False
+    page_length: SerializableOptional[int] = None
+    include_search: SerializableOptional[bool] = False
     show_cell_bars: bool = True
-    align_pn: Optional[bool] = False
+    align_pn: SerializableOptional[bool] = False
     color_pn: bool = True
-    allow_rearrange_columns: Optional[bool] = False
-    conditional_formatting: Optional[List] = field(default_factory=list)
-    queryFields: Optional[Dict] = field(default_factory=dict)
+    allow_rearrange_columns: SerializableOptional[bool] = False
+    conditional_formatting: SerializableOptional[List] = field(default_factory=list)
+    queryFields: SerializableOptional[Dict] = field(default_factory=dict)
 
-    table_filter: Optional[bool] = False
-    time_grain_sqla: Optional[TimeGrain] = None
-    time_range: Optional[str] = 'No filter'
-    granularity_sqla: Optional[str] = None
+    table_filter: SerializableOptional[bool] = False
+    time_grain_sqla: SerializableOptional[TimeGrain] = None
+    time_range: SerializableOptional[str] = 'No filter'
+    granularity_sqla: SerializableOptional[str] = None
 
-    metrics: Optional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
-    column_config: Optional[Dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True, default_factory=dict)
+    metrics: SerializableOptional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
+    column_config: SerializableOptional[Dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True, default_factory=dict)
 
     def __post_init__(self):
         super().__post_init__()
@@ -76,8 +76,8 @@ class TableFormData(TableOption):
 
 @dataclass
 class TableQueryObject(QueryObject):
-    time_range: Optional[str] = field(init=False, default='No Filter')
-    granularity: Optional[str] = None
+    time_range: SerializableOptional[str] = field(init=False, default='No Filter')
+    granularity: SerializableOptional[str] = None
     # applied_time_extras: List[str] = field(default_factory=list)
 
     def _add_simple_metric(self, metric:str, automatic_order: OrderBy):

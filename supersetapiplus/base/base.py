@@ -24,7 +24,7 @@ from supersetapiplus.exceptions import BadRequestError, ComplexBadRequestError, 
     LoadJsonError
 from supersetapiplus.base.parse import ParseMixin
 from supersetapiplus.client import QueryStringFilter
-from supersetapiplus.typing import NotToJson, Optional
+from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.utils import dict_hash
 
 logger = logging.getLogger(__name__)
@@ -148,7 +148,7 @@ class Object(ParseMixin, ABC):
             # If there is a default and the value of the field is none we can assign a value
             if not isinstance(field.default, dataclasses._MISSING_TYPE) \
                     and getattr(self, field.name) is None \
-                    and not get_origin(field.type) is Optional:
+                    and not get_origin(field.type) is SerializableOptional:
                         setattr(self, field.name, field.default)
 
     @property
@@ -338,14 +338,14 @@ class Object(ParseMixin, ABC):
                 if not field and parent_field:
                     ObjectClass = cls._subclass_object(parent_field)
                     field = ObjectClass.get_field(field_name)
-                if get_origin(field.type) is Optional:
+                if get_origin(field.type) is SerializableOptional:
                     if not data[field.name] and field.default is dataclasses.MISSING:
                         _is_exclude = True
                     elif field.default == data[field.name]:
                         _is_exclude = True
                     else:
                         _is_exclude = False
-                if get_origin(field.type) is NotToJson:
+                if get_origin(field.type) is SerializableNotToJson:
                     _is_exclude = True
             except Exception:
                 pass

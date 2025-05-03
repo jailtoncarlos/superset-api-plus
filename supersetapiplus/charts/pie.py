@@ -11,7 +11,7 @@ from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, LabelType, LegendOrientationType, LegendType, DateFormatType, \
     NumberFormatType
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import Optional
+from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
@@ -23,14 +23,14 @@ class PieOption(Option, SingleMetricMixin):
     label_type: LabelType = field(default_factory=lambda: LabelType.CATEGORY_NAME)
     show_legend: bool = True
     show_labels: bool = True
-    legendMargin: Optional[str] = ''
-    currency_format: Optional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
+    legendMargin: SerializableOptional[str] = ''
+    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
     number_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
     date_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
-    donut: Optional[bool] = False
-    label_line: Optional[bool] = False
+    donut: SerializableOptional[bool] = False
+    label_line: SerializableOptional[bool] = False
     labels_outside: bool = True
-    show_total: Optional[bool] = False
+    show_total: SerializableOptional[bool] = False
     innerRadius: int = 30
     outerRadius: int = 70
     show_labels_threshold: int = 5

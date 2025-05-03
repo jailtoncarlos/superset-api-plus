@@ -24,7 +24,7 @@ from typing import Union, Generic, TypeVar
 T = TypeVar('T')
 
 
-class NotToJson(Generic[T]):
+class SerializableNotToJson(Generic[T]):
     """
     Classe genérica que encapsula um valor que **não deve ser incluído na serialização JSON**.
 
@@ -48,7 +48,7 @@ class NotToJson(Generic[T]):
         return self.value
 
 
-class Optional(Generic[T]):
+class SerializableOptional(Generic[T]):
     """
     Classe genérica que encapsula um valor **opcional** com lógica de exclusão condicional
     durante a serialização JSON.
