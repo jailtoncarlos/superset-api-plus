@@ -146,12 +146,6 @@ def json_field(**kwargs):
 
 
 def default_string(**kwargs):
-    if not kwargs.get('default'):
-        kwargs['default']=''
-    return dataclasses.field(repr=False, **kwargs)
-
-
-def default_string(**kwargs):
     """
     Cria um campo para dataclass com valor padrão do tipo string vazia ('') e
     oculto na representação textual do objeto (`repr=False`).
@@ -177,6 +171,11 @@ def default_string(**kwargs):
     # Cria o campo ocultando-o da representação textual da instância
     return dataclasses.field(repr=False, **kwargs)
 
+
+def default_bool(**kwargs):
+    if not kwargs.get('default'):
+        kwargs['default']=False
+    return dataclasses.field(repr=False)
 
 
 def raise_for_status(response):
