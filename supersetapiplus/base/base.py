@@ -844,28 +844,54 @@ class Object(ParseMixin, ABC):
 
     @property
     def base_url(self) -> str:
+        """
+        Retorna a URL base específica para a instância do objeto.
+
+        Utiliza o client do factory para compor a URL concatenando o endpoint base
+        com o identificador (`id`) do objeto atual.
+
+        Returns:
+            str: URL completa para operações no objeto.
+        """
         return self._factory.client.join_urls(self._factory.base_url, self.id)
 
     def export(self, path: Union[Path, str]) -> None:
-        """Export object to path"""
+        """
+        Exporta os dados do objeto atual para um arquivo no caminho especificado.
+
+        Args:
+            path (Union[Path, str]): Caminho onde o conteúdo será exportado.
+        """
         self._factory.export(ids=[self.id], path=path)
 
     def fetch(self) -> None:
-        """Fetch additional object information."""
-        field_names = self.field_names()
+        """
+        Recarrega os dados da instância a partir da API remota.
 
+        Realiza uma requisição GET na URL do objeto e atualiza os atributos da
+        instância com os valores retornados, incluindo a desserialização de campos
+        JSON especificados em `JSON_FIELDS`.
+        """
+        field_names = self.field_names()
         client = self._factory.client
         response = client.get(self.base_url)
         o = response.json().get("result")
+
         for k, v in o.items():
             if k in field_names:
                 if k in self.JSON_FIELDS:
+                    # Converte JSON string para dicionário Python
                     setattr(self, k, json.loads(v or "{}"))
                 else:
                     setattr(self, k, v)
 
     def save(self) -> None:
-        """Save object information."""
+        """
+        Atualiza ou persiste os dados do objeto na API remota.
+
+        Converte os dados atuais da instância em JSON e envia via requisição PUT
+        para a API. Loga o payload e a resposta da operação.
+        """
         o = self.to_json(columns=self._factory.edit_columns)
         logger.info(f'payload: {o}')
 
@@ -874,9 +900,24 @@ class Object(ParseMixin, ABC):
         logger.info(f'response: {response.json()}')
 
     def delete(self) -> bool:
+        """
+        Exclui o objeto da API remota.
+
+        Returns:
+            bool: `True` se a exclusão for bem-sucedida, `False` caso contrário.
+        """
         return self._factory.delete(id=self.id)
 
     def get_request_response(self):
+        """
+        Retorna a resposta bruta da última requisição associada ao objeto.
+
+        Retorna o conteúdo do JSON com os campos definidos em `JSON_FIELDS`
+        desserializados a partir de string JSON.
+
+        Returns:
+            dict: Estrutura JSON com os dados da resposta, incluindo campos convertidos.
+        """
         jdict = self._request_response.json()
         for field_name in self.JSON_FIELDS:
             jdict['result'][field_name] = json.loads(jdict['result'][field_name])
