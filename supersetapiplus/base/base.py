@@ -325,15 +325,6 @@ class Object(ParseMixin, ABC):
         return self._extra_fields
 
     def __eq__(self, other):
-        if not isinstance(other, type(self)):
-            return NotImplementedError()
-        dict_self = vars(self)
-        dict_self.pop('_extra_fields', None)
-        dict_other = vars(other)
-        dict_other.pop('_extra_fields', None)
-        return dict_self == dict_other
-
-    def __eq__(self, other):
         """
         Compara a instância atual com outro objeto para verificar igualdade estrutural.
 
@@ -366,6 +357,9 @@ class Object(ParseMixin, ABC):
 
         # Retorna True se os dicionários forem iguais (atributos equivalentes)
         return dict_self == dict_other
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
         """
