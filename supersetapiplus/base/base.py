@@ -261,7 +261,7 @@ def raise_for_status(response):
             raise e
 
 
-class Object(ParseMixin, ABC):
+class SerializableModel(ParseMixin, ABC):
     """
     Classe base abstrata para representação de objetos que interagem com a API do Superset.
 
@@ -439,7 +439,7 @@ class Object(ParseMixin, ABC):
         fields = []
         for f in cls.fields():
             # Ignora campos cujo default é uma instância de Object
-            if not isinstance(f.default, Object):
+            if not isinstance(f.default, SerializableModel):
                 fields.append(f.name)
         return fields
 
@@ -459,7 +459,7 @@ class Object(ParseMixin, ABC):
         """
         rdata = {}
         for f in cls.fields():
-            if f.default is dataclasses.MISSING and not isinstance(f.default, Object):
+            if f.default is dataclasses.MISSING and not isinstance(f.default, SerializableModel):
                 rdata[f.name] = data.get(f.name)
         return rdata
 
@@ -524,7 +524,7 @@ class Object(ParseMixin, ABC):
         default_factory = getattr(field, 'default_factory', None)
 
         if default_factory and default_factory is not dataclasses.MISSING:
-            if isinstance(default_factory, type) and issubclass(default_factory, Object):
+            if isinstance(default_factory, type) and issubclass(default_factory, SerializableModel):
                 return default_factory
 
         # Se nenhuma das abordagens funcionar, retorna None
@@ -734,9 +734,9 @@ class Object(ParseMixin, ABC):
             if isinstance(field_value, tuple):
                 l1 = field_value[0]
                 l2 = field_value[1]
-                if isinstance(field_value[0], Object):
+                if isinstance(field_value[0], SerializableModel):
                     l1 = field_value[0].to_dict()
-                elif isinstance(field_value[1], Object):
+                elif isinstance(field_value[1], SerializableModel):
                     l2 = field_value[1].to_dict()
                 elif isinstance(field_value[0], Enum):
                     l1 = str(field_value[0])
@@ -760,14 +760,14 @@ class Object(ParseMixin, ABC):
                 value = str(value)
 
             # Converte objetos recursivamente
-            elif value and isinstance(value, Object):
+            elif value and isinstance(value, SerializableModel):
                 value = value.to_dict(columns)
 
             # Converte listas de objetos, tuplas ou enums
             elif value and isinstance(value, list):
                 values_data = []
                 for field_value in value:
-                    if isinstance(field_value, Object):
+                    if isinstance(field_value, SerializableModel):
                         values_data.append(field_value.to_dict())
                     elif isinstance(field_value, tuple):
                         values_data = prepare_value_tuple(field_value)
@@ -822,7 +822,7 @@ class Object(ParseMixin, ABC):
         # Campos que devem ser serializados como JSON string (definidos em JSON_FIELDS)
         for field in self.JSON_FIELDS:
             obj = getattr(self, field)
-            if isinstance(obj, Object):
+            if isinstance(obj, SerializableModel):
                 # Converte o campo para JSON usando serialização recursiva personalizada
                 data[field] = json.dumps(obj.to_json(), cls=ObjectDecoder)
             elif isinstance(obj, dict):
@@ -952,7 +952,7 @@ class ObjectFactories(ABC):
         self.client = client
 
     @abstractmethod
-    def _default_object_class(self) -> type[Object]:
+    def _default_object_class(self) -> type[SerializableModel]:
         """
         Deve ser implementado pelas subclasses para retornar a classe padrão dos objetos manipulados.
         """
@@ -966,7 +966,7 @@ class ObjectFactories(ABC):
             data (dict): Dados da entidade retornados pela API.
 
         Returns:
-            type[Object]: Classe apropriada para instanciar o objeto.
+            type[SerializableModel]: Classe apropriada para instanciar o objeto.
         """
         type_ = data['viz_type']
         if type_:
@@ -1029,7 +1029,7 @@ class ObjectFactories(ABC):
             id (str): Identificador do objeto.
 
         Returns:
-            Object: Instância do objeto correspondente.
+            SerializableModel: Instância do objeto correspondente.
         """
         url = self.client.join_urls(self.base_url, id)
         logger.info(f'url: {url}')
@@ -1056,7 +1056,7 @@ class ObjectFactories(ABC):
             page (int): Número da página.
 
         Returns:
-            List[Object]: Lista de objetos encontrados.
+            List[SerializableModel]: Lista de objetos encontrados.
         """
         response = self.client.find(self.base_url, filter, columns, page_size, page)
         objects = []
@@ -1086,7 +1086,7 @@ class ObjectFactories(ABC):
             MultipleFound: Se mais de um objeto for encontrado.
 
         Returns:
-            Object: Objeto encontrado.
+            SerializableModel: Objeto encontrado.
         """
         objects = self.find(filter, columns)
         if len(objects) == 0:
@@ -1100,7 +1100,7 @@ class ObjectFactories(ABC):
         Adiciona um novo objeto ao endpoint remoto.
 
         Args:
-            obj (Object): Objeto a ser adicionado.
+            obj (SerializableModel): Objeto a ser adicionado.
 
         Returns:
             int: ID do objeto criado.

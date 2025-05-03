@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import Object
+from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.charts.types import FilterOperatorType, FilterExpressionType, FilterClausesType
 from supersetapiplus.typing import SerializableOptional
 
@@ -9,7 +9,7 @@ from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
-class AdhocFilterClause(Object):
+class AdhocFilterClause(SerializableModel):
     expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.SIMPLE)
     subject: str = None
     operator: FilterOperatorType = None

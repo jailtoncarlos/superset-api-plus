@@ -6,7 +6,7 @@ from supersetapiplus.base.base import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import MetricsListMixin, AdhocMetric, Metric, AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import ColumnConfig, QueryObject
+from supersetapiplus.charts.queries import ColumnConfig, QuerySerializableModel
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType, ColumnType
 from supersetapiplus.exceptions import ValidationError
@@ -75,7 +75,7 @@ class TableFormData(TableOption):
 
 
 @dataclass
-class TableQueryObject(QueryObject):
+class TableQueryObject(QuerySerializableModel):
     time_range: SerializableOptional[str] = field(init=False, default='No Filter')
     granularity: SerializableOptional[str] = None
     # applied_time_extras: List[str] = field(default_factory=list)
@@ -98,7 +98,7 @@ class TableQueryObject(QueryObject):
 @dataclass
 class TableQueryContext(QueryContext):
     form_data: TableFormData = object_field(cls=TableFormData, default_factory=TableFormData)
-    queries: List[TableQueryObject] = object_field(cls=QueryObject, default_factory=list)
+    queries: List[TableQueryObject] = object_field(cls=QuerySerializableModel, default_factory=list)
 
     def validate(self, data: dict):
         super().validate(data)
@@ -117,7 +117,7 @@ class TableQueryContext(QueryContext):
                 raise ValidationError(message='The metrics definition in formdata is not included in queries.metrics.',
                                       solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
 
-    def _default_query_object_class(self) -> type[QueryObject]:
+    def _default_query_object_class(self) -> type[QuerySerializableModel]:
         return TableQueryObject
 
 

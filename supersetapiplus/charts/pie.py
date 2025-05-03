@@ -6,7 +6,7 @@ from supersetapiplus.base.base import default_string, object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import Metric, CurrencyFormat, AdhocMetric, QueryObject
+from supersetapiplus.charts.queries import Metric, CurrencyFormat, AdhocMetric, QuerySerializableModel
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, LabelType, LegendOrientationType, LegendType, DateFormatType, \
     NumberFormatType
@@ -67,7 +67,7 @@ class PieFormData(PieOption):
     pass
 
 
-class PieQueryObject(QueryObject):
+class PieQueryObject(QuerySerializableModel):
     ...
 
 
@@ -75,7 +75,7 @@ class PieQueryObject(QueryObject):
 @dataclass
 class PieQueryContext(QueryContext):
     form_data: PieFormData = object_field(cls=PieFormData, default_factory=PieFormData)
-    queries: List[PieQueryObject] = object_field(cls=QueryObject, default_factory=list)
+    queries: List[PieQueryObject] = object_field(cls=QuerySerializableModel, default_factory=list)
 
     def validate(self, data: dict):
         super().validate(data)
@@ -107,7 +107,7 @@ class PieQueryContext(QueryContext):
                     raise ValidationError(message='The metric definition in formdata is not included in queries.orderby.',
                                           solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
 
-    def _default_query_object_class(self) -> type[QueryObject]:
+    def _default_query_object_class(self) -> type[QuerySerializableModel]:
         return PieQueryObject
 
 

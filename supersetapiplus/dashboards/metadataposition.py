@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from supersetapiplus.base.base import Object
+from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.dashboards.itemposition import TabItemPosition, MarkdownItemPosition, ItemPosition, \
     ChartItemPosition, ColumnItemPosition
 from supersetapiplus.dashboards.nodeposisition import MarkdownNodePosition, TabNodePosition, NodePosition, \
@@ -9,7 +9,7 @@ from supersetapiplus.dashboards.treenodeposisition import TreeNodePosition
 
 
 @dataclass
-class Metadataposition(Object):
+class Metadataposition(SerializableModel):
     DASHBOARD_VERSION_KEY: str = 'v2'
 
     def __init__(self, tree:TreeNodePosition = None, **kwargs):

@@ -1,36 +1,36 @@
 from dataclasses import dataclass, field
 from typing import List, Dict
 
-from supersetapiplus.base.base import Object, default_string, object_field
+from supersetapiplus.base.base import SerializableModel, default_string, object_field
 from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
-class CrossFilters(Object):
+class CrossFilters(SerializableModel):
     scope: str = 'global'
     chartsInScope: List[int] = field(default_factory=list)
 
 
 @dataclass
-class ChartConfiguration(Object):
+class ChartConfiguration(SerializableModel):
     id: int
     crossFilters: CrossFilters = object_field(cls=CrossFilters, default_factory=CrossFilters)
 
 
 @dataclass
-class GlobalChartconfigurationScope(Object):
+class GlobalChartconfigurationScope(SerializableModel):
     rootPath: List[str] = field(default_factory=list)
     excluded: List[str] = field(default_factory=list)
 
 
 @dataclass
-class GlobalChartconfiguration(Object):
+class GlobalChartconfiguration(SerializableModel):
     scope : GlobalChartconfigurationScope = object_field(cls=GlobalChartconfigurationScope, default_factory=GlobalChartconfigurationScope)
     chartsInScope: List[str] = field(default_factory=list)
 
 
 @dataclass
-class Metadata(Object):
+class Metadata(SerializableModel):
     JSON_FIELDS = ['default_filters']
 
     color_scheme: str = default_string()

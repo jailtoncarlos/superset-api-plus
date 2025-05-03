@@ -2,13 +2,13 @@
 from dataclasses import dataclass, field
 from typing import Optional, Type
 
-from supersetapiplus.base.base import Object, ObjectFactories, QueryStringFilter
+from supersetapiplus.base.base import SerializableModel, ObjectFactories, QueryStringFilter
 from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.exceptions import NotFound
 
 
 @dataclass
-class Dataset(Object):
+class Dataset(SerializableModel):
     JSON_FIELDS = []
 
     id: Optional[int] = None
@@ -64,5 +64,5 @@ class Datasets(ObjectFactories):
             raise NotFound(f'Attribut result does not exist in object response.')
         return DataSource(**data)
 
-    def _default_object_class(self) -> Type[Object]:
+    def _default_object_class(self) -> Type[SerializableModel]:
         return Dataset

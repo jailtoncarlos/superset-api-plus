@@ -2,11 +2,11 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from typing import List
 
-from supersetapiplus.base.base import Object, object_field
+from supersetapiplus.base.base import SerializableModel, object_field
 from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import QueryObject, AdhocMetricColumn
+from supersetapiplus.charts.queries import QuerySerializableModel, AdhocMetricColumn
 from supersetapiplus.charts.types import FilterOperatorType, FilterClausesType, MetricType, FilterExpressionType
 from supersetapiplus.exceptions import ChartValidationError, ValidationError
 
@@ -17,13 +17,13 @@ class FormData(Option):
 
 
 @dataclass
-class QueryContext(Object):
+class QueryContext(SerializableModel):
     datasource: DataSource = object_field(cls=DataSource, default_factory=DataSource)
-    queries: List[QueryObject] = object_field(cls=QueryObject, default_factory=list)
+    queries: List[QuerySerializableModel] = object_field(cls=QuerySerializableModel, default_factory=list)
     form_data: FormData = object_field(cls=FormData, default_factory=FormData)
 
     @abstractmethod
-    def _default_query_object_class(self) -> type[QueryObject]:
+    def _default_query_object_class(self) -> type[QuerySerializableModel]:
         raise NotImplementedError()
 
     def __post_init__(self):

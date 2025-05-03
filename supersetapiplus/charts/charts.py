@@ -7,11 +7,11 @@ from typing import List, Type
 
 from typing_extensions import Self
 
-from supersetapiplus.base.base import Object, ObjectFactories, default_string, raise_for_status, object_field
+from supersetapiplus.base.base import SerializableModel, ObjectFactories, default_string, raise_for_status, object_field
 from supersetapiplus.base.types import DatasourceType
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import QueryObject, AdhocMetricColumn
+from supersetapiplus.charts.queries import QuerySerializableModel, AdhocMetricColumn
 from supersetapiplus.charts.query_context import QueryContext, DataSource
 from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, FilterExpressionType, \
     MetricType
@@ -23,7 +23,7 @@ from supersetapiplus.utils import dict_compare
 
 
 @dataclass
-class Chart(Object):
+class Chart(SerializableModel):
     JSON_FIELDS = ['params', 'query_context']
 
     slice_name: str
@@ -96,7 +96,7 @@ class Chart(Object):
         options.datasource = f'{datasource.id}__{datasource.type}'
         # options.groupby = groupby
 
-        ClassQuerie = QueryObject.get_class(type_=str(new_chart.viz_type))
+        ClassQuerie = QuerySerializableModel.get_class(type_=str(new_chart.viz_type))
 
         # query = ClassQuerie(columns=groupby)
         # new_chart.query_context.queries.append(query)
@@ -214,7 +214,7 @@ class Chart(Object):
 class Charts(ObjectFactories):
     endpoint = "chart/"
 
-    def _default_object_class(self) -> Type[Object]:
+    def _default_object_class(self) -> Type[SerializableModel]:
         return Chart
 
     def get_chart_data(self, slice_id: str, dashboard_id: int) -> dict:

@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Union, Literal, get_args, Protocol, runtime_checkable, List
 
-from supersetapiplus.base.base import Object, default_string, object_field
+from supersetapiplus.base.base import SerializableModel, default_string, object_field
 from supersetapiplus.charts.types import FilterExpressionType, SqlMapType, \
     GenericDataType, MetricType, \
     ColumnType
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class AdhocMetricColumn(Object):
+class AdhocMetricColumn(SerializableModel):
     column_name: str = default_string()
     id: SerializableOptional[int] = None
     verbose_name: SerializableOptional[str] = None
@@ -45,7 +45,7 @@ class AdhocMetricColumn(Object):
 
 
 @dataclass
-class AdhocMetric(Object):
+class AdhocMetric(SerializableModel):
     expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
     column: SerializableOptional[AdhocMetricColumn] = object_field(cls=AdhocMetricColumn, default_factory=AdhocMetricColumn)
     label: SerializableOptional[str] = default_string()

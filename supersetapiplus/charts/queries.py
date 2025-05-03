@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Union, Dict, Protocol, runtime_checkable
 
-from supersetapiplus.base.base import Object, object_field
+from supersetapiplus.base.base import SerializableModel, object_field
 from supersetapiplus.charts.metric import AdhocMetricColumn, MetricHelper, Metric, OrderByTyping, MetricsListMixin, \
     AdhocMetric
 from supersetapiplus.charts.types import FilterOperatorType, TimeGrain, FilterExpressionType, HorizontalAlignType, \
@@ -14,13 +14,13 @@ from supersetapiplus.typing import FilterValues, SerializableOptional
 logger = logging.getLogger(__name__)
 
 @dataclass
-class CurrencyFormat(Object):
+class CurrencyFormat(SerializableModel):
     symbolPosition: CurrentPositionType = None
     symbol: CurrencyCodeType = None
 
 
 @dataclass
-class ColumnConfig(Object):
+class ColumnConfig(SerializableModel):
     horizontalAlign: HorizontalAlignType = field(default_factory=lambda: HorizontalAlignType.LEFT)
     d3NumberFormat: SerializableOptional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
     d3SmallNumberFormat: SerializableOptional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
@@ -33,14 +33,14 @@ class ColumnConfig(Object):
 
 
 @dataclass
-class QuerieExtra(Object):
+class QuerieExtra(SerializableModel):
     time_grain_sqla: SerializableOptional[TimeGrain] = None
     having: str = ''
     where: str = ''
 
 
 @dataclass
-class AdhocColumn(Object):
+class AdhocColumn(SerializableModel):
     hasCustomLabel: SerializableOptional[bool]
     label: str
     sqlExpression: str
@@ -52,7 +52,7 @@ Column = Union[AdhocColumn, str]
 
 
 @dataclass
-class QueryFilterClause(Object):
+class QueryFilterClause(SerializableModel):
     col: Column
     val: SerializableOptional[FilterValues]
     op: FilterOperatorType = field(default_factory=lambda: FilterOperatorType.EQUALS)
@@ -99,7 +99,7 @@ class OrderByMixin:
 
 
 @dataclass
-class QueryObject(Object, MetricsListMixin, ColumnsMixin, OrderByMixin):
+class QuerySerializableModel(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
     row_limit: SerializableOptional[int] = 100
     series_limit: SerializableOptional[int] = 0
     series_limit_metric: SerializableOptional[Metric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)

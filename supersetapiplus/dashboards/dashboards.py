@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 from typing import List, Type
 
-from supersetapiplus.base.base import Object, ObjectFactories, default_string, object_field
+from supersetapiplus.base.base import SerializableModel, ObjectFactories, default_string, object_field
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.dashboards.metadataposition import Metadataposition
@@ -20,7 +20,7 @@ def defult_metadata_position():
 
 
 @dataclass
-class Dashboard(Object):
+class Dashboard(SerializableModel):
     JSON_FIELDS = ['json_metadata', 'position_json']
 
     dashboard_title: str
@@ -114,5 +114,5 @@ class Dashboard(Object):
 class Dashboards(ObjectFactories):
     endpoint = "dashboard/"
 
-    def _default_object_class(self) -> Type[Object]:
+    def _default_object_class(self) -> Type[SerializableModel]:
         return Dashboard

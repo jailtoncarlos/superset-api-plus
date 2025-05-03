@@ -2,11 +2,11 @@
 from dataclasses import dataclass
 from typing import Optional, Type
 
-from supersetapiplus.base.base import Object, ObjectFactories, default_string
+from supersetapiplus.base.base import SerializableModel, ObjectFactories, default_string
 
 
 @dataclass
-class SavedQuery(Object):
+class SavedQuery(SerializableModel):
     JSON_FIELDS = []
 
     label: str
@@ -32,5 +32,5 @@ class SavedQueries(ObjectFactories):
     endpoint = "saved_query/"
     base_object = SavedQuery
 
-    def _default_object_class(self) -> Type[Object]:
+    def _default_object_class(self) -> Type[SerializableModel]:
         return SavedQuery

@@ -5,7 +5,7 @@ from typing import List
 from supersetapiplus.base.base import default_string, object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import AdhocMetric, CurrencyFormat, QueryObject
+from supersetapiplus.charts.queries import AdhocMetric, CurrencyFormat, QuerySerializableModel
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, LegendOrientationType, LegendType, DateFormatType, \
     NumberFormatType, TimeGrain, Orientation, ContributionType, SortSeriesType, StackStylyType, \
@@ -95,7 +95,7 @@ class TimeSeriesBarFormData(TimeSeriesBarOption):
 
 
 @dataclass
-class TimeSeriesBarQueryObject(QueryObject):
+class TimeSeriesBarQueryObject(QuerySerializableModel):
     ...
 
 
@@ -104,7 +104,7 @@ class TimeSeriesBarQueryContext(QueryContext):
     queries: List[TimeSeriesBarQueryObject] = object_field(cls=TimeSeriesBarQueryObject, default_factory=list)
     form_data: TimeSeriesBarFormData = object_field(cls=TimeSeriesBarFormData, default_factory=TimeSeriesBarFormData)
 
-    def _default_query_object_class(self) -> type[QueryObject]:
+    def _default_query_object_class(self) -> type[QuerySerializableModel]:
         return TimeSeriesBarQueryObject
 
 

@@ -2,11 +2,11 @@
 from dataclasses import dataclass
 from typing import Optional, Type
 
-from supersetapiplus.base.base import Object, ObjectFactories, default_string, json_field
+from supersetapiplus.base.base import SerializableModel, ObjectFactories, default_string, json_field
 
 
 @dataclass
-class Database(Object):
+class Database(SerializableModel):
     JSON_FIELDS = [
         "extra",
     ]
@@ -60,5 +60,5 @@ class Databases(ObjectFactories):
         response = self.client.post(url, json=o)
         return response.json().get("message") == "OK"
 
-    def _default_object_class(self) -> Type[Object]:
+    def _default_object_class(self) -> Type[SerializableModel]:
         return Database
