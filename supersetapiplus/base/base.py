@@ -29,6 +29,7 @@ from supersetapiplus.utils import dict_hash
 
 logger = logging.getLogger(__name__)
 
+
 def object_field(*, cls=None, default=dataclasses.MISSING, default_factory=dataclasses.MISSING,
                  init=True, repr=True, hash=None, compare=True,
                  metadata=None, kw_only=dataclasses.MISSING,
@@ -84,7 +85,6 @@ def object_field(*, cls=None, default=dataclasses.MISSING, default_factory=datac
         metadata=metadata,
         kw_only=kw_only
     )
-
 
 
 class ObjectDecoder(json.JSONEncoder):
@@ -144,7 +144,6 @@ def json_field(**kwargs):
     return dataclasses.field(repr=False, **kwargs)
 
 
-
 def default_string(**kwargs):
     """
     Cria um campo para dataclass com valor padrão do tipo string vazia ('') e
@@ -173,9 +172,30 @@ def default_string(**kwargs):
 
 
 def default_bool(**kwargs):
+    """
+    Cria um campo do tipo booleano para dataclass com valor padrão `False`
+    e oculto na representação textual do objeto (`repr=False`).
+
+    Esta função é útil para evitar repetições ao definir campos booleanos
+    opcionais que devem iniciar como `False`.
+
+    Args:
+        **kwargs: Argumentos adicionais para o construtor `dataclasses.field`.
+
+    Returns:
+        dataclasses.Field: Campo booleano configurado com `default=False` e `repr=False`.
+
+    Exemplo:
+        class Example(Object):
+            ativo: bool = default_bool()
+    """
+    # Se nenhum valor padrão for fornecido explicitamente, usa False
     if not kwargs.get('default'):
-        kwargs['default']=False
-    return dataclasses.field(repr=False)
+        kwargs['default'] = False
+
+    # Cria o campo com `repr=False` para não ser exibido em __repr__
+    return dataclasses.field(repr=False, **kwargs)
+
 
 
 def raise_for_status(response):
