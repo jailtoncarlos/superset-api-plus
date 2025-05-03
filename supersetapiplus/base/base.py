@@ -925,23 +925,49 @@ class Object(ParseMixin, ABC):
 
 
 class ObjectFactories(ABC):
-    endpoint = ""
+    """
+    Classe base abstrata para construção de fábricas de objetos que interagem com a API do Superset.
 
+    Esta classe encapsula a lógica de comunicação com endpoints RESTful do Superset, permitindo
+    a manipulação de entidades como gráficos, conjuntos de dados e bancos de dados. As subclasses
+    devem especificar a classe de objeto padrão e o endpoint correspondente.
+
+    A classe fornece métodos para:
+    - Buscar objetos por ID ou filtros
+    - Criar, atualizar e deletar objetos
+    - Importar e exportar objetos via arquivos JSON ou ZIP
+    - Obter metainformações dos endpoints (_info)
+    """
+
+    endpoint = ""
     _INFO_QUERY = {"keys": ["add_columns", "edit_columns"]}
 
     def __init__(self, client):
-        """Create a new Dashboards endpoint.
+        """
+        Inicializa a fábrica com o cliente que realizará as requisições HTTP.
 
         Args:
-            client (client): superset client
+            client: Instância de cliente que encapsula métodos de requisição (GET, POST, DELETE, etc.)
         """
         self.client = client
 
     @abstractmethod
     def _default_object_class(self) -> type[Object]:
+        """
+        Deve ser implementado pelas subclasses para retornar a classe padrão dos objetos manipulados.
+        """
         ...
 
     def get_base_object(self, data):
+        """
+        Retorna a classe do objeto a ser instanciado com base no campo 'viz_type' dos dados.
+
+        Args:
+            data (dict): Dados da entidade retornados pela API.
+
+        Returns:
+            type[Object]: Classe apropriada para instanciar o objeto.
+        """
         type_ = data['viz_type']
         if type_:
             m = self._default_object_class().__module__.split('.')
@@ -953,81 +979,115 @@ class ObjectFactories(ABC):
 
     @cached_property
     def _infos(self):
-        # Get infos
+        """
+        Obtém metainformações do endpoint, como colunas disponíveis para adição e edição.
+
+        Returns:
+            dict: Dados obtidos do endpoint /_info.
+        """
         response = self.client.get(self.info_url, params={"q": json.dumps(self._INFO_QUERY)})
         raise_for_status(response)
         return response.json()
 
     @property
     def add_columns(self):
+        """Lista de colunas disponíveis para adição."""
         return [e.get("name") for e in self._infos.get("add_columns", [])]
 
     @property
     def edit_columns(self):
+        """Lista de colunas disponíveis para edição."""
         return [e.get("name") for e in self._infos.get("edit_columns", [])]
 
     @property
     def base_url(self):
-        """Base url for these objects."""
+        """Retorna a URL base para o endpoint atual."""
         url = self.client.join_urls(self.client.base_url, self.endpoint)
         logger.info(f'url: {url}')
         return url
 
     @property
     def info_url(self):
+        """URL para obter informações sobre o schema do endpoint."""
         return self.client.join_urls(self.base_url, "_info")
 
     @property
     def import_url(self):
+        """URL para importação de objetos."""
         return self.client.join_urls(self.base_url, "import/")
 
     @property
     def export_url(self):
+        """URL para exportação de objetos."""
         return self.client.join_urls(self.base_url, "export/")
 
     def get(self, id: str):
-        """Get an object by id."""
+        """
+        Recupera um objeto pelo seu ID.
+
+        Args:
+            id (str): Identificador do objeto.
+
+        Returns:
+            Object: Instância do objeto correspondente.
+        """
         url = self.client.join_urls(self.base_url, id)
         logger.info(f'url: {url}')
-
         response = self.client.get(url)
         raise_for_status(response)
-
         result = response.json()
         logger.info(f'response: {result}')
-
         data_result = result['result']
-
         data_result["id"] = result.get('id', data_result.get('id', id))
         BaseClass = self.get_base_object(data_result)
+        obj = BaseClass.from_json(data_result)
+        obj._request_response = response
+        obj._factory = self
+        return obj
 
-        object = BaseClass.from_json(data_result)
-        object._request_response = response
-        object._factory = self
+    def find(self, filter: QueryStringFilter, columns: List[str] = [], page_size: int = 100, page: int = 0):
+        """
+        Busca objetos com base em filtros e paginação.
 
-        return object
+        Args:
+            filter (QueryStringFilter): Filtro a ser aplicado na query string.
+            columns (List[str]): Colunas a serem retornadas.
+            page_size (int): Tamanho da página de resultados.
+            page (int): Número da página.
 
-    def find(self, filter:QueryStringFilter, columns:List[str]=[], page_size: int = 100, page: int = 0):
-        """Find and get objects from api."""
-
+        Returns:
+            List[Object]: Lista de objetos encontrados.
+        """
         response = self.client.find(self.base_url, filter, columns, page_size, page)
-
         objects = []
         for data in response.get("result"):
             o = self.get_base_object(data).from_json(data)
             o._factory = self
             objects.append(o)
-
         return objects
 
     def count(self):
-        """Count objects."""
+        """
+        Retorna a quantidade de objetos no endpoint.
+
+        Returns:
+            int: Contagem de objetos.
+        """
         response = self.client.get(self.base_url)
         raise_for_status(response)
         return response.json()["count"]
 
-    def find_one(self, filter:QueryStringFilter, columns:List[str]=[]):
-        """Find only object or raise an Exception."""
+    def find_one(self, filter: QueryStringFilter, columns: List[str] = []):
+        """
+        Busca por um único objeto com base em um filtro.
+
+        Raises:
+            NotFound: Se nenhum objeto for encontrado.
+            MultipleFound: Se mais de um objeto for encontrado.
+
+        Returns:
+            Object: Objeto encontrado.
+        """
         objects = self.find(filter, columns)
         if len(objects) == 0:
             raise NotFound(f"No {self.get_base_object().__name__} found")
@@ -1036,48 +1096,63 @@ class ObjectFactories(ABC):
         return objects[0]
 
     def add(self, obj) -> int:
-        """Create an object on remote."""
+        """
+        Adiciona um novo objeto ao endpoint remoto.
+
+        Args:
+            obj (Object): Objeto a ser adicionado.
+
+        Returns:
+            int: ID do objeto criado.
+        """
         o = obj.to_json(columns=self.add_columns)
         logger.info(f'payload: {o}')
-
         response = self.client.post(self.base_url, json=o)
         raise_for_status(response)
         result = response.json()
         logger.info(f'response: {result}')
-
         obj.id = result.get("id")
         obj._factory = self
         return obj.id
 
     def export(self, ids: List[int], path: Union[Path, str]) -> None:
-        """Export object into an importable file"""
+        """
+        Exporta objetos para um arquivo em formato compatível (ZIP, JSON ou YAML).
+
+        Args:
+            ids (List[int]): Lista de IDs dos objetos a serem exportados.
+            path (Path | str): Caminho do arquivo de destino.
+        """
         ids_array = ",".join([str(i) for i in ids])
         response = self.client.get(self.export_url, params={"q": f"[{ids_array}]"})
-
         raise_for_status(response)
-
         content_type = response.headers["content-type"].strip()
-        if content_type.startswith("application/text"):  # pragma: no cover
-            # Superset 1.x
+
+        if content_type.startswith("application/text"):
             data = yaml.load(response.text, Loader=yaml.FullLoader)
             with open(path, "w", encoding="utf-8") as f:
                 yaml.dump(data, f, default_flow_style=False)
-            return
-        if content_type.startswith("application/json"):  # pragma: no cover
-            # Superset 1.x
+        elif content_type.startswith("application/json"):
             data = response.json()
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
-            return
-        if content_type.startswith("application/zip"):
+        elif content_type.startswith("application/zip"):
             data = response.content
             with open(path, "wb") as f:
                 f.write(data)
-            return
-        raise ValueError(f"Unknown content type {content_type}")
+        else:
+            raise ValueError(f"Unknown content type {content_type}")
 
     def delete(self, id: int) -> bool:
-        """Delete a object on remote."""
+        """
+        Remove um objeto do endpoint remoto.
+
+        Args:
+            id (int): Identificador do objeto.
+
+        Returns:
+            bool: True se a exclusão foi bem-sucedida.
+        """
         url = self.client.join_urls(self.base_url, id)
         logger.info(f'url: {url}')
         response = self.client.delete(url)
@@ -1086,14 +1161,16 @@ class ObjectFactories(ABC):
         return response.json().get("message") == "OK"
 
     def import_file(self, file_path, overwrite=False, passwords=None) -> dict:
-        """Import a file on remote.
+        """
+        Importa um arquivo (JSON ou ZIP) para o Superset.
 
-        :param file_path: Path to a JSON or ZIP file containing the import data
-        :param overwrite: If True, overwrite existing remote entities
-        :param passwords: JSON map of passwords for each featured database in
-        the file. If the ZIP includes a database config in the path
-        databases/MyDatabase.yaml, the password should be provided in the
-        following format: {"MyDatabase": "my_password"}
+        Args:
+            file_path (str | Path): Caminho do arquivo a ser importado.
+            overwrite (bool): Se True, sobrescreve objetos existentes.
+            passwords (dict): Dicionário com senhas para conexões de banco de dados.
+
+        Returns:
+            dict: Resultado da importação com status.
         """
         data = {"overwrite": json.dumps(overwrite)}
         passwords = {f"databases/{db}.yaml": pwd for db, pwd in (passwords or {}).items()}
@@ -1111,6 +1188,5 @@ class ObjectFactories(ABC):
                 headers={"Accept": "application/json"},
             )
         raise_for_status(response)
-
-        # If import is successful, the following is returned: {'message': 'OK'}
         return response.json().get("message") == "OK"
+
