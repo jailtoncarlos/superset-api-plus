@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import Optional, Type
 
-from supersetapiplus.base.base import SerializableModel, ObjectFactories, default_string
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string
 
 
 @dataclass
@@ -28,7 +28,7 @@ class SavedQuery(SerializableModel):
         return self._factory.client.run(database_id=self.db_id, query=self.sql, query_limit=query_limit)
 
 
-class SavedQueries(ObjectFactories):
+class SavedQueries(ApiModelFactories):
     endpoint = "saved_query/"
     base_object = SavedQuery
 

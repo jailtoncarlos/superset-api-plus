@@ -924,7 +924,7 @@ class SerializableModel(ParseMixin, ABC):
         return jdict
 
 
-class ObjectFactories(ABC):
+class ApiModelFactories(ABC):
     """
     Classe base abstrata para construção de fábricas de objetos que interagem com a API do Superset.
 

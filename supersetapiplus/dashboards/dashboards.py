@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 from typing import List, Type
 
-from supersetapiplus.base.base import SerializableModel, ObjectFactories, default_string, object_field
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string, object_field
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.dashboards.metadataposition import Metadataposition
@@ -111,7 +111,7 @@ class Dashboard(SerializableModel):
                 chart.delete()
 
 
-class Dashboards(ObjectFactories):
+class Dashboards(ApiModelFactories):
     endpoint = "dashboard/"
 
     def _default_object_class(self) -> Type[SerializableModel]:

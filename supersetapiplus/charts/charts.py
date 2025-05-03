@@ -7,7 +7,7 @@ from typing import List, Type
 
 from typing_extensions import Self
 
-from supersetapiplus.base.base import SerializableModel, ObjectFactories, default_string, raise_for_status, object_field
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string, raise_for_status, object_field
 from supersetapiplus.base.types import DatasourceType
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
@@ -211,7 +211,7 @@ class Chart(SerializableModel):
         return obj
 
 
-class Charts(ObjectFactories):
+class Charts(ApiModelFactories):
     endpoint = "chart/"
 
     def _default_object_class(self) -> Type[SerializableModel]:

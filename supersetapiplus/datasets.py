@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 from typing import Optional, Type
 
-from supersetapiplus.base.base import SerializableModel, ObjectFactories, QueryStringFilter
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories, QueryStringFilter
 from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.exceptions import NotFound
 
@@ -44,7 +44,7 @@ class Dataset(SerializableModel):
         return self._factory.client.run(database_id=self.database_id, query=self.sql, query_limit=query_limit)
 
 
-class Datasets(ObjectFactories):
+class Datasets(ApiModelFactories):
     endpoint = "dataset/"
 
     # list of supported filters

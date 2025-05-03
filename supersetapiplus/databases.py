@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import Optional, Type
 
-from supersetapiplus.base.base import SerializableModel, ObjectFactories, default_string, json_field
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string, json_field
 
 
 @dataclass
@@ -44,7 +44,7 @@ class Database(SerializableModel):
         return self._factory.test_connection(self)
 
 
-class Databases(ObjectFactories):
+class Databases(ApiModelFactories):
     endpoint = "database/"
 
     @property
