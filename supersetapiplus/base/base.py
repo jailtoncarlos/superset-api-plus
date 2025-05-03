@@ -559,7 +559,7 @@ class Object(ParseMixin, ABC):
             # if not isinstance(data, dict):
             #     return data
 
-            obj = cls(**data) # Tenta instanciar diretamente com os dados
+            obj = cls(**data)  # Tenta instanciar diretamente com os dados
 
             # Trata os campos explicitamente listados como JSON_FIELDS
             for field_name in cls.JSON_FIELDS:
@@ -621,7 +621,7 @@ class Object(ParseMixin, ABC):
                     # Campo simples (str, int, bool, etc.)
                     setattr(obj, field_name, data_value)
 
-            obj._extra_fields = extra_fields # Armazena campos não definidos formalmente
+            obj._extra_fields = extra_fields  # Armazena campos não definidos formalmente
         except Exception as err:
             msg = f"""Error deserializing list item
                 cls={cls}
@@ -750,7 +750,7 @@ class Object(ParseMixin, ABC):
         columns_names.update(self.field_names())
         data = {}
         for c in columns_names:
-            if not hasattr(self, c): # Ignora colunas ainda não implementadas
+            if not hasattr(self, c):  # Ignora colunas ainda não implementadas
                 continue
 
             value = getattr(self, c)
@@ -798,21 +798,47 @@ class Object(ParseMixin, ABC):
         return data
 
     def to_json(self, columns=[]) -> dict:
+        """
+        Serializa o objeto em um dicionário JSON-ready, com suporte a campos aninhados.
 
+        Este método converte o objeto em uma estrutura de dicionário apropriada para
+        exportação JSON, aplicando regras de serialização específicas para campos definidos
+        em `JSON_FIELDS` (armazenados como string JSON), remoção de campos opcionais não preenchidos
+        e exclusão de campos marcados como não serializáveis (`SerializableNotToJson`).
+
+        Args:
+            columns (list, optional): Lista de nomes de campos a incluir na exportação.
+                Se omitida, todos os campos definidos na classe serão considerados.
+
+        Returns:
+            dict: Estrutura de dicionário pronta para serialização JSON.
+        """
+        # Primeiro converte o objeto inteiro em um dicionário comum (com tratamento recursivo)
         data = self.to_dict(columns)
+
+        # Executa a validação do dicionário serializado, se implementada na subclasse
         self.validate(data)
 
+        # Campos que devem ser serializados como JSON string (definidos em JSON_FIELDS)
         for field in self.JSON_FIELDS:
             obj = getattr(self, field)
             if isinstance(obj, Object):
+                # Converte o campo para JSON usando serialização recursiva personalizada
                 data[field] = json.dumps(obj.to_json(), cls=ObjectDecoder)
             elif isinstance(obj, dict):
+                # Serializa dicionários também usando o ObjectDecoder (tratamento especial para Enum, etc.)
                 data[field] = json.dumps(data[field], cls=ObjectDecoder)
 
+        # Remove do dicionário os campos que devem ser excluídos da serialização
+        logger.debug(f'Remove do dicionário os campos que devem ser excluídos da serialização: remove_exclude_keys: {data}')
         copydata = self.remove_exclude_keys(data)
 
+        # Remove campo técnico "_extra_fields" se ainda presente
+        logger.debug(f'remove campo técnico _extra_fields: {copydata}')
         if copydata.get('extra_fields'):
             copydata.pop('extra_fields')
+
+        # Loga a estrutura final antes de retornar
         logger.debug(f'return data {copydata}')
         return copydata
 
