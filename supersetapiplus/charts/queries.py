@@ -99,7 +99,7 @@ class OrderByMixin:
 
 
 @dataclass
-class QuerySerializableModel(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
+class Query(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
     row_limit: SerializableOptional[int] = 100
     series_limit: SerializableOptional[int] = 0
     series_limit_metric: SerializableOptional[Metric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
