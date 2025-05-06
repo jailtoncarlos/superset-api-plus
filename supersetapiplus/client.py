@@ -268,9 +268,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         """
         query = {"page_size": page_size, "page": page, "filters": filter.filters, "columns": columns}
         params = {"q": json.dumps(query)}
-        response = self.get(url, params=params)
-        raise_for_status(response)
-        return response.json()
+        return self.get(url, params=params)
 
     @property
     def login_endpoint(self) -> str:
@@ -296,6 +294,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         parsed = urlparse(self.base_url)
         domain = parsed.hostname
         return domain
+
 
 class NoVerifyHTTPAdapter(requests.adapters.HTTPAdapter):
     """An HTTP adapter that disables TLS verification (for self-signed certs)."""

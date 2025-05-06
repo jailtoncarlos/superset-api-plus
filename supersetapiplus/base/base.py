@@ -1,4 +1,5 @@
 """Base classes."""
+import copy
 import dataclasses
 import logging
 from abc import abstractmethod, ABC
@@ -21,7 +22,7 @@ except ImportError:  # pragma: no cover
 import json
 import os.path
 from pathlib import Path
-from typing import List, Union, Dict, get_origin, Any
+from typing import List, Union, Dict, get_origin, Any, Optional
 
 import yaml
 from requests import HTTPError
@@ -927,7 +928,7 @@ class ApiModelFactories(ABC):
         """
         ...
 
-    def get_base_object(self, data):
+    def get_base_object(self, data: Optional[Dict] = None):
         """
         Retorna a classe do objeto a ser instanciado com base no campo 'viz_type' dos dados.
 
@@ -937,6 +938,9 @@ class ApiModelFactories(ABC):
         Returns:
             type[SerializableModel]: Classe apropriada para instanciar o objeto.
         """
+        if data is None:
+            data = {}
+
         type_ = data.get('viz_type')
         if type_:
             m = self._default_object_class().__module__.split('.')
@@ -1055,9 +1059,12 @@ class ApiModelFactories(ABC):
             List[SerializableModel]: Lista de objetos encontrados.
         """
         response = self.client.find(self.base_url, filter, columns, page_size, page)
+        data_result = response.json()
+
         objects = []
-        for data in response.get("result"):
+        for data in data_result.get("result"):
             o = self.get_base_object(data).from_json(data)
+            o._request_response = response
             o._factory = self
             objects.append(o)
         return objects
@@ -1072,13 +1079,23 @@ class ApiModelFactories(ABC):
         response = self.client.get(self.base_url)
         return response.json()["count"]
 
-    def find_one(self, filter: QueryStringFilter, columns: List[str] = []):
+    def find_one(
+            self,
+            filter: QueryStringFilter,
+            columns: List[str] = [],
+            full: bool = False,
+    ):
         """
         Busca por um único objeto com base em um filtro.
 
+        Args:
+            filter (QueryStringFilter): Filtros de busca.
+            columns (List[str], opcional): Colunas a retornar.
+            full (bool, opcional): Se True, recarrega o objeto pelo ID com dados completos.
+
         Raises:
-            NotFound: Se nenhum objeto for encontrado.
-            MultipleFound: Se mais de um objeto for encontrado.
+            NotFound: Nenhum objeto encontrado.
+            MultipleFound: Mais de um objeto encontrado.
 
         Returns:
             SerializableModel: Objeto encontrado.
@@ -1088,7 +1105,11 @@ class ApiModelFactories(ABC):
             raise NotFound(f"No {self.get_base_object().__name__} found")
         if len(objects) > 1:
             raise MultipleFound(f"Multiple {self.get_base_object().__name__} found")
-        return objects[0]
+
+        obj = objects[0]
+        if full and hasattr(obj, "id"):
+            obj = self.get(obj.id)  # Recharge with all complete data via ID
+        return obj
 
     def add(self, obj) -> int:
         """

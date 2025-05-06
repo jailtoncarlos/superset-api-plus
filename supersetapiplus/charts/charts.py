@@ -1,6 +1,7 @@
 """Charts."""
 import copy
 import json
+import logging
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Type, Optional
@@ -21,6 +22,8 @@ from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.exceptions import NotFound, ChartValidationError, ValidationError
 from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.utils.dict_utils import detailed_dict_diff
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -144,7 +147,6 @@ class Chart(SerializableModel):
         self.params._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
         self.query_context._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
 
-
     def add_simple_orderby(self, column_name: str,
                             sort_ascending: bool = True):
         self.query_context._add_simple_orderby(column_name, sort_ascending)
@@ -190,12 +192,6 @@ class Chart(SerializableModel):
 
     def to_json(self, columns: list = None) -> dict:
         data = super().to_json(columns).copy()
-
-        # breakpoint()
-        # dashboards = set()
-        # for dasboard in self.dashboards:
-        #     dashboards.add(dasboard.id)
-        # data['dashboards'] = list(dashboards)
         return data
 
     @classmethod
@@ -203,18 +199,14 @@ class Chart(SerializableModel):
         obj = super().from_json(data)
         obj._dashboards = obj.dashboards
 
-        # for dashboard in obj.dashboards:
-        #     field = dashboard.get_field("position_json")
-        #     if (hasattr(dashboard, "position_json") and
-        #             field.default_factory() == dashboard.position_json):
-        #         del dashboard.position_json
-
         # set default datasource
         if obj.query_context:
             datasource = obj.query_context.datasource
-            if datasource:
+            if datasource and datasource.id:
                 obj.datasource_id = datasource.id
                 obj.datasource_type = datasource.type
+            else:
+                logger.warning("datasource query_context without 'id' defined")
 
         return obj
 
