@@ -19,7 +19,7 @@ from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.exceptions import NotFound, ChartValidationError, ValidationError
 from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
-from supersetapiplus.utils import dict_compare
+from supersetapiplus.utils import detailed_dict_diff
 
 
 @dataclass
@@ -27,24 +27,22 @@ class Chart(SerializableModel):
     JSON_FIELDS = ['params', 'query_context']
 
     slice_name: str
-    datasource_id: int = None
     description: SerializableOptional[str] = field(default=None)
 
     viz_type: ChartType = None
 
-    # For post charts, optional fields are not used.
-    id: SerializableNotToJson[int] = None
-
-    cache_timeout: SerializableNotToJson[int] = field(default=None)
+    id: SerializableOptional[int] = None
 
     params: Option = field(init=False)  # Não instanciar Option diretamente!
     query_context: QueryContext = object_field(cls=QueryContext, default_factory=QueryContext)
 
-    datasource_type: DatasourceType = field(default_factory=lambda: DatasourceType.TABLE)
+    datasource_id: SerializableOptional[int] = field(default=None)
+    datasource_type: SerializableOptional[DatasourceType] = field(default=None)
+
     dashboards: List[Dashboard] = object_field(cls=Dashboard, default_factory=list)
 
-
-    _slice_name_override: SerializableNotToJson[str] = default_string()
+    _slice_name_override: SerializableOptional[str] = None
+    cache_timeout: SerializableOptional[int] = None
 
     @classmethod
     @abstractmethod
@@ -75,7 +73,7 @@ class Chart(SerializableModel):
     def validate(self, data: dict):
         super().validate(data)
         if self.params != self.query_context.form_data:
-            added, removed, modified, same = dict_compare(self.params.to_dict(), self.query_context.form_data.to_dict())
+            added, removed, modified, same = detailed_dict_diff(self.params.to_dict(), self.query_context.form_data.to_dict())
 
             raise ValidationError(message=f'self.params is not the same as self.query_conext.form_data. Diff: {modified}',
                                   solution="We recommend using the public methods of the chart class.")
@@ -201,12 +199,18 @@ class Chart(SerializableModel):
         obj = super().from_json(data)
         obj._dashboards = obj.dashboards
 
-        # set default datasource
-        if obj.query_context:
-            datasource = obj.query_context.datasource
-            if datasource:
-                obj.datasource_id = datasource.id
-                obj.datasource_type = datasource.type
+        for dashboard in obj.dashboards:
+            field = dashboard.get_field("position_json")
+            if (hasattr(dashboard, "position_json") and
+                    field.default_factory() == dashboard.position_json):
+                del dashboard.position_json
+
+        # # set default datasource
+        # if obj.query_context:
+        #     datasource = obj.query_context.datasource
+        #     if datasource:
+        #         obj.datasource_id = datasource.id
+        #         obj.datasource_type = datasource.type
 
         return obj
 

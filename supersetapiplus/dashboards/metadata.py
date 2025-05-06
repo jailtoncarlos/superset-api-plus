@@ -44,7 +44,9 @@ class Metadata(SerializableModel):
     filter_scopes: SerializableOptional[Dict] = field(default_factory=dict)
     chart_configuration: Dict[str, ChartConfiguration] = object_field(cls=ChartConfiguration, dict_right=True, default_factory=dict)
     global_chart_configuration: GlobalChartconfiguration = object_field(cls=GlobalChartconfiguration, default_factory=GlobalChartconfiguration)
-    default_filters: Dict = field(default_factory=dict)
+    default_filters: SerializableOptional[Dict] = field(default=None)
+
+    native_filter_configuration: SerializableOptional[Dict] = field(default=None)
 
     def add_chart(self, chart):
         chart_configuration = ChartConfiguration(id=chart.id)

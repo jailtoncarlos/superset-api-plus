@@ -8,8 +8,10 @@ from supersetapiplus.charts.metric import OrderByTyping, AdhocMetricColumn, Metr
 from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, \
     FilterExpressionType, MetricType
 from supersetapiplus.exceptions import ValidationError
+from supersetapiplus.typing import SerializableOptional
 
 logger = logging.getLogger(__name__)
+
 
 
 @runtime_checkable
@@ -46,6 +48,12 @@ class Option(SerializableModel, OptionListGroupByMixin):
     adhoc_filters: List[AdhocFilterClause] = object_field(cls=AdhocFilterClause, default_factory=list)
     dashboards: List[int] = field(default_factory=list)
     groupby: Optional[List[OrderByTyping]] = object_field(cls=AdhocMetric, default_factory=list)
+
+    timeseries_limit_metric: Optional[AdhocMetric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
+
+    force: SerializableOptional[bool] = False
+    result_format: SerializableOptional[str] = "json"
+    result_type: SerializableOptional[str] = "full"
 
     def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         raise NotImplementedError("This method should be implemented in the subclass")

@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass, field
-from typing import List, Union, Dict, Protocol, runtime_checkable
+from typing import List, Union, Dict, Protocol, runtime_checkable, Any
 
 from supersetapiplus.base.base import SerializableModel, object_field
 from supersetapiplus.charts.metric import AdhocMetricColumn, MetricHelper, Metric, OrderByTyping, MetricsListMixin, \
@@ -21,9 +21,9 @@ class CurrencyFormat(SerializableModel):
 
 @dataclass
 class ColumnConfig(SerializableModel):
-    horizontalAlign: HorizontalAlignType = field(default_factory=lambda: HorizontalAlignType.LEFT)
     d3NumberFormat: SerializableOptional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
     d3SmallNumberFormat: SerializableOptional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
+    horizontalAlign: SerializableOptional[HorizontalAlignType] = field(default=None)
 
     alignPositiveNegative: SerializableOptional[bool] = None
     colorPositiveNegative: SerializableOptional[bool] = None
@@ -103,7 +103,6 @@ class Query(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
     row_limit: SerializableOptional[int] = 100
     series_limit: SerializableOptional[int] = 0
     series_limit_metric: SerializableOptional[Metric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
-    order_desc: bool = True
     orderby: SerializableOptional[List[OrderByTyping]] = object_field(cls=AdhocMetric, default_factory=list)
 
     filters: List[QueryFilterClause] = object_field(cls=QueryFilterClause, default_factory=list)
@@ -116,6 +115,14 @@ class Query(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
     custom_params: Dict = field(default_factory=dict)
     custom_form_data: Dict = field(default_factory=dict)
     annotation_layers: List = field(default_factory=list)
+
+    # Campos adicionais conforme necessário no JSON da API
+    time_offsets: List[str] = field(default_factory=list)
+    post_processing: List[Any] = field(default_factory=list)
+    row_offset: SerializableOptional[int] = None
+    order_desc: SerializableOptional[bool] = None
+
+
 
     def __post_init__(self):
         super().__post_init__()
