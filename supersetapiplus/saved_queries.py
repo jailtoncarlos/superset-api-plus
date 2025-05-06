@@ -1,5 +1,5 @@
 """Saved queries."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Type
 
 from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string
@@ -10,7 +10,7 @@ class SavedQuery(SerializableModel):
     JSON_FIELDS = []
 
     label: str
-    id: Optional[int] = None
+    id: Optional[int] = field(default=None)
     description: str = default_string()
     sql: str = default_string()
     db_id: int = None

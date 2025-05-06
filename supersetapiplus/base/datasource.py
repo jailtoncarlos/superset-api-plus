@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 
 from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.types import DatasourceType
@@ -6,5 +7,5 @@ from supersetapiplus.base.types import DatasourceType
 
 @dataclass
 class DataSource(SerializableModel):
-    id: int = None
+    id: Optional[int] = field(default=None)
     type: DatasourceType = field(default_factory=lambda: DatasourceType.TABLE)

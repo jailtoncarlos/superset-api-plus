@@ -39,14 +39,14 @@ class TreeNodePosition:
             values[child_id] = node_child.item.to_dict()
             self.__to_dict(node_child, values)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         values = {}
         values[self.root.id] = self.root.item.to_dict()
         self.__to_dict(self.root, values)
         return values
 
     @classmethod
-    def __generate_tree(cls, position_id:str, data:dict, tree: Self):
+    def __generate_tree(cls, position_id: str, data: dict, tree: Self):
         parent_node = tree.find_by_id(position_id)
         if position_id in data:
             parent_node_value = data[position_id]
@@ -65,7 +65,7 @@ class TreeNodePosition:
                 cls.__generate_tree(child_position_id, data, tree)
 
     @classmethod
-    def from_dict(cls, data:dict):
+    def from_dict(cls, data: dict):
         tree = cls()
         tree.root.item.parents = data['ROOT_ID'].get('parents', [])
         tree.root.item.children = data['ROOT_ID']['children']

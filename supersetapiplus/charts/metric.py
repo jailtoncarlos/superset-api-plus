@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass, field
-from typing import Union, Literal, get_args, Protocol, runtime_checkable, List
+from typing import Union, Literal, get_args, Protocol, runtime_checkable, List, Optional
 
 from supersetapiplus.base.base import SerializableModel, default_string, object_field
 from supersetapiplus.charts.types import FilterExpressionType, SqlMapType, \
@@ -15,23 +15,23 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AdhocMetricColumn(SerializableModel):
     column_name: str = default_string()
-    id: SerializableOptional[int] = None
-    verbose_name: SerializableOptional[str] = None
-    description: SerializableOptional[str] = None
-    expression: SerializableOptional[str] = None
+    id: Optional[int] = field(default=None)
+    verbose_name: SerializableOptional[str] = field(default=None)
+    description: SerializableOptional[str] = field(default=None)
+    expression: SerializableOptional[str] = field(default=None)
     filterable: bool = True
     groupby: bool = True
     is_dttm: bool = False
-    python_date_format: SerializableOptional[str] = None
-    type: SerializableOptional[SqlMapType] = None
-    type_generic: SerializableOptional[GenericDataType] = None
+    python_date_format: SerializableOptional[str] = field(default=None)
+    type: SerializableOptional[SqlMapType] = field(default=None)
+    type_generic: SerializableOptional[GenericDataType] = field(default=None)
 
     # Novos campos conforme o JSON da API
-    advanced_data_type: SerializableOptional[str] = None
+    advanced_data_type: SerializableOptional[str] = field(default=None)
     is_certified: bool = False
-    certification_details: SerializableOptional[str] = None
-    certified_by: SerializableOptional[str] = None
-    warning_markdown: SerializableOptional[str] = None
+    certification_details: SerializableOptional[str] = field(default=None)
+    certified_by: SerializableOptional[str] = field(default=None)
+    warning_markdown: SerializableOptional[str] = field(default=None)
 
     def validate(self, data: dict):
         if not self.column_name or self.type:

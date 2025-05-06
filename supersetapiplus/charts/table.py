@@ -1,6 +1,6 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from supersetapiplus.base.base import object_field
 from supersetapiplus.charts.charts import Chart
@@ -10,7 +10,7 @@ from supersetapiplus.charts.queries import ColumnConfig, Query
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableOptional
+from supersetapiplus.typing import SerializableOptional, SerializableNotToJson
 
 
 # class TableAdhocMetric(AdhocMetric):
@@ -125,7 +125,7 @@ class TableQueryContext(QueryContext):
                 for query in self.queries:
                     for query_metric in query.metrics:
                         if form_data_metric == query_metric:
-                            counter+=1
+                            counter += 1
             if counter == len(self.form_data.metrics):
                 equals = True
 
@@ -144,14 +144,10 @@ class TableChart(Chart):
     query_context: TableQueryContext = object_field(cls=TableQueryContext, default_factory=TableQueryContext)
 
     # Campos adicionais presentes no dicionário da API
-    certification_details: str | None = None
-    certified_by: str | None = None
-    changed_on_delta_humanized: str | None = None
+    certification_details: Optional[str] = None
+    certified_by: Optional[str] = None
+    changed_on_delta_humanized:  SerializableNotToJson[str] = None
     is_managed_externally: bool = False
-    owners: list[dict] = field(default_factory=list)
-    tags: list = field(default_factory=list)
-    thumbnail_url: str | None = None
-    url: str | None = None
 
     def add_simple_metric(self, metric: MetricType,
                           automatic_order: OrderBy = OrderBy(),

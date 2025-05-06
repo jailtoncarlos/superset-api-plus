@@ -1,5 +1,5 @@
 """Databases."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Type
 
 from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string, json_field
@@ -12,7 +12,7 @@ class Database(SerializableModel):
     ]
 
     database_name: str
-    id: Optional[int] = None
+    id: Optional[int] = field(default=None)
     allow_ctas: bool = True
     allow_cvas: bool = True
     allow_dml: bool = True
@@ -26,7 +26,7 @@ class Database(SerializableModel):
     server_cert: str = default_string()
     sqlalchemy_uri: str = default_string()
 
-    def to_json(self, *args, **kwargs):
+    def to_json(self, columns: list = None) -> dict:
         if not self.extra:
             self.extra = {
                 "metadata_params": {},
@@ -34,7 +34,7 @@ class Database(SerializableModel):
                 "metadata_cache_timeout": {},
                 "schemas_allowed_for_csv_upload": [],
             }
-        return super().to_json(*args, **kwargs)
+        return super().to_json(columns)
 
     def run(self, query, query_limit=None):
         return self._factory.client.run(database_id=self.id, query=query, query_limit=query_limit)

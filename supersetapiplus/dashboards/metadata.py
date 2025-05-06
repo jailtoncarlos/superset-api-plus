@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from supersetapiplus.base.base import SerializableModel, default_string, object_field
 from supersetapiplus.typing import SerializableOptional
@@ -13,7 +13,7 @@ class CrossFilters(SerializableModel):
 
 @dataclass
 class ChartConfiguration(SerializableModel):
-    id: int
+    id: Optional[int] = field(default=None)
     crossFilters: CrossFilters = object_field(cls=CrossFilters, default_factory=CrossFilters)
 
 
@@ -35,7 +35,7 @@ class Metadata(SerializableModel):
 
     color_scheme: str = default_string()
     refresh_frequency: int = field(default=0)
-    shared_label_colors: Dict[str,str] = field(default_factory=dict)
+    shared_label_colors: Dict[str, str] = field(default_factory=dict)
     color_scheme_domain: List[str] = field(default_factory=list)
     expanded_slices: Dict = field(default_factory=dict)
     label_colors: Dict = field(default_factory=dict)

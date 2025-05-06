@@ -2,11 +2,15 @@
 import dataclasses
 import logging
 from abc import abstractmethod, ABC
+from datetime import datetime, date
+from decimal import Decimal
 from enum import Enum
 
 from typing_extensions import Self
 
 from supersetapiplus.base.types import CUSTOM_NONE, CustomNoneType
+from supersetapiplus.query_string import QueryStringFilter
+from supersetapiplus.utils.dict_utils import dict_hash, dicts_equal_and_all_values_none
 
 try:
     from functools import cached_property
@@ -25,9 +29,7 @@ from requests import HTTPError
 from supersetapiplus.exceptions import BadRequestError, ComplexBadRequestError, MultipleFound, NotFound, \
     LoadJsonError
 from supersetapiplus.base.parse import ParseMixin
-from supersetapiplus.client import QueryStringFilter
 from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
-from supersetapiplus.utils import dict_hash, dicts_equal_and_all_values_none
 
 logger = logging.getLogger(__name__)
 
@@ -126,9 +128,10 @@ class ObjectDecoder(json.JSONEncoder):
             return str(obj.value)
 
         if isinstance(obj, CustomNoneType):
-            return None  # ou "<NONE>" se desejar preservar visualmente
+            return None
 
         # Para outros tipos, usa a implementação padrão do JSONEncoder
+        print(111111, type(obj))
         return super().default(obj)
 
 
@@ -213,70 +216,6 @@ def default_bool(**kwargs):
     return dataclasses.field(repr=False, **kwargs)
 
 
-def raise_for_status(response):
-    """
-    Verifica o status da resposta HTTP e, em caso de erro, lança exceções detalhadas.
-
-    Esta função estende o comportamento padrão de `requests.Response.raise_for_status()`
-    adicionando logs detalhados da requisição e da resposta, além de lançar exceções
-    personalizadas baseadas no conteúdo retornado pela API.
-
-    Exceções levantadas:
-        - BadRequestError: Se a resposta contiver uma mensagem de erro simples.
-        - ComplexBadRequestError: Se a resposta contiver múltiplos erros detalhados.
-        - HTTPError: Para outros erros HTTP não tratados especificamente.
-
-    Args:
-        response (requests.Response): Objeto de resposta da biblioteca `requests`.
-
-    Raises:
-        BadRequestError: Quando a resposta HTTP contém um campo `message`.
-        ComplexBadRequestError: Quando a resposta HTTP contém um campo `errors`.
-        HTTPError: Exceção genérica lançada pelo método `raise_for_status()`.
-    """
-    try:
-        response.raise_for_status()
-    except HTTPError as e:
-        request = response.request
-        request_headers = '\n'.join(f'{k}: {v}' for k, v in request.headers.items())
-        response_headers = '\n'.join(f'{k}: {v}' for k, v in response.headers.items())
-
-        # Tenta obter o corpo da resposta como texto
-        try:
-            response_body = response.text
-        except Exception:
-            response_body = "<não foi possível decodificar o corpo da resposta>"
-
-        # Log detalhado da requisição e resposta
-        logger.error("Erro na requisição HTTP")
-        logger.error(f"Request URL: {request.url}")
-        logger.error(f"Request Method: {request.method}")
-        logger.error(f"Request Headers:\n{request_headers}")
-        logger.error(f"Request Body:\n{request.body or '<vazio>'}")
-        logger.error(f"Response Status Code: {response.status_code}")
-        logger.error(f"Response Headers:\n{response_headers}")
-        logger.error(f"Response Body:\n{response_body}")
-
-        # Tentativas de extrair mensagens específicas da resposta JSON
-        try:
-            error_msg = response.json().get("message")
-        except Exception:
-            error_msg = None
-
-        try:
-            errors = response.json().get("errors")
-        except Exception:
-            errors = None
-
-        # Lança exceções específicas baseadas nos campos presentes
-        if errors:
-            raise ComplexBadRequestError(*e.args, request=request, response=response, errors=errors) from None
-        elif error_msg:
-            raise BadRequestError(*e.args, request=request, response=response, message=error_msg) from None
-        else:
-            raise e
-
-
 class SerializableModel(ParseMixin, ABC):
     """
     Classe base abstrata para representação de objetos que interagem com a API do Superset.
@@ -302,7 +241,6 @@ class SerializableModel(ParseMixin, ABC):
 
     def validate(self, data: dict):
         logger.debug("Validação de dados não implementada na classe base.")
-
 
     def __post_init__(self):
         """
@@ -564,7 +502,6 @@ class SerializableModel(ParseMixin, ABC):
         elif obj is None:
             return CUSTOM_NONE
         else:
-            # print(f'9898989898989889, obj type: {type(obj)}, obj: {obj}')
             return obj
 
     @classmethod
@@ -680,7 +617,8 @@ class SerializableModel(ParseMixin, ABC):
         exclude = False
 
         if isinstance(value, list):
-            return exclude
+            for v in value:
+                return cls._is_exclude(v, field_name)
 
         field = cls.get_field(field_name)
         try:
@@ -713,15 +651,8 @@ class SerializableModel(ParseMixin, ABC):
                         if all_none:
                             exclude = True
                 else:
-                    # print(f"6565656565656565656, field_name: {field_name}, value: {value}, default_value: {default_value}")
                     exclude = False
 
-
-            # elif isinstance(value, dict):
-            #     print(f"111111111, field_name: {field_name}, type value: {type(value)}, default_value: {default_value}")
-            #     # serializable_object_class = cls._subclass_object(field)
-            #     # if serializable_object_class:
-            #     #     breakpoint()
         except Exception as err:
             logger.warning(f'Ignorando erro ao verificar se o campo "{field_name}" deve ser excluído, Error: {err}')
             pass
@@ -729,8 +660,7 @@ class SerializableModel(ParseMixin, ABC):
             logger.debug(f"exclude field_name: {field_name}, value: {value}")
         return exclude
 
-
-    def to_dict(self, columns=[]) -> dict:
+    def to_dict(self, columns: list = None, convert_to_json: bool = False) -> dict:
         """
         Serializa o objeto em um dicionário Python, convertendo todos os campos relevantes.
 
@@ -749,16 +679,16 @@ class SerializableModel(ParseMixin, ABC):
         Returns:
             dict: Dicionário representando o estado atual do objeto, com os campos convertidos.
         """
-        def prepare_value_tuple(field_value):
+        def prepare_value_tuple(field_value: str, columns: list, convert_to_json: bool):
             """Prepara elementos de tupla para conversão recursiva."""
             values_data = []
             if isinstance(field_value, tuple):
                 l1 = field_value[0]
                 l2 = field_value[1]
                 if isinstance(field_value[0], SerializableModel):
-                    l1 = field_value[0].to_dict()
+                    l1 = field_value[0].to_dict(columns, convert_to_json)
                 elif isinstance(field_value[1], SerializableModel):
-                    l2 = field_value[1].to_dict()
+                    l2 = field_value[1].to_dict(columns, convert_to_json)
                 elif isinstance(field_value[0], Enum):
                     l1 = str(field_value[0])
                 elif isinstance(field_value[1], Enum):
@@ -782,16 +712,16 @@ class SerializableModel(ParseMixin, ABC):
 
             # Converte objetos recursivamente
             elif value and isinstance(value, SerializableModel):
-                value = value.to_dict(columns)
+                value = value.to_dict(columns, convert_to_json)
 
             # Converte listas de objetos, tuplas ou enums
             elif value and isinstance(value, list):
                 values_data = []
                 for field_value in value:
                     if isinstance(field_value, SerializableModel):
-                        values_data.append(field_value.to_dict())
+                        values_data.append(field_value.to_dict(columns, convert_to_json))
                     elif isinstance(field_value, tuple):
-                        values_data.append(prepare_value_tuple(field_value))
+                        values_data.append(prepare_value_tuple(field_value, columns, convert_to_json))
                     elif isinstance(field_value, Enum):
                         values_data.append(str(field_value))
                     else:
@@ -806,38 +736,48 @@ class SerializableModel(ParseMixin, ABC):
                     _value = {}
                     if field.metadata.get('dict_left'):
                         for obj, value_ in value.items():
-                            key = obj.to_dict()
+                            key = obj.to_dict(columns, convert_to_json)
                             _value[key] = value_
                     elif field.metadata.get('dict_right'):
                         for k, obj in value.items():
-                            _value[k] = obj.to_dict()
+                            _value[k] = obj.to_dict(columns, convert_to_json)
                     value = _value
 
             # Converte tuplas simples
             elif value and isinstance(value, tuple):
-                value = prepare_value_tuple(value)
-
-            # if isinstance(value, dict) or isinstance(value, list):
-            #     print(f'12 12 12 12, field_name: {field_name}, type value: {type(value)}')
-            # else:
-            #     print(f'12 12 12 12, field_name: {field_name}, type value: {type(value)}, value: {value}')
+                value = prepare_value_tuple(value, columns, convert_to_json)
 
             if not self.__class__._is_exclude(value, field_name):
-                if isinstance(value, CustomNoneType):
-                    value = None
-                data[field_name] = value
+                if convert_to_json and field_name in self.JSON_FIELDS:
+                    data[field_name] = json.dumps(value, cls=ObjectDecoder)
+                else:
+                    data[field_name] = None if isinstance(value, CustomNoneType) else value
 
-        # # Remove do dicionário os campos que devem ser excluídos da serialização
-        # logger.debug(f'Remove do dicionário os campos que devem ser excluídos da serialização: remove_exclude_keys: {data}')
-        # copydata = self.remove_exclude_keys(data)
-        #
-        # # Remove campo técnico "_extra_fields" se ainda presente
+        # Remove campo técnico "_extra_fields" se ainda presente
+        # copydata = data.copy()
         # logger.debug(f'remove campo técnico _extra_fields: {copydata}')
         # if copydata.get('extra_fields'):
         #     copydata.pop('extra_fields')
         return data
 
-    def to_json(self, columns=[]) -> dict:
+    @classmethod
+    def _sanitize_none(cls, obj):
+        if isinstance(obj, dict):
+            return {k: cls._sanitize_none(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [cls._sanitize_none(i) for i in obj]
+        elif isinstance(obj, CustomNoneType):
+            return None
+        elif isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        elif isinstance(obj, Decimal):
+            return float(obj)
+        elif isinstance(obj, Enum):
+            return obj.value
+        else:
+            return obj
+
+    def to_json(self, columns: list = None) -> dict:
         """
         Serializa o objeto em um dicionário JSON-ready, com suporte a campos aninhados.
 
@@ -853,24 +793,20 @@ class SerializableModel(ParseMixin, ABC):
         Returns:
             dict: Estrutura de dicionário pronta para serialização JSON.
         """
+        if columns is None:
+            columns = []
+
         # Primeiro converte o objeto inteiro em um dicionário comum (com tratamento recursivo)
-        data = self.to_dict(columns)
+        data = self.to_dict(columns, convert_to_json=True)
+
+        data = self.__class__._sanitize_none(data)
 
         # Executa a validação do dicionário serializado, se implementada na subclasse
         self.validate(data)
 
-        # Campos que devem ser serializados como JSON string (definidos em JSON_FIELDS)
-        for field in self.JSON_FIELDS:
-            obj = getattr(self, field)
-            if isinstance(obj, SerializableModel):
-                # Converte o campo para JSON usando serialização recursiva personalizada
-                data[field] = json.dumps(obj.to_json(), cls=ObjectDecoder)
-            elif isinstance(obj, dict):
-                # Serializa dicionários também usando o ObjectDecoder (tratamento especial para Enum, etc.)
-                data[field] = json.dumps(data[field], cls=ObjectDecoder)
-
         # Loga a estrutura final antes de retornar
         logger.debug(f'return data {data}')
+
         return data
 
     @property
@@ -924,10 +860,11 @@ class SerializableModel(ParseMixin, ABC):
         para a API. Loga o payload e a resposta da operação.
         """
         payload = self.to_json(columns=self._factory.edit_columns)
+        payload.pop("id", None)
+
         logger.info(f'payload: {payload}')
 
         response = self._factory.client.put(self.base_url, json=payload)
-        raise_for_status(response)
         logger.info(f'response: {response.json()}')
 
     def delete(self) -> bool:
@@ -950,8 +887,9 @@ class SerializableModel(ParseMixin, ABC):
             dict: Estrutura JSON com os dados da resposta, incluindo campos convertidos.
         """
         jdict = self._request_response.json()
-        for field_name in self.JSON_FIELDS:
-            jdict['result'][field_name] = json.loads(jdict['result'][field_name])
+        # for field_name in self.JSON_FIELDS:
+        #     jdict['result'][field_name] = json.loads(jdict['result'][field_name])
+        # return jdict
         return jdict
 
 
@@ -999,7 +937,7 @@ class ApiModelFactories(ABC):
         Returns:
             type[SerializableModel]: Classe apropriada para instanciar o objeto.
         """
-        type_ = data['viz_type']
+        type_ = data.get('viz_type')
         if type_:
             m = self._default_object_class().__module__.split('.')
             m.pop(-1)
@@ -1017,7 +955,6 @@ class ApiModelFactories(ABC):
             dict: Dados obtidos do endpoint /_info.
         """
         response = self.client.get(self.info_url, params={"q": json.dumps(self._INFO_QUERY)})
-        raise_for_status(response)
         return response.json()
 
     @property
@@ -1074,13 +1011,13 @@ class ApiModelFactories(ABC):
             requests.HTTPError: Caso a resposta HTTP indique erro (status != 2xx).
             LoadJsonError: Caso ocorra falha durante a desserialização do conteúdo JSON.
         """
+
         # Monta a URL de requisição combinando a base com o identificador do recurso
         url = self.client.join_urls(self.base_url, id)
         logger.info(f'url: {url}')
 
         # Executa a requisição HTTP GET para o endpoint
         response = self.client.get(url)
-        raise_for_status(response)  # Lança exceção se a resposta indicar erro
 
         # Converte o corpo da resposta JSON em um dicionário Python
         result = response.json()
@@ -1133,7 +1070,6 @@ class ApiModelFactories(ABC):
             int: Contagem de objetos.
         """
         response = self.client.get(self.base_url)
-        raise_for_status(response)
         return response.json()["count"]
 
     def find_one(self, filter: QueryStringFilter, columns: List[str] = []):
@@ -1164,10 +1100,12 @@ class ApiModelFactories(ABC):
         Returns:
             int: ID do objeto criado.
         """
+
         payload = obj.to_json(columns=self.add_columns)
+        payload.pop("id", None)
+
         logger.info(f'payload: {payload}')
         response = self.client.post(self.base_url, json=payload)
-        raise_for_status(response)
         result = response.json()
         logger.info(f'response: {result}')
         obj.id = result.get("id")
@@ -1184,7 +1122,6 @@ class ApiModelFactories(ABC):
         """
         ids_array = ",".join([str(i) for i in ids])
         response = self.client.get(self.export_url, params={"q": f"[{ids_array}]"})
-        raise_for_status(response)
         content_type = response.headers["content-type"].strip()
 
         if content_type.startswith("application/text"):
@@ -1215,7 +1152,6 @@ class ApiModelFactories(ABC):
         url = self.client.join_urls(self.base_url, id)
         logger.info(f'url: {url}')
         response = self.client.delete(url)
-        raise_for_status(response)
         logger.info(f'response: {response.json()}')
         return response.json().get("message") == "OK"
 
@@ -1246,6 +1182,5 @@ class ApiModelFactories(ABC):
                 data=data,
                 headers={"Accept": "application/json"},
             )
-        raise_for_status(response)
         return response.json().get("message") == "OK"
 
