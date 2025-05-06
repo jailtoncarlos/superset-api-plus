@@ -8,7 +8,7 @@ from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.dashboards.metadataposition import Metadataposition
 from supersetapiplus.dashboards.nodeposisition import RowNodePosition
 from supersetapiplus.exceptions import DashboardValidationError
-from supersetapiplus.typing import SerializableNotToJson
+from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 
 def defult_metadata():
@@ -23,15 +23,15 @@ def defult_metadata_position():
 class Dashboard(SerializableModel):
     JSON_FIELDS = ['json_metadata', 'position_json']
 
-    dashboard_title: str
+    dashboard_title: str = ''
 
-    published: bool = field(default=False)
-    id: SerializableNotToJson[int] = None
-    css: str = default_string()
-    slug: str = None
+    published: SerializableOptional[bool] = field(default=None)
+    id: SerializableOptional[int] = field(default=None)
+    css: SerializableOptional[str] = field(default=None)
+    slug: SerializableOptional[str] = field(default=None)
 
     json_metadata: Metadata = object_field(cls=Metadata, default_factory=Metadata)
-    position_json: Metadataposition = object_field(cls=Metadataposition, default_factory=Metadataposition)
+    position_json: SerializableOptional(Metadataposition) = object_field(cls=Metadataposition, default_factory=Metadataposition)
     # charts: List[Chart] = field(default_factory=Chart)
 
     def __post_init__(self):

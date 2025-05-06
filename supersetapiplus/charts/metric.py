@@ -26,6 +26,13 @@ class AdhocMetricColumn(SerializableModel):
     type: SerializableOptional[SqlMapType] = None
     type_generic: SerializableOptional[GenericDataType] = None
 
+    # Novos campos conforme o JSON da API
+    advanced_data_type: SerializableOptional[str] = None
+    is_certified: bool = False
+    certification_details: SerializableOptional[str] = None
+    certified_by: SerializableOptional[str] = None
+    warning_markdown: SerializableOptional[str] = None
+
     def validate(self, data: dict):
         if not self.column_name or self.type:
             raise ValidationError(message='At least the column_name and type fields must be informed.',
@@ -47,13 +54,17 @@ class AdhocMetricColumn(SerializableModel):
 @dataclass
 class AdhocMetric(SerializableModel):
     expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
-    column: SerializableOptional[AdhocMetricColumn] = object_field(cls=AdhocMetricColumn, default_factory=AdhocMetricColumn)
+    column: SerializableOptional[AdhocMetricColumn] = object_field(cls=AdhocMetricColumn, default=None)
     label: SerializableOptional[str] = default_string()
-    hasCustomLabel: SerializableOptional[bool] = False
-    sqlExpression: SerializableOptional[str] = None
-    aggregate: SerializableOptional[MetricType] = None
-    timeGrain: SerializableOptional[str] = None
-    columnType: SerializableOptional[ColumnType] = None
+    hasCustomLabel: SerializableOptional[bool] = field(default=None)
+    sqlExpression: SerializableOptional[str] = field(default=None)
+    aggregate: SerializableOptional[MetricType] = field(default=None)
+    timeGrain: SerializableOptional[str] = field(default=None)
+    columnType: SerializableOptional[ColumnType] = field(default=None)
+
+    # Novos campos
+    optionName: SerializableOptional[str] = field(default=None)
+    datasourceWarning: SerializableOptional[bool] = field(default=None)
 
     def __post_init__(self):
         super().__post_init__()

@@ -4,7 +4,7 @@ from typing import List
 
 from supersetapiplus.base.base import SerializableModel, object_field
 from supersetapiplus.base.datasource import DataSource
-from supersetapiplus.charts.metric import OrderBy
+from supersetapiplus.charts.metric import OrderBy, AdhocMetric
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query, AdhocMetricColumn
 from supersetapiplus.charts.types import FilterOperatorType, FilterClausesType, MetricType, FilterExpressionType
@@ -21,6 +21,11 @@ class QueryContext(SerializableModel):
     datasource: DataSource = object_field(cls=DataSource, default_factory=DataSource)
     queries: List[Query] = object_field(cls=Query, default_factory=list)
     form_data: FormData = object_field(cls=FormData, default_factory=FormData)
+
+    force: bool = False
+    result_format: str = "json"
+    result_type: str = "full"
+
 
     @abstractmethod
     def _default_query_object_class(self) -> type[Query]:

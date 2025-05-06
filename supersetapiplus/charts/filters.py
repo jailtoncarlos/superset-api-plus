@@ -20,3 +20,6 @@ class AdhocFilterClause(SerializableModel):
 
     isExtra: bool = False
     isNew: bool = False
+
+    datasourceWarning: bool = False
+    filterOptionName: SerializableOptional[str] = None

@@ -8,7 +8,7 @@ from supersetapiplus.charts.metric import MetricsListMixin, AdhocMetric, Metric,
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import ColumnConfig, Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType, ColumnType
+from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional
 
@@ -29,28 +29,44 @@ class TableOption(Option, MetricsListMixin):
 
     order_by_cols: List = field(default_factory=list)
 
-    server_pagination: SerializableOptional[bool] = False
+    server_pagination: SerializableOptional[bool] = field(default=None)
     server_page_length: int = 0
     order_desc: bool = False
-    show_totals: SerializableOptional[bool] = False
+    show_totals: SerializableOptional[bool] = field(default=None)
+
+    cache_timeout: SerializableOptional[int] = field(default=None)
 
     table_timestamp_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
-    page_length: SerializableOptional[int] = None
-    include_search: SerializableOptional[bool] = False
+    page_length: SerializableOptional[int] = field(default=None)
+    include_search: SerializableOptional[bool] = field(default=None)
     show_cell_bars: bool = True
-    align_pn: SerializableOptional[bool] = False
+
+    align_pn: SerializableOptional[bool] = field(default=None)
     color_pn: bool = True
-    allow_rearrange_columns: SerializableOptional[bool] = False
+    allow_rearrange_columns: SerializableOptional[bool] = field(default=None)
     conditional_formatting: SerializableOptional[List] = field(default_factory=list)
     queryFields: SerializableOptional[Dict] = field(default_factory=dict)
 
-    table_filter: SerializableOptional[bool] = False
-    time_grain_sqla: SerializableOptional[TimeGrain] = None
+    table_filter: SerializableOptional[bool] = field(default=None)
+    time_grain_sqla: SerializableOptional[TimeGrain] = field(default=None)
     time_range: SerializableOptional[str] = 'No filter'
-    granularity_sqla: SerializableOptional[str] = None
+    granularity_sqla: SerializableOptional[str] = field(default=None)
 
     metrics: SerializableOptional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
     column_config: SerializableOptional[Dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True, default_factory=dict)
+
+    temporal_columns_lookup: SerializableOptional[dict] = field(default=None)
+    all_columns: SerializableOptional[list] = field(default_factory=list)
+    percent_metrics: SerializableOptional[list] = field(default_factory=list)
+    allow_render_html: SerializableOptional[bool] = True
+    comparison_color_scheme: SerializableOptional[str] = field(default=None)
+    comparison_type: SerializableOptional[str] = field(default=None)
+    annotation_layers: SerializableOptional[list] = field(default=None)
+
+    time_range: SerializableOptional[str] = field(default=None)
+    force: SerializableOptional[bool] = field(default=None)
+    result_format: SerializableOptional[str] = field(default=None)  # "json"
+    result_type: SerializableOptional[str] = field(default=None)  # "full"
 
     def __post_init__(self):
         super().__post_init__()
@@ -80,7 +96,7 @@ class TableQueryObject(Query):
     granularity: SerializableOptional[str] = None
     # applied_time_extras: List[str] = field(default_factory=list)
 
-    def _add_simple_metric(self, metric:str, automatic_order: OrderBy):
+    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         #In the table the option is sort descending
         automatic_order.sort_ascending = not automatic_order.sort_ascending
         super()._add_simple_metric(metric, automatic_order)
@@ -126,6 +142,16 @@ class TableChart(Chart):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
     params: TableOption = object_field(cls=TableOption, default_factory=TableOption)
     query_context: TableQueryContext = object_field(cls=TableQueryContext, default_factory=TableQueryContext)
+
+    # Campos adicionais presentes no dicionário da API
+    certification_details: str | None = None
+    certified_by: str | None = None
+    changed_on_delta_humanized: str | None = None
+    is_managed_externally: bool = False
+    owners: list[dict] = field(default_factory=list)
+    tags: list = field(default_factory=list)
+    thumbnail_url: str | None = None
+    url: str | None = None
 
     def add_simple_metric(self, metric: MetricType,
                           automatic_order: OrderBy = OrderBy(),

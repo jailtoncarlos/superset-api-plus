@@ -19,7 +19,6 @@ class Database(SerializableModel):
     allow_multi_schema_metadata_fetch: bool = True
     allow_run_async: bool = True
     expose_in_sqllab: bool = True
-    cache_timeout: Optional[int] = None
     encrypted_extra: str = default_string()
     engine: str = default_string()
     extra: dict = json_field()
