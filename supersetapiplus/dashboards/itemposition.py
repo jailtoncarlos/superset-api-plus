@@ -8,7 +8,7 @@ from typing import List
 from supersetapiplus.base.enum_str import StringEnum
 from supersetapiplus.base.parse import ParseMixin
 from supersetapiplus.exceptions import ItemPositionValidationError, NodePositionValidationError
-from supersetapiplus.utils import generate_uuid
+from supersetapiplus.utils.helpers import generate_uuid
 
 
 def _asdict(data):
@@ -41,10 +41,10 @@ class MetaItemPosition:
         for k, v in data.items():
             setattr(self, k, v)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return asdict(self)
 
-    def to_json(self):
+    def to_json(self) -> dict:
         return self.to_dict()
 
     def __str__(self):
@@ -78,7 +78,7 @@ class ItemPosition(ParseMixin):
             else:
                 self.meta = kwargs['meta']
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         data = asdict(self, dict_factory=_asdict)
         if hasattr(self, 'meta'):
             data['meta'] = self.meta.to_json()
@@ -86,7 +86,7 @@ class ItemPosition(ParseMixin):
         data.pop('type_')
         return data
 
-    def to_json(self, columns=None):
+    def to_json(self) -> dict:
         return self.to_dict()
 
     def __str__(self):

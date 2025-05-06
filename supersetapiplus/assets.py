@@ -3,8 +3,6 @@ import json
 from pathlib import Path
 from typing import Union
 
-from supersetapiplus.base.base import raise_for_status
-
 
 class Assets:
     endpoint = "assets/"
@@ -28,7 +26,6 @@ class Assets:
     def export(self, path: Union[Path, str]) -> None:
         """Export object into an importable file"""
         response = self.client.get(self.export_url)
-        raise_for_status(response)
 
         content_type = response.headers["content-type"].strip()
         if content_type.startswith("application/zip"):
@@ -58,7 +55,6 @@ class Assets:
             "passwords": json.dumps(passwords),
         }
         response = self.client.post(self.import_url, files=files)
-        raise_for_status(response)
 
         # If import is successful, the following is returned: {'message': 'OK'}
         return response.json().get("message") == "OK"

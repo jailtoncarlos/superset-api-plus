@@ -3,11 +3,12 @@ import copy
 import json
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Type
+from typing import List, Type, Optional
 
 from typing_extensions import Self
 
-from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string, raise_for_status, object_field
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories, \
+    object_field, ObjectDecoder
 from supersetapiplus.base.types import DatasourceType
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
@@ -19,7 +20,7 @@ from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.exceptions import NotFound, ChartValidationError, ValidationError
 from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
-from supersetapiplus.utils import detailed_dict_diff
+from supersetapiplus.utils.dict_utils import detailed_dict_diff
 
 
 @dataclass
@@ -31,7 +32,7 @@ class Chart(SerializableModel):
 
     viz_type: ChartType = None
 
-    id: SerializableOptional[int] = None
+    id: Optional[int] = field(default=None)
 
     params: Option = field(init=False)  # Não instanciar Option diretamente!
     query_context: QueryContext = object_field(cls=QueryContext, default_factory=QueryContext)
@@ -39,10 +40,12 @@ class Chart(SerializableModel):
     datasource_id: SerializableOptional[int] = field(default=None)
     datasource_type: SerializableOptional[DatasourceType] = field(default=None)
 
-    dashboards: List[Dashboard] = object_field(cls=Dashboard, default_factory=list)
+    dashboards: SerializableNotToJson[List[Dashboard]] = object_field(cls=Dashboard, default_factory=list)
 
-    _slice_name_override: SerializableOptional[str] = None
+    _slice_name_override: SerializableNotToJson[str] = None
     cache_timeout: SerializableOptional[int] = None
+
+    owners: SerializableNotToJson[list[dict]] = field(default=None)
 
     @classmethod
     @abstractmethod
@@ -185,13 +188,14 @@ class Chart(SerializableModel):
     def add_extra_having(self, sql: str):
         self.query_context._add_extra_having(sql)
 
-    def to_json(self, columns=None):
+    def to_json(self, columns: list = None) -> dict:
         data = super().to_json(columns).copy()
 
-        dashboards = set()
-        for dasboard in self.dashboards:
-            dashboards.add(dasboard.id)
-        data['dashboards'] = list(dashboards)
+        # breakpoint()
+        # dashboards = set()
+        # for dasboard in self.dashboards:
+        #     dashboards.add(dasboard.id)
+        # data['dashboards'] = list(dashboards)
         return data
 
     @classmethod
@@ -199,18 +203,18 @@ class Chart(SerializableModel):
         obj = super().from_json(data)
         obj._dashboards = obj.dashboards
 
-        for dashboard in obj.dashboards:
-            field = dashboard.get_field("position_json")
-            if (hasattr(dashboard, "position_json") and
-                    field.default_factory() == dashboard.position_json):
-                del dashboard.position_json
+        # for dashboard in obj.dashboards:
+        #     field = dashboard.get_field("position_json")
+        #     if (hasattr(dashboard, "position_json") and
+        #             field.default_factory() == dashboard.position_json):
+        #         del dashboard.position_json
 
-        # # set default datasource
-        # if obj.query_context:
-        #     datasource = obj.query_context.datasource
-        #     if datasource:
-        #         obj.datasource_id = datasource.id
-        #         obj.datasource_type = datasource.type
+        # set default datasource
+        if obj.query_context:
+            datasource = obj.query_context.datasource
+            if datasource:
+                obj.datasource_id = datasource.id
+                obj.datasource_type = datasource.type
 
         return obj
 
@@ -250,7 +254,6 @@ class Charts(ApiModelFactories):
                                    params=params,
                                    json=payload)
 
-        raise_for_status(response)
         return response.json().result('result')
 
     def add(self, chart: Chart, title: str, parent: ItemPosition = None, update_dashboard=True) -> int:
@@ -274,8 +277,8 @@ class Charts(ApiModelFactories):
             'dashboard_id': dashboard_id,
             'force': None
         }
-        params = {"form_data": json.dumps(query)}
-        payload = chart.query_context.to_dict()
+        params = {"form_data": json.dumps(query, cls=ObjectDecoder)}
+        payload = chart.query_context.to_json()
+
         response = self.client.post(url, params=params, json=payload)
-        raise_for_status(response)
         return response.json()

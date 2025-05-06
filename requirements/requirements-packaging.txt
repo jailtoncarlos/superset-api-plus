@@ -1,16 +1,52 @@
-# Configurações de desenvolvimento
-## Permite carregar variáveis de ambiente a partir de arquivos .env
-python-dotenv>=1.0.1
-# Biblioteca mais popular para análise e manipulação de dados em Python,
-# permitindo trabalhar com DataFrames e Séries.
-pandas>=2.2.3
-# Biblioteca fundamental para computação numérica em Python, permitindo
-# manipulação eficiente de arrays e operações matemáticas avançadas.
-requests>= 2.32.3
+# ========================================================
+# Requisitos do Projeto - Desenvolvimento e Execução
+# ========================================================
 
+# -----------------------
+# Utilitários de Ambiente
+# -----------------------
+
+# Permite carregar variáveis de ambiente a partir de arquivos .env
+python-dotenv>=1.0.1
+
+
+# -----------------------
+# Manipulação de Dados
+# -----------------------
+
+# Biblioteca fundamental para análise e manipulação de dados com suporte a estruturas de dados como DataFrame.
+pandas>=2.2.3
+
+
+# -----------------------
+# Comunicação via HTTP
+# -----------------------
+
+# Biblioteca para envio de requisições HTTP de forma simples e intuitiva.
+requests>=2.32.3
+
+# Extensão de requests que permite cache local de respostas HTTP, reduzindo chamadas repetidas.
+requests-cache>=1.2.1
+
+# Suporte à autenticação OAuth1 e OAuth2 na biblioteca requests.
 requests-oauthlib>=2.0.0
+
+
+# -----------------------
+# Suporte e Utilitários
+# -----------------------
+
+# Biblioteca para leitura e escrita de arquivos YAML (formato de configuração).
 pyyaml>=6.0.2
+
+# Implementação retrocompatível de propriedades com cache para versões antigas do Python.
 cached_property==2.0.1
+
+# Estrutura de árvore generalizada para representar hierarquias de objetos.
 anytree>=2.12.1
+
+# Geração de identificadores únicos curtos (UUID compactos).
 shortuuid>=1.0.13
+
+# Estrutura de conjunto que mantém a ordem de inserção dos elementos.
 ordered-set>=4.1.0

@@ -19,8 +19,8 @@ class Metadataposition(SerializableModel):
     def tree(self):
         return self._tree
 
-    def to_dict(self, columns=[]) -> dict:
-        data = super().to_dict(columns)
+    def to_dict(self, columns: list = None, convert_to_json: bool = False) -> dict:
+        data = super().to_dict(columns, convert_to_json)
         data.update(self.tree.to_dict())
         return data
 

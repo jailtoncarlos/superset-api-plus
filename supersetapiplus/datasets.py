@@ -11,7 +11,7 @@ from supersetapiplus.exceptions import NotFound
 class Dataset(SerializableModel):
     JSON_FIELDS = []
 
-    id: Optional[int] = None
+    id: Optional[int] = field(default=None)
     table_name: str = ""
     schema: str = ""
     columns: list = field(default_factory=list)
@@ -29,8 +29,8 @@ class Dataset(SerializableModel):
             res.database_id = database.get("id")
         return res
 
-    def to_json(self, *args, **kwargs):
-        o = super().to_json(*args, **kwargs)
+    def to_json(self, columns: list = None) -> dict:
+        o = super().to_json(columns)
         o.pop("columns", None)
         if self.id:
             o["database_id"] = self.database_id

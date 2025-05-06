@@ -1,6 +1,6 @@
 """Dashboards."""
 from dataclasses import dataclass, field
-from typing import List, Type
+from typing import List, Type, Optional
 
 from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string, object_field
 from supersetapiplus.dashboards.itemposition import ItemPosition
@@ -26,7 +26,7 @@ class Dashboard(SerializableModel):
     dashboard_title: str = ''
 
     published: SerializableOptional[bool] = field(default=None)
-    id: SerializableOptional[int] = field(default=None)
+    id: Optional[int] = field(default=None)
     css: SerializableOptional[str] = field(default=None)
     slug: SerializableOptional[str] = field(default=None)
 
@@ -42,7 +42,7 @@ class Dashboard(SerializableModel):
     @classmethod
     def from_json(cls, data: dict):
         obj = super().from_json(data)
-        obj._charts_slice_names  = obj._extra_fields.get('charts', [])
+        obj._charts_slice_names = obj._extra_fields.get('charts', [])
         return obj
 
     @property
@@ -57,7 +57,7 @@ class Dashboard(SerializableModel):
     def position(self):
         return self.position_json
 
-    def add_chart(self, chart, title:str, parent: ItemPosition=None, height: int = 50, width: int = 4, relocate:bool = True):
+    def add_chart(self, chart, title: str, parent: ItemPosition = None, height: int = 50, width: int = 4, relocate:bool = True):
         chart.add_dashboard(self)
         if not self.id:
             raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the client.dashboards.add([this-dashboard]) method.')
