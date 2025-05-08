@@ -8,7 +8,8 @@ from supersetapiplus.charts.metric import MetricsListMixin, AdhocMetric, Metric,
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import ColumnConfig, Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType
+from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType, ResultFormat, \
+    ResultType
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional, SerializableNotToJson
 
@@ -22,7 +23,7 @@ from supersetapiplus.typing import SerializableOptional, SerializableNotToJson
 
 
 @dataclass
-class TableOption(Option, MetricsListMixin):
+class TableOption(Option):
     row_limit: int = 1000
     viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
     query_mode: QueryModeType = field(default_factory=lambda: QueryModeType.AGGREGATE)
@@ -30,11 +31,8 @@ class TableOption(Option, MetricsListMixin):
     order_by_cols: List = field(default_factory=list)
 
     server_pagination: SerializableOptional[bool] = field(default=None)
-    server_page_length: int = 0
-    order_desc: bool = False
+    server_page_length: SerializableOptional[int] = field(default=None)
     show_totals: SerializableOptional[bool] = field(default=None)
-
-    cache_timeout: SerializableOptional[int] = field(default=None)
 
     table_timestamp_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
     page_length: SerializableOptional[int] = field(default=None)
@@ -48,11 +46,9 @@ class TableOption(Option, MetricsListMixin):
     queryFields: SerializableOptional[Dict] = field(default_factory=dict)
 
     table_filter: SerializableOptional[bool] = field(default=None)
-    time_grain_sqla: SerializableOptional[TimeGrain] = field(default=None)
     time_range: SerializableOptional[str] = 'No filter'
     granularity_sqla: SerializableOptional[str] = field(default=None)
 
-    metrics: SerializableOptional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
     column_config: SerializableOptional[Dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True, default_factory=dict)
 
     temporal_columns_lookup: SerializableOptional[dict] = field(default=None)
@@ -60,13 +56,14 @@ class TableOption(Option, MetricsListMixin):
     percent_metrics: SerializableOptional[list] = field(default_factory=list)
     allow_render_html: SerializableOptional[bool] = True
     comparison_color_scheme: SerializableOptional[str] = field(default=None)
-    comparison_type: SerializableOptional[str] = field(default=None)
     annotation_layers: SerializableOptional[list] = field(default=None)
+
+    timeseries_limit_metric: Optional[AdhocMetric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
 
     time_range: SerializableOptional[str] = field(default=None)
     force: SerializableOptional[bool] = field(default=None)
-    result_format: SerializableOptional[str] = field(default=None)  # "json"
-    result_type: SerializableOptional[str] = field(default=None)  # "full"
+    result_format: SerializableOptional[ResultFormat] = field(default=None)
+    result_type: SerializableOptional[ResultType] = field(default=None)
 
     def __post_init__(self):
         super().__post_init__()
@@ -142,12 +139,6 @@ class TableChart(Chart):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
     params: TableOption = object_field(cls=TableOption, default_factory=TableOption)
     query_context: TableQueryContext = object_field(cls=TableQueryContext, default_factory=TableQueryContext)
-
-    # Campos adicionais presentes no dicionário da API
-    certification_details: Optional[str] = None
-    certified_by: Optional[str] = None
-    changed_on_delta_humanized:  SerializableNotToJson[str] = None
-    is_managed_externally: bool = False
 
     def add_simple_metric(self, metric: MetricType,
                           automatic_order: OrderBy = OrderBy(),

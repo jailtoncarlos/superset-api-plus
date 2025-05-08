@@ -1,5 +1,4 @@
 """Base classes."""
-import copy
 import dataclasses
 import logging
 from abc import abstractmethod, ABC
@@ -236,6 +235,7 @@ class SerializableModel(ParseMixin, ABC):
         _extra_fields (Dict): Armazena campos não mapeados diretamente nos atributos da classe.
     """
     _factory = None
+
     JSON_FIELDS = []
 
     _extra_fields: Dict = {}
@@ -567,8 +567,10 @@ class SerializableModel(ParseMixin, ABC):
                         value = {k: serializable_object_class.from_json(v) for k, v in data_value.items()}
                     elif serializable_object_class:
                         value = serializable_object_class.from_json(data_value)
-                    else:
+
+                    if data_value == {}:
                         value = data_value
+
                     setattr(obj, field_name, value)
 
                 elif isinstance(data_value, list):
@@ -614,12 +616,12 @@ class SerializableModel(ParseMixin, ABC):
         return obj
 
     @classmethod
-    def _is_exclude(cls, value: FieldValue, field_name: str):
+    def _is_exclude(cls, value: FieldValue, field_name: str, convert_to_json: bool = False):
         exclude = False
 
         if isinstance(value, list):
             for v in value:
-                return cls._is_exclude(v, field_name)
+                return cls._is_exclude(v, field_name, convert_to_json)
 
         field = cls.get_field(field_name)
         try:
@@ -748,18 +750,24 @@ class SerializableModel(ParseMixin, ABC):
             elif value and isinstance(value, tuple):
                 value = prepare_value_tuple(value, columns, convert_to_json)
 
-            if not self.__class__._is_exclude(value, field_name):
+            if not self.__class__._is_exclude(value, field_name, convert_to_json):
                 if convert_to_json and field_name in self.JSON_FIELDS:
                     data[field_name] = json.dumps(value, cls=ObjectDecoder)
                 else:
                     data[field_name] = None if isinstance(value, CustomNoneType) else value
 
+        copydata = data
         # Remove campo técnico "_extra_fields" se ainda presente
-        # copydata = data.copy()
-        # logger.debug(f'remove campo técnico _extra_fields: {copydata}')
-        # if copydata.get('extra_fields'):
-        #     copydata.pop('extra_fields')
-        return data
+        if data.get('extra_fields'):
+            copydata = data.copy()
+            logger.debug(f'remove campo técnico _extra_fields: {copydata}')
+            copydata.pop('extra_fields')
+
+        # Executa a validação do dicionário serializado, se implementada na subclasse
+        self.validate(copydata)
+
+
+        return copydata
 
     @classmethod
     def _sanitize_none(cls, obj):
@@ -801,9 +809,6 @@ class SerializableModel(ParseMixin, ABC):
         data = self.to_dict(columns, convert_to_json=True)
 
         data = self.__class__._sanitize_none(data)
-
-        # Executa a validação do dicionário serializado, se implementada na subclasse
-        self.validate(data)
 
         # Loga a estrutura final antes de retornar
         logger.debug(f'return data {data}')

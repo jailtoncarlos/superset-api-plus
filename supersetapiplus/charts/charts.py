@@ -19,7 +19,7 @@ from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterCl
     MetricType
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.itemposition import ItemPosition
-from supersetapiplus.exceptions import NotFound, ChartValidationError, ValidationError
+from supersetapiplus.exceptions import NotFound, ChartValidationError, ValidationError, DashboardValidationError
 from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.utils.dict_utils import detailed_dict_diff
 
@@ -31,24 +31,31 @@ class Chart(SerializableModel):
     JSON_FIELDS = ['params', 'query_context']
 
     slice_name: str
-    description: SerializableOptional[str] = field(default=None)
+    id: int = field(default=None)
+    description: str = field(default=None)
+    viz_type: ChartType = field(default=None)
 
-    viz_type: ChartType = None
-
-    id: Optional[int] = field(default=None)
+    certification_details: str = field(default=None)
+    certified_by: str = field(default=None)
+    is_managed_externally: bool = field(default=None)
 
     params: Option = field(init=False)  # Não instanciar Option diretamente!
     query_context: QueryContext = object_field(cls=QueryContext, default_factory=QueryContext)
 
     datasource_id: SerializableOptional[int] = field(default=None)
     datasource_type: SerializableOptional[DatasourceType] = field(default=None)
+    cache_timeout: SerializableOptional[int] = field(default=None)
 
     dashboards: SerializableNotToJson[List[Dashboard]] = object_field(cls=Dashboard, default_factory=list)
-
-    _slice_name_override: SerializableNotToJson[str] = None
-    cache_timeout: SerializableOptional[int] = None
-
     owners: SerializableNotToJson[list[dict]] = field(default=None)
+
+    tags: SerializableNotToJson[list] = field(default=None)
+
+    changed_on_delta_humanized: SerializableNotToJson[str] = None
+    _slice_name_override: SerializableNotToJson[str] = field(default=None)
+    thumbnail_url: SerializableNotToJson[str] = field(default=None)
+    url: SerializableNotToJson[str] = field(default=None)
+
 
     @classmethod
     @abstractmethod
@@ -248,19 +255,42 @@ class Charts(ApiModelFactories):
 
         return response.json().result('result')
 
-    def add(self, chart: Chart, title: str, parent: ItemPosition = None, update_dashboard=True) -> int:
-        id = super().add(chart)
 
-        try:
-            if update_dashboard and chart.dashboards:
-                dashboard_id = chart.dashboards[0].id
-                dashboard = self.client.dashboards.get(dashboard_id)
-                dashboard.add_chart(chart, title)
-                dashboard.save()
-        except:
-            self.delete(id)
-            raise
-        return id
+    def add_and_attach_to_dashboard(self,
+                                    chart: Chart,
+                                    title: str,
+                                    parent: ItemPosition = None) -> int:
+        """
+        Cria um novo chart e o adiciona ao mesmo dashboard ao qual o chart original pertence.
+
+        Args:
+            chart (Chart): instância do chart a ser copiado.
+            title (str): título do chart na cópia.
+            parent (ItemPosition, opcional): posição dentro do dashboard.
+
+        Returns:
+            int: ID do novo chart criado.
+
+        Raises:
+            DashboardValidationError: se o chart original não estiver associado a nenhum dashboard.
+        """
+        # cria o chart via API
+        new_id = super().add(chart)
+
+        # valida se existia dashboard associado ao chart original
+        if not chart.dashboards:
+            raise DashboardValidationError(
+                message="Não foi possível anexar o chart: ele não pertence a nenhum dashboard.",
+                solution="Verificar se o chart informado está associado a um dashboard antes de chamar este método."
+            )
+
+        # obtém o dashboard original e adiciona o chart copiado
+        dashboard_id = chart.dashboards[0].id
+        dashboard = self.client.dashboards.get(dashboard_id)
+        dashboard.add_chart(chart, title)
+        dashboard.save()
+
+        return new_id
 
     def add_to_dashboard(self, chart: Chart, dashboard_id=int):
         url = self.client.join_urls(self.base_url, "/data")

@@ -11,15 +11,15 @@ from supersetapiplus.typing import SerializableOptional
 @dataclass
 class AdhocFilterClause(SerializableModel):
     expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.SIMPLE)
-    subject: str = None
-    operator: FilterOperatorType = None
-    comparator: str = None
+    subject: str = field(default=None)
+    operator: FilterOperatorType = field(default=None)
+    comparator: str = field(default=None)
     clause: FilterClausesType = field(default_factory=lambda: FilterClausesType.WHERE)
-    sqlExpression: str = None
-    operatorId: SerializableOptional[str] = None
+    sqlExpression: SerializableOptional[str] = field(default=None)
+    operatorId: SerializableOptional[str] = field(default=None)
 
-    isExtra: bool = False
-    isNew: bool = False
+    isExtra: SerializableOptional[bool] = field(default=None)
+    isNew: SerializableOptional[bool] = field(default=None)
 
-    datasourceWarning: bool = False
-    filterOptionName: SerializableOptional[str] = None
+    datasourceWarning: SerializableOptional[bool] = field(default=None)
+    filterOptionName: SerializableOptional[str] = field(default=None)

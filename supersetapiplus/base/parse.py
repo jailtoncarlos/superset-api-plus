@@ -1,4 +1,5 @@
 import sys
+import re
 
 
 class ParseMixin:
@@ -11,9 +12,9 @@ class ParseMixin:
         return ParseClass(**kwargs)
 
     @classmethod
-    def get_class(cls, type_: str, module_name:str = None):
+    def get_class(cls, type_: str, module_name: str = None):
         if not module_name:
             module_name = cls.__module__
         suffix = cls.__name__
-        class_name = f'{type_.capitalize()}{suffix}'
+        class_name = re.sub(r'_(.)', lambda m: m.group(1).upper(), f'{type_.capitalize()}{suffix}')
         return getattr(sys.modules[module_name], class_name, None)

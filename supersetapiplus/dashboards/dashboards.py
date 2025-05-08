@@ -38,7 +38,6 @@ class Dashboard(SerializableModel):
         super().__post_init__()
         self._charts_slice_names = []
 
-
     @classmethod
     def from_json(cls, data: dict):
         obj = super().from_json(data)
@@ -61,8 +60,9 @@ class Dashboard(SerializableModel):
         chart.add_dashboard(self)
         if not self.id:
             raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the client.dashboards.add([this-dashboard]) method.')
+
         if not chart.id:
-            self._factory.client.charts.add(chart, title, update_dashboard=False)
+            self._factory.client.charts.add(chart)
 
         self._factory.client.charts.add_to_dashboard(chart, self.id)
 

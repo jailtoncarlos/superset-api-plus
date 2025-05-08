@@ -102,11 +102,8 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         if headers is None:
             headers = {}
 
-        # 3. Atualizar headers e cookies da sessão
         headers.update(
             {
-                "Authorization": f"Bearer {self._access_token}",
-                "X-CSRFToken": self._csrf_token,
                 "Content-Type": "application/json",
             }
         )
@@ -189,12 +186,9 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             **kwargs,
         )
 
-    def authenticate(self, session: requests.Session) -> dict:
+    def authenticate(self, session: requests.Session):
         """
         Authenticates the user and returns access/refresh tokens.
-
-        Returns:
-            dict: Token dictionary with 'access_token' and 'refresh_token'.
         """
         if self.username is None:
             self.username = getpass.getuser()
@@ -219,8 +213,8 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             session=session
         )
         self._access_token = login_resp.json()["access_token"]
+        session.headers.update({"Authorization": f"Bearer {self._access_token}"})
         logger.debug(f"[OK] Token obtained successfully: {self._access_token[:40]}...")
-
 
     def run(self, database_id: int, query: str, query_limit: int = None):
         """
