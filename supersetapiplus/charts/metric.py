@@ -33,7 +33,7 @@ class AdhocMetricColumn(SerializableModel):
     certified_by: SerializableOptional[str] = field(default=None)
     warning_markdown: SerializableOptional[str] = field(default=None)
 
-    def validate(self, data: dict):
+    def validate(self):
         if not self.column_name or not self.type:
             raise ValidationError(message='At least the column_name and type fields must be informed.',
                                   solution='')

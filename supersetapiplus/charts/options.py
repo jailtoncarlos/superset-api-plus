@@ -17,12 +17,11 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ChartVisualOptionsMixin:
+    color_scheme: str = default_string(default='supersetColors')
     show_legend: SerializableOptional[bool] = True
     legendType: LegendType = field(default_factory=lambda: LegendType.SCROLL)
     legendOrientation: LegendOrientationType = field(default_factory=lambda: LegendOrientationType.TOP)
     legendMargin: SerializableOptional[str] = None
-
-    color_scheme: str = default_string(default='supersetColors')
     currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default=None)
 
 
@@ -82,11 +81,11 @@ class Option(SerializableModel, MetricsListMixin, OptionListGroupByMixin):
         if not self.groupby:
             self.groupby: List[OrderByTyping] = []
 
-    # def validate(self, data: dict):
-    #     super().validate(data)
-    #     if not self.groupby:
-    #         raise ValidationError(message='Field groupy cannot be empty.',
-    #                               solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.')
+    def validate(self):
+        print(f'9999999 validate error {type(self)}, groupby is None: {not self.groupby}')
+        # if not self.groupby:
+        #     raise ValidationError(message='Field groupy cannot be empty.',
+        #                           solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.')
 
     def add_dashboard(self, dashboard_id):
         dashboards = set(self.dashboards)

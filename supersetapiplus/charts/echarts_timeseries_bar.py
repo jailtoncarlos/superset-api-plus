@@ -1,6 +1,6 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from supersetapiplus.base.base import default_string, object_field
 from supersetapiplus.charts.charts import Chart
@@ -17,14 +17,13 @@ from supersetapiplus.typing import SerializableOptional
 @dataclass
 class TimeSeriesBarOption(Option, ChartVisualOptionsMixin):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
-    color_scheme: str = default_string(default='supersetColors')
 
     x_axis: AdhocMetric = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
 
     x_axis_sort: SerializableOptional[bool] = field(default=None)
     x_axis_sort_asc: SerializableOptional[bool] = field(default=None)
     x_axis_sort_series: SerializableOptional[SortSeriesType] = field(default=None)
-    x_axis_sort_series_ascending:SerializableOptional[bool] = field(default=None)
+    x_axis_sort_series_ascending: SerializableOptional[bool] = field(default=None)
 
     contributionMode: SerializableOptional[ContributionType] = field(default=None)
     row_limit: int = 1000
@@ -64,6 +63,8 @@ class TimeSeriesBarOption(Option, ChartVisualOptionsMixin):
     showTooltipTotal: SerializableOptional[bool] = field(default=None)
     showTooltipPercentage: SerializableOptional[bool] = field(default=None)
 
+    xAxisForceCategorical: SerializableOptional[bool] = field(default=None)
+    tooltipSortByMetric: SerializableOptional[bool] = field(default=None)
 
     def __post_init__(self):
         super().__post_init__()
@@ -90,14 +91,14 @@ class TimeSeriesBarOption(Option, ChartVisualOptionsMixin):
 @dataclass()
 class TimeSeriesBarFormData(TimeSeriesBarOption):
     series_columns: SerializableOptional[List] = field(default=None)
-    xAxisForceCategorical: SerializableOptional[bool] = field(default=None)
-    tooltipSortByMetric: SerializableOptional[bool] = field(default=None)
+
 
 
 @dataclass
 class TimeSeriesBarQueryObject(Query):
     series_columns: SerializableOptional[List] = field(default_factory=list)
-
+    time_offsets: List[str] = field(default_factory=list)
+    post_processing: List[Any] = field(default_factory=list)
 
 @dataclass
 class TimeSeriesBarQueryContext(QueryContext):
@@ -115,7 +116,7 @@ class EchartsTimeseriesBarChart(Chart):
     query_context: TimeSeriesBarQueryContext = object_field(cls=TimeSeriesBarQueryContext,
                                                            default_factory=TimeSeriesBarQueryContext)
 
-    def validate(self, data: dict):
+    def validate(self):
         """
         Verifica se params.x_axis_sort corresponde a um 'label' válido em:
           1) self.params.metrics
@@ -123,38 +124,38 @@ class EchartsTimeseriesBarChart(Chart):
 
         Lança ChartValidationError em caso de inconsistência.
         """
-        return True
         x_axis_sort_label = self.params.x_axis_sort
 
-        # 1) Check in params.metrics
-        if not any(metric.label == x_axis_sort_label for metric in self.params.metrics):
-            raise ChartValidationError(
-                message=(
-                    f"x_axis_sort='{x_axis_sort_label}' is invalid: "
-                    "it does not match any metric label in params.metrics."
-                ),
-                solution=(
-                    "Ensure that 'params.x_axis_sort' matches one of the "
-                    "'metric.label' entries defined in params.metrics."
-                )
-            )
 
-        # 2) Check in each query.metrics of query_context
-        if not any(
-                metric.label == x_axis_sort_label
-                for query in self.query_context.queries
-                for metric in getattr(query, "metrics", [])
-        ):
-            raise ChartValidationError(
-                message=(
-                    f"x_axis_sort='{x_axis_sort_label}' is invalid: "
-                    "it does not match any metric label in query_context.queries."
-                ),
-                solution=(
-                    "Verify that 'query_context.queries' contains the specified "
-                    "metric label in its metrics lists."
-                )
-            )
+        # # 1) Check in params.metrics
+        # if not any(metric.label == x_axis_sort_label for metric in self.params.metrics):
+        #     raise ChartValidationError(
+        #         message=(
+        #             f"x_axis_sort='{x_axis_sort_label}' is invalid: "
+        #             "it does not match any metric label in params.metrics."
+        #         ),
+        #         solution=(
+        #             "Ensure that 'params.x_axis_sort' matches one of the "
+        #             "'metric.label' entries defined in params.metrics."
+        #         )
+        #     )
+        #
+        # # 2) Check in each query.metrics of query_context
+        # if not any(
+        #         metric.label == x_axis_sort_label
+        #         for query in self.query_context.queries
+        #         for metric in getattr(query, "metrics", [])
+        # ):
+        #     raise ChartValidationError(
+        #         message=(
+        #             f"x_axis_sort='{x_axis_sort_label}' is invalid: "
+        #             "it does not match any metric label in query_context.queries."
+        #         ),
+        #         solution=(
+        #             "Verify that 'query_context.queries' contains the specified "
+        #             "metric label in its metrics lists."
+        #         )
+        #     )
 
     def y_axis(self, label: str,
                sql_expression: str = None,

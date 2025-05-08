@@ -1,6 +1,7 @@
 """Base classes."""
 import dataclasses
 import logging
+import re
 from abc import abstractmethod, ABC
 from datetime import datetime, date
 from decimal import Decimal
@@ -130,8 +131,6 @@ class ObjectDecoder(json.JSONEncoder):
         if isinstance(obj, CustomNoneType):
             return None
 
-        # Para outros tipos, usa a implementação padrão do JSONEncoder
-        print(111111, type(obj))
         return super().default(obj)
 
 
@@ -216,7 +215,7 @@ def default_bool(**kwargs):
     return dataclasses.field(repr=False, **kwargs)
 
 
-class SerializableModel(ParseMixin, ABC):
+class SerializableModel(ABC, ParseMixin):
     """
     Classe base abstrata para representação de objetos que interagem com a API do Superset.
 
@@ -240,8 +239,8 @@ class SerializableModel(ParseMixin, ABC):
 
     _extra_fields: Dict = {}
 
-    def validate(self, data: dict):
-        logger.debug("Validação de dados não implementada na classe base.")
+    def validate(self):
+        ...
 
     def __post_init__(self):
         """
@@ -532,7 +531,6 @@ class SerializableModel(ParseMixin, ABC):
         """
         extra_fields = cls.__get_extra_fields(data)  # Separa campos não definidos na classe
         field_name = None
-        field_value = None
         data_value = None
 
         # Aplica a substituição de None por CUSTOM_NONE de forma recursiva
@@ -568,7 +566,7 @@ class SerializableModel(ParseMixin, ABC):
                     elif serializable_object_class:
                         value = serializable_object_class.from_json(data_value)
 
-                    if data_value == {}:
+                    if value and data_value == {}:
                         value = data_value
 
                     setattr(obj, field_name, value)
@@ -577,6 +575,7 @@ class SerializableModel(ParseMixin, ABC):
                     field = cls.get_field(field_name)
                     serializable_object_class = cls._subclass_object(field)
                     value = []
+                    field_value = None
                     for field_value in data_value:
                         if serializable_object_class and isinstance(field_value, dict):
                             try:
@@ -604,7 +603,6 @@ class SerializableModel(ParseMixin, ABC):
             msg = f"""Error deserializing list item
                 cls={cls}
                 field_name={field_name}
-                item_value={field_value}
                 data_value={data_value}
                 data={data}
                 extra_fields={extra_fields}
@@ -643,13 +641,7 @@ class SerializableModel(ParseMixin, ABC):
                 elif value is None and default_value is None:
                     exclude = True
                 elif isinstance(value, dict):
-                    if not value and not default_value:
-                        exclude = True
-                    elif isinstance(default_value, SerializableModel):
-                        # if field_name in ('column_config', 'temporal_columns_lookup', 'queryFields', 'filter_scopes'):
-                        #     breakpoint()
-                        # if isinstance(default_value, dict):
-                        #     breakpoint()
+                    if isinstance(default_value, SerializableModel):
                         all_none = dicts_equal_and_all_values_none(value, default_value.to_dict())
                         if all_none:
                             exclude = True
@@ -763,9 +755,8 @@ class SerializableModel(ParseMixin, ABC):
             logger.debug(f'remove campo técnico _extra_fields: {copydata}')
             copydata.pop('extra_fields')
 
-        # Executa a validação do dicionário serializado, se implementada na subclasse
-        self.validate(copydata)
-
+        if convert_to_json:
+            self.validate()
 
         return copydata
 
@@ -935,13 +926,15 @@ class ApiModelFactories(ABC):
 
     def get_base_object(self, data: Optional[Dict] = None):
         """
-        Retorna a classe do objeto a ser instanciado com base no campo 'viz_type' dos dados.
+        Returns the class to be instantiated based on the 'viz_type' field in the provided data.
 
         Args:
-            data (dict): Dados da entidade retornados pela API.
+            data (Optional[Dict]): A dictionary of entity data returned by the API.
+                If None is passed, an empty dict is used.
 
         Returns:
-            type[SerializableModel]: Classe apropriada para instanciar o objeto.
+            Type[SerializableModel]: The class corresponding to the specified viz_type,
+                or the default object class if no viz_type is present.
         """
         if data is None:
             data = {}
@@ -949,10 +942,15 @@ class ApiModelFactories(ABC):
         type_ = data.get('viz_type')
         if type_:
             m = self._default_object_class().__module__.split('.')
+            # Remove the last segment, which is the parent class name
             m.pop(-1)
+
             m.append(type_)
+
             module_name = '.'.join(m)
+
             return self._default_object_class().get_class(type_, module_name)
+
         return self._default_object_class()
 
     @cached_property

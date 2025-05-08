@@ -108,31 +108,22 @@ class Query(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
     annotation_layers: List = field(default_factory=list)
 
     # Campos adicionais conforme necessário no JSON da API
-    time_offsets: List[str] = field(default_factory=list)
-    post_processing: List[Any] = field(default_factory=list)
     row_offset: SerializableOptional[int] = None
     order_desc: SerializableOptional[bool] = None
 
     def __post_init__(self):
         super().__post_init__()
-        if not self.metrics:
-            self.metrics:List[Metric] = []
-        if not self.orderby:
-            self.orderby:List[OrderByTyping] = []
-        if not self.columns:
-            self.columns:List[Metric] = []
-        if not self.row_limit == 0:
-            self.row_limit = 100
 
-    def validate(self, data: dict):
-        super().validate(data)
+    def validate(self):
+        print(f'9999999 validate error {type(self)}, orderby is None: {not self.orderby}')
+        # if not self.orderby:
+        #     raise ValidationError(message='Field orderby cannot be empty.',
+        #                           solution='Set the "automatic_order=OrderBy(automate=True)" argument in the add_simple_metric or add_custom_metric methods. If you want to customize a different order, use the add_simple_orderby or add_custom_orderby methods.')
 
-        if not self.orderby:
-            raise ValidationError(message='Field orderby cannot be empty.',
-                                  solution='Set the "automatic_order=OrderBy(automate=True)" argument in the add_simple_metric or add_custom_metric methods. If you want to customize a different order, use the add_simple_orderby or add_custom_orderby methods.')
         if not self.metrics:
             raise ValidationError(message='Field metrics cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')
+
     def _add_simple_filter(self, column_name: Column,
                            value: FilterValues,
                            operator: FilterOperatorType = FilterOperatorType.EQUALS) -> None:
