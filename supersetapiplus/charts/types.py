@@ -126,24 +126,6 @@ class FilterOperatorType(StringEnum):
     TEMPORAL_RANGE = 'TEMPORAL_RANGE'
 
 
-class FilterStringOperatorsType(StringEnum):
-    EQUALS = ("EQUALS",)
-    NOT_EQUALS = ("NOT_EQUALS",)
-    LESS_THAN = ("LESS_THAN",)
-    GREATER_THAN = ("GREATER_THAN",)
-    LESS_THAN_OR_EQUAL = ("LESS_THAN_OR_EQUAL",)
-    GREATER_THAN_OR_EQUAL = ("GREATER_THAN_OR_EQUAL",)
-    IN = ("IN",)
-    NOT_IN = ("NOT_IN",)
-    ILIKE = ("ILIKE",)
-    LIKE = ("LIKE",)
-    IS_NOT_NULL = ("IS_NOT_NULL",)
-    IS_NULL = ("IS_NULL",)
-    LATEST_PARTITION = ("LATEST_PARTITION",)
-    IS_TRUE = ("IS_TRUE",)
-    IS_FALSE = ("IS_FALSE",)
-
-
 class FilterExpressionType(StringEnum):
     SIMPLE = 'SIMPLE'
     CUSTOM_SQL = 'SQL'
@@ -419,3 +401,11 @@ class ComparisonType(StringEnum):
     DIFFERENCE = 'difference'
     PERCENTAGE = 'percentage'
     RATIO = 'ratio'
+
+
+class ResultFormat(StringEnum):
+    JSON = 'json'
+
+
+class ResultType(StringEnum):
+    FULL = 'full'

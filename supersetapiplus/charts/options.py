@@ -2,29 +2,38 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, runtime_checkable, Protocol
 
-from supersetapiplus.base.base import SerializableModel, object_field
+from supersetapiplus.base.base import SerializableModel, object_field, default_string
 from supersetapiplus.charts.filters import AdhocFilterClause
-from supersetapiplus.charts.metric import OrderByTyping, AdhocMetricColumn, MetricHelper, AdhocMetric, OrderBy
+from supersetapiplus.charts.metric import OrderByTyping, AdhocMetricColumn, MetricHelper, AdhocMetric, OrderBy, \
+    MetricsListMixin
+from supersetapiplus.charts.queries import CurrencyFormat
 from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, \
-    FilterExpressionType, MetricType
+    FilterExpressionType, MetricType, LegendType, LegendOrientationType, ResultFormat, ResultType, TimeGrain
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class ChartVisualOptionsMixin:
+    show_legend: SerializableOptional[bool] = True
+    legendType: LegendType = field(default_factory=lambda: LegendType.SCROLL)
+    legendOrientation: LegendOrientationType = field(default_factory=lambda: LegendOrientationType.TOP)
+    legendMargin: SerializableOptional[str] = None
 
-@runtime_checkable
-class SupportsGroupBy(Protocol):
-    # This is a protocol that defines the expected structure of classes that have metric.
-    groupby: Optional[List[OrderByTyping]]
+    color_scheme: str = default_string(default='supersetColors')
+    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default=None)
 
 
+@dataclass
 class OptionListGroupByMixin:
-    def _add_simple_groupby(self: SupportsGroupBy, column_name:str):
+    groupby: List[OrderByTyping] = object_field(cls=AdhocMetric, default_factory=list)
+
+    def _add_simple_groupby(self, column_name:str):
         self.groupby.append(column_name)
 
-    def _add_custom_groupby(self: SupportsGroupBy, label: str,
+    def _add_custom_groupby(self, label: str,
                             column: AdhocMetricColumn = None,
                             sql_expression: str = None,
                             aggregate: MetricType = None):
@@ -36,24 +45,27 @@ class OptionListGroupByMixin:
 
 
 @dataclass
-class Option(SerializableModel, OptionListGroupByMixin):
-    viz_type: ChartType = None
-    slice_id: Optional[int] = None
+class Option(SerializableModel, MetricsListMixin, OptionListGroupByMixin):
+    viz_type: ChartType = field(default=None)
+    slice_id: SerializableOptional[int] = field(default=None)
 
-    datasource: str = None
+    datasource: str = field(default=None)
 
     extra_form_data: Dict = field(default_factory=dict)
     row_limit: int = 100
 
     adhoc_filters: List[AdhocFilterClause] = object_field(cls=AdhocFilterClause, default_factory=list)
     dashboards: List[int] = field(default_factory=list)
-    groupby: Optional[List[OrderByTyping]] = object_field(cls=AdhocMetric, default_factory=list)
 
-    timeseries_limit_metric: Optional[AdhocMetric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
+    force: SerializableOptional[bool] = field(default=None)
+    result_format: SerializableOptional[ResultFormat] = field(default=None)
+    result_type: SerializableOptional[ResultType] = field(default=None)
 
-    force: SerializableOptional[bool] = False
-    result_format: SerializableOptional[str] = "json"
-    result_type: SerializableOptional[str] = "full"
+    cache_timeout: SerializableOptional[int] = field(default=None)
+    time_grain_sqla: SerializableOptional[TimeGrain] = field(default=None)
+    order_desc: SerializableOptional[bool] = field(default=None)
+
+    comparison_type: SerializableOptional[str] = field(default=None)
 
     def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         raise NotImplementedError("This method should be implemented in the subclass")
@@ -70,11 +82,11 @@ class Option(SerializableModel, OptionListGroupByMixin):
         if not self.groupby:
             self.groupby: List[OrderByTyping] = []
 
-    def validate(self, data: dict):
-        super().validate(data)
-        if not self.groupby:
-            raise ValidationError(message='Field groupy cannot be empty.',
-                                  solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.')
+    # def validate(self, data: dict):
+    #     super().validate(data)
+    #     if not self.groupby:
+    #         raise ValidationError(message='Field groupy cannot be empty.',
+    #                               solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.')
 
     def add_dashboard(self, dashboard_id):
         dashboards = set(self.dashboards)

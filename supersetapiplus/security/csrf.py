@@ -61,8 +61,9 @@ class CSRFSupportMixin:
         logger.debug(f"[OK] CSRF token successfully obtained: {self._csrf_token[:30]}...")
         if self._csrf_token:
             # Definição do cookie necessário para Superset aceitar CSRF
-            session.cookies.set("csrf_access_token", self._csrf_token, domain=self.get_domain())
+            # session.cookies.set("csrf_access_token", self._csrf_token, domain=self.get_domain())
 
+            session.headers["X-CSRFToken"] = self._csrf_token
             logger.debug(f"CSRF token set successfully:: {self._csrf_token}")
         else:
             logger.warning("CSRF token not found in response.")

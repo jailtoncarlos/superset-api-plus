@@ -29,7 +29,7 @@ class ColumnConfig(SerializableModel):
     colorPositiveNegative: SerializableOptional[bool] = None
     showCellBars: SerializableOptional[bool] = None
     columnWidth: SerializableOptional[int] = None
-    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
+    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default=None)
 
 
 @dataclass
@@ -58,17 +58,14 @@ class QueryFilterClause(SerializableModel):
     op: FilterOperatorType = field(default_factory=lambda: FilterOperatorType.EQUALS)
 
 
-@runtime_checkable
-class SupportsColumns(Protocol):
-    # This is a protocol that defines the expected structure of classes that have metric.
-    columns: SerializableOptional[List[Metric]]
-
-
+@dataclass
 class ColumnsMixin:
-    def _add_simple_columns(self: SupportsColumns, column_name:str):
+    columns: SerializableOptional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
+
+    def _add_simple_columns(self, column_name:str):
         self.columns.append(column_name)
 
-    def _add_custom_columns(self: SupportsColumns, label: str,
+    def _add_custom_columns(self, label: str,
                             column: AdhocMetricColumn = None,
                             sql_expression: str = None,
                             aggregate: MetricType = None):
@@ -78,13 +75,10 @@ class ColumnsMixin:
             column.expressionType = FilterExpressionType.CUSTOM_SQL
 
 
-@runtime_checkable
-class SupportsOrderby(Protocol):
-    # This is a protocol that defines the expected structure of classes that have metric.
-    orderby: SerializableOptional[List[OrderByTyping]]
-
-
+@dataclass
 class OrderByMixin:
+    orderby: SerializableOptional[List[OrderByTyping]] = object_field(cls=AdhocMetric, default_factory=list)
+
     def _add_simple_orderby(self, column_name: str,
                             sort_ascending: bool):
         self.orderby.append((column_name, sort_ascending))
@@ -102,13 +96,10 @@ class OrderByMixin:
 class Query(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
     row_limit: SerializableOptional[int] = 100
     series_limit: SerializableOptional[int] = 0
-    series_limit_metric: SerializableOptional[Metric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
-    orderby: SerializableOptional[List[OrderByTyping]] = object_field(cls=AdhocMetric, default_factory=list)
+    series_limit_metric: SerializableOptional[Metric] = object_field(default=None)
 
     filters: List[QueryFilterClause] = object_field(cls=QueryFilterClause, default_factory=list)
     extras: QuerieExtra = object_field(cls=QuerieExtra, default_factory=QuerieExtra)
-    columns: SerializableOptional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
-    metrics: SerializableOptional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
 
     applied_time_extras: Dict = field(default_factory=dict)
     url_params: Dict = field(default_factory=dict)
@@ -121,8 +112,6 @@ class Query(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
     post_processing: List[Any] = field(default_factory=list)
     row_offset: SerializableOptional[int] = None
     order_desc: SerializableOptional[bool] = None
-
-
 
     def __post_init__(self):
         super().__post_init__()

@@ -5,7 +5,7 @@ from typing import List
 from supersetapiplus.base.base import default_string, object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
-from supersetapiplus.charts.options import Option
+from supersetapiplus.charts.options import Option, ChartVisualOptionsMixin
 from supersetapiplus.charts.queries import Metric, CurrencyFormat, AdhocMetric, Query
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, LabelType, LegendOrientationType, LegendType, DateFormatType, \
@@ -15,16 +15,11 @@ from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
-class PieOption(Option, SingleMetricMixin):
+class PieOption(Option, SingleMetricMixin, ChartVisualOptionsMixin):
     viz_type: ChartType = field(default_factory=lambda: ChartType.PIE)
-    color_scheme: str = default_string(default='supersetColors')
-    legendType: LegendType = field(default_factory=lambda: LegendType.SCROLL)
-    legendOrientation: LegendOrientationType = field(default_factory=lambda: LegendOrientationType.TOP)
     label_type: LabelType = field(default_factory=lambda: LabelType.CATEGORY_NAME)
-    show_legend: bool = True
     show_labels: bool = True
-    legendMargin: SerializableOptional[str] = ''
-    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
+
     number_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
     date_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
     donut: SerializableOptional[bool] = False
@@ -34,21 +29,6 @@ class PieOption(Option, SingleMetricMixin):
     innerRadius: int = 30
     outerRadius: int = 70
     show_labels_threshold: int = 5
-    metric: Metric = object_field(cls=AdhocMetric, default=None)
-    sort_by_metric: bool = False
-
-
-    def __post_init__(self):
-        super().__post_init__()
-        if self.donut and self.innerRadius != 30:
-            self.donut = True
-        if self.legendMargin:
-            self.show_legend = True
-        if self.label_line:
-            self.labels_outside = True
-            self.show_labels = True
-        if self.labels_outside:
-            self.show_labels = True
 
     def validate(self, data: dict):
         super().validate(data)

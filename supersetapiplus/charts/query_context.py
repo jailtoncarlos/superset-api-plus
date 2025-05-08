@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 from supersetapiplus.base.base import SerializableModel, object_field
@@ -7,8 +7,10 @@ from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.charts.metric import OrderBy, AdhocMetric
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query, AdhocMetricColumn
-from supersetapiplus.charts.types import FilterOperatorType, FilterClausesType, MetricType, FilterExpressionType
+from supersetapiplus.charts.types import FilterOperatorType, FilterClausesType, MetricType, FilterExpressionType, \
+    ResultFormat, ResultType
 from supersetapiplus.exceptions import ChartValidationError, ValidationError
+from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
@@ -23,8 +25,8 @@ class QueryContext(SerializableModel):
     form_data: FormData = object_field(cls=FormData, default_factory=FormData)
 
     force: bool = False
-    result_format: str = "json"
-    result_type: str = "full"
+    result_format: SerializableOptional[ResultFormat] = field(default_factory=lambda: ResultFormat.JSON)
+    result_type: SerializableOptional[ResultType] = field(default_factory=lambda: ResultType.FULL)
 
 
     @abstractmethod

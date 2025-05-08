@@ -1,71 +1,69 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 from supersetapiplus.base.base import default_string, object_field
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.options import Option
+from supersetapiplus.charts.options import Option, ChartVisualOptionsMixin
 from supersetapiplus.charts.queries import AdhocMetric, CurrencyFormat, Query
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, LegendOrientationType, LegendType, DateFormatType, \
     NumberFormatType, TimeGrain, Orientation, ContributionType, SortSeriesType, StackStylyType, \
     TitlepositionType, LabelRotation, ComparisonType, FilterExpressionType
+from supersetapiplus.exceptions import ChartValidationError
 from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
-class TimeSeriesBarOption(Option):
+class TimeSeriesBarOption(Option, ChartVisualOptionsMixin):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
     color_scheme: str = default_string(default='supersetColors')
 
-    time_grain_sqla: SerializableOptional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
-
     x_axis: AdhocMetric = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
-    x_axis_sort_asc: bool = True
 
-    x_axis_sort_series: SortSeriesType = field(default_factory=lambda: SortSeriesType.NAME)
-    x_axis_sort_series_ascending: bool = True
+    x_axis_sort: SerializableOptional[bool] = field(default=None)
+    x_axis_sort_asc: SerializableOptional[bool] = field(default=None)
+    x_axis_sort_series: SerializableOptional[SortSeriesType] = field(default=None)
+    x_axis_sort_series_ascending:SerializableOptional[bool] = field(default=None)
 
-    contributionMode: ContributionType = field(default_factory=lambda: ContributionType.ROW)
-    order_desc: bool = True
+    contributionMode: SerializableOptional[ContributionType] = field(default=None)
     row_limit: int = 1000
     truncate_metric: bool = True
-    comparison_type: ComparisonType = field(default_factory=lambda: ComparisonType.VALUES)
     annotation_layers: List = field(default_factory=list)
-    forecastPeriods: int = 10
-    forecastInterval: float = 0.8
+    forecastPeriods: SerializableOptional[int] = field(default=None)
+    forecastInterval: SerializableOptional[float] = field(default=None)
     orientation: Orientation = field(default_factory=lambda: Orientation.HORIZONTAL)
-    x_axis_title: str = default_string(default=' ')
+
+    x_axis_title: SerializableOptional[str] = field(default=None)
     x_axis_title_margin: int = 30
-    y_axis_title: str = default_string(default='')
+    y_axis_title: SerializableOptional[str] = field(default=None)
     y_axis_title_margin: int = 30
     y_axis_title_position: TitlepositionType = field(default_factory=lambda: TitlepositionType.LEFT)
-    sort_series_type: SortSeriesType = field(default_factory=lambda: SortSeriesType.NAME)
-    sort_series_ascending: bool = True
-    show_value: bool = False
-    stack: StackStylyType = field(default_factory=lambda: StackStylyType.STACK)
-    only_total: bool = True
-    percentage_threshold: int = 0
-    show_legend: bool = True
-    legendType: LegendType = field(default_factory=lambda: LegendType.SCROLL)
-    legendOrientation: LegendOrientationType = field(default_factory=lambda: LegendOrientationType.BOTTOM)
-    legendMargin: int = 10
     x_axis_time_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
-    xAxisLabelRotation: LabelRotation = field(default_factory=lambda: LabelRotation.ZERO)
+    xAxisLabelRotation: SerializableOptional[LabelRotation] = field(default=None)
+
+    sort_series_type: SortSeriesType = field(default_factory=lambda: SortSeriesType.NAME)
+    sort_series_ascending: SerializableOptional[bool] = field(default=None)
+    show_value: SerializableOptional[bool] = field(default=None)
+    stack: SerializableOptional[StackStylyType] = field(default=None)
+    only_total: bool = True
+    percentage_threshold: SerializableOptional[int] = field(default=None)
+
+    logAxis: SerializableOptional[bool] = field(default=None)
+
+    minorSplitLine: SerializableOptional[bool] = field(default=None)
+    truncateYAxis: SerializableOptional[bool] = field(default=None)
+
     y_axis_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
-    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default_factory=CurrencyFormat)
-    logAxis: bool = False
-    minorSplitLine: bool = False
-    truncateYAxis: bool = False
     y_axis_bounds: tuple[int, int] = field(default_factory=dict)
     rich_tooltip: bool = True
     tooltipTimeFormat: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
 
-    # extra_form_data: {}
-    # dashboards: [20]
-    # force: bool = False
-    # result_format: str = 'json'
-    # result_type: str = 'full'
+    show_empty_columns: bool = True
+    truncateXAxis: bool = True
+    showTooltipTotal: SerializableOptional[bool] = field(default=None)
+    showTooltipPercentage: SerializableOptional[bool] = field(default=None)
+
 
     def __post_init__(self):
         super().__post_init__()
@@ -89,14 +87,16 @@ class TimeSeriesBarOption(Option):
         self.x_axis_sort_series_ascending = sort_ascending
 
 
-@dataclass
+@dataclass()
 class TimeSeriesBarFormData(TimeSeriesBarOption):
-    ...
+    series_columns: SerializableOptional[List] = field(default=None)
+    xAxisForceCategorical: SerializableOptional[bool] = field(default=None)
+    tooltipSortByMetric: SerializableOptional[bool] = field(default=None)
 
 
 @dataclass
 class TimeSeriesBarQueryObject(Query):
-    ...
+    series_columns: SerializableOptional[List] = field(default_factory=list)
 
 
 @dataclass
@@ -114,6 +114,47 @@ class EchartsTimeseriesBarChart(Chart):
     params: TimeSeriesBarOption = object_field(cls=TimeSeriesBarOption, default_factory=TimeSeriesBarOption)
     query_context: TimeSeriesBarQueryContext = object_field(cls=TimeSeriesBarQueryContext,
                                                            default_factory=TimeSeriesBarQueryContext)
+
+    def validate(self, data: dict):
+        """
+        Verifica se params.x_axis_sort corresponde a um 'label' válido em:
+          1) self.params.metrics
+          2) cada uma das listas de metrics em self.query_context.queries
+
+        Lança ChartValidationError em caso de inconsistência.
+        """
+        return True
+        x_axis_sort_label = self.params.x_axis_sort
+
+        # 1) Check in params.metrics
+        if not any(metric.label == x_axis_sort_label for metric in self.params.metrics):
+            raise ChartValidationError(
+                message=(
+                    f"x_axis_sort='{x_axis_sort_label}' is invalid: "
+                    "it does not match any metric label in params.metrics."
+                ),
+                solution=(
+                    "Ensure that 'params.x_axis_sort' matches one of the "
+                    "'metric.label' entries defined in params.metrics."
+                )
+            )
+
+        # 2) Check in each query.metrics of query_context
+        if not any(
+                metric.label == x_axis_sort_label
+                for query in self.query_context.queries
+                for metric in getattr(query, "metrics", [])
+        ):
+            raise ChartValidationError(
+                message=(
+                    f"x_axis_sort='{x_axis_sort_label}' is invalid: "
+                    "it does not match any metric label in query_context.queries."
+                ),
+                solution=(
+                    "Verify that 'query_context.queries' contains the specified "
+                    "metric label in its metrics lists."
+                )
+            )
 
     def y_axis(self, label: str,
                sql_expression: str = None,

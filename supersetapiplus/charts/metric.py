@@ -34,7 +34,7 @@ class AdhocMetricColumn(SerializableModel):
     warning_markdown: SerializableOptional[str] = field(default=None)
 
     def validate(self, data: dict):
-        if not self.column_name or self.type:
+        if not self.column_name or not self.type:
             raise ValidationError(message='At least the column_name and type fields must be informed.',
                                   solution='')
 
@@ -138,18 +138,15 @@ class MetricHelper:
                                   solution=f'Use o enum types.MetricType')
 
 
-@runtime_checkable
-class SupportsMetrics(Protocol):
-    # This is a protocol that defines the expected structure of classes that have metrics.
-    metrics: List[Metric]
-
-
+@dataclass
 class MetricsListMixin:
-    def _add_simple_metric(self: SupportsMetrics, metric: str, automatic_order: OrderBy):
+    metrics: List[Metric] = object_field(cls=AdhocMetric, default_factory=list)
+
+    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         MetricHelper.check_metric(metric)
         self.metrics.append(metric)
 
-    def _add_custom_metric(self: SupportsMetrics,
+    def _add_custom_metric(self,
                            label: str,
                            automatic_order: OrderBy,
                            column: AdhocMetricColumn,
@@ -165,14 +162,18 @@ class SupportsMetric(Protocol):
     metric: Metric
 
 
+@dataclass
 class SingleMetricMixin:
-    def _add_simple_metric(self: SupportsMetric, metric: str, automatic_order: OrderBy):
+    metric: Metric = object_field(cls=AdhocMetric, default=None)
+    sort_by_metric: bool = False
+
+    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         MetricHelper.check_metric(metric)
         self.metric = metric
         if automatic_order and automatic_order.automate:
             self.sort_by_metric = True
 
-    def _add_custom_metric(self: SupportsMetric, label: str,
+    def _add_custom_metric(self, label: str,
                            automatic_order: OrderBy,
                            column: AdhocMetricColumn,
                            sql_expression: str = None,
