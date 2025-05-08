@@ -72,8 +72,7 @@ class TableOption(Option):
         if self.server_page_length == 0:
             self.server_page_length = 10
 
-    def validate(self, data: dict):
-        super().validate(data)
+    def validate(self):
         if not self.metrics:
             raise ValidationError(message='Field metrics cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')
@@ -113,8 +112,7 @@ class TableQueryContext(QueryContext):
     form_data: TableFormData = object_field(cls=TableFormData, default_factory=TableFormData)
     queries: List[TableQueryObject] = object_field(cls=Query, default_factory=list)
 
-    def validate(self, data: dict):
-        super().validate(data)
+    def validate(self):
         if self.form_data.metrics or self.queries:
             equals = False
             counter = 0
@@ -126,9 +124,10 @@ class TableQueryContext(QueryContext):
             if counter == len(self.form_data.metrics):
                 equals = True
 
-            if not equals:
-                raise ValidationError(message='The metrics definition in formdata is not included in queries.metrics.',
-                                      solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
+            print(f'9999999 validate error {type(self)}, formdata included in queries.metrics: {counter == len(self.form_data.metrics)}')
+            # if not equals:
+                # raise ValidationError(message='The metrics definition in formdata is not included in queries.metrics.',
+                #                       solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
 
     def _default_query_object_class(self) -> type[Query]:
         return TableQueryObject

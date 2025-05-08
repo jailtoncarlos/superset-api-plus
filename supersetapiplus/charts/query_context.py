@@ -42,14 +42,13 @@ class QueryContext(SerializableModel):
             self._automatic_order: OrderBy = None
         return self._automatic_order
 
-    def validate(self, data: dict):
-        super().validate(data)
+    def validate(self):
         if not self.queries:
             raise ValidationError(message='Field queries cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')
 
         for query in self.queries:
-            query.validate(data)
+            query.validate()
 
     def add_dashboard(self, dashboard_id):
         self.form_data.add_dashboard(dashboard_id)

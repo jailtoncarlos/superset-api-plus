@@ -83,8 +83,7 @@ class Chart(SerializableModel):
                 self.params.datasource = f'{self.datasource_id}__{self.datasource_type}'
                 self.query_context.form_data = self.params.datasource
 
-    def validate(self, data: dict):
-        super().validate(data)
+    def validate(self):
         if self.params != self.query_context.form_data:
             added, removed, modified, same = detailed_dict_diff(self.params.to_dict(), self.query_context.form_data.to_dict())
 

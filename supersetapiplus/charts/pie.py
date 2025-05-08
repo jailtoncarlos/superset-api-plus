@@ -30,9 +30,7 @@ class PieOption(Option, SingleMetricMixin, ChartVisualOptionsMixin):
     outerRadius: int = 70
     show_labels_threshold: int = 5
 
-    def validate(self, data: dict):
-        super().validate(data)
-
+    def validate(self):
         if not self.metric:
             raise ValidationError(message='Field metric cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a metric.')
@@ -57,9 +55,7 @@ class PieQueryContext(QueryContext):
     form_data: PieFormData = object_field(cls=PieFormData, default_factory=PieFormData)
     queries: List[PieQueryObject] = object_field(cls=Query, default_factory=list)
 
-    def validate(self, data: dict):
-        super().validate(data)
-
+    def validate(self):
         if self.form_data.metric or self.queries:
             equals = False
             for query in self.queries:
@@ -97,8 +93,7 @@ class PieChart(Chart):
     params: PieOption = object_field(cls=PieOption, default_factory=PieOption)
     query_context: PieQueryContext = object_field(cls=PieQueryContext, default_factory=PieQueryContext)
 
-    def validate(self, data: dict):
-        super().validate(data)
+    def validate(self):
         if (self.params.metric or self.query_context.form_data.metric) and not (self.params.metric == self.query_context.form_data.metric):
                 raise ValidationError(message='The metric definition in self.params.metric not equals self.query_context.form_data.metric.',
                                       solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
