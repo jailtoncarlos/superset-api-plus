@@ -1,8 +1,9 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
 from supersetapiplus.base.base import object_field
+from supersetapiplus.base.fields import MissingField
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import MetricsListMixin, AdhocMetric, Metric, AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
@@ -14,16 +15,15 @@ from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional, SerializableNotToJson
 
 
-# class TableAdhocMetric(AdhocMetric):
-#     """Class to represent a table metric."""
-#     sqlExpression: Optional[str] = field(init=False, repr=False, default=None)
-#     aggregate: Optional[MetricType] = field(init=False, repr=False, default=None)
-#     timeGrain: Optional[str] = field(init=False, repr=False, default=None)
-#     columnType: Optional[ColumnType] = field(init=False, repr=False, default=None)
+@dataclass
+class TableOptionBase(Option):
+    conditional_formatting: SerializableOptional[List] = field(default_factory=list)
+    temporal_columns_lookup: SerializableOptional[dict] = field(default=None)
+    annotation_layers: SerializableOptional[list] = field(default=None)
 
 
 @dataclass
-class TableOption(Option):
+class TableOption(TableOptionBase):
     row_limit: int = 1000
     viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
     query_mode: QueryModeType = field(default_factory=lambda: QueryModeType.AGGREGATE)
@@ -35,32 +35,26 @@ class TableOption(Option):
     show_totals: SerializableOptional[bool] = field(default=None)
 
     table_timestamp_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
-    page_length: SerializableOptional[int] = field(default=None)
+    page_length: int = field(default=None)
     include_search: SerializableOptional[bool] = field(default=None)
     show_cell_bars: bool = True
 
     align_pn: SerializableOptional[bool] = field(default=None)
     color_pn: bool = True
     allow_rearrange_columns: SerializableOptional[bool] = field(default=None)
-    conditional_formatting: SerializableOptional[List] = field(default_factory=list)
-    queryFields: SerializableOptional[Dict] = field(default_factory=dict)
 
     table_filter: SerializableOptional[bool] = field(default=None)
-    time_range: SerializableOptional[str] = 'No filter'
     granularity_sqla: SerializableOptional[str] = field(default=None)
 
     column_config: SerializableOptional[Dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True, default_factory=dict)
 
-    temporal_columns_lookup: SerializableOptional[dict] = field(default=None)
     all_columns: SerializableOptional[list] = field(default_factory=list)
     percent_metrics: SerializableOptional[list] = field(default_factory=list)
     allow_render_html: SerializableOptional[bool] = True
     comparison_color_scheme: SerializableOptional[str] = field(default=None)
-    annotation_layers: SerializableOptional[list] = field(default=None)
 
-    timeseries_limit_metric: Optional[AdhocMetric] = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
+    timeseries_limit_metric: Optional[Metric] = object_field(default=None)
 
-    time_range: SerializableOptional[str] = field(default=None)
     force: SerializableOptional[bool] = field(default=None)
     result_format: SerializableOptional[ResultFormat] = field(default=None)
     result_type: SerializableOptional[ResultType] = field(default=None)
@@ -73,6 +67,7 @@ class TableOption(Option):
             self.server_page_length = 10
 
     def validate(self):
+        super().validate()
         if not self.metrics:
             raise ValidationError(message='Field metrics cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')
@@ -88,9 +83,9 @@ class TableFormData(TableOption):
 
 @dataclass
 class TableQueryObject(Query):
-    time_range: SerializableOptional[str] = field(init=False, default='No Filter')
     granularity: SerializableOptional[str] = None
-    # applied_time_extras: List[str] = field(default_factory=list)
+    time_offsets: List[str] = field(default_factory=list)
+    post_processing: List[Any] = field(default_factory=list)
 
     def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         #In the table the option is sort descending
@@ -110,24 +105,19 @@ class TableQueryObject(Query):
 @dataclass
 class TableQueryContext(QueryContext):
     form_data: TableFormData = object_field(cls=TableFormData, default_factory=TableFormData)
-    queries: List[TableQueryObject] = object_field(cls=Query, default_factory=list)
+    queries: List[TableQueryObject] = object_field(cls=TableQueryObject, default_factory=list)
 
     def validate(self):
-        if self.form_data.metrics or self.queries:
-            equals = False
-            counter = 0
-            for form_data_metric in self.form_data.metrics:
-                for query in self.queries:
-                    for query_metric in query.metrics:
-                        if form_data_metric == query_metric:
-                            counter += 1
-            if counter == len(self.form_data.metrics):
-                equals = True
-
-            print(f'9999999 validate error {type(self)}, formdata included in queries.metrics: {counter == len(self.form_data.metrics)}')
-            # if not equals:
-                # raise ValidationError(message='The metrics definition in formdata is not included in queries.metrics.',
-                #                       solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
+        super().validate()
+        # junta todas as métricas dos queries numa lista
+        query_metrics = [qm for q in self.queries for qm in q.metrics]
+        # filtra as métricas do form_data que não aparecem em query_metrics
+        missing = [fm for fm in self.form_data.metrics if fm not in query_metrics]
+        if missing:
+            raise ValidationError(
+                message=f'These metrics from form_data are missing in queries.metrics: {missing}',
+                solution="Use add_simple_metric ou add_custom_metric para garantir integridade."
+            )
 
     def _default_query_object_class(self) -> type[Query]:
         return TableQueryObject

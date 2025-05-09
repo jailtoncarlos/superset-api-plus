@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, runtime_checkable, Protocol
 
 from supersetapiplus.base.base import SerializableModel, object_field, default_string
+from supersetapiplus.base.fields import MissingField
 from supersetapiplus.charts.filters import AdhocFilterClause
 from supersetapiplus.charts.metric import OrderByTyping, AdhocMetricColumn, MetricHelper, AdhocMetric, OrderBy, \
     MetricsListMixin
@@ -10,7 +11,7 @@ from supersetapiplus.charts.queries import CurrencyFormat
 from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, \
     FilterExpressionType, MetricType, LegendType, LegendOrientationType, ResultFormat, ResultType, TimeGrain
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableOptional
+from supersetapiplus.typing import SerializableOptional, SerializableNotToJson
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class ChartVisualOptionsMixin:
     show_legend: SerializableOptional[bool] = True
     legendType: LegendType = field(default_factory=lambda: LegendType.SCROLL)
     legendOrientation: LegendOrientationType = field(default_factory=lambda: LegendOrientationType.TOP)
-    legendMargin: SerializableOptional[str] = None
+    legendMargin: str = None
     currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default=None)
 
 
@@ -29,7 +30,21 @@ class ChartVisualOptionsMixin:
 class OptionListGroupByMixin:
     groupby: List[OrderByTyping] = object_field(cls=AdhocMetric, default_factory=list)
 
-    def _add_simple_groupby(self, column_name:str):
+    # por padrão, todo mundo exige groupby
+    _require_groupby: SerializableNotToJson[bool] = True
+
+    def validate(self):
+        super().validate()
+        # só valida se a subclasse não desativou
+        if self._require_groupby \
+                and not isinstance(self.groupby, MissingField) \
+                and not self.groupby:
+            raise ValidationError(
+                message='Field groupby cannot be empty.',
+                solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.'
+            )
+
+    def _add_simple_groupby(self, column_name: str):
         self.groupby.append(column_name)
 
     def _add_custom_groupby(self, label: str,
@@ -44,7 +59,7 @@ class OptionListGroupByMixin:
 
 
 @dataclass
-class Option(SerializableModel, MetricsListMixin, OptionListGroupByMixin):
+class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
     viz_type: ChartType = field(default=None)
     slice_id: SerializableOptional[int] = field(default=None)
 
@@ -66,6 +81,9 @@ class Option(SerializableModel, MetricsListMixin, OptionListGroupByMixin):
 
     comparison_type: SerializableOptional[str] = field(default=None)
 
+    def validate(self):
+        super().validate()
+
     def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         raise NotImplementedError("This method should be implemented in the subclass")
 
@@ -80,12 +98,6 @@ class Option(SerializableModel, MetricsListMixin, OptionListGroupByMixin):
         super().__post_init__()
         if not self.groupby:
             self.groupby: List[OrderByTyping] = []
-
-    def validate(self):
-        print(f'9999999 validate error {type(self)}, groupby is None: {not self.groupby}')
-        # if not self.groupby:
-        #     raise ValidationError(message='Field groupy cannot be empty.',
-        #                           solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.')
 
     def add_dashboard(self, dashboard_id):
         dashboards = set(self.dashboards)

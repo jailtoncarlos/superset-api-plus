@@ -44,7 +44,7 @@ class Chart(SerializableModel):
 
     datasource_id: SerializableOptional[int] = field(default=None)
     datasource_type: SerializableOptional[DatasourceType] = field(default=None)
-    cache_timeout: SerializableOptional[int] = field(default=None)
+    cache_timeout: int = field(default=None)
 
     dashboards: SerializableNotToJson[List[Dashboard]] = object_field(cls=Dashboard, default_factory=list)
     owners: SerializableNotToJson[list[dict]] = field(default=None)
@@ -84,6 +84,7 @@ class Chart(SerializableModel):
                 self.query_context.form_data = self.params.datasource
 
     def validate(self):
+        super().validate()
         if self.params != self.query_context.form_data:
             added, removed, modified, same = detailed_dict_diff(self.params.to_dict(), self.query_context.form_data.to_dict())
 

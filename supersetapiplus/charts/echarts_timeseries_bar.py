@@ -15,7 +15,7 @@ from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
-class TimeSeriesBarOption(Option, ChartVisualOptionsMixin):
+class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
 
     x_axis: AdhocMetric = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
@@ -66,6 +66,11 @@ class TimeSeriesBarOption(Option, ChartVisualOptionsMixin):
     xAxisForceCategorical: SerializableOptional[bool] = field(default=None)
     tooltipSortByMetric: SerializableOptional[bool] = field(default=None)
 
+    def validate(self):
+        # desativa a obrigatoriedade do groupby
+        self._require_groupby: bool = False
+        super().validate()
+
     def __post_init__(self):
         super().__post_init__()
 
@@ -100,10 +105,11 @@ class TimeSeriesBarQueryObject(Query):
     time_offsets: List[str] = field(default_factory=list)
     post_processing: List[Any] = field(default_factory=list)
 
+
 @dataclass
 class TimeSeriesBarQueryContext(QueryContext):
-    queries: List[TimeSeriesBarQueryObject] = object_field(cls=TimeSeriesBarQueryObject, default_factory=list)
     form_data: TimeSeriesBarFormData = object_field(cls=TimeSeriesBarFormData, default_factory=TimeSeriesBarFormData)
+    queries: List[TimeSeriesBarQueryObject] = object_field(cls=TimeSeriesBarQueryObject, default_factory=list)
 
     def _default_query_object_class(self) -> type[Query]:
         return TimeSeriesBarQueryObject
@@ -112,9 +118,10 @@ class TimeSeriesBarQueryContext(QueryContext):
 @dataclass
 class EchartsTimeseriesBarChart(Chart):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
-    params: TimeSeriesBarOption = object_field(cls=TimeSeriesBarOption, default_factory=TimeSeriesBarOption)
-    query_context: TimeSeriesBarQueryContext = object_field(cls=TimeSeriesBarQueryContext,
-                                                           default_factory=TimeSeriesBarQueryContext)
+    params: TimeSeriesBarOption = object_field(
+        cls=TimeSeriesBarOption, default_factory=TimeSeriesBarOption)
+    query_context: TimeSeriesBarQueryContext = object_field(
+        cls=TimeSeriesBarQueryContext,  default_factory=TimeSeriesBarQueryContext)
 
     def validate(self):
         """
@@ -124,6 +131,7 @@ class EchartsTimeseriesBarChart(Chart):
 
         Lança ChartValidationError em caso de inconsistência.
         """
+        super().validate()
         x_axis_sort_label = self.params.x_axis_sort
 
 
