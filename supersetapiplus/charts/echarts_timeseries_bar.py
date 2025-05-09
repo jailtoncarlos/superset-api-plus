@@ -1,16 +1,15 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import List, Optional, Any
+from typing import List, Any
 
-from supersetapiplus.base.base import default_string, object_field
+from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option, ChartVisualOptionsMixin
-from supersetapiplus.charts.queries import AdhocMetric, CurrencyFormat, Query
+from supersetapiplus.charts.queries import AdhocMetric, Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, LegendOrientationType, LegendType, DateFormatType, \
-    NumberFormatType, TimeGrain, Orientation, ContributionType, SortSeriesType, StackStylyType, \
-    TitlepositionType, LabelRotation, ComparisonType, FilterExpressionType
-from supersetapiplus.exceptions import ChartValidationError
+from supersetapiplus.charts.types import ChartType, DateFormatType, \
+    NumberFormatType, Orientation, ContributionType, SortSeriesType, StackStylyType, \
+    TitlepositionType, LabelRotation, FilterExpressionType
 from supersetapiplus.typing import SerializableOptional
 
 

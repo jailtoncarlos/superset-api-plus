@@ -1,12 +1,12 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List
 
-from supersetapiplus.base.base import object_field, default_string
+from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.metric import Metric, OrderByTyping, AdhocMetric
+from supersetapiplus.charts.metric import OrderByTyping
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import Query, QueryFormColumn, CurrencyFormat, AdhocColumn
+from supersetapiplus.charts.queries import Query, QueryFormColumn, CurrencyFormat
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.table import TableOptionBase
 from supersetapiplus.charts.types import ChartType, MetricsLayoutEnum, MetricType, OrderType, NumberFormatType, \

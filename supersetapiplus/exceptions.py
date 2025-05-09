@@ -6,6 +6,7 @@ including HTTP errors, validation errors, and domain-specific exceptions.
 """
 
 import json
+
 from requests import HTTPError
 
 

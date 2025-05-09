@@ -7,7 +7,7 @@ class ChartType(StringEnum):
     PIE = 'pie'
     TABLE = 'table'
     TIMESERIES_BAR = 'echarts_timeseries_bar'
-    PIVOT_TALBE_V2 = '.pivot_table_v2'
+    PIVOT_TALBE_V2 = 'pivot_table_v2'
 
 
 #https://github.com/apache/superset/blob/8553b06155249c3583cf0dcd22221ec06cbb833d/superset-frontend/plugins/plugin-chart-echarts/src/types.ts

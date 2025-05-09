@@ -13,14 +13,13 @@ Features:
 import getpass
 import json
 import logging
-import urllib.parse
+from functools import cached_property
 from typing import List, Optional
 from urllib.parse import urlparse
 
 import requests
 import requests.adapters
 import requests.exceptions
-from functools import cached_property
 
 from supersetapiplus.assets import Assets
 from supersetapiplus.charts.charts import Charts

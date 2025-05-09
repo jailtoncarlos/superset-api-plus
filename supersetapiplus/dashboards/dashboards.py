@@ -2,13 +2,14 @@
 from dataclasses import dataclass, field
 from typing import List, Type, Optional
 
-from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string, object_field
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories
+from supersetapiplus.base.fields import object_field
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.dashboards.metadataposition import Metadataposition
 from supersetapiplus.dashboards.nodeposisition import RowNodePosition
 from supersetapiplus.exceptions import DashboardValidationError
-from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.typing import SerializableOptional
 
 
 def defult_metadata():

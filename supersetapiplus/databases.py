@@ -2,7 +2,8 @@
 from dataclasses import dataclass, field
 from typing import Optional, Type
 
-from supersetapiplus.base.base import SerializableModel, ApiModelFactories, default_string, json_field
+from supersetapiplus.base.fields import default_string, json_field
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories
 
 
 @dataclass

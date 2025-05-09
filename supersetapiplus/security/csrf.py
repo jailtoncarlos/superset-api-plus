@@ -1,5 +1,6 @@
 import logging
 from typing import runtime_checkable, Protocol
+
 import requests
 
 from supersetapiplus.utils.request_handler import RequestHandler

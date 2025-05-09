@@ -4,12 +4,12 @@ import json
 import logging
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Type, Optional
+from typing import List, Type
 
 from typing_extensions import Self
 
-from supersetapiplus.base.base import SerializableModel, ApiModelFactories, \
-    object_field, ObjectDecoder
+from supersetapiplus.base.base import SerializableModel, ApiModelFactories, ObjectDecoder
+from supersetapiplus.base.fields import object_field
 from supersetapiplus.base.types import DatasourceType
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option

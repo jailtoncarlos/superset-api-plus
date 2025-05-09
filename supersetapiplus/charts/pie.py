@@ -2,13 +2,13 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from supersetapiplus.base.base import default_string, object_field
+from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
 from supersetapiplus.charts.options import Option, ChartVisualOptionsMixin
-from supersetapiplus.charts.queries import Metric, CurrencyFormat, AdhocMetric, Query
+from supersetapiplus.charts.queries import Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, LabelType, LegendOrientationType, LegendType, DateFormatType, \
+from supersetapiplus.charts.types import ChartType, LabelType, DateFormatType, \
     NumberFormatType
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional

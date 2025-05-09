@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
-from supersetapiplus.base.base import SerializableModel, default_string, object_field
+from supersetapiplus.base.base import SerializableModel
+from supersetapiplus.base.fields import default_string, object_field
 from supersetapiplus.typing import SerializableOptional
 
 

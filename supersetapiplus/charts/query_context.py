@@ -2,9 +2,10 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import List
 
-from supersetapiplus.base.base import SerializableModel, object_field
+from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.datasource import DataSource
-from supersetapiplus.charts.metric import OrderBy, AdhocMetric
+from supersetapiplus.base.fields import object_field
+from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query, AdhocMetricColumn
 from supersetapiplus.charts.types import FilterOperatorType, FilterClausesType, MetricType, FilterExpressionType, \
