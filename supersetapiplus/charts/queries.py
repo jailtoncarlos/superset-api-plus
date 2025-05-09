@@ -1,9 +1,10 @@
 import logging
 from dataclasses import dataclass, field
-from typing import List, Union, Dict, Protocol, runtime_checkable, Any
+from typing import List, Union, Dict
 
-from supersetapiplus.base.base import SerializableModel, object_field, default_string
-from supersetapiplus.base.fields import MissingField
+from supersetapiplus.base.base import SerializableModel
+from supersetapiplus.base.fields import object_field, default_string
+from supersetapiplus.base.sentinels import MissingField
 from supersetapiplus.charts.metric import AdhocMetricColumn, MetricHelper, Metric, OrderByTyping, MetricsListMixin, \
     AdhocMetric
 from supersetapiplus.charts.types import FilterOperatorType, TimeGrain, FilterExpressionType, HorizontalAlignType, \

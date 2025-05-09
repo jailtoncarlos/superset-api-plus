@@ -1,8 +1,9 @@
 import logging
 from dataclasses import dataclass, field
-from typing import Union, Literal, get_args, Protocol, runtime_checkable, List, Optional
+from typing import Union, Literal, get_args, List, Optional
 
-from supersetapiplus.base.base import SerializableModel, default_string, object_field
+from supersetapiplus.base.base import SerializableModel
+from supersetapiplus.base.fields import default_string, object_field
 from supersetapiplus.charts.types import FilterExpressionType, SqlMapType, \
     GenericDataType, MetricType, \
     ColumnType

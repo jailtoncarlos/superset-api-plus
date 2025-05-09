@@ -1,7 +1,5 @@
 import logging
 import jwt
-from flask import request, g
-from flask_appbuilder.security.manager import AUTH_REMOTE_USER, BaseSecurityManager
 from superset.security import SupersetSecurityManager
 from superset.extensions import security_manager
 from werkzeug.exceptions import Unauthorized

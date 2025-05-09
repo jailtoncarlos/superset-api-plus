@@ -2,17 +2,16 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 
-from supersetapiplus.base.base import object_field
-from supersetapiplus.base.fields import MissingField
+from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.metric import MetricsListMixin, AdhocMetric, Metric, AdhocMetricColumn, OrderBy
+from supersetapiplus.charts.metric import Metric, AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import ColumnConfig, Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, TimeGrain, MetricType, ResultFormat, \
+from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, MetricType, ResultFormat, \
     ResultType
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableOptional, SerializableNotToJson
+from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
