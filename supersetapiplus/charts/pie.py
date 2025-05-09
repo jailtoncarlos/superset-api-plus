@@ -15,7 +15,7 @@ from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
-class PieOption(Option, SingleMetricMixin, ChartVisualOptionsMixin):
+class PieOption(SingleMetricMixin, ChartVisualOptionsMixin, Option):
     viz_type: ChartType = field(default_factory=lambda: ChartType.PIE)
     label_type: LabelType = field(default_factory=lambda: LabelType.CATEGORY_NAME)
     show_labels: bool = True
@@ -31,6 +31,7 @@ class PieOption(Option, SingleMetricMixin, ChartVisualOptionsMixin):
     show_labels_threshold: int = 5
 
     def validate(self):
+        super().validate()
         if not self.metric:
             raise ValidationError(message='Field metric cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a metric.')
@@ -49,13 +50,13 @@ class PieQueryObject(Query):
     ...
 
 
-
 @dataclass
 class PieQueryContext(QueryContext):
     form_data: PieFormData = object_field(cls=PieFormData, default_factory=PieFormData)
     queries: List[PieQueryObject] = object_field(cls=Query, default_factory=list)
 
     def validate(self):
+        super().validate()
         if self.form_data.metric or self.queries:
             equals = False
             for query in self.queries:
@@ -94,6 +95,7 @@ class PieChart(Chart):
     query_context: PieQueryContext = object_field(cls=PieQueryContext, default_factory=PieQueryContext)
 
     def validate(self):
+        super().validate()
         if (self.params.metric or self.query_context.form_data.metric) and not (self.params.metric == self.query_context.form_data.metric):
                 raise ValidationError(message='The metric definition in self.params.metric not equals self.query_context.form_data.metric.',
                                       solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")

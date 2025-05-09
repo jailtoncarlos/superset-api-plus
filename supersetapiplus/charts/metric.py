@@ -16,24 +16,25 @@ logger = logging.getLogger(__name__)
 class AdhocMetricColumn(SerializableModel):
     column_name: str = default_string()
     id: Optional[int] = field(default=None)
-    verbose_name: SerializableOptional[str] = field(default=None)
-    description: SerializableOptional[str] = field(default=None)
-    expression: SerializableOptional[str] = field(default=None)
+    verbose_name: str = field(default=None)
+    description: str = field(default=None)
+    expression: str = field(default=None)
     filterable: bool = True
     groupby: bool = True
     is_dttm: bool = False
-    python_date_format: SerializableOptional[str] = field(default=None)
+    python_date_format: str = field(default=None)
     type: SerializableOptional[SqlMapType] = field(default=None)
     type_generic: SerializableOptional[GenericDataType] = field(default=None)
 
     # Novos campos conforme o JSON da API
-    advanced_data_type: SerializableOptional[str] = field(default=None)
+    advanced_data_type: str = field(default=None)
     is_certified: bool = False
-    certification_details: SerializableOptional[str] = field(default=None)
-    certified_by: SerializableOptional[str] = field(default=None)
-    warning_markdown: SerializableOptional[str] = field(default=None)
+    certification_details: str = field(default=None)
+    certified_by: str = field(default=None)
+    warning_markdown: str = field(default=None)
 
     def validate(self):
+        super().validate()
         if not self.column_name or not self.type:
             raise ValidationError(message='At least the column_name and type fields must be informed.',
                                   solution='')
@@ -54,11 +55,12 @@ class AdhocMetricColumn(SerializableModel):
 @dataclass
 class AdhocMetric(SerializableModel):
     expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
-    column: SerializableOptional[AdhocMetricColumn] = object_field(cls=AdhocMetricColumn, default=None)
+    sqlExpression: str = field(default=None)
     label: SerializableOptional[str] = default_string()
     hasCustomLabel: SerializableOptional[bool] = field(default=None)
-    sqlExpression: SerializableOptional[str] = field(default=None)
-    aggregate: SerializableOptional[MetricType] = field(default=None)
+    column: AdhocMetricColumn = object_field(cls=AdhocMetricColumn, default=None)
+    aggregate: MetricType = field(default=None)
+
     timeGrain: SerializableOptional[str] = field(default=None)
     columnType: SerializableOptional[ColumnType] = field(default=None)
 
@@ -154,12 +156,6 @@ class MetricsListMixin:
                            aggregate: MetricType = None):
         metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
         self.metrics.append(metric)
-
-
-@runtime_checkable
-class SupportsMetric(Protocol):
-    # This is a protocol that defines the expected structure of classes that have metric.
-    metric: Metric
 
 
 @dataclass

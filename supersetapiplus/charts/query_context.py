@@ -43,6 +43,7 @@ class QueryContext(SerializableModel):
         return self._automatic_order
 
     def validate(self):
+        super().validate()
         if not self.queries:
             raise ValidationError(message='Field queries cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')

@@ -15,7 +15,7 @@ class AdhocFilterClause(SerializableModel):
     operator: FilterOperatorType = field(default=None)
     comparator: str = field(default=None)
     clause: FilterClausesType = field(default_factory=lambda: FilterClausesType.WHERE)
-    sqlExpression: SerializableOptional[str] = field(default=None)
+    sqlExpression: str = field(default=None)
     operatorId: SerializableOptional[str] = field(default=None)
 
     isExtra: SerializableOptional[bool] = field(default=None)

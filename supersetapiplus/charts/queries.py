@@ -2,7 +2,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Union, Dict, Protocol, runtime_checkable, Any
 
-from supersetapiplus.base.base import SerializableModel, object_field
+from supersetapiplus.base.base import SerializableModel, object_field, default_string
+from supersetapiplus.base.fields import MissingField
 from supersetapiplus.charts.metric import AdhocMetricColumn, MetricHelper, Metric, OrderByTyping, MetricsListMixin, \
     AdhocMetric
 from supersetapiplus.charts.types import FilterOperatorType, TimeGrain, FilterExpressionType, HorizontalAlignType, \
@@ -15,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CurrencyFormat(SerializableModel):
-    symbolPosition: CurrentPositionType = None
-    symbol: CurrencyCodeType = None
+    symbolPosition: SerializableOptional[CurrentPositionType] = field(default=None)
+    symbol: SerializableOptional[CurrencyCodeType] = field(default=None)
 
 
 @dataclass
 class ColumnConfig(SerializableModel):
     d3NumberFormat: SerializableOptional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
-    d3SmallNumberFormat: SerializableOptional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
+    d3SmallNumberFormat: SerializableOptional[NumberFormatType] = field(default=None)
     horizontalAlign: SerializableOptional[HorizontalAlignType] = field(default=None)
 
     alignPositiveNegative: SerializableOptional[bool] = None
@@ -41,19 +42,19 @@ class QuerieExtra(SerializableModel):
 
 @dataclass
 class AdhocColumn(SerializableModel):
-    hasCustomLabel: SerializableOptional[bool]
-    label: str
-    sqlExpression: str
-    timeGrain: SerializableOptional[str]
-    columnType: SerializableOptional[ColumnType]
+    hasCustomLabel: SerializableOptional[bool] = field(default=None)
+    label: str = default_string()
+    sqlExpression: str = default_string()
+    timeGrain: SerializableOptional[str] = field(default=None)
+    columnType: SerializableOptional[ColumnType] = field(default=None)
 
 
-Column = Union[AdhocColumn, str]
+QueryFormColumn = Union[AdhocColumn, str]
 
 
 @dataclass
 class QueryFilterClause(SerializableModel):
-    col: Column
+    col: QueryFormColumn
     val: SerializableOptional[FilterValues]
     op: FilterOperatorType = field(default_factory=lambda: FilterOperatorType.EQUALS)
 
@@ -77,7 +78,7 @@ class ColumnsMixin:
 
 @dataclass
 class OrderByMixin:
-    orderby: SerializableOptional[List[OrderByTyping]] = object_field(cls=AdhocMetric, default_factory=list)
+    orderby: SerializableOptional[List[OrderByTyping]] = object_field(default_factory=list)
 
     def _add_simple_orderby(self, column_name: str,
                             sort_ascending: bool):
@@ -91,9 +92,15 @@ class OrderByMixin:
         metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
         self.orderby.append((metric, sort_ascending))
 
+    def validate(self):
+        super().validate()
+        if not isinstance(self.orderby, MissingField) and not self.orderby:
+            raise ValidationError(message='Field orderby cannot be empty.',
+                                  solution='Set the "automatic_order=OrderBy(automate=True)" argument in the add_simple_metric or add_custom_metric methods. If you want to customize a different order, use the add_simple_orderby or add_custom_orderby methods.')
+
 
 @dataclass
-class Query(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
+class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
     row_limit: SerializableOptional[int] = 100
     series_limit: SerializableOptional[int] = 0
     series_limit_metric: SerializableOptional[Metric] = object_field(default=None)
@@ -115,16 +122,12 @@ class Query(SerializableModel, MetricsListMixin, ColumnsMixin, OrderByMixin):
         super().__post_init__()
 
     def validate(self):
-        print(f'9999999 validate error {type(self)}, orderby is None: {not self.orderby}')
-        # if not self.orderby:
-        #     raise ValidationError(message='Field orderby cannot be empty.',
-        #                           solution='Set the "automatic_order=OrderBy(automate=True)" argument in the add_simple_metric or add_custom_metric methods. If you want to customize a different order, use the add_simple_orderby or add_custom_orderby methods.')
-
+        super().validate()
         if not self.metrics:
             raise ValidationError(message='Field metrics cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')
 
-    def _add_simple_filter(self, column_name: Column,
+    def _add_simple_filter(self, column_name: QueryFormColumn,
                            value: FilterValues,
                            operator: FilterOperatorType = FilterOperatorType.EQUALS) -> None:
         query_filter_clause = QueryFilterClause(col=column_name, val=value, op=operator)

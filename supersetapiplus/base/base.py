@@ -1,7 +1,6 @@
 """Base classes."""
 import dataclasses
 import logging
-import re
 from abc import abstractmethod, ABC
 from datetime import datetime, date
 from decimal import Decimal
@@ -9,7 +8,7 @@ from enum import Enum
 
 from typing_extensions import Self
 
-from supersetapiplus.base.types import CUSTOM_NONE, CustomNoneType
+from supersetapiplus.base.fields import MissingField
 from supersetapiplus.query_string import QueryStringFilter
 from supersetapiplus.utils.dict_utils import dict_hash, dicts_equal_and_all_values_none
 
@@ -25,9 +24,8 @@ from pathlib import Path
 from typing import List, Union, Dict, get_origin, Any, Optional
 
 import yaml
-from requests import HTTPError
 
-from supersetapiplus.exceptions import BadRequestError, ComplexBadRequestError, MultipleFound, NotFound, \
+from supersetapiplus.exceptions import MultipleFound, NotFound, \
     LoadJsonError
 from supersetapiplus.base.parse import ParseMixin
 from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
@@ -127,10 +125,6 @@ class ObjectDecoder(json.JSONEncoder):
         # Converte instâncias de Enum para o valor associado em formato string
         if isinstance(obj, Enum):
             return str(obj.value)
-
-        if isinstance(obj, CustomNoneType):
-            return None
-
         return super().default(obj)
 
 
@@ -215,7 +209,7 @@ def default_bool(**kwargs):
     return dataclasses.field(repr=False, **kwargs)
 
 
-class SerializableModel(ABC, ParseMixin):
+class SerializableModel(ParseMixin, ABC):
     """
     Classe base abstrata para representação de objetos que interagem com a API do Superset.
 
@@ -261,6 +255,7 @@ class SerializableModel(ABC, ParseMixin):
         melhorando a consistência do estado interno do objeto logo após sua criação.
         """
 
+
         # Converte os campos definidos como JSON_FIELDS que foram passados como string em dicionários Python
         for f in self.JSON_FIELDS:
             value = getattr(self, f) or "{}"
@@ -269,7 +264,9 @@ class SerializableModel(ABC, ParseMixin):
 
         # Itera sobre todos os campos da dataclass
         for field in self.fields():
-            # Se o campo tem valor padrão, está como None e não é SerializableOptional, define seu valor padrão
+            # Se o campo tem valor padrão, está como None
+            # e não é SerializableOptional
+            # Define seu valor padrão
             if not isinstance(field.default, dataclasses._MISSING_TYPE) \
                     and getattr(self, field.name) is None \
                     and not get_origin(field.type) is SerializableOptional:
@@ -480,8 +477,8 @@ class SerializableModel(ABC, ParseMixin):
                 return field.metadata.get("cls")
         else:
             logger.warning(f'Campo {field.name} não possui atributo "metadados". '
-                         f'\nSe o tipo do campo for uma classe filha de "SerializableModel", '
-                         f'verifique se o campo foi definido corretamente com object_field.')
+                           f'\nSe o tipo do campo for uma classe filha de "SerializableModel", '
+                           f'verifique se o campo foi definido corretamente com object_field.')
 
         # Em seguida tenta deduzir a partir do default_factory
         default_factory = getattr(field, 'default_factory', None)
@@ -503,6 +500,46 @@ class SerializableModel(ABC, ParseMixin):
             return CUSTOM_NONE
         else:
             return obj
+
+    @classmethod
+    def instantiate_with_missing_check(cls, **data: Any):
+        """
+        Instantiate `cls` from keyword arguments, but:
+
+          - Warn if any declared dataclass fields were not provided,
+            and inject them into `data` with a `MissingField()` sentinel.
+          - Warn if any extra keys were passed in.
+          - Finally, call `cls(**filtered_data)` using exactly the declared fields.
+
+        Returns:
+            An instance of `cls`.
+        """
+        # 1) Determine all dataclass field names
+        all_fields = {f.name for f in dataclasses.fields(cls)}
+        provided = set(data.keys())
+
+        # 2) Find missing and extra
+        missing = all_fields - provided
+        extra = provided - all_fields
+
+        # 3) Warn and inject sentinel for missing fields
+        if missing:
+            for name in missing:
+                data[name] = MissingField()
+
+        # 4) Warn about any extra keys
+        if extra:
+            logger.warning(
+                "%s: received unknown fields (will be ignored): %s",
+                cls.__name__, sorted(extra)
+            )
+            # (we simply drop them below)
+
+        # 5) Filter to exactly the dataclass fields
+        filtered = {k: v for k, v in data.items() if k in all_fields}
+
+        # 6) Instantiate
+        return cls(**filtered)
 
     @classmethod
     def from_json(cls, data: dict) -> Self:
@@ -533,12 +570,9 @@ class SerializableModel(ABC, ParseMixin):
         field_name = None
         data_value = None
 
-        # Aplica a substituição de None por CUSTOM_NONE de forma recursiva
-        data = cls.replace_none_with_custom(data)
-
         try:
             logger.debug(f'Instancia {cls.__name__} com dados: {data}')
-            obj = cls(**data)
+            obj = cls.instantiate_with_missing_check(**data)
 
             for field_name in cls.JSON_FIELDS:
                 logger.debug(f'field_name: {field_name} found in JSON_FIELDS')
@@ -558,16 +592,13 @@ class SerializableModel(ABC, ParseMixin):
                     continue
 
                 if isinstance(data_value, dict):
+                    value = data_value
                     field = cls.get_field(field_name)
                     serializable_object_class = cls._subclass_object(field)
-                    value = None
                     if serializable_object_class and field.metadata.get('dict_right'):
                         value = {k: serializable_object_class.from_json(v) for k, v in data_value.items()}
                     elif serializable_object_class:
                         value = serializable_object_class.from_json(data_value)
-
-                    if value and data_value == {}:
-                        value = data_value
 
                     setattr(obj, field_name, value)
 
@@ -629,14 +660,14 @@ class SerializableModel(ABC, ParseMixin):
             elif field.default_factory is not dataclasses.MISSING:
                 default_value = field.default_factory()
 
+            if isinstance(value, MissingField):
+                exclude = True
             # Exclui sempre que o campo for marcado como SerializableNotToJson
-            if get_origin(field.type) is SerializableNotToJson:
+            elif get_origin(field.type) is SerializableNotToJson:
                 exclude = True
             # Exclui se for SerializableOptional e valor ausente ou igual ao default
             elif get_origin(field.type) is SerializableOptional:
-                if isinstance(value, CustomNoneType) and default_value is None:
-                    exclude = False
-                elif not value and default_value is dataclasses.MISSING:
+                if not value and default_value is dataclasses.MISSING:
                     exclude = True
                 elif value is None and default_value is None:
                     exclude = True
@@ -651,6 +682,7 @@ class SerializableModel(ABC, ParseMixin):
         except Exception as err:
             logger.warning(f'Ignorando erro ao verificar se o campo "{field_name}" deve ser excluído, Error: {err}')
             pass
+
         if exclude:
             logger.debug(f"exclude field_name: {field_name}, value: {value}")
         return exclude
@@ -674,32 +706,50 @@ class SerializableModel(ABC, ParseMixin):
         Returns:
             dict: Dicionário representando o estado atual do objeto, com os campos convertidos.
         """
-        def prepare_value_tuple(field_value: str, columns: list, convert_to_json: bool):
+        def prepare_value_tuple(field_name: str, field_value: str, columns: list, convert_to_json: bool):
             """Prepara elementos de tupla para conversão recursiva."""
             values_data = []
             if isinstance(field_value, tuple):
-                l1 = field_value[0]
-                l2 = field_value[1]
-                if isinstance(field_value[0], SerializableModel):
-                    l1 = field_value[0].to_dict(columns, convert_to_json)
-                elif isinstance(field_value[1], SerializableModel):
-                    l2 = field_value[1].to_dict(columns, convert_to_json)
-                elif isinstance(field_value[0], Enum):
-                    l1 = str(field_value[0])
-                elif isinstance(field_value[1], Enum):
-                    l2 = str(field_value[0])
-                values_data.append((l1, l2))
+                # We always expect a tuple (value, json_key);
+                # not for tuple of size 2, most likely
+                # there was an extra comma when declaring the field in @dataclass.
+                if len(field_value) != 2:
+
+                    raise ValueError(
+                        f"Invalid default for dataclass field '{field_name}': "
+                        f"got tuple of length {len(field_value)}. "
+                        "This usually happens when there is an extra comma after a "
+                        "field declaration in a @dataclass class. Remove the "
+                        "extra comma and try again."
+                    )
+                l0 = field_value[0]
+                l1 = field_value[1]
+
+                if l0 and isinstance(l0, SerializableModel):
+                    l0 = l0.to_dict(columns_names, convert_to_json)
+                elif l1 and isinstance(l1, SerializableModel):
+                    l1 = l1.to_dict(columns_names, convert_to_json)
+                elif l0 and isinstance(l0, Enum):
+                    l0 = str(l0)
+                elif l1 and isinstance(l1, Enum):
+                    l1 = str(l1)
+                values_data.append((l0, l1))
             return values_data
 
         # Junta colunas explícitas com as definidas na classe
         columns_names = set(columns or [])
         columns_names.update(self.field_names())
+
         data = {}
         for field_name in columns_names:
-            if not hasattr(self, field_name):  # Ignora colunas ainda não implementadas
+            if not hasattr(self, field_name):  # Ignora colunas ainda não mapeada
                 continue
 
             value = getattr(self, field_name)
+
+            if isinstance(value, MissingField):
+                # logger.warning(f"field_name {field_name} typeof MissingField.")
+                continue
 
             # Converte Enums para string
             if isinstance(value, Enum):
@@ -707,16 +757,16 @@ class SerializableModel(ABC, ParseMixin):
 
             # Converte objetos recursivamente
             elif value and isinstance(value, SerializableModel):
-                value = value.to_dict(columns, convert_to_json)
+                value = value.to_dict(columns_names, convert_to_json)
 
             # Converte listas de objetos, tuplas ou enums
             elif value and isinstance(value, list):
                 values_data = []
                 for field_value in value:
                     if isinstance(field_value, SerializableModel):
-                        values_data.append(field_value.to_dict(columns, convert_to_json))
+                        values_data.append(field_value.to_dict(columns_names, convert_to_json))
                     elif isinstance(field_value, tuple):
-                        values_data.append(prepare_value_tuple(field_value, columns, convert_to_json))
+                        values_data.append(prepare_value_tuple(field_name, field_value, columns, convert_to_json))
                     elif isinstance(field_value, Enum):
                         values_data.append(str(field_value))
                     else:
@@ -731,22 +781,22 @@ class SerializableModel(ABC, ParseMixin):
                     _value = {}
                     if field.metadata.get('dict_left'):
                         for obj, value_ in value.items():
-                            key = obj.to_dict(columns, convert_to_json)
+                            key = obj.to_dict(columns_names, convert_to_json)
                             _value[key] = value_
                     elif field.metadata.get('dict_right'):
                         for k, obj in value.items():
-                            _value[k] = obj.to_dict(columns, convert_to_json)
+                            _value[k] = obj.to_dict(columns_names, convert_to_json)
                     value = _value
 
             # Converte tuplas simples
             elif value and isinstance(value, tuple):
-                value = prepare_value_tuple(value, columns, convert_to_json)
+                value = prepare_value_tuple(field_name, value, columns, convert_to_json)
 
             if not self.__class__._is_exclude(value, field_name, convert_to_json):
                 if convert_to_json and field_name in self.JSON_FIELDS:
                     data[field_name] = json.dumps(value, cls=ObjectDecoder)
                 else:
-                    data[field_name] = None if isinstance(value, CustomNoneType) else value
+                    data[field_name] = value
 
         copydata = data
         # Remove campo técnico "_extra_fields" se ainda presente
@@ -759,23 +809,6 @@ class SerializableModel(ABC, ParseMixin):
             self.validate()
 
         return copydata
-
-    @classmethod
-    def _sanitize_none(cls, obj):
-        if isinstance(obj, dict):
-            return {k: cls._sanitize_none(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [cls._sanitize_none(i) for i in obj]
-        elif isinstance(obj, CustomNoneType):
-            return None
-        elif isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-        elif isinstance(obj, Decimal):
-            return float(obj)
-        elif isinstance(obj, Enum):
-            return obj.value
-        else:
-            return obj
 
     def to_json(self, columns: list = None) -> dict:
         """
@@ -798,8 +831,6 @@ class SerializableModel(ABC, ParseMixin):
 
         # Primeiro converte o objeto inteiro em um dicionário comum (com tratamento recursivo)
         data = self.to_dict(columns, convert_to_json=True)
-
-        data = self.__class__._sanitize_none(data)
 
         # Loga a estrutura final antes de retornar
         logger.debug(f'return data {data}')

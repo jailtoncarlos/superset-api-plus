@@ -2,22 +2,62 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from supersetapiplus.base.base import default_string, object_field
+from supersetapiplus.base.base import object_field, default_string
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.options import Option, ChartVisualOptionsMixin
-from supersetapiplus.charts.queries import AdhocMetric, CurrencyFormat, Query
+from supersetapiplus.charts.metric import Metric, OrderByTyping, AdhocMetric
+from supersetapiplus.charts.options import Option
+from supersetapiplus.charts.queries import Query, QueryFormColumn, CurrencyFormat, AdhocColumn
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, LegendOrientationType, LegendType, DateFormatType, \
-    NumberFormatType, TimeGrain, Orientation, ContributionType, SortSeriesType, StackStylyType, \
-    TitlepositionType, LabelRotation, ComparisonType, FilterExpressionType
-from supersetapiplus.exceptions import ChartValidationError
+from supersetapiplus.charts.table import TableOptionBase
+from supersetapiplus.charts.types import ChartType, MetricsLayoutEnum, MetricType, OrderType, NumberFormatType, \
+    DateFormatType
 from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
-class PivotTableV2Option(Option):
+class PivotTableV2Option(TableOptionBase):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
-    ...
+
+    groupby: SerializableOptional[List[OrderByTyping]] = None
+
+    groupbyColumns: List[QueryFormColumn] = object_field(default_factory=list)
+    groupbyRows: List[QueryFormColumn] = object_field(default_factory=list)
+
+    metricsLayout: MetricsLayoutEnum = field(default_factory=lambda: MetricsLayoutEnum.COLUMNS)
+    combineMetric: bool = False,
+
+    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default=dict)
+    valueFormat: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
+    date_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
+
+    series_limit: SerializableOptional[int] = 0
+    colOrder:  OrderType = field(default_factory=lambda: OrderType.KEY_A_TO_Z)
+    rowOrder: OrderType = field(default_factory=lambda: OrderType.KEY_A_TO_Z)
+    aggregateFunction: MetricType = field(default_factory=lambda: MetricType.SUM)
+    transposePivot: SerializableOptional[bool] = field(default=None)
+
+    rowTotals: SerializableOptional[bool] = False
+    rowSubTotals: SerializableOptional[bool] = False
+    rowSubtotalPosition: SerializableOptional[bool] = False
+    colTotals: SerializableOptional[bool] = False
+    colSubTotals: SerializableOptional[bool] = False
+    colSubtotalPosition: SerializableOptional[bool] = field(default=None)
+
+    # currencyFormat,
+    # emitCrossFilters,
+    # setDataMask,
+    # selectedFilters,
+    # verboseMap,
+    # columnFormats,
+    # currencyFormats,
+    # metricColorFormatters,
+    # dateFormatters,
+    # onContextMenu,
+    # timeGrainSqla,
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.groupby = None
 
 
 @dataclass()

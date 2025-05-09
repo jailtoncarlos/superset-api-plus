@@ -25,7 +25,7 @@ class LegendOrientationType(StringEnum):
 
 class NumberFormatType(StringEnum):
     ORIGINAL_VALUE = '~g'
-    SMART_NUMBER = 'SMART_NUMBER' #Adaptive formatting
+    SMART_NUMBER = 'SMART_NUMBER'  # Adaptive formatting
     SMART_NUMBER_SIGNED = 'SMART_NUMBER_SIGNED'
     OVER_MAX_HIDDEN = 'OVER_MAX_HIDDEN'
 
@@ -181,15 +181,6 @@ class MetricType(StringEnum):
     AVG = "avg"
     MIN = "min"
     MAX = "max"
-#
-#
-# class AggregateType(StringEnum):
-#     COUNT_DISTINCT = "COUNT_DISTINCT"
-#     COUNT = "COUNT"
-#     SUM = "SUM"
-#     AVG = "AVG"
-#     MIN = "MIN"
-#     MAX = "MAX"
 
 
 class CurrencyCodeType(StringEnum):
@@ -410,3 +401,15 @@ class ResultFormat(StringEnum):
 
 class ResultType(StringEnum):
     FULL = 'full'
+
+
+class MetricsLayoutEnum(StringEnum):
+    ROWS = 'ROWS'
+    COLUMNS = 'COLUMNS'
+
+
+class OrderType(StringEnum):
+    KEY_A_TO_Z = 'key_a_to_z'
+    KEY_Z_TO_A = 'key_z_to_a',
+    VALUE_A_TO_Z = 'value_a_to_z',
+    VALUE_Z_TO_A = 'value_z_to_a',
