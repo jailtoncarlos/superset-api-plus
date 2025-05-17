@@ -8,6 +8,11 @@ class ChartType(StringEnum):
     TABLE = 'table'
     TIMESERIES_BAR = 'echarts_timeseries_bar'
     PIVOT_TALBE_V2 = 'pivot_table_v2'
+    BIG_NUMBER_TOTAL = 'big_number_total'
+    BOX_PLOT = 'box_plot'
+    CAL_HEATMAP = 'cal_heatmap'
+    MIXED_TIMESERIES = 'mixed_timeseries'
+    WORD_CLOUD = 'word_cloud'
 
 
 #https://github.com/apache/superset/blob/8553b06155249c3583cf0dcd22221ec06cbb833d/superset-frontend/plugins/plugin-chart-echarts/src/types.ts
