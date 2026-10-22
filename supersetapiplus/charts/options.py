@@ -59,8 +59,13 @@ class OptionListGroupByMixin:
                 solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.'
             )
 
+    def _groupby_editavel(self) -> list:
+        if not isinstance(self.groupby, list):
+            self.groupby = []
+        return self.groupby
+
     def _add_simple_groupby(self, column_name: str):
-        self.groupby.append(column_name)
+        self._groupby_editavel().append(column_name)
 
     def _add_custom_groupby(self, label: str,
                             column: AdhocMetricColumn = None,
@@ -70,7 +75,7 @@ class OptionListGroupByMixin:
         if column:
             metric.expressionType = FilterExpressionType.CUSTOM_SQL
             column.expressionType = FilterExpressionType.CUSTOM_SQL
-        self.groupby.append(metric)
+        self._groupby_editavel().append(metric)
 
 
 @dataclass
@@ -101,7 +106,9 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
 
     def __post_init__(self):
         super().__post_init__()
-        if not self.groupby:
+        # None vira lista vazia; MissingField (chave ausente no JSON lido) é mantido para que a
+        # releitura não acrescente "groupby": [] a gráficos que não o tinham.
+        if self.groupby is None:
             self.groupby: list[OrderByTyping] = []
 
     def add_dashboard(self, dashboard_id):

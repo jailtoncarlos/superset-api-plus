@@ -8,13 +8,20 @@ from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import CurrencyFormat, Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.table import TableOptionBase
-from supersetapiplus.charts.types import ChartType, DateFormatType, MetricsLayoutEnum, MetricType, NumberFormatType, OrderType
+from supersetapiplus.charts.types import (
+    ChartType,
+    DateFormatType,
+    MetricsLayoutEnum,
+    NumberFormatType,
+    OrderType,
+    PivotAggregateFunction,
+)
 from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
 class PivotTableV2Option(TableOptionBase):
-    viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
+    viz_type: ChartType = field(default_factory=lambda: ChartType.PIVOT_TABLE_V2)
 
     groupby: SerializableOptional[list[OrderByTyping]] = None
 
@@ -22,16 +29,16 @@ class PivotTableV2Option(TableOptionBase):
     groupbyRows: list[QueryFormColumn] = object_field(default_factory=list)
 
     metricsLayout: MetricsLayoutEnum = field(default_factory=lambda: MetricsLayoutEnum.COLUMNS)
-    combineMetric: bool = False,
+    combineMetric: bool = False
 
-    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default=dict)
+    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default=None)
     valueFormat: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
     date_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
 
     series_limit: SerializableOptional[int] = 0
     colOrder:  OrderType = field(default_factory=lambda: OrderType.KEY_A_TO_Z)
     rowOrder: OrderType = field(default_factory=lambda: OrderType.KEY_A_TO_Z)
-    aggregateFunction: MetricType = field(default_factory=lambda: MetricType.SUM)
+    aggregateFunction: PivotAggregateFunction = field(default_factory=lambda: PivotAggregateFunction.SUM)
     transposePivot: SerializableOptional[bool] = field(default=None)
 
     rowTotals: SerializableOptional[bool] = False
@@ -79,7 +86,7 @@ class PivotTableV2QueryContext(QueryContext):
 
 @dataclass
 class PivotTableV2Chart(Chart):
-    viz_type: ChartType = field(default_factory=lambda: ChartType.PIVOT_TALBE_V2)
+    viz_type: ChartType = field(default_factory=lambda: ChartType.PIVOT_TABLE_V2)
     params: PivotTableV2Option = object_field(cls=PivotTableV2Option, default_factory=PivotTableV2Option)
     query_context: PivotTableV2QueryContext = object_field(cls=PivotTableV2QueryContext,
                                                            default_factory=PivotTableV2QueryContext)

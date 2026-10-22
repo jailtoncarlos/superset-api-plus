@@ -1,0 +1,30 @@
+{
+ "cache_timeout": null,
+ "certification_details": null,
+ "certified_by": null,
+ "changed_on_delta_humanized": "há 11 meses",
+ "dashboards": [
+  {
+   "dashboard_title": "COVID Vaccine Dashboard",
+   "id": 5,
+   "json_metadata": "{\"timed_refresh_immune_slices\": [], \"expanded_slices\": {}, \"refresh_frequency\": 0, \"default_filters\": \"{}\", \"native_filter_configuration\": [{\"id\": \"NATIVE_FILTER-8jS1fx4hl\", \"controlValues\": {\"enableEmptyFilter\": false, \"defaultToFirstItem\": false, \"multiSelect\": true, \"searchAllOptions\": false, \"inverseSelection\": false}, \"name\": \"Country\", \"filterType\": \"filter_select\", \"targets\": [{\"column\": {\"name\": \"country_name\"}, \"datasetId\": 20}], \"defaultDataMask\": {\"extraFormData\": {}, \"filterState\": {}, \"ownState\": {}}, \"cascadeParentIds\": [], \"scope\": {\"rootPath\": [\"ROOT_ID\"], \"excluded\": []}, \"type\": \"NATIVE_FILTER\", \"description\": \"\", \"chartsInScope\": [9, 10, 11, 12, 13, 14, 15, 66], \"tabsInScope\": [\"TAB-BCIJF4NvgQ\"]}, {\"id\": \"NATIVE_FILTER-3_1wEdKkP\", \"controlValues\": {\"enableEmptyFilter\": false, \"defaultToFirstItem\": false, \"multiSelect\": true, \"searchAllOptions\": false, \"inverseSelection\": false}, \"name\": \"Vaccine Approach\", \"filterType\": \"filter_select\", \"targets\": [{\"column\": {\"name\": \"product_category\"}, \"datasetId\": 20}], \"defaultDataMask\": {\"extraFormData\": {}, \"filterState\": {}, \"ownState\": {}}, \"cascadeParentIds\": [], \"scope\": {\"rootPath\": [\"ROOT_ID\"], \"excluded\": []}, \"type\": \"NATIVE_FILTER\", \"description\": \"\", \"chartsInScope\": [9, 10, 11, 12, 13, 14, 15, 66], \"tabsInScope\": [\"TAB-BCIJF4NvgQ\"]}, {\"id\": \"NATIVE_FILTER-EWNH3M70z\", \"controlValues\": {\"enableEmptyFilter\": false, \"defaultToFirstItem\": false, \"multiSelect\": true, \"searchAllOptions\": false, \"inverseSelection\": false}, \"name\": \"Clinical Stage\", \"filterType\": \"filter_select\", \"targets\": [{\"column\": {\"name\": \"clinical_stage\"}, \"datasetId\": 20}], \"defaultDataMask\": {\"extraFormData\": {}, \"filterState\": {}, \"ownState\": {}}, \"cascadeParentIds\": [], \"scope\": {\"rootPath\": [\"ROOT_ID\"], \"excluded\": []}, \"type\": \"NATIVE_FILTER\", \"description\": \"\", \"chartsInScope\": [9, 10, 11, 12, 13, 14, 15, 66], \"tabsInScope\": [\"TAB-BCIJF4NvgQ\"]}], \"color_scheme\": \"supersetColors\", \"label_colors\": {\"0\": \"#D3B3DA\", \"1\": \"#9EE5E5\", \"0. Pre-clinical\": \"#1FA8C9\", \"2. Phase II or Combined I/II\": \"#454E7C\", \"1. Phase I\": \"#5AC189\", \"3. Phase III\": \"#FF7F44\", \"4. Authorized\": \"#666666\", \"root\": \"#1FA8C9\", \"Protein subunit\": \"#454E7C\", \"Phase II\": \"#5AC189\", \"Pre-clinical\": \"#FF7F44\", \"Phase III\": \"#666666\", \"Phase I\": \"#E04355\", \"Phase I/II\": \"#FCC700\", \"Inactivated virus\": \"#A868B7\", \"Virus-like particle\": \"#3CCCCB\", \"Replicating bacterial vector\": \"#A38F79\", \"DNA-based\": \"#8FD3E4\", \"RNA-based vaccine\": \"#A1A6BD\", \"Authorized\": \"#ACE1C4\", \"Non-replicating viral vector\": \"#FEC0A1\", \"Replicating viral vector\": \"#B2B2B2\", \"Unknown\": \"#EFA1AA\", \"Live attenuated virus\": \"#FDE380\", \"COUNT(*)\": \"#D1C6BC\"}}"
+  }
+ ],
+ "datasource_id": 20,
+ "datasource_name_text": "public.covid_vaccines",
+ "datasource_type": "table",
+ "datasource_url": "/explore/?datasource_type=table&datasource_id=20",
+ "datasource_uuid": "974b7a1c-22ea-49cb-9214-97b7dbd511e0",
+ "description": null,
+ "id": 42,
+ "is_managed_externally": false,
+ "owners": [],
+ "params": "{\"adhoc_filters\": [], \"color_scheme\": \"supersetColors\", \"datasource\": \"69__table\", \"donut\": true, \"groupby\": [\"clinical_stage\"], \"innerRadius\": 44, \"label_line\": true, \"labels_outside\": true, \"metric\": \"count\", \"number_format\": \"SMART_NUMBER\", \"outerRadius\": 61, \"label_type\": \"key\", \"queryFields\": {\"groupby\": \"groupby\", \"metric\": \"metrics\"}, \"row_limit\": 10000, \"show_labels\": true, \"show_legend\": false, \"slice_id\": 3957, \"time_range\": \"No filter\", \"url_params\": {}, \"viz_type\": \"pie\", \"annotation_layers\": []}",
+ "query_context": null,
+ "slice_name": "Vaccine Candidates per Phase",
+ "tags": [],
+ "thumbnail_url": "/api/v1/chart/42/thumbnail/44032415608db5f50e84a855b08fe3c03edf2fe7b40aa94601e14b4efa8d0c44/",
+ "url": "/explore/?slice_id=42",
+ "uuid": "30b73c65-85e7-455f-bb24-801bb0cdc670",
+ "viz_type": "pie"
+}

@@ -1,0 +1,58 @@
+{
+ "_observacoes": {
+  "endpoint": "GET /api/v1/chart/{id} -> result",
+  "faltando": [
+   "cal_heatmap"
+  ],
+  "origem": "gráficos de exemplo carregados pelo superset-init (YAML), não salvos pela UI",
+  "superset": "6.1.0 (apachesuperset.docker.scarf.sh/apache/superset:6.1.0)"
+ },
+ "big_number_total": {
+  "chart_id": 50,
+  "dataset": "users",
+  "query_context": "nulo",
+  "slice_name": "Number of Members"
+ },
+ "box_plot": {
+  "chart_id": 87,
+  "dataset": "cleaned_sales_data",
+  "query_context": "nulo",
+  "slice_name": "Box Plot"
+ },
+ "echarts_timeseries_bar": {
+  "chart_id": 43,
+  "dataset": "covid_vaccines",
+  "query_context": "nulo",
+  "slice_name": "Vaccine Candidates per Phase"
+ },
+ "mixed_timeseries": {
+  "chart_id": 79,
+  "dataset": "cleaned_sales_data",
+  "query_context": "nulo",
+  "slice_name": "Mixed"
+ },
+ "pie": {
+  "chart_id": 42,
+  "dataset": "covid_vaccines",
+  "query_context": "nulo",
+  "slice_name": "Vaccine Candidates per Phase"
+ },
+ "pivot_table_v2": {
+  "chart_id": 180,
+  "dataset": "birth_names",
+  "query_context": "presente",
+  "slice_name": "Pivot Table v2"
+ },
+ "table": {
+  "chart_id": 183,
+  "dataset": "birth_names",
+  "query_context": "presente",
+  "slice_name": "Daily Totals"
+ },
+ "word_cloud": {
+  "chart_id": 74,
+  "dataset": "cleaned_sales_data",
+  "query_context": "nulo",
+  "slice_name": "Word Cloud"
+ }
+}

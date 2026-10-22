@@ -1,0 +1,30 @@
+{
+ "cache_timeout": null,
+ "certification_details": null,
+ "certified_by": null,
+ "changed_on_delta_humanized": "há 2 horas",
+ "dashboards": [
+  {
+   "dashboard_title": "Featured Charts",
+   "id": 7,
+   "json_metadata": "{\"chart_configuration\": {}, \"color_scheme\": \"supersetAndPresetColors\", \"color_scheme_domain\": [], \"cross_filters_enabled\": true, \"default_filters\": \"{}\", \"expanded_slices\": {}, \"global_chart_configuration\": {}, \"label_colors\": {}, \"map_label_colors\": {}, \"native_filter_configuration\": [], \"refresh_frequency\": 0, \"shared_label_colors\": [], \"timed_refresh_immune_slices\": []}"
+  }
+ ],
+ "datasource_id": 13,
+ "datasource_name_text": "public.cleaned_sales_data",
+ "datasource_type": "table",
+ "datasource_url": "/explore/?datasource_type=table&datasource_id=13",
+ "datasource_uuid": "e8623bb9-5e00-f531-506a-19607f5f8005",
+ "description": null,
+ "id": 74,
+ "is_managed_externally": false,
+ "owners": [],
+ "params": "{\"adhoc_filters\": [{\"clause\": \"WHERE\", \"comparator\": \"No filter\", \"expressionType\": \"SIMPLE\", \"operator\": \"TEMPORAL_RANGE\", \"subject\": \"order_date\"}], \"annotation_layers\": [], \"color_scheme\": \"supersetColors\", \"dashboards\": [13], \"datasource\": \"22__table\", \"extra_form_data\": {}, \"metric\": \"count\", \"rotation\": \"square\", \"row_limit\": 100, \"series\": \"customer_name\", \"size_from\": 10, \"size_to\": 70, \"viz_type\": \"word_cloud\"}",
+ "query_context": null,
+ "slice_name": "Word Cloud",
+ "tags": [],
+ "thumbnail_url": "/api/v1/chart/74/thumbnail/5daf83d29a9a52da12c70c1fa92ca44e43a191820d992ecb92e74de12d176a6b/",
+ "url": "/explore/?slice_id=74",
+ "uuid": "d3967f7d-58ea-43fe-9961-7e061affdb1c",
+ "viz_type": "word_cloud"
+}

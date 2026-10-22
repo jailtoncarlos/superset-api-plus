@@ -7,7 +7,8 @@ class ChartType(StringEnum):
     PIE = 'pie'
     TABLE = 'table'
     TIMESERIES_BAR = 'echarts_timeseries_bar'
-    PIVOT_TALBE_V2 = 'pivot_table_v2'
+    PIVOT_TABLE_V2 = 'pivot_table_v2'
+    PIVOT_TALBE_V2 = 'pivot_table_v2'  # alias do nome antigo, com erro de grafia
     BIG_NUMBER_TOTAL = 'big_number_total'
     BOX_PLOT = 'box_plot'
     CAL_HEATMAP = 'cal_heatmap'
@@ -89,6 +90,8 @@ class TimeGrain(StringEnum):
     TEN_MINUTES = "PT10M"
     FIFTEEN_MINUTES = "PT15M"
     THIRTY_MINUTES = "PT30M"
+    # HALF_HOUR e QUARTER_YEAR são constantes oficiais, mas o schema de chart data só os aceita com
+    # TIME_GRAIN_ADDONS configurado no Superset (não estão em builtin_time_grains).
     HALF_HOUR = "PT0.5H"
     HOUR = "PT1H"
     SIX_HOURS = "PT6H"
@@ -114,8 +117,13 @@ class LabelType(StringEnum):
 
 
 class FilterOperatorType(StringEnum):
+    """Operadores de adhoc filter (superset/utils/core.py FilterOperator, Superset 6.1.0).
+
+    O nome do membro vira o `operatorId` do filtro e segue o enum `Operators` do frontend
+    (src/explore/constants.ts); os nomes antigos ficam como aliases.
+    """
     EQUALS = '=='
-    NOT_EQUAL = '!='
+    NOT_EQUALS = '!='
     LESS_THAN = '<'
     LESS_THAN_OR_EQUAL = '<='
     GREATER_THAN = '>'
@@ -123,13 +131,16 @@ class FilterOperatorType(StringEnum):
     IN = 'IN'
     NOT_IN = 'NOT IN'
     LIKE = 'LIKE'
+    NOT_LIKE = 'NOT LIKE'
     ILIKE = 'ILIKE'
+    NOT_ILIKE = 'NOT ILIKE'
     IS_NOT_NULL = 'IS NOT NULL'
     IS_NULL = 'IS NULL'
     LATEST_PARTITION = 'LATEST PARTITION'
-    IS_TRUE = '=='
-    IS_FALSE = '==',
+    IS_TRUE = 'IS TRUE'
+    IS_FALSE = 'IS FALSE'
     TEMPORAL_RANGE = 'TEMPORAL_RANGE'
+    NOT_EQUAL = '!='  # alias do nome antigo
 
 
 class FilterExpressionType(StringEnum):
@@ -365,16 +376,16 @@ class Orientation(StringEnum):
 
 
 class ContributionType(StringEnum):
-    ROW = 'row',
+    ROW = 'row'
     COLUMN = 'column'
 
 
 class SortSeriesType(StringEnum):
-    NAME = 'name',
-    MAX = 'max',
-    MIN = 'min',
-    SUM = 'sum',
-    AVG = 'avg',
+    NAME = 'name'
+    MAX = 'max'
+    MIN = 'min'
+    SUM = 'sum'
+    AVG = 'avg'
 
 
 class StackStylyType(StringEnum):
@@ -415,6 +426,28 @@ class MetricsLayoutEnum(StringEnum):
 
 class OrderType(StringEnum):
     KEY_A_TO_Z = 'key_a_to_z'
-    KEY_Z_TO_A = 'key_z_to_a',
-    VALUE_A_TO_Z = 'value_a_to_z',
-    VALUE_Z_TO_A = 'value_z_to_a',
+    KEY_Z_TO_A = 'key_z_to_a'
+    VALUE_A_TO_Z = 'value_a_to_z'
+    VALUE_Z_TO_A = 'value_z_to_a'
+
+
+class PivotAggregateFunction(StringEnum):
+    """Agregadores do pivot_table_v2 (controlPanel do plugin-chart-pivot-table, Superset 6.1.0)."""
+    COUNT = 'Count'
+    COUNT_UNIQUE_VALUES = 'Count Unique Values'
+    LIST_UNIQUE_VALUES = 'List Unique Values'
+    SUM = 'Sum'
+    AVERAGE = 'Average'
+    MEDIAN = 'Median'
+    SAMPLE_VARIANCE = 'Sample Variance'
+    SAMPLE_STANDARD_DEVIATION = 'Sample Standard Deviation'
+    MINIMUM = 'Minimum'
+    MAXIMUM = 'Maximum'
+    FIRST = 'First'
+    LAST = 'Last'
+    SUM_AS_FRACTION_OF_TOTAL = 'Sum as Fraction of Total'
+    SUM_AS_FRACTION_OF_ROWS = 'Sum as Fraction of Rows'
+    SUM_AS_FRACTION_OF_COLUMNS = 'Sum as Fraction of Columns'
+    COUNT_AS_FRACTION_OF_TOTAL = 'Count as Fraction of Total'
+    COUNT_AS_FRACTION_OF_ROWS = 'Count as Fraction of Rows'
+    COUNT_AS_FRACTION_OF_COLUMNS = 'Count as Fraction of Columns'
