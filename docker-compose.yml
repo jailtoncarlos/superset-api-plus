@@ -1,23 +1,28 @@
-version: "3.7"
+# Stack de testes de integração: Superset (versão configurável) + Postgres para os dados de teste.
+# Configuração no .env (copie de .env.example). Uso: docker compose up -d --build
 services:
   superset:
-    image: "apache/superset:${SUPERSET_VERSION}"
-    container_name: superset_app
-    command: ["bash", "/app/superset_home/entrypoint.sh"]
-    tty: true
-    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/superset/Dockerfile
+      args:
+        SUPERSET_IMAGE: ${SUPERSET_IMAGE:-apachesuperset.docker.scarf.sh/apache/superset}
+        SUPERSET_VERSION: ${SUPERSET_VERSION:-6.1.0}
+    image: superset-api-plus-test-superset:${SUPERSET_VERSION:-6.1.0}
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${SUPERSET_TEST_PORT:-8089}:8088"
     environment:
-      - LOAD_EXAMPLES="${LOAD_EXAMPLES}"
-      - SUPERSET_CONFIG_PATH=/app/superset_home/test_config.py
-    volumes:
-      - ./scripts/entrypoint.sh:/app/superset_home/entrypoint.sh
-      - ./tests/superset_config.py:/app/superset_home/test_config.py
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:?defina SUPERSET_SECRET_KEY no .env}
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME:?defina SUPERSET_ADMIN_USERNAME no .env}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:?defina SUPERSET_ADMIN_PASSWORD no .env}
+      SUPERSET_LOAD_EXAMPLES: ${SUPERSET_LOAD_EXAMPLES:-0}
+    depends_on:
+      - postgres
+
   postgres:
-    image: postgres:14.1-alpine
+    image: postgres:${POSTGRES_VERSION:-16}
     hostname: pg
-    restart: unless-stopped
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-testes}

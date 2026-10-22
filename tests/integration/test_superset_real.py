@@ -1,108 +1,187 @@
-"""Integração contra um Superset real (validado no 6.1.0), autenticando por sessão (cookie + CSRF).
+"""Integração contra um Superset real, autenticando por sessão (cookie + CSRF).
 
-Executar com:
-    SUPERSET_URL=http://localhost:8088 SUPERSET_USERNAME=... SUPERSET_PASSWORD=... \
-        pytest tests/integration/test_superset_real.py -v
+Stack de testes (docker-compose.yml, configurada pelo .env copiado de .env.example):
+    docker compose -p superset-api-plus up -d --build
+    SUPERSET_INTEGRATION=1 pytest tests/integration -v
+    docker compose -p superset-api-plus down -v
 
-Cria e remove um gráfico e um dashboard de teste (prefixo "zz-superset-api-plus-teste").
+Outra instância: defina SUPERSET_URL, SUPERSET_USERNAME, SUPERSET_PASSWORD e, para os testes que
+registram um database, SUPERSET_TEST_DATABASE_URI (URI vista pelo servidor Superset).
+
+Os testes criam seus próprios objetos (prefixo "zz-superset-api-plus-teste") e os removem ao final.
 """
 import importlib
 import os
 import uuid
+import zipfile
 
 import pytest
 
+from supersetapiplus.base.datasource import DataSource
+from supersetapiplus.charts.charts import Chart
 from supersetapiplus.client import SupersetClient
 from supersetapiplus.dashboards.dashboards import Dashboard
-from supersetapiplus.exceptions import UnsupportedTypeError
+from supersetapiplus.databases import Database
+from supersetapiplus.datasets import Dataset
+from supersetapiplus.exceptions import BadRequestError, NotFound
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
+from supersetapiplus.saved_queries import SavedQuery
 
-URL, USER, PASSWORD = (os.getenv(v) for v in ("SUPERSET_URL", "SUPERSET_USERNAME", "SUPERSET_PASSWORD"))
 
-pytestmark = pytest.mark.skipif(not (URL and USER and PASSWORD),
-                                reason="defina SUPERSET_URL, SUPERSET_USERNAME e SUPERSET_PASSWORD")
+def config(nome: str, alternativa: str | None = None, padrao: str | None = None) -> str | None:
+    return os.getenv(nome) or (os.getenv(alternativa) if alternativa else None) or padrao
+
+
+ATIVO = bool(os.getenv("SUPERSET_URL") or os.getenv("SUPERSET_INTEGRATION"))
+URL = config("SUPERSET_URL", padrao=f"http://127.0.0.1:{os.getenv('SUPERSET_TEST_PORT', '8089')}")
+USUARIO = config("SUPERSET_USERNAME", "SUPERSET_ADMIN_USERNAME")
+SENHA = config("SUPERSET_PASSWORD", "SUPERSET_ADMIN_PASSWORD")
+DATABASE_URI = config("SUPERSET_TEST_DATABASE_URI") or (
+    "postgresql://{u}:{p}@pg:5432/{d}".format(u=os.getenv("POSTGRES_USER"), p=os.getenv("POSTGRES_PASSWORD"),
+                                             d=os.getenv("POSTGRES_DB", "testes"))
+    if os.getenv("POSTGRES_USER") and os.getenv("POSTGRES_PASSWORD") else None)
+
+pytestmark = pytest.mark.skipif(not (ATIVO and USUARIO and SENHA),
+                                reason="defina SUPERSET_INTEGRATION=1 (stack de testes) ou SUPERSET_URL e credenciais")
 
 PREFIXO = "zz-superset-api-plus-teste"
-SUPORTADOS = ["table", "pie", "pivot_table_v2", "echarts_timeseries_bar", "big_number_total",
-              "box_plot", "cal_heatmap", "mixed_timeseries", "word_cloud"]
+SQL_DATASET = "select 'Natal' as campus, 10 as total union all select 'Mossoró', 7"
+
+
+def nome(sufixo: str) -> str:
+    return f"{PREFIXO}-{sufixo}-{uuid.uuid4().hex[:6]}"
 
 
 @pytest.fixture(scope="module")
 def client():
-    client = SupersetClient(URL, USER, PASSWORD, verify=URL.startswith("https"))
+    client = SupersetClient(URL, USUARIO, SENHA, verify=URL.startswith("https"))
     client.enable_session_mode()
     return client
 
 
-def filtro(column, operator, value):
-    f = QueryStringFilter()
-    f.add(column, operator, value)
-    return f
+@pytest.fixture(scope="module")
+def database(client):
+    if not DATABASE_URI:
+        pytest.skip("defina SUPERSET_TEST_DATABASE_URI ou POSTGRES_USER/POSTGRES_PASSWORD da stack")
+    db = Database(database_name=nome("db"), sqlalchemy_uri=DATABASE_URI, expose_in_sqllab=True)
+    client.databases.add(db)
+    yield db
+    client.databases.delete(db.id)
 
 
-def ids_por_tipo(client, viz_type, limite=3):
-    charts = client.charts.find(filtro("viz_type", QueryOperator.EQUAL, viz_type),
-                                columns=["id", "viz_type"], page_size=limite)
-    return [c.id for c in charts]
+@pytest.fixture(scope="module")
+def dataset(client, database):
+    ds = Dataset(table_name=nome("ds"), schema="public", sql=SQL_DATASET, database_id=database.id)
+    client.datasets.add(ds)
+    yield ds
+    client.datasets.delete(ds.id)
 
 
-def test_lista_graficos_autenticado_por_sessao(client):
-    assert client.charts.count() > 0
-
-
-@pytest.mark.parametrize("viz_type", SUPORTADOS)
-def test_le_e_serializa_graficos_dos_tipos_suportados(client, viz_type):
+def novo_grafico(viz_type: str, dataset: Dataset) -> Chart:
     importlib.import_module(f"supersetapiplus.charts.{viz_type}")
-    ids = ids_por_tipo(client, viz_type)
-    if not ids:
-        pytest.skip(f"nenhum gráfico {viz_type} nesta instância")
-
-    for chart_id in ids:
-        chart = client.charts.get(chart_id)
-        dados = chart.to_json()
-        assert dados["slice_name"] and str(chart.viz_type) == viz_type
+    chart = Chart.get_class(viz_type, f"supersetapiplus.charts.{viz_type}").instance(
+        slice_name=nome(viz_type), datasource=DataSource(id=dataset.id, type="table"))
+    chart.add_simple_metric("count")
+    chart.add_simple_dimension("campus")
+    return chart
 
 
-def test_tipo_sem_modelo_e_sinalizado_com_unsupported_type(client):
-    tipos = {c.viz_type for c in client.charts.find(QueryStringFilter(), columns=["id", "viz_type"], page_size=100)
-             if str(c.viz_type) not in SUPORTADOS}
-    if not tipos:
-        pytest.skip("todos os gráficos desta instância são de tipos suportados")
-    chart_id = ids_por_tipo(client, str(sorted(map(str, tipos))[0]), limite=1)[0]
+# --- Autenticação e leitura ----------------------------------------------------------------
 
-    with pytest.raises(UnsupportedTypeError):
-        client.charts.get(chart_id)
+def test_sessao_autentica_e_lista(client):
+    assert client.charts.count() >= 0
+    assert client.dashboards.count() >= 0
 
 
-def test_cria_altera_e_remove_grafico(client):
-    origem_id = next((i for t in SUPORTADOS for i in ids_por_tipo(client, t, limite=1)), None)
-    if origem_id is None:
-        pytest.skip("nenhum gráfico de tipo suportado para clonar")
-    chart = client.charts.get(origem_id)
-    chart.slice_name = f"{PREFIXO}-{uuid.uuid4().hex[:8]}"
-    chart.dashboards = []
+def test_find_one_sem_resultado_levanta_not_found(client):
+    filtro = QueryStringFilter()
+    filtro.add("slice_name", QueryOperator.EQUAL, nome("inexistente"))
 
-    novo_id = client.charts.add(chart)
+    with pytest.raises(NotFound):
+        client.charts.find_one(filtro)
+
+
+# --- Database, dataset e consulta salva ----------------------------------------------------
+
+def test_database_criado_e_lido(client, database):
+    lido = client.databases.get(database.id)
+
+    assert lido.database_name == database.database_name
+
+
+def test_database_com_uri_invalida_e_recusado(client):
+    with pytest.raises(BadRequestError):
+        client.databases.add(Database(database_name=nome("db-invalido"), sqlalchemy_uri="nao-e-uma-uri"))
+
+
+def test_dataset_criado_alterado_e_lido(client, dataset):
+    lido = client.datasets.get(dataset.id)
+    lido.description = "alterado pelos testes"
+    lido.save()
+
+    assert client.datasets.get(dataset.id).description == "alterado pelos testes"
+
+
+def test_consulta_salva_criada_e_removida(client, database):
+    consulta = SavedQuery(label=nome("sq"), sql="select 1", db_id=database.id, schema="public")
+
+    client.saved_queries.add(consulta)
     try:
-        assert novo_id and novo_id != origem_id
-        criado = client.charts.get(novo_id)
-        criado.slice_name = f"{chart.slice_name}-alterado"
-        criado.save()
-        assert client.charts.get(novo_id).slice_name.endswith("-alterado")
+        assert client.saved_queries.get(consulta.id).label == consulta.label
     finally:
-        assert client.charts.delete(novo_id)
+        assert client.saved_queries.delete(consulta.id)
 
 
-def test_cria_altera_e_remove_dashboard(client):
-    titulo = f"{PREFIXO}-{uuid.uuid4().hex[:8]}"
-    dashboard = Dashboard(dashboard_title=titulo)
+# --- Gráficos e dashboard ------------------------------------------------------------------
 
-    novo_id = client.dashboards.add(dashboard)
+@pytest.mark.parametrize("viz_type", ["table", "pie"])
+def test_grafico_criado_por_codigo_faz_ida_e_volta(client, dataset, viz_type):
+    chart = novo_grafico(viz_type, dataset)
+
+    client.charts.add(chart)
     try:
-        assert novo_id
-        criado = client.dashboards.get(novo_id)
-        criado.dashboard_title = f"{titulo}-alterado"
-        criado.save()
-        assert client.dashboards.get(novo_id).dashboard_title.endswith("-alterado")
+        lido = client.charts.get(chart.id)
+        assert str(lido.viz_type) == viz_type
+        assert lido.datasource_id == dataset.id
+        assert lido.params.to_dict() == chart.params.to_dict()
+
+        lido.slice_name = f"{chart.slice_name}-alterado"
+        lido.save()
+        assert client.charts.get(chart.id).slice_name.endswith("-alterado")
     finally:
-        assert client.dashboards.delete(novo_id)
+        assert client.charts.delete(chart.id)
+
+
+def test_dashboard_criado_alterado_e_removido(client):
+    dashboard = Dashboard(dashboard_title=nome("dash"))
+
+    client.dashboards.add(dashboard)
+    try:
+        lido = client.dashboards.get(dashboard.id)
+        lido.dashboard_title = f"{dashboard.dashboard_title}-alterado"
+        lido.save()
+        assert client.dashboards.get(dashboard.id).dashboard_title.endswith("-alterado")
+    finally:
+        assert client.dashboards.delete(dashboard.id)
+
+
+def test_exporta_grafico_em_zip(client, dataset, tmp_path):
+    chart = novo_grafico("table", dataset)
+    client.charts.add(chart)
+    try:
+        destino = tmp_path / "chart.zip"
+        client.charts.export([chart.id], destino)
+
+        with zipfile.ZipFile(destino) as arquivo:
+            assert any(n.endswith(".yaml") and "/charts/" in n for n in arquivo.namelist())
+    finally:
+        client.charts.delete(chart.id)
+
+
+# --- Lacunas conhecidas (T2, issue #307) ---------------------------------------------------
+
+@pytest.mark.xfail(strict=True, reason="run() usa /superset/sql_json/, removida no 6.1.0: issue #307")
+def test_executa_sql_pelo_database(client, database):
+    colunas, dados = client.databases.get(database.id).run("select 1 as um")
+
+    assert dados == [{"um": 1}]

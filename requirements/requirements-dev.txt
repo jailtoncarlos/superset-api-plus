@@ -39,6 +39,5 @@ twine>=7.0.0
 
 ## pytest
 ## requests-mock
-## pytest-docker
 ## pytest-cov
 ## coveralls
