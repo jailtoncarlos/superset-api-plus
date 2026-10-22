@@ -203,11 +203,10 @@ The `conformidade-superset` pre-commit hook runs both test files whenever the li
 excerpts change. To target another Superset version:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/apache/superset/<version>/docs/static/resources/openapi.json \
-  -o /tmp/openapi.json
-python bin/scripts/extrair_openapi.py /tmp/openapi.json <version> \
-  > tests/fixtures/superset_openapi_<version>.json
+python bin/scripts/extrair_openapi.py <version> > tests/fixtures/superset_openapi_<version>.json
 python bin/scripts/extrair_enums_superset.py <version> > tests/fixtures/superset_enums_<version>.json
+# UI references (needs the test stack with SUPERSET_LOAD_EXAMPLES=1 and SUPERSET_VERSION=<version>):
+SUPERSET_URL=... SUPERSET_USERNAME=... SUPERSET_PASSWORD=... python bin/scripts/extrair_referencias_ui.py <version>
 # point SPEC/OFICIAL in tests/unit/test_conformidade_*.py to the new files, run the tests and
 # fix the reported divergences (POST_FIELDS/PUT_FIELDS, payloads, routes)
 ```

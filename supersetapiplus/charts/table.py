@@ -61,7 +61,8 @@ class TableOption(TableOptionBase):
 
     def __post_init__(self):
         super().__post_init__()
-        if not self.metrics:
+        # None vira lista vazia; MissingField (chave ausente, ex.: tabela em modo raw) é mantido.
+        if self.metrics is None:
             self.metrics: list[Metric] = []
         if self.server_page_length == 0:
             self.server_page_length = 10

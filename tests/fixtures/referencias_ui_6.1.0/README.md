@@ -1,10 +1,10 @@
 # Referências de gráficos salvos pelo Superset 6.1.0
 
-Um JSON por `viz_type` com o `result` do `GET /api/v1/chart/{id}` de gráficos dos **exemplos
-públicos do Apache Superset** (databases e datasets de exemplo: `birth_names`, `covid_vaccines`,
-`cleaned_sales_data`, `users`). Não contêm dados de nenhuma instituição. `INDICE.json` lista id,
-título, dataset e se o `query_context` (gerado pelo frontend) está presente.
+Geradas por `bin/scripts/extrair_referencias_ui.py 6.1.0` a partir da stack de testes com os
+exemplos públicos do Superset (`SUPERSET_LOAD_EXAMPLES=1`): um gráfico por `viz_type` do conjunto
+"um gráfico por tipo" dos exemplos (`Pie`, `Table`, `Bar`...). Só os campos usados na modelagem são
+gravados; ids, URLs e campos que mudam com o tempo ficam de fora. `INDICE.json` lista título,
+dataset e se há `query_context`. `cal_heatmap` não existe nos exemplos.
 
-Usados por `tests/unit/test_referencias_ui.py`: leitura e regravação sem perda e, onde há
-`query_context`, comparação do que a biblioteca gera com o que a UI gerou. `cal_heatmap` não existe
-nos exemplos.
+Para outra versão: suba a stack com `SUPERSET_VERSION=<versão>` e `SUPERSET_LOAD_EXAMPLES=1` e rode o
+script com `SUPERSET_URL`, `SUPERSET_USERNAME` e `SUPERSET_PASSWORD`.

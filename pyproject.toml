@@ -74,8 +74,9 @@ max-complexity = 10
 extend-immutable-calls = ["supersetapiplus.charts.metric.OrderBy"]
 
 [tool.ruff.lint.per-file-ignores]
-# Scripts de exemplo imprimem o resultado por design.
+# Scripts de exemplo e de linha de comando imprimem o resultado por design.
 "examples/*" = ["T201"]
+"bin/*" = ["T201"]
 
 [tool.pytest.ini_options]
 log_cli = true
@@ -90,4 +91,4 @@ filterwarnings = [
 skip = "tests/fixtures/*"
 # Palavras em português (docstrings, logs e mensagens) que o dicionário inglês do codespell
 # confunde com erros de grafia.
-ignore-words-list = "classe,itens,copie,repete,controles,oficial,conter,gere,ser,erro,erros,limite,nome,nomes,cliente,atual,argumentos,construtor,auxiliar,ignora,zar,validade,utiliza,pares,inicial,essencial,controle,comandos,autor"
+ignore-words-list = "classe,itens,copie,repete,controles,momento,comando,oficial,conter,gere,ser,erro,erros,limite,nome,nomes,cliente,atual,argumentos,construtor,auxiliar,ignora,zar,validade,utiliza,pares,inicial,essencial,controle,comandos,autor"

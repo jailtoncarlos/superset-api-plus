@@ -140,9 +140,14 @@ class MetricHelper:
 class MetricsListMixin:
     metrics: list[Metric] = object_field(cls=AdhocMetric, default_factory=list)
 
+    def _metrics_editavel(self) -> list:
+        if not isinstance(self.metrics, list):
+            self.metrics = []
+        return self.metrics
+
     def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         MetricHelper.check_metric(metric)
-        self.metrics.append(metric)
+        self._metrics_editavel().append(metric)
 
     def _add_custom_metric(self,
                            label: str,
@@ -151,7 +156,7 @@ class MetricsListMixin:
                            sql_expression: str = None,
                            aggregate: MetricType = None):
         metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
-        self.metrics.append(metric)
+        self._metrics_editavel().append(metric)
 
 
 @dataclass
