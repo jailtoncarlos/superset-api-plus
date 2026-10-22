@@ -1,0 +1,13 @@
+# Normaliza todos os arquivos de texto para LF no repositório, independentemente do
+# editor ou sistema operacional (mesmo padrão do SUAP).
+* text=auto eol=lf
+
+*.py text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.toml text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
