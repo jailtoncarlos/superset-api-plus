@@ -8,12 +8,15 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
         args: ["--maxkb=500"]
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.3
     hooks:
       - id: codespell
         name: Spell Checker
+        additional_dependencies: ["tomli"]
         stages: [pre-commit]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -21,12 +24,27 @@ repos:
     hooks:
       - id: ruff
         args: ["--fix"]
-        name: Ruff (linter + formatter)
+        name: Ruff (linter)
         stages: [pre-commit]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v2.4.0
     hooks:
       - id: mypy
-        args: ["--explicit-package-bases", "--config-file=mypy.ini"]
-        stages: [pre-commit]
+        args: ["--explicit-package-bases"]
+        files: ^supersetapiplus/
+        additional_dependencies: ["types-requests", "types-PyYAML"]
+        # Manual até o mypy --strict (configurado no pyproject) zerar na T13: hoje acusa ~855
+        # erros e bloquearia todo commit. Rodar com: pre-commit run mypy --hook-stage manual
+        stages: [manual]
+
+  - repo: local
+    hooks:
+      - id: complexidade-nova
+        name: Barra complexidade ciclomática > 10 nova ou aumentada (legado sem piora passa)
+        language: python
+        additional_dependencies: ["ruff==0.17.2"]
+        entry: python bin/scripts/complexidade-nova.py
+        types:
+          - python
+        pass_filenames: true

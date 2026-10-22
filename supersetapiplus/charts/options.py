@@ -128,6 +128,3 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
                                                 clause=clause,
                                                 sqlExpression=sql_expression)
         self.adhoc_filters.append(adhoc_filter_clause)
-
-
-

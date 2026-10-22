@@ -270,4 +270,3 @@ class ChartItemPosition(RelocateMixin, ItemPosition):
     @property
     def height(self):
         return self.meta.height
-

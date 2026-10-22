@@ -133,6 +133,27 @@ pip install .[test]
 pip install .[dev,test]
 ```
 
+### Pre-commit hooks
+
+Install the hooks once per clone:
+
+```bash
+pre-commit install
+```
+
+On every commit they run, on the staged files:
+
+- **ruff** (lint, configured in `pyproject.toml`) and **codespell**;
+- **line endings**: files are normalized to LF (also enforced by `.gitattributes`);
+- **complexity ratchet** (`bin/scripts/complexidade-nova.py`, same hook used by SUAP): a commit is
+  rejected when it adds a function with cyclomatic complexity above 10 (ruff C901) or makes an
+  existing one more complex. Legacy functions already above the limit may be edited as long as
+  their complexity does not grow. List them with
+  `ruff check --select C901 --config 'lint.mccabe.max-complexity=10' supersetapiplus`.
+
+`mypy` runs only on demand (`pre-commit run mypy --hook-stage manual`) until the codebase passes
+`mypy --strict`.
+
 ---
 
 ## License

@@ -949,7 +949,7 @@ class ApiModelFactories(ABC):
 
         return obj
 
-    def find(self, filter: QueryStringFilter, columns: list[str] = [], page_size: int = 100, page: int = 0):
+    def find(self, filter: QueryStringFilter, columns: list[str] | None = None, page_size: int = 100, page: int = 0):
         """
         Busca objetos com base em filtros e paginação.
 
@@ -986,7 +986,7 @@ class ApiModelFactories(ABC):
     def find_one(
             self,
             filter: QueryStringFilter,
-            columns: list[str] = [],
+            columns: list[str] | None = None,
             full: bool = False,
     ):
         """
@@ -1108,4 +1108,3 @@ class ApiModelFactories(ABC):
                 headers={"Accept": "application/json"},
             )
         return response.json().get("message") == "OK"
-

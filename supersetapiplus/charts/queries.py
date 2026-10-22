@@ -149,5 +149,3 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
 
     def _add_extra_having(self, sql: str):
         raise NotImplementedError
-
-

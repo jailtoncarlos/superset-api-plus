@@ -245,7 +245,8 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             raise QueryLimitReached("Display limit reached")
         return result["columns"], result["data"]
 
-    def find(self, url: str, filter: QueryStringFilter, columns: list[str] = [], page_size: int = 100, page: int = 0):
+    def find(self, url: str, filter: QueryStringFilter, columns: list[str] | None = None, page_size: int = 100,
+             page: int = 0):
         """
         Performs a paginated API search with optional filters.
 
@@ -259,7 +260,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         Returns:
             dict: JSON response.
         """
-        query = {"page_size": page_size, "page": page, "filters": filter.filters, "columns": columns}
+        query = {"page_size": page_size, "page": page, "filters": filter.filters, "columns": columns or []}
         params = {"q": json.dumps(query)}
         return self.get(url, params=params)
 

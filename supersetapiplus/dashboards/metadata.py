@@ -60,4 +60,3 @@ class Metadata(SerializableModel):
         self.chart_configuration[str(chart.id)] = chart_configuration
 
         self.global_chart_configuration.chartsInScope.append(chart.id)
-

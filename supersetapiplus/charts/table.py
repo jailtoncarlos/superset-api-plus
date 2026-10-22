@@ -165,4 +165,4 @@ class TableChart(Chart):
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:
-        return TableOption
+        return TableOption
