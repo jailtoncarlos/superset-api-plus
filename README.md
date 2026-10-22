@@ -154,6 +154,30 @@ On every commit they run, on the staged files:
 `mypy` runs only on demand (`pre-commit run mypy --hook-stage manual`) until the codebase passes
 `mypy --strict`.
 
+### Conformance with the Superset OpenAPI specification
+
+`tests/unit/test_conformidade_openapi.py` checks the library against an excerpt of the official
+Superset OpenAPI specification (`tests/fixtures/superset_openapi_<version>.json`):
+
+- POST/PUT payloads of charts, dashboards, datasets, databases and saved queries only carry
+  fields accepted by `{Resource}RestApi.post/.put`, include the required ones and match the
+  declared types;
+- `POST_FIELDS`/`PUT_FIELDS` declared in each model are exactly the specification fields
+  (the `/_info` endpoint is not a reliable source: in 6.1.0 charts report only `slice_name`);
+- every route the library calls exists with the method used.
+
+The `conformidade-openapi` pre-commit hook runs these tests whenever the library or the excerpt
+changes. To target another Superset version:
+
+```bash
+curl -sL https://raw.githubusercontent.com/apache/superset/<version>/docs/static/resources/openapi.json \
+  -o /tmp/openapi.json
+python bin/scripts/extrair_openapi.py /tmp/openapi.json <version> \
+  > tests/fixtures/superset_openapi_<version>.json
+# point SPEC in tests/unit/test_conformidade_openapi.py to the new file, run the tests and
+# fix the reported divergences (POST_FIELDS/PUT_FIELDS, payloads, routes)
+```
+
 ---
 
 ## License

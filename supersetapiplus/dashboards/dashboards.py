@@ -23,6 +23,16 @@ def defult_metadata_position():
 class Dashboard(SerializableModel):
     JSON_FIELDS = ['json_metadata', 'position_json']
     PRESERVE_EXTRA_FIELDS = False
+    # Campos aceitos pela API (OpenAPI 6.1.0: DashboardRestApi.post / DashboardRestApi.put).
+    POST_FIELDS = (
+        "certification_details", "certified_by", "css", "dashboard_title", "external_url",
+        "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
+    )
+    PUT_FIELDS = (
+        "certification_details", "certified_by", "css", "dashboard_title", "external_url",
+        "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
+        "tags",
+    )
 
     dashboard_title: str = ''
 

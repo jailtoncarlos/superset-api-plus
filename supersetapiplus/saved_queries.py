@@ -9,6 +9,13 @@ from supersetapiplus.base.fields import default_string
 class SavedQuery(SerializableModel):
     JSON_FIELDS = []
     PRESERVE_EXTRA_FIELDS = False
+    # Campos aceitos pela API (OpenAPI 6.1.0: SavedQueryRestApi.post / SavedQueryRestApi.put).
+    POST_FIELDS = (
+        "catalog", "db_id", "description", "extra_json", "label", "schema", "sql", "template_parameters",
+    )
+    PUT_FIELDS = (
+        "catalog", "db_id", "description", "extra_json", "label", "schema", "sql", "template_parameters",
+    )
 
     label: str
     id: int | None = field(default=None)

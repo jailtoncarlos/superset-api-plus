@@ -28,6 +28,17 @@ logger = logging.getLogger(__name__)
 class Chart(SerializableModel):
     JSON_FIELDS = ['params', 'query_context']
     PRESERVE_EXTRA_FIELDS = False
+    # Campos aceitos pela API (OpenAPI 6.1.0: ChartRestApi.post / ChartRestApi.put).
+    POST_FIELDS = (
+        "cache_timeout", "certification_details", "certified_by", "dashboards", "datasource_id",
+        "datasource_name", "datasource_type", "description", "external_url", "is_managed_externally",
+        "owners", "params", "query_context", "query_context_generation", "slice_name", "viz_type",
+    )
+    PUT_FIELDS = (
+        "cache_timeout", "certification_details", "certified_by", "dashboards", "datasource_id",
+        "datasource_type", "description", "external_url", "is_managed_externally", "owners", "params",
+        "query_context", "query_context_generation", "slice_name", "tags", "viz_type",
+    )
     # Campos que o Superset legitimamente mantém diferentes entre params e
     # query_context.form_data: identidade (slice_id antigo após import/export de dashboards)
     # e parâmetros de requisição que o frontend injeta apenas no form_data.
@@ -227,8 +238,12 @@ class Chart(SerializableModel):
         if data.get('query_context') in (None, '', 'null'):
             obj.query_context = None
 
-        # set default datasource
-        if obj.query_context:
+        # Datasource: o GET /chart/{id} traz datasource_id/datasource_type no topo, que prevalecem;
+        # params.datasource pode estar desatualizado (ex.: charts de exemplo importados).
+        if data.get('datasource_id'):
+            obj.datasource_id = int(data['datasource_id'])
+            obj.datasource_type = DatasourceType(data.get('datasource_type') or 'table')
+        elif obj.query_context:
             datasource = obj.query_context.datasource
             if datasource and datasource.id:
                 obj.datasource_id = datasource.id

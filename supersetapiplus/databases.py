@@ -11,6 +11,19 @@ class Database(SerializableModel):
         "extra",
     ]
     PRESERVE_EXTRA_FIELDS = False
+    # Campos aceitos pela API (OpenAPI 6.1.0: DatabaseRestApi.post / DatabaseRestApi.put).
+    POST_FIELDS = (
+        "allow_ctas", "allow_cvas", "allow_dml", "allow_file_upload", "allow_run_async", "cache_timeout",
+        "configuration_method", "database_name", "driver", "engine", "expose_in_sqllab", "external_url",
+        "extra", "force_ctas_schema", "impersonate_user", "is_managed_externally", "masked_encrypted_extra",
+        "parameters", "server_cert", "sqlalchemy_uri", "ssh_tunnel", "uuid",
+    )
+    PUT_FIELDS = (
+        "allow_ctas", "allow_cvas", "allow_dml", "allow_file_upload", "allow_run_async", "cache_timeout",
+        "configuration_method", "database_name", "driver", "engine", "expose_in_sqllab", "external_url",
+        "extra", "force_ctas_schema", "impersonate_user", "is_managed_externally", "masked_encrypted_extra",
+        "parameters", "server_cert", "sqlalchemy_uri", "ssh_tunnel", "uuid",
+    )
 
     database_name: str
     id: int | None = field(default=None)
@@ -50,7 +63,7 @@ class Databases(ApiModelFactories):
     @property
     def test_connection_url(self):
         """Base url for these objects."""
-        return self.client.join_urls(self.client.base_url, self.endpoint, "test_connection")
+        return self.client.join_urls(self.client.base_url, self.endpoint, "test_connection/")
 
     def test_connection(self, obj):
         """Test connection to a database"""

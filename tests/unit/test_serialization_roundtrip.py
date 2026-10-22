@@ -199,3 +199,31 @@ def test_comparacao_entre_classes_distintas_nao_falha_nem_altera_objetos():
     assert (chart.params != object()) is True
     assert chart.params == chart.params
     assert chart.params.extra_fields == extra_before
+
+
+def test_query_context_nulo_e_gravado_como_null_e_nao_como_texto():
+    chart = load_chart("word_cloud", word_cloud_params(), query_context=None)
+
+    assert chart.to_json()["query_context"] is None
+
+
+def test_query_context_gravado_como_texto_null_e_lido_como_nulo():
+    importlib.import_module("supersetapiplus.charts.pie")
+    chart_class = Chart.get_class("pie", "supersetapiplus.charts.pie")
+    params = {"datasource": DATASOURCE, "viz_type": "pie", "groupby": ["campus"], "metric": "count"}
+
+    chart = chart_class.from_json({"id": 3, "slice_name": "p", "viz_type": "pie",
+                                   "params": json.dumps(params), "query_context": "null"})
+
+    assert chart.query_context is None
+
+
+def test_datasource_do_topo_da_resposta_prevalece_sobre_params():
+    params = dict(word_cloud_params(), datasource="42__table")
+    importlib.import_module("supersetapiplus.charts.word_cloud")
+    chart_class = Chart.get_class("word_cloud", "supersetapiplus.charts.word_cloud")
+
+    chart = chart_class.from_json({"id": 3, "slice_name": "w", "viz_type": "word_cloud", "params": json.dumps(params),
+                                   "query_context": None, "datasource_id": 10, "datasource_type": "table"})
+
+    assert chart.datasource_id == 10

@@ -92,6 +92,13 @@ class SerializableModel(ParseMixin, ABC):
     # Modelos de endpoints REST com schema estrito (chart, dashboard, dataset...) desativam.
     PRESERVE_EXTRA_FIELDS = True
 
+    # Campos aceitos pelo endpoint REST na criação (POST) e na alteração (PUT), conforme os schemas
+    # `{Recurso}RestApi.post/.put` da especificação OpenAPI do Superset (verificado em
+    # tests/unit/test_conformidade_openapi.py). None = sem restrição. O /_info não serve para isso:
+    # no 6.1.0 o ChartRestApi declara add/edit_columns = ['slice_name'].
+    POST_FIELDS: tuple[str, ...] | None = None
+    PUT_FIELDS: tuple[str, ...] | None = None
+
     def validate(self):
         ...
 
@@ -430,7 +437,7 @@ class SerializableModel(ParseMixin, ABC):
         data_value = None
 
         try:
-            logger.debug(f'Instancia {cls.__name__} com dados: {data}')
+            logger.debug('Instancia %s com dados: %s', cls.__name__, mask_data(data))
             obj = cls.instantiate_with_missing_check(**data)
 
             for field_name in cls.JSON_FIELDS:
@@ -439,14 +446,15 @@ class SerializableModel(ParseMixin, ABC):
                 if isinstance(data_value, str):
                     field = cls.get_field(field_name)
                     serializable_object_class = cls._subclass_object(field)
-                    if serializable_object_class:
-                        value = serializable_object_class.from_json(json.loads(data[field_name]))
-                    else:
-                        value = json.loads(data[field_name])
+                    value = json.loads(data[field_name])
+                    # 'null' gravado como texto (ex.: query_context de chart importado) vira None,
+                    # sem passar pelo from_json da subclasse.
+                    if serializable_object_class and value is not None:
+                        value = serializable_object_class.from_json(value)
                     setattr(obj, field_name, value)
 
             for field_name, data_value in data.items():
-                logger.debug(f'field_name: {field_name}; data_value type: {type(data_value)}; data_value: {data_value}')
+                logger.debug('field_name: %s; data_value: %s', field_name, mask_data({field_name: data_value}))
                 if field_name in cls.JSON_FIELDS:
                     continue
 
@@ -648,7 +656,8 @@ class SerializableModel(ParseMixin, ABC):
 
             if not self.__class__._is_exclude(value, field_name, convert_to_json):
                 if convert_to_json and field_name in self.JSON_FIELDS:
-                    data[field_name] = json.dumps(value, cls=ObjectDecoder)
+                    # Nulo é enviado como null, não como o texto "null" (que o Superset gravaria literalmente).
+                    data[field_name] = None if value is None else json.dumps(value, cls=ObjectDecoder)
                 else:
                     data[field_name] = value
 
@@ -753,7 +762,7 @@ class SerializableModel(ParseMixin, ABC):
         # Envia os campos do modelo. O /_info não serve para filtrar: no Superset 6.1.0 o
         # ChartRestApi declara edit_columns = ['slice_name'], mas valida o corpo com o
         # ChartPutSchema, que exige/aceita datasource_id, params, query_context etc.
-        payload = self.to_json()
+        payload = self.to_json(columns=list(self.PUT_FIELDS or []))
         payload.pop("id", None)
 
         logger.debug('payload: %s', mask_data(payload))
@@ -1036,7 +1045,7 @@ class ApiModelFactories(ABC):
 
         # Campos do modelo, não os add_columns do /_info (ver save()): no 6.1.0 o _info do chart
         # lista só slice_name e o POST exige datasource_id/datasource_type (ChartPostSchema).
-        payload = obj.to_json()
+        payload = obj.to_json(columns=list(obj.POST_FIELDS or []))
         payload.pop("id", None)
 
         logger.debug('payload: %s', mask_data(payload))

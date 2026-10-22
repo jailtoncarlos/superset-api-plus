@@ -10,6 +10,17 @@ from supersetapiplus.exceptions import NotFound
 class Dataset(SerializableModel):
     JSON_FIELDS = []
     PRESERVE_EXTRA_FIELDS = False
+    # Campos aceitos pela API (OpenAPI 6.1.0: DatasetRestApi.post / DatasetRestApi.put).
+    POST_FIELDS = (
+        "always_filter_main_dttm", "catalog", "database", "external_url", "is_managed_externally",
+        "normalize_columns", "owners", "schema", "sql", "table_name",
+    )
+    PUT_FIELDS = (
+        "always_filter_main_dttm", "cache_timeout", "catalog", "columns", "database_id", "default_endpoint",
+        "description", "external_url", "extra", "fetch_values_predicate", "filter_select_enabled", "folders",
+        "is_managed_externally", "is_sqllab_view", "main_dttm_col", "metrics", "normalize_columns", "offset",
+        "owners", "schema", "sql", "table_name", "template_params",
+    )
 
     id: int | None = field(default=None)
     table_name: str = ""
@@ -23,19 +34,19 @@ class Dataset(SerializableModel):
 
     @classmethod
     def from_json(cls, data: dict):
-        res = super().from_json(data)
+        # Lido antes do super(): from_json remove de `data` as chaves que não são campos do modelo.
         database = data.get("database")
-        if database:
-            res.database_id = database.get("id")
+        res = super().from_json(data)
+        if isinstance(database, dict) and database.get("id"):
+            res.database_id = database["id"]
         return res
 
     def to_json(self, columns: list = None) -> dict:
         o = super().to_json(columns)
         o.pop("columns", None)
-        if self.id:
-            o["database_id"] = self.database_id
-        else:
-            o["database"] = self.database_id
+        if self.database_id:
+            # PUT usa database_id; POST usa database (DatasetRestApi.put / .post).
+            o["database_id" if self.id else "database"] = self.database_id
         return o
 
     def run(self, query_limit=None):
