@@ -796,6 +796,24 @@ class SerializableModel(ParseMixin, ABC):
         return jdict
 
 
+class UnsupportedObject:
+    """Item de listagem cujo tipo não tem modelo na biblioteca (ex.: viz_type não suportado).
+
+    Devolvido por `find()` para que um único item desconhecido não quebre a listagem inteira.
+    Expõe os campos recebidos como atributos (`id`, `slice_name`, `viz_type`...) e o dict original
+    em `data`. É somente leitura: não tem `save()`; `get(id)` do mesmo item levanta
+    `UnsupportedTypeError`.
+    """
+
+    def __init__(self, data: dict, factory=None):
+        self.data = dict(data)
+        self.__dict__.update(self.data)
+        self._factory = factory
+
+    def __repr__(self):
+        return f"UnsupportedObject(id={self.data.get('id')!r}, viz_type={self.data.get('viz_type')!r})"
+
+
 class ApiModelFactories(ABC):
     """
     Classe base abstrata para construção de fábricas de objetos que interagem com a API do Superset.
@@ -984,7 +1002,12 @@ class ApiModelFactories(ABC):
 
         objects = []
         for data in data_result.get("result"):
-            o = self.get_base_object(data).from_json(data)
+            try:
+                base_class = self.get_base_object(data)
+            except UnsupportedTypeError:
+                objects.append(UnsupportedObject(data, factory=self))
+                continue
+            o = base_class.from_json(data)
             o._request_response = response
             o._factory = self
             objects.append(o)

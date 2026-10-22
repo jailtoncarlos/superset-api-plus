@@ -244,3 +244,18 @@ def test_add_de_dashboard_envia_so_campos_aceitos_pelo_schema(client, mock):
     assert payload["dashboard_title"] == "Painel"
     assert set(payload) <= DASHBOARD_ACEITOS
     assert isinstance(payload["json_metadata"], str) and isinstance(payload["position_json"], str)
+
+
+def test_find_nao_quebra_a_listagem_por_item_de_tipo_sem_modelo(client, mock):
+    from supersetapiplus.base.base import UnsupportedObject
+
+    mock.get(f"{API}/chart/", json={"count": 2, "result": [
+        {"id": 1, "slice_name": "a", "viz_type": "table"},
+        {"id": 2, "slice_name": "b", "viz_type": "echarts_timeseries_line"},
+    ]})
+
+    charts = client.charts.find(QueryStringFilter(), columns=["id", "slice_name", "viz_type"])
+
+    assert [c.id for c in charts] == [1, 2]
+    assert type(charts[0]).__name__ == "TableChart"
+    assert isinstance(charts[1], UnsupportedObject) and charts[1].viz_type == "echarts_timeseries_line"
