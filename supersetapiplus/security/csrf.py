@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 @runtime_checkable
 class SupportsCSRFToken(Protocol):
     base_url: str  # Assuming base_url is also required
+    host: str
     _csrf_token: str
 
     def _init_session(self):
@@ -39,12 +40,13 @@ class CSRFSupportMixin:
         return self._csrf_token
 
     def enable_csrf(self: SupportsCSRFToken,
-                    session: requests.Session, access_token: str, verify: bool = True):
+                    session: requests.Session, access_token: str | None = None, verify: bool = True):
         """
         Adiciona cabeçalhos CSRF e Referer à sessão autenticada.
 
         Args:
-            session (requests.Session): Sessão autenticada com headers JWT.
+            session (requests.Session): Sessão autenticada (JWT ou cookie de login por formulário).
+            access_token (str, opcional): JWT; ausente no modo sessão, em que o cookie autentica.
         """
         csrf_url = self.join_urls(self.base_url, "security/csrf_token/")
         logger.debug(f"Fetching CSRF token in: {csrf_url}")
@@ -53,7 +55,7 @@ class CSRFSupportMixin:
         csrf_resp = RequestHandler.request_with_retry(
             url=csrf_url,
             method="GET",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers={"Authorization": f"Bearer {access_token}"} if access_token else {},
             verify=verify,
             session=session
         )
@@ -65,6 +67,8 @@ class CSRFSupportMixin:
             # session.cookies.set("csrf_access_token", self._csrf_token, domain=self.get_domain())
 
             session.headers["X-CSRFToken"] = self._csrf_token
+            # Flask-WTF compara o Referer com o host em requisições HTTPS.
+            session.headers["Referer"] = f"{self.host.rstrip('/')}/"
             logger.debug("CSRF token set successfully.")
         else:
             logger.warning("CSRF token not found in response.")

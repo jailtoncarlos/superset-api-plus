@@ -23,11 +23,16 @@ HOST = "https://superset.exemplo"
 API = f"{HOST}/api/v1"
 TOKEN = "jwt-de-teste"
 
-CHART_INFO = {
-    "add_columns": [{"name": n} for n in ("slice_name", "viz_type", "params", "query_context",
-                                          "datasource_id", "datasource_type", "dashboards")],
-    "edit_columns": [{"name": n} for n in ("slice_name", "params", "query_context", "dashboards")],
-}
+# /_info real do Superset 6.1.0 para charts: o ChartRestApi declara add/edit_columns = ["slice_name"],
+# mas valida o corpo com ChartPostSchema/ChartPutSchema. Por isso o /_info não serve de filtro.
+CHART_INFO = {"add_columns": [{"name": "slice_name"}], "edit_columns": [{"name": "slice_name"}]}
+
+# Campos aceitos pelos schemas do Superset 6.1.0 (OpenAPI: ChartRestApi.post / ChartRestApi.put).
+CHART_POST_ACEITOS = {"cache_timeout", "certification_details", "certified_by", "dashboards", "datasource_id",
+                      "datasource_name", "datasource_type", "description", "external_url", "is_managed_externally",
+                      "owners", "params", "query_context", "query_context_generation", "slice_name", "viz_type"}
+CHART_POST_OBRIGATORIOS = {"datasource_id", "datasource_type", "slice_name"}
+CHART_PUT_ACEITOS = (CHART_POST_ACEITOS - {"datasource_name"}) | {"tags"}
 
 
 def chart_payload(chart_id: int, viz_type: str = "table", slice_name: str = "Respondentes por campus") -> dict:
@@ -98,6 +103,8 @@ def test_modo_sessao_faz_login_por_formulario_com_csrf_na_mesma_sessao(mock, mon
 
     client.enable_session_mode()
     client.charts.count()
+    mock.delete(f"{API}/chart/9", json={"message": "OK"})
+    client.charts.delete(9)
 
     get_login, post_login = [r for r in mock.request_history if r.path == "/login/"]
     assert parse_qs(post_login.text) == {"username": ["robo"], "password": ["senha"], "csrf_token": ["csrf-form"]}
@@ -105,6 +112,10 @@ def test_modo_sessao_faz_login_por_formulario_com_csrf_na_mesma_sessao(mock, mon
     assert "session=autenticado" in mock.last_request.headers["Cookie"]
     assert "Authorization" not in mock.last_request.headers
     assert not any(r.path.endswith("/security/login") for r in mock.request_history)
+    # Escrita com cookie exige o token CSRF ("The CSRF token is missing." no Superset 6.1.0).
+    assert mock.last_request.method == "DELETE"
+    assert mock.last_request.headers["X-CSRFToken"] == "csrf-api"
+    assert mock.last_request.headers["Referer"] == f"{HOST}/"
 
 
 # --- Busca e leitura -----------------------------------------------------------------------
@@ -180,7 +191,7 @@ def test_get_class_do_chart_resolve_pelo_viz_type():
 
 # --- Gravação ------------------------------------------------------------------------------
 
-def test_add_envia_so_as_colunas_aceitas_pelo_info_e_guarda_o_id(client, mock):
+def test_add_envia_campos_aceitos_e_obrigatorios_do_schema_e_guarda_o_id(client, mock):
     mock.get(f"{API}/chart/9", json={"id": 9, "result": chart_payload(9)})
     mock.post(f"{API}/chart/", json={"id": 99, "result": {}})
     chart = client.charts.get(9)
@@ -190,11 +201,13 @@ def test_add_envia_so_as_colunas_aceitas_pelo_info_e_guarda_o_id(client, mock):
     payload = mock.last_request.json()
     assert novo_id == 99 and chart.id == 99
     assert "id" not in payload
-    assert set(payload) <= {c["name"] for c in CHART_INFO["add_columns"]}
+    assert set(payload) <= CHART_POST_ACEITOS
+    assert CHART_POST_OBRIGATORIOS <= set(payload)
+    assert payload["datasource_id"] == 1 and payload["datasource_type"] == "table"
     assert json.loads(payload["params"])["groupby"] == ["campus"]
 
 
-def test_save_faz_put_no_proprio_id_com_as_colunas_editaveis(client, mock):
+def test_save_faz_put_no_proprio_id_com_campos_aceitos_pelo_schema(client, mock):
     mock.get(f"{API}/chart/9", json={"id": 9, "result": chart_payload(9)})
     mock.put(f"{API}/chart/9", json={"id": 9, "result": {}})
     chart = client.charts.get(9)
@@ -205,10 +218,29 @@ def test_save_faz_put_no_proprio_id_com_as_colunas_editaveis(client, mock):
     assert mock.last_request.method == "PUT" and mock.last_request.path == "/api/v1/chart/9"
     payload = mock.last_request.json()
     assert payload["slice_name"] == "Novo título"
-    assert set(payload) <= {c["name"] for c in CHART_INFO["edit_columns"]}
+    assert set(payload) <= CHART_PUT_ACEITOS
+    assert json.loads(payload["params"])["groupby"] == ["campus"]
 
 
 def test_delete_devolve_true_quando_o_superset_confirma(client, mock):
     mock.delete(f"{API}/chart/9", json={"message": "OK"})
 
     assert client.charts.delete(9) is True
+
+
+DASHBOARD_ACEITOS = {"certification_details", "certified_by", "css", "dashboard_title", "external_url",
+                     "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug"}
+
+
+def test_add_de_dashboard_envia_so_campos_aceitos_pelo_schema(client, mock):
+    from supersetapiplus.dashboards.dashboards import Dashboard
+
+    mock.get(f"{API}/dashboard/_info", json={"add_columns": [{"name": "dashboard_title"}]})
+    mock.post(f"{API}/dashboard/", json={"id": 5, "result": {}})
+
+    assert client.dashboards.add(Dashboard(dashboard_title="Painel")) == 5
+
+    payload = mock.last_request.json()
+    assert payload["dashboard_title"] == "Painel"
+    assert set(payload) <= DASHBOARD_ACEITOS
+    assert isinstance(payload["json_metadata"], str) and isinstance(payload["position_json"], str)

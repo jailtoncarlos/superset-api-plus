@@ -690,9 +690,8 @@ class SerializableModel(ParseMixin, ABC):
         # Primeiro converte o objeto inteiro em um dicionário comum (com tratamento recursivo)
         data = self.to_dict(columns, convert_to_json=True)
 
-        # `columns` (ex.: add_columns/edit_columns do /_info) restringe os campos de primeiro nível;
-        # to_dict une essa lista aos campos do modelo e, sem este filtro, add() e save() enviavam
-        # todos os campos do modelo, aceitos ou não pelo endpoint.
+        # `columns` restringe os campos de primeiro nível (to_dict une a lista aos campos do modelo
+        # para serializar objetos aninhados, então sem este filtro o argumento não tinha efeito).
         if columns:
             data = {k: v for k, v in data.items() if k in columns}
 
@@ -751,7 +750,10 @@ class SerializableModel(ParseMixin, ABC):
         Converte os dados atuais da instância em JSON e envia via requisição PUT
         para a API. Loga o payload e a resposta da operação.
         """
-        payload = self.to_json(columns=self._factory.edit_columns)
+        # Envia os campos do modelo. O /_info não serve para filtrar: no Superset 6.1.0 o
+        # ChartRestApi declara edit_columns = ['slice_name'], mas valida o corpo com o
+        # ChartPutSchema, que exige/aceita datasource_id, params, query_context etc.
+        payload = self.to_json()
         payload.pop("id", None)
 
         logger.debug('payload: %s', mask_data(payload))
@@ -1032,7 +1034,9 @@ class ApiModelFactories(ABC):
             int: ID do objeto criado.
         """
 
-        payload = obj.to_json(columns=self.add_columns)
+        # Campos do modelo, não os add_columns do /_info (ver save()): no 6.1.0 o _info do chart
+        # lista só slice_name e o POST exige datasource_id/datasource_type (ChartPostSchema).
+        payload = obj.to_json()
         payload.pop("id", None)
 
         logger.debug('payload: %s', mask_data(payload))

@@ -131,6 +131,9 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         """Inicializa uma sessão autenticada baseada em cookie (não JWT)."""
         session = requests.Session()
         self.enable_session_auth(session, self.username, self._password)
+        # POST/PUT/DELETE com cookie exigem o token CSRF ("The CSRF token is missing." no 6.1.0).
+        if self.use_csrf:
+            self.enable_csrf(session, verify=self._verify)
         self._session_cookie = session
 
         self._session = session
