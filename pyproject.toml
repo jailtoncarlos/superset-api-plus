@@ -86,6 +86,8 @@ filterwarnings = [
 ]
 
 [tool.codespell]
+# Recortes gerados a partir do Superset (dados, não texto do projeto).
+skip = "tests/fixtures/*"
 # Palavras em português (docstrings, logs e mensagens) que o dicionário inglês do codespell
 # confunde com erros de grafia.
-ignore-words-list = "classe,itens,copie,repete,oficial,conter,gere,ser,erro,erros,limite,nome,nomes,cliente,atual,argumentos,construtor,auxiliar,ignora,zar,validade,utiliza,pares,inicial,essencial,controle,comandos,autor"
+ignore-words-list = "classe,itens,copie,repete,controles,oficial,conter,gere,ser,erro,erros,limite,nome,nomes,cliente,atual,argumentos,construtor,auxiliar,ignora,zar,validade,utiliza,pares,inicial,essencial,controle,comandos,autor"

@@ -17,13 +17,6 @@ from supersetapiplus.dashboards.metadata import GlobalChartconfigurationScope, M
 REFERENCIAS = Path(__file__).parent.parent / "fixtures" / "referencias_ui_6.1.0"
 TIPOS = sorted(p.stem for p in REFERENCIAS.glob("*.json") if p.stem != "INDICE")
 
-# superset/utils/core.py FilterOperator (6.1.0) e src/explore/constants.ts Operators (frontend).
-FILTER_OPERATOR_OFICIAL = {"==", "!=", ">", "<", ">=", "<=", "LIKE", "NOT LIKE", "ILIKE", "NOT ILIKE", "IS NULL",
-                           "IS NOT NULL", "IN", "NOT IN", "IS TRUE", "IS FALSE", "TEMPORAL_RANGE"}
-OPERATORS_FRONTEND = {"EQUALS", "NOT_EQUALS", "LESS_THAN", "LESS_THAN_OR_EQUAL", "GREATER_THAN",
-                      "GREATER_THAN_OR_EQUAL", "IN", "NOT_IN", "LIKE", "ILIKE", "IS_NOT_NULL", "IS_NULL",
-                      "LATEST_PARTITION", "IS_TRUE", "IS_FALSE", "TEMPORAL_RANGE"}
-
 
 def referencia(viz_type: str) -> dict:
     return json.loads((REFERENCIAS / f"{viz_type}.json").read_text())
@@ -53,15 +46,6 @@ def test_nenhum_valor_de_enum_e_tupla():
               if isinstance(c, type) and issubclass(c, enum.Enum) for m in c if isinstance(m.value, tuple)]
 
     assert tuplas == []
-
-
-def test_operadores_de_filtro_sao_os_oficiais_e_o_operator_id_e_o_do_frontend():
-    valores = {m.value for m in T.FilterOperatorType}
-    nomes = {m.name for m in T.FilterOperatorType}
-
-    assert valores - {"LATEST PARTITION"} == FILTER_OPERATOR_OFICIAL
-    assert nomes - {"NOT_LIKE", "NOT_ILIKE"} == OPERATORS_FRONTEND
-    assert T.FilterOperatorType.NOT_EQUAL is T.FilterOperatorType.NOT_EQUALS
 
 
 def test_pivot_novo_tem_os_padroes_da_ui_e_serializa():

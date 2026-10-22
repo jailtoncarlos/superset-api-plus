@@ -48,8 +48,10 @@ repos:
         types:
           - python
         pass_filenames: true
-      - id: conformidade-openapi
-        name: Conformidade com a especificação OpenAPI do Superset (payloads e rotas)
+      - id: conformidade-superset
+        # Especificação OpenAPI (payloads e rotas) e enums/choices do código-fonte do Superset,
+        # pelos recortes versionados em tests/fixtures.
+        name: Conformidade com o Superset (OpenAPI, enums e choices do código-fonte)
         # Roda a partir do código-fonte (sem instalar o pacote); as dependências de runtime abaixo
         # repetem as do pyproject até a migração para o uv (T14), quando o hook passa a usar `uv run`.
         language: python
@@ -62,6 +64,6 @@ repos:
           - "typing_extensions>=4.12"
           - "pytest>=8"
           - "requests-mock>=1.12"
-        entry: python -m pytest -q -p no:cacheprovider tests/unit/test_conformidade_openapi.py
-        files: ^(supersetapiplus/|tests/fixtures/superset_openapi_|tests/unit/test_conformidade_openapi\.py)
+        entry: python -m pytest -q -p no:cacheprovider tests/unit/test_conformidade_openapi.py tests/unit/test_conformidade_enums.py
+        files: ^(supersetapiplus/|tests/fixtures/superset_(openapi|enums)_|tests/unit/test_conformidade_(openapi|enums)\.py)
         pass_filenames: false

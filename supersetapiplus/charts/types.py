@@ -412,11 +412,22 @@ class ComparisonType(StringEnum):
 
 
 class ResultFormat(StringEnum):
+    """superset/common/chart_data.py ChartDataResultFormat (6.1.0)."""
+    CSV = 'csv'
     JSON = 'json'
+    XLSX = 'xlsx'
 
 
 class ResultType(StringEnum):
+    """superset/common/chart_data.py ChartDataResultType (6.1.0)."""
+    COLUMNS = 'columns'
     FULL = 'full'
+    QUERY = 'query'
+    RESULTS = 'results'
+    SAMPLES = 'samples'
+    TIMEGRAINS = 'timegrains'
+    POST_PROCESSED = 'post_processed'
+    DRILL_DETAIL = 'drill_detail'
 
 
 class MetricsLayoutEnum(StringEnum):
