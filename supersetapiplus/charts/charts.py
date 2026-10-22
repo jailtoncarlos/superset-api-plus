@@ -235,7 +235,9 @@ class Chart(SerializableModel):
                 obj.datasource_type = datasource.type
             else:
                 logger.warning("datasource query_context without 'id' defined")
-        elif obj.params.datasource and '__' in str(obj.params.datasource):
+        elif isinstance(obj.params, SerializableModel) and '__' in str(obj.params.datasource or ''):
+            # Listagens com colunas restritas (find(columns=[...])) não trazem params: o objeto
+            # parcial fica sem datasource e é completado por find_one(..., full=True).
             datasource_id, datasource_type = str(obj.params.datasource).split('__', 1)
             obj.datasource_id = int(datasource_id)
             obj.datasource_type = DatasourceType(datasource_type)

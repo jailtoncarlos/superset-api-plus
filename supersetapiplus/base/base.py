@@ -690,8 +690,14 @@ class SerializableModel(ParseMixin, ABC):
         # Primeiro converte o objeto inteiro em um dicionário comum (com tratamento recursivo)
         data = self.to_dict(columns, convert_to_json=True)
 
+        # `columns` (ex.: add_columns/edit_columns do /_info) restringe os campos de primeiro nível;
+        # to_dict une essa lista aos campos do modelo e, sem este filtro, add() e save() enviavam
+        # todos os campos do modelo, aceitos ou não pelo endpoint.
+        if columns:
+            data = {k: v for k, v in data.items() if k in columns}
+
         # Loga a estrutura final antes de retornar
-        logger.debug(f'return data {data}')
+        logger.debug('return data %s', mask_data(data))
 
         return data
 
