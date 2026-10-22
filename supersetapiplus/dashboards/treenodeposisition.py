@@ -31,7 +31,7 @@ class TreeNodePosition:
 
     def print(self):
         for pre, fill, node in RenderTree(self.root):
-            print(f"{pre}{node.item}")
+            print(f"{pre}{node.item}")  # noqa: T201 - método público cuja função é imprimir a árvore
 
     def __to_dict(self, node: NodePosition, values: Dict):
         for child_id in node.item.children:

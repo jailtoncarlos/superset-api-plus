@@ -44,7 +44,7 @@ class SessionAuthMixin:
         if not csrf_token_input or not csrf_token_input.get("value"):
             raise RuntimeError("CSRF token não encontrado no formulário de login.")
         csrf_token = csrf_token_input["value"]
-        logger.debug(f"[SessionAuth] Token CSRF extraído: {csrf_token}")
+        logger.debug("[SessionAuth] Token CSRF extraído.")
 
         # Etapa 2: Autenticar com credenciais e CSRF token
         login_data = {

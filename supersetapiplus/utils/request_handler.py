@@ -4,7 +4,6 @@ from datetime import timedelta
 from typing import Optional
 
 import requests
-import requests_cache  # type: ignore
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from requests.exceptions import (
@@ -14,6 +13,7 @@ from requests_cache import CachedSession
 from urllib3 import Retry
 
 from supersetapiplus.exceptions import ComplexBadRequestError, BadRequestError
+from supersetapiplus.utils.sensitive import mask_body, mask_headers, mask_request_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -175,8 +175,9 @@ class RequestHandler:
         ```
         """
 
-        # Define opções padrão
-        verify = kwargs.get("verify", False)
+        # Define opções padrão. verify=None herda o `session.verify` (padrão True no requests);
+        # forçar False aqui desligava a verificação TLS de toda chamada sem verify explícito.
+        verify = kwargs.get("verify", None)
         stream = kwargs.get("stream", False)
         headers = kwargs.get("headers", {})
         data = kwargs.get("data", None)
@@ -212,7 +213,7 @@ class RequestHandler:
                 "Realizando %s em %s ... kwargs: %s ...",
                 method,
                 url,
-                str(kwargs),
+                mask_request_kwargs(kwargs),
             )
 
             # Mapeamento de métodos HTTP suportados
@@ -502,12 +503,14 @@ class RequestHandler:
             response.raise_for_status()
         except requests.HTTPError as e:
             request = response.request
-            request_headers = '\n'.join(f'{k}: {v}' for k, v in request.headers.items())
-            response_headers = '\n'.join(f'{k}: {v}' for k, v in response.headers.items())
+            # Cabeçalhos e corpos mascarados: incluem Authorization, cookies, token CSRF e,
+            # num login recusado, a senha.
+            request_headers = '\n'.join(f'{k}: {v}' for k, v in mask_headers(request.headers).items())
+            response_headers = '\n'.join(f'{k}: {v}' for k, v in mask_headers(response.headers).items())
 
             # Tenta obter o corpo da resposta como texto
             try:
-                response_body = response.text
+                response_body = mask_body(response.text)
             except Exception:
                 response_body = "<não foi possível decodificar o corpo da resposta>"
 
@@ -516,7 +519,7 @@ class RequestHandler:
             logger.error(f"Request URL: {request.url}")
             logger.error(f"Request Method: {request.method}")
             logger.error(f"Request Headers:\n{request_headers}")
-            logger.error(f"Request Body:\n{request.body or '<vazio>'}")
+            logger.error(f"Request Body:\n{mask_body(request.body) or '<vazio>'}")
             logger.error(f"Response Status Code: {response.status_code}")
             logger.error(f"Response Headers:\n{response_headers}")
             logger.error(f"Response Body:\n{response_body}")

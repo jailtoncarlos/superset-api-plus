@@ -3,5 +3,6 @@ import logging
 
 from supersetapiplus.client import SupersetClient  # noqa
 
-FORMAT = "[%(asctime)-15s] %(levelname)s:%(name)s - %(message)s"
-logging.basicConfig(format=FORMAT)
+# Biblioteca não configura o logging da aplicação (sem basicConfig); só evita o aviso
+# "No handlers could be found" quando a aplicação não configura nenhum handler.
+logging.getLogger(__name__).addHandler(logging.NullHandler())

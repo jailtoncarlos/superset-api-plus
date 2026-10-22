@@ -10,6 +10,7 @@ from typing_extensions import Self
 from supersetapiplus.base.sentinels import MissingField
 from supersetapiplus.query_string import QueryStringFilter
 from supersetapiplus.utils.dict_utils import dict_hash, dicts_equal_and_all_values_none
+from supersetapiplus.utils.sensitive import mask_data
 
 try:
     from functools import cached_property
@@ -760,10 +761,10 @@ class SerializableModel(ParseMixin, ABC):
         payload = self.to_json(columns=self._factory.edit_columns)
         payload.pop("id", None)
 
-        logger.info(f'payload: {payload}')
+        logger.debug('payload: %s', mask_data(payload))
 
         response = self._factory.client.put(self.base_url, json=payload)
-        logger.info(f'response: {response.json()}')
+        logger.debug('response: %s', mask_data(response.json()))
 
     def delete(self) -> bool:
         """
@@ -941,7 +942,7 @@ class ApiModelFactories(ABC):
 
         # Converte o corpo da resposta JSON em um dicionário Python
         result = response.json()
-        logger.info(f'response: {result}')
+        logger.debug('response: %s', mask_data(result))
 
         # Obtém o conteúdo principal do recurso a partir da chave 'result'
         data_result = result['result']
@@ -1041,10 +1042,10 @@ class ApiModelFactories(ABC):
         payload = obj.to_json(columns=self.add_columns)
         payload.pop("id", None)
 
-        logger.info(f'payload: {payload}')
+        logger.debug('payload: %s', mask_data(payload))
         response = self.client.post(self.base_url, json=payload)
         result = response.json()
-        logger.info(f'response: {result}')
+        logger.debug('response: %s', mask_data(result))
         obj.id = result.get("id")
         obj._factory = self
         return obj.id
@@ -1089,7 +1090,7 @@ class ApiModelFactories(ABC):
         url = self.client.join_urls(self.base_url, id)
         logger.info(f'url: {url}')
         response = self.client.delete(url)
-        logger.info(f'response: {response.json()}')
+        logger.debug('response: %s', mask_data(response.json()))
         return response.json().get("message") == "OK"
 
     def import_file(self, file_path, overwrite=False, passwords=None) -> dict:

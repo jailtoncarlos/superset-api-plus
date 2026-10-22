@@ -122,14 +122,11 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
                 session.mount(self.host, adapter=NoVerifyHTTPAdapter())
 
             if self.use_csrf:
-                self.enable_csrf(session, self._access_token)
+                self.enable_csrf(session, self._access_token, verify=self._verify)
 
             self._session = session
         else:
             logger.debug('Reusing authenticated session.')
-            print(f"Headers: {self._session.headers}")
-            # print("Current CSRF token:", self._session.headers.get('X-CSRFToken'))
-            print(f"Cookies: {self._session.cookies.get_dict()}")
 
     def enable_session_mode(self) -> requests.Session:
         """Inicializa uma sessão autenticada baseada em cookie (não JWT)."""
@@ -143,6 +140,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     def get(self, url, **kwargs) -> requests.Response:
         headers = self.get_headers(kwargs.pop("headers",  {}))
+        kwargs.setdefault("verify", self._verify)
         return RequestHandler.request_with_retry(
             url=url,
             method="GET",
@@ -153,6 +151,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     def post(self, url, data=None, json=None, **kwargs) -> requests.Response:
         headers = self.get_headers(kwargs.pop("headers",  {}))
+        kwargs.setdefault("verify", self._verify)
         return RequestHandler.request_with_retry(
             url=url,
             method="POST",
@@ -165,6 +164,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     def put(self, url, data=None, **kwargs) -> requests.Response:
         headers = self.get_headers(kwargs.pop("headers",  {}))
+        kwargs.setdefault("verify", self._verify)
         return RequestHandler.request_with_retry(
             url=url,
             method="PUT",
@@ -177,6 +177,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     def delete(self, url, **kwargs) -> requests.Response:
         headers = self.get_headers(kwargs.pop("headers",  {}))
+        kwargs.setdefault("verify", self._verify)
         return RequestHandler.request_with_retry(
             url=url,
             method="DELETE",
@@ -213,7 +214,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         )
         self._access_token = login_resp.json()["access_token"]
         session.headers.update({"Authorization": f"Bearer {self._access_token}"})
-        logger.debug(f"[OK] Token obtained successfully: {self._access_token[:40]}...")
+        logger.debug("[OK] Token obtained successfully.")
 
     def run(self, database_id: int, query: str, query_limit: int = None):
         """
