@@ -1,13 +1,12 @@
 """Charts."""
 import copy
-import json
 import logging
 from abc import abstractmethod
 from dataclasses import dataclass, field
 
 from typing_extensions import Self
 
-from supersetapiplus.base.base import ApiModelFactories, ObjectDecoder, SerializableModel
+from supersetapiplus.base.base import ApiModelFactories, SerializableModel
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.base.types import DatasourceType
 from supersetapiplus.charts.metric import OrderBy
@@ -16,7 +15,6 @@ from supersetapiplus.charts.queries import AdhocMetricColumn
 from supersetapiplus.charts.query_context import DataSource, QueryContext
 from supersetapiplus.charts.types import ChartType, FilterClausesType, FilterExpressionType, FilterOperatorType, MetricType
 from supersetapiplus.dashboards.dashboards import Dashboard
-from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.exceptions import ChartValidationError, DashboardValidationError, NotFound, ValidationError
 from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.utils.dict_utils import detailed_dict_diff
@@ -278,83 +276,67 @@ class Charts(ApiModelFactories):
     def _default_object_class(self) -> type[SerializableModel]:
         return Chart
 
-    def get_chart_data(self, slice_id: str, dashboard_id: int) -> dict:
-        chart = self.client.charts.get(slice_id)
-        dashboard_exists = False
-        for id in chart.params.dashboards:
-            if dashboard_id == id:
-                dashboard_exists = True
-        if not dashboard_exists:
-            raise NotFound(f'Dashboard id {dashboard_id} does not exist.')
-
-        # 'http://localhost:8088/api/v1/chart/data?form_data=%7B%22slice_id%22%3A347%7D&dashboard_id=12&force'
-        query = {
-            "slice_id": slice_id,
-            "dashboard_id": dashboard_id,
-            "force": None
-        }
-        params = {"data": json.dumps(query)}
-        payload = {
-            'datasource': chart.query_context.datasource.to_json(),
-            'force': chart.force,
-            'queries': chart.query_context.queries.to_json(),
-            'form_data': chart.query_context.form_data.to_json(),
-            'result_format': chart.result_format,
-            'result_type': chart.result_type
-        }
-
-        response = self.client.get(self.base_url,
-                                   params=params,
-                                   json=payload)
-
-        return response.json().result('result')
-
-
-    def add_and_attach_to_dashboard(self,
-                                    chart: Chart,
-                                    title: str,
-                                    parent: ItemPosition = None) -> int:
+    def get_chart_data(self, slice_id: int, dashboard_id: int | None = None) -> list[dict]:
         """
-        Cria um novo chart e o adiciona ao mesmo dashboard ao qual o chart original pertence.
+        Dados do gráfico calculados pelo Superset com o query_context salvo (GET /chart/{pk}/data/).
 
         Args:
-            chart (Chart): instância do chart a ser copiado.
-            title (str): título do chart na cópia.
-            parent (ItemPosition, opcional): posição dentro do dashboard.
+            slice_id: id do gráfico.
+            dashboard_id: se informado, confere que o gráfico pertence a esse dashboard.
 
         Returns:
-            int: ID do novo chart criado.
+            list[dict]: um item por consulta do query_context (`data`, `colnames`, `rowcount`...).
+        """
+        if dashboard_id is not None and dashboard_id not in self.dashboard_ids(slice_id):
+            raise NotFound(f'Chart {slice_id} does not belong to dashboard {dashboard_id}.')
+        url = self.client.join_urls(self.base_url, slice_id, "data/")
+        return self.client.get(url, params={"format": "json", "type": "full"}).json()["result"]
+
+    def dashboard_ids(self, chart_id: int) -> list[int]:
+        """Ids dos dashboards associados ao gráfico, como o Superset os tem gravados."""
+        result = self.client.get(self.client.join_urls(self.base_url, chart_id)).json()["result"]
+        return [d["id"] for d in result.get("dashboards") or []]
+
+    def add_to_dashboard(self, chart: Chart | int, dashboard_id: int) -> list[int]:
+        """
+        Associa o gráfico ao dashboard (PUT /chart/{pk} só com `dashboards`), mantendo as associações existentes.
+
+        A associação é por id no gráfico: o campo `dashboards` do ChartPutSchema substitui a lista,
+        por isso as atuais são lidas antes. Devolve a lista gravada.
+        """
+        chart_id = chart if isinstance(chart, int) else chart.id
+        if not chart_id:
+            raise ChartValidationError('Save the chart before attaching it to a dashboard (chart.id is empty).')
+        atuais = self.dashboard_ids(chart_id)
+        if dashboard_id in atuais:
+            return atuais
+        novos = atuais + [dashboard_id]
+        self.client.put(self.client.join_urls(self.base_url, chart_id), json={"dashboards": novos})
+        return novos
+
+    def add_and_attach_to_dashboard(self, chart: Chart, title: str, parent=None) -> int:
+        """
+        Cria o gráfico e o coloca no layout do dashboard ao qual o gráfico de origem pertence.
+
+        Args:
+            chart (Chart): gráfico a criar (ex.: clone de um gráfico já associado a um dashboard).
+            title (str): título exibido no dashboard (sliceNameOverride).
+            parent (NodePosition, opcional): nó do layout onde inserir.
+
+        Returns:
+            int: id do gráfico criado.
 
         Raises:
-            DashboardValidationError: se o chart original não estiver associado a nenhum dashboard.
+            DashboardValidationError: o gráfico de origem não pertence a nenhum dashboard.
         """
-        # cria o chart via API
-        new_id = super().add(chart)
-
-        # valida se existia dashboard associado ao chart original
+        # Valida antes de criar: antes, o gráfico era criado e ficava órfão quando a validação falhava.
         if not chart.dashboards:
             raise DashboardValidationError(
                 message="Não foi possível anexar o chart: ele não pertence a nenhum dashboard.",
                 solution="Verificar se o chart informado está associado a um dashboard antes de chamar este método."
             )
-
-        # obtém o dashboard original e adiciona o chart copiado
-        dashboard_id = chart.dashboards[0].id
-        dashboard = self.client.dashboards.get(dashboard_id)
-        dashboard.add_chart(chart, title)
+        dashboard = self.client.dashboards.get(chart.dashboards[0].id)
+        new_id = self.add(chart)
+        dashboard.add_chart(chart, title, parent)
         dashboard.save()
-
         return new_id
-
-    def add_to_dashboard(self, chart: Chart, dashboard_id=int):
-        url = self.client.join_urls(self.base_url, "/data")
-        query = {
-            'slice_id': chart.id,
-            'dashboard_id': dashboard_id,
-            'force': None
-        }
-        params = {"form_data": json.dumps(query, cls=ObjectDecoder)}
-        payload = chart.query_context.to_json()
-
-        response = self.client.post(url, params=params, json=payload)
-        return response.json()

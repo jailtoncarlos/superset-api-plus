@@ -1,8 +1,8 @@
 
-from anytree import RenderTree, search
+from anytree import PreOrderIter, RenderTree, search
 from typing_extensions import Self
 
-from supersetapiplus.dashboards.itemposition import GridItemPosition, ItemPosition, RootItemPosition
+from supersetapiplus.dashboards.itemposition import GridItemPosition, ItemPosition, ItemPositionType, RootItemPosition
 from supersetapiplus.dashboards.nodeposisition import GridNodePosition, NodePosition, NodePositionParse, RootNodePosition
 
 
@@ -21,6 +21,10 @@ class TreeNodePosition:
 
     def insert(self, item: ItemPosition, parent: Self) -> NodePosition:
         return NodePositionParse.get_instance(item, item.type_, parent)
+
+    def chart_ids(self) -> list[int]:
+        """Ids dos gráficos presentes no layout, na ordem da árvore."""
+        return [node.item.chart_id for node in PreOrderIter(self._root) if node.type_ == ItemPositionType.CHART]
 
     def find_by_id(self, id: str):
         node = search.find(self._root, lambda node: node.name == id)

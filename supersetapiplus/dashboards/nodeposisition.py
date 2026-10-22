@@ -244,51 +244,48 @@ class CheckFreeSpaceMixin:
         :param thisnode:
         :return:
         """
-        logger.debug(f'This node {thisnode.item.id}({thisnode.type_})')
-        if thisnode:
-            if thisnode.type_ == ItemPositionType.ROW:
-                free_space, total_width = self.have_free_space(thisnode, item)
-                if free_space:
-                    logger.debug(f'This node {thisnode.item.id}({thisnode.type_}) has space, return it.')
-                    return thisnode
+        if not thisnode:
+            return None
+        logger.debug('This node %s(%s)', thisnode.item.id, thisnode.type_)
+        if thisnode.type_ == ItemPositionType.ROW:
+            return self._linha_livre_a_partir_da_linha(item, thisnode)
+        if thisnode.type_ == ItemPositionType.TAB:
+            return self._linha_livre_na_aba(item, thisnode)
+        if thisnode.type_ == ItemPositionType.COLUMN:
+            return thisnode
+        logger.debug('Returning a new ROW node, child of this node %s(%s).', thisnode.item.id, thisnode.type_)
+        return self.get_new_node_position(RowItemPosition(), thisnode)
 
-                if not item.relocate:
-                    raise _not_enough_space(total_width)
+    def _linha_livre_a_partir_da_linha(self, item: ItemPosition, linha: NodePosition) -> NodePosition:
+        """A própria linha, se couber; senão uma linha irmã com espaço; senão uma linha nova."""
+        free_space, total_width = self.have_free_space(linha, item)
+        if free_space:
+            logger.debug('This node %s(%s) has space, return it.', linha.item.id, linha.type_)
+            return linha
+        if not item.relocate:
+            raise _not_enough_space(total_width)
+        for irma in linha.siblings:
+            if self.have_free_space(irma, item)[0]:
+                logger.debug('This node %s(%s) has no space. Its sibling %s(%s) has free space, so return it.',
+                             linha.item.id, linha.type_, irma.item.id, irma.type_)
+                return irma
+        logger.debug('There are no rows nodes with space. Creating a new row node and returning it.')
+        return self.get_new_node_position(RowItemPosition(), linha.parent)
 
-                # The line is full.
-                # Find out if there is a sibling with space
-                if thisnode.siblings:
-                    for node_brother in thisnode.siblings:
-                        free_space, total_width = self.have_free_space(node_brother, item)
-                        if free_space:
-                            logger.debug('This node %s(%s) has no space. Its sibling %s(%s) has free space, so return it.',
-                                         thisnode.item.id, thisnode.type_, node_brother.item.id, node_brother.type_)
-                            return node_brother
-
-                # No rows with space were found, so create a new row node.
-                logger.debug('There are no rows nodes with space. Creating a new row node and returning it.')
-                return self.get_new_node_position(RowItemPosition(), thisnode.parent)
-            elif thisnode.type_ == ItemPositionType.TAB:
-                if thisnode.children:
-                    for child in thisnode.children:
-                        free_space, total_width = self.have_free_space(child, item)
-                        if free_space:
-                            logger.debug('A child node %s(%s) of thisnode with space was found. Return it.',
-                                         child.item.id, child.type_)
-                            return child
-
-                    if not item.relocate:
-                        raise _not_enough_space(total_width)
-
-                # TAB does not have rows available, returning a new row node.
-                logger.debug('This node %s(%s) does not have rows available, returning a new row node.',
-                             thisnode.item.id, thisnode.type_)
-                return self.get_new_node_position(RowItemPosition(), thisnode)
-            elif thisnode.type_ == ItemPositionType.COLUMN:
-                return thisnode
-            else:
-                logger.debug(f'Returning a new ROW node, child of this node {thisnode.item.id}({thisnode.type_}).')
-                return self.get_new_node_position(RowItemPosition(), thisnode)
+    def _linha_livre_na_aba(self, item: ItemPosition, aba: NodePosition) -> NodePosition:
+        """Uma linha da aba com espaço; senão uma linha nova (ou erro, se o item não pode ser realocado)."""
+        total_width = None
+        for filho in aba.children:
+            free_space, total_width = self.have_free_space(filho, item)
+            if free_space:
+                logger.debug('A child node %s(%s) of thisnode with space was found. Return it.',
+                             filho.item.id, filho.type_)
+                return filho
+        if aba.children and not item.relocate:
+            raise _not_enough_space(total_width)
+        logger.debug('This node %s(%s) does not have rows available, returning a new row node.',
+                     aba.item.id, aba.type_)
+        return self.get_new_node_position(RowItemPosition(), aba)
 
     @classmethod
     def have_free_space(cls, row_node, item):

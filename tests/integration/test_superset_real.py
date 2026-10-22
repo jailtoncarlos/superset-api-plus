@@ -202,3 +202,20 @@ def test_listagem_com_operadores_responde_sem_erro(client, operador, valor):
     filtro.add("viz_type" if operador in (QueryOperator.IN, QueryOperator.NOT_EQUAL) else "slice_name", operador, valor)
 
     assert client.charts.count(filtro) >= 0
+
+
+def test_grafico_e_associado_ao_dashboard_pelo_layout(client, dataset):
+    chart = novo_grafico("table", dataset)
+    client.charts.add(chart)
+    dashboard = Dashboard(dashboard_title=nome("dash-assoc"))
+    client.dashboards.add(dashboard)
+    try:
+        dashboard.position.add_chart(chart, chart.slice_name, parent=dashboard.position.add_tab("Aba"))
+        dashboard.save()
+        client.dashboards.attach_charts(dashboard)
+
+        assert [c.id for c in client.dashboards.get(dashboard.id).get_charts()] == [chart.id]
+        assert client.charts.dashboard_ids(chart.id) == [dashboard.id]
+    finally:
+        client.dashboards.delete(dashboard.id)
+        client.charts.delete(chart.id)

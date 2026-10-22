@@ -60,31 +60,23 @@ class PieQueryContext(QueryContext):
     def validate(self):
         super().validate()
         if self.form_data.metric or self.queries:
-            equals = False
-            for query in self.queries:
-                for metric in query.metrics:
-                    if self.form_data.metric == metric:
-                        equals = True
-                        break
-            if not equals:
-                raise ValidationError(message='The metric definition in formdata is not included in queries.metrics.',
-                                      solution=_SOLUTION_USE_ADD_METRIC)
+            self._validar_metrica_nas_queries()
+            if self.automatic_order and self.automatic_order.automate:
+                self._validar_orderby_da_metrica()
 
-        if self.automatic_order and self.automatic_order.automate:
-            equals = False
-            if self.form_data.metric or self.queries:
-                for query in self.queries:
-                    for order in query.orderby:
-                        if not isinstance(order, tuple):
-                            raise ValidationError('Order by must be a tuple.',
-                                                  solution=_SOLUTION_USE_ADD_METRIC)
-                        if self.form_data.metric == order[0]:
-                            equals = True
-                            break
+    def _validar_metrica_nas_queries(self):
+        metricas = (metric for query in self.queries for metric in query.metrics)
+        if not any(self.form_data.metric == metric for metric in metricas):
+            raise ValidationError(message='The metric definition in formdata is not included in queries.metrics.',
+                                  solution=_SOLUTION_USE_ADD_METRIC)
 
-                if not equals:
-                    raise ValidationError(message='The metric definition in formdata is not included in queries.orderby.',
-                                          solution=_SOLUTION_USE_ADD_METRIC)
+    def _validar_orderby_da_metrica(self):
+        ordens = [order for query in self.queries for order in query.orderby]
+        if any(not isinstance(order, tuple) for order in ordens):
+            raise ValidationError('Order by must be a tuple.', solution=_SOLUTION_USE_ADD_METRIC)
+        if not any(self.form_data.metric == order[0] for order in ordens):
+            raise ValidationError(message='The metric definition in formdata is not included in queries.orderby.',
+                                  solution=_SOLUTION_USE_ADD_METRIC)
 
     def _default_query_object_class(self) -> type[Query]:
         return PieQueryObject
