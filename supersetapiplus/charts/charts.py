@@ -95,9 +95,20 @@ class Chart(SerializableModel):
                     to get the dataset id by name.
                 """)
 
-            if self.params.datasource is None:
+            self._preencher_datasource()
+
+    def _preencher_datasource(self):
+        """Gráfico novo: params (e query_context) recebem o datasource de datasource_id/datasource_type.
+
+        Chamado no __post_init__ e, de novo, no fim de from_json: durante o from_json o __post_init__
+        roda com params ainda como dict (a conversão para Option vem depois).
+        """
+        if self.id is not None or self.datasource_id is None or not isinstance(self.params, SerializableModel):
+            return
+        if not self.params.datasource:  # None ou MissingField (ausente no JSON)
+            self.params.datasource = f'{self.datasource_id}__{self.datasource_type}'
+            if isinstance(self.query_context, SerializableModel):
                 self.query_context.datasource.id = self.datasource_id
-                self.params.datasource = f'{self.datasource_id}__{self.datasource_type}'
                 self.query_context.form_data = copy.deepcopy(self.params)
 
     def validate(self):
@@ -257,6 +268,7 @@ class Chart(SerializableModel):
             obj.datasource_id = int(datasource_id)
             obj.datasource_type = DatasourceType(datasource_type)
 
+        obj._preencher_datasource()
         return obj
 
 

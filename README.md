@@ -178,7 +178,6 @@ The suite creates its own database, dataset, charts, dashboard and saved query (
 | `SUPERSET_API_PLUS_TIMEOUT_READ` | `20` | read timeout (s) |
 | `SUPERSET_API_PLUS_RETRIES` | `3` | retries on transient HTTP errors |
 | `SUPERSET_API_PLUS_BACKOFF_FACTOR` | `0.5` | exponential backoff factor |
-| `SUPERSET_API_PLUS_CACHE_EXPIRE_DAYS` | `1` | expiration of the optional HTTP cache |
 
 The examples in `examples/` read `SUPERSET_URL`, `SUPERSET_USERNAME` and `SUPERSET_PASSWORD`.
 

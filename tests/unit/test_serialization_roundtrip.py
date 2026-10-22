@@ -227,3 +227,19 @@ def test_datasource_do_topo_da_resposta_prevalece_sobre_params():
                                    "query_context": None, "datasource_id": 10, "datasource_type": "table"})
 
     assert chart.datasource_id == 10
+
+
+@pytest.mark.parametrize("viz_type,params", [
+    ("pie", {"viz_type": "pie", "groupby": ["campus"], "metric": "count"}),
+    ("cal_heatmap", {"viz_type": "cal_heatmap", "metrics": ["count"]}),
+])
+def test_grafico_novo_criado_por_from_json_recebe_o_datasource(viz_type, params):
+    importlib.import_module(f"supersetapiplus.charts.{viz_type}")
+    chart_class = Chart.get_class(viz_type, f"supersetapiplus.charts.{viz_type}")
+
+    chart = chart_class.from_json({"id": None, "slice_name": "novo", "viz_type": viz_type, "params": json.dumps(params),
+                                   "query_context": None, "datasource_id": 29, "datasource_type": "table"})
+
+    assert chart.params.datasource == "29__table"
+    assert chart.query_context is None
+    assert json.loads(chart.to_json()["params"])["datasource"] == "29__table"

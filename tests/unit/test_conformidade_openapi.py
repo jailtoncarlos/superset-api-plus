@@ -162,7 +162,6 @@ def test_rotas_chamadas_existem_na_spec(metodo, url):
     assert any(metodo in SPEC["paths"][c] for c in caminhos), f"{metodo.upper()} não existe em {caminhos}"
 
 
-@pytest.mark.xfail(strict=True, reason="run() usa /superset/sql_json/, removida no Superset 6.1.0: issue #307")
 def test_execucao_de_sql_usa_rota_da_spec():
     client = SupersetClient(HOST, "robo", "senha")
 

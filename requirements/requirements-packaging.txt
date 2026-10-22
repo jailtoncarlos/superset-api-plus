@@ -12,8 +12,6 @@ requests>=2.34.2
 # Parsing de HTML (extração do token CSRF da página de login do Superset).
 beautifulsoup4>=4.15.0
 
-# Extensão de requests que permite cache local de respostas HTTP, reduzindo chamadas repetidas.
-requests-cache>=1.3.3
 
 
 # -----------------------

@@ -49,11 +49,12 @@ class Assets:
         file_ext = file_path.suffix.replace(".", "")
         passwords = {f"databases/{db}.yaml": pwd for db, pwd in (passwords or {}).items()}
 
-        files = {
-            "bundle": (file_path.name, open(file_path.name, "rb"), f"application/{file_ext}"),
-            "passwords": json.dumps(passwords),
-        }
-        response = self.client.post(self.import_url, files=files)
+        with open(file_path, "rb") as bundle:
+            files = {
+                "bundle": (file_path.name, bundle, f"application/{file_ext}"),
+                "passwords": (None, json.dumps(passwords)),
+            }
+            response = self.client.post(self.import_url, files=files)
 
         # If import is successful, the following is returned: {'message': 'OK'}
         return response.json().get("message") == "OK"

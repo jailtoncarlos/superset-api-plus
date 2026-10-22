@@ -54,6 +54,22 @@ class BadRequestError(HTTPError):
         return json.dumps(self.message, indent=4)
 
 
+class UnauthorizedError(BadRequestError):
+    """HTTP 401: credencial ausente, inválida ou expirada (o cliente tenta renovar o JWT uma vez)."""
+
+
+class ForbiddenError(BadRequestError):
+    """HTTP 403: usuário autenticado sem permissão para o recurso."""
+
+
+class ResourceNotFoundError(BadRequestError):
+    """HTTP 404: recurso inexistente no Superset (ex.: GET /chart/{id} com id inválido)."""
+
+
+class UnprocessableEntityError(BadRequestError):
+    """HTTP 422: corpo rejeitado pela validação do schema; `message` traz os erros por campo."""
+
+
 class ComplexBadRequestError(HTTPError):
     """
     Represents an HTTP 400 error with multiple validation issues.

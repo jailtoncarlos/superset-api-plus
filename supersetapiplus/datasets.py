@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from supersetapiplus.base.base import ApiModelFactories, QueryStringFilter, SerializableModel
 from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.exceptions import NotFound
+from supersetapiplus.query_string import QueryOperator
 
 
 @dataclass
@@ -58,22 +59,14 @@ class Dataset(SerializableModel):
 class Datasets(ApiModelFactories):
     endpoint = "dataset/"
 
-    # list of supported filters
-    # http://localhost:8088/api/v1/dataset/_info?q=(keys:!(filters))
-
-    def get_datasource(self, name) -> DataSource:
+    def get_datasource(self, name: str) -> DataSource:
+        """DataSource (id e tipo) do dataset com o `table_name` informado."""
         filter = QueryStringFilter()
-        filter.add('table_name', 'eq', name)
-        response = self.client.find(self.base_url, filter, ['id', 'datasource_type'])
-        if response.get('result'):
-            result = response['result'][0]
-            data = {
-                'id': result['id'],
-                'type': result['datasource_type']
-            }
-        else:
-            raise NotFound('Attribute result does not exist in object response.')
-        return DataSource(**data)
+        filter.add('table_name', QueryOperator.EQUAL, name)
+        result = self.client.find(self.base_url, filter, ['id', 'datasource_type']).json().get('result')
+        if not result:
+            raise NotFound(f"Dataset '{name}' not found.")
+        return DataSource(id=result[0]['id'], type=result[0]['datasource_type'])
 
     def _default_object_class(self) -> type[SerializableModel]:
         return Dataset

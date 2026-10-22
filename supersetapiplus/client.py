@@ -13,7 +13,6 @@ Features:
 import getpass
 import json
 import logging
-from functools import cached_property
 from urllib.parse import urlparse
 
 import requests
@@ -25,7 +24,7 @@ from supersetapiplus.charts.charts import Charts
 from supersetapiplus.dashboards.dashboards import Dashboards
 from supersetapiplus.databases import Databases
 from supersetapiplus.datasets import Datasets
-from supersetapiplus.exceptions import QueryLimitReached
+from supersetapiplus.exceptions import QueryLimitReached, UnauthorizedError
 from supersetapiplus.query_string import QueryStringFilter
 from supersetapiplus.saved_queries import SavedQueries
 from supersetapiplus.security.csrf import CSRFSupportMixin
@@ -68,7 +67,9 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
         self._session = None
         self._access_token = None
+        self._refresh_token = None
         self._csrf_token = None
+        self._session_mode = False
 
         # Object wrappers
         self.assets = self.assets_cls(self)
@@ -89,122 +90,84 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             self._init_session()
         return self._access_token
 
-    @cached_property
+    @property
     def session(self) -> requests.Session:
-        """Returns a configured requests.Session with JWT headers."""
+        """Sessão autenticada (JWT, ou cookie após enable_session_mode()), criada no primeiro uso."""
         if self._session is None:
             self._init_session()
         return self._session
 
-    def get_headers(self, headers: dict | None = None):
-        if headers is None:
-            headers = {}
-
-        headers.update(
-            {
-                "Content-Type": "application/json",
-            }
-        )
+    @staticmethod
+    def get_headers(headers: dict | None = None, json_body: bool = True) -> dict:
+        """Cabeçalhos da requisição; Content-Type JSON só quando o corpo é JSON (não em multipart)."""
+        headers = dict(headers or {})
+        if json_body:
+            headers.setdefault("Content-Type", "application/json")
         return headers
 
     def _init_session(self):
-        if self._session is None:
-            logger.debug('Initializing authenticated session...')
-            session = requests.Session()
-
-            # 1. Login and get token
-            self.authenticate(session)
-
-            session.verify = self._verify
-
-            if not self._verify:
-                session.mount(self.host, adapter=NoVerifyHTTPAdapter())
-
-            if self.use_csrf:
-                self.enable_csrf(session, self._access_token, verify=self._verify)
-
-            self._session = session
-        else:
+        if self._session is not None:
             logger.debug('Reusing authenticated session.')
+            return
+        logger.debug('Initializing authenticated session...')
+        session = requests.Session()
+        session.verify = self._verify
+        self.authenticate(session)
+        if self.use_csrf:
+            self.enable_csrf(session, self._access_token, verify=self._verify)
+        self._session = session
 
     def enable_session_mode(self) -> requests.Session:
         """Inicializa uma sessão autenticada baseada em cookie (não JWT)."""
         session = requests.Session()
+        session.verify = self._verify
         self.enable_session_auth(session, self.username, self._password)
         # POST/PUT/DELETE com cookie exigem o token CSRF ("The CSRF token is missing." no 6.1.0).
         if self.use_csrf:
             self.enable_csrf(session, verify=self._verify)
         self._session_cookie = session
-
         self._session = session
-
+        self._session_mode = True
+        self._access_token = self._refresh_token = None
         return self._session
 
-    def get(self, url, **kwargs) -> requests.Response:
-        headers = self.get_headers(kwargs.pop("headers",  {}))
+    def _request(self, method: str, url: str, **kwargs) -> requests.Response:
+        """Requisição autenticada; no modo JWT, um 401 renova o token e repete a chamada uma vez."""
+        kwargs["headers"] = self.get_headers(kwargs.pop("headers", None), json_body="files" not in kwargs)
         kwargs.setdefault("verify", self._verify)
-        return RequestHandler.request_with_retry(
-            url=url,
-            method="GET",
-            headers=headers,
-            session=self.session,
-            **kwargs,
-        )
+        try:
+            return RequestHandler.request_with_retry(url=url, method=method, session=self.session, **kwargs)
+        except UnauthorizedError:
+            if self._session_mode or not self._refresh_token:
+                raise
+            self.refresh_access_token()
+            return RequestHandler.request_with_retry(url=url, method=method, session=self.session, **kwargs)
+
+    def get(self, url, **kwargs) -> requests.Response:
+        return self._request("GET", url, **kwargs)
 
     def post(self, url, data=None, json=None, **kwargs) -> requests.Response:
-        headers = self.get_headers(kwargs.pop("headers",  {}))
-        kwargs.setdefault("verify", self._verify)
-        return RequestHandler.request_with_retry(
-            url=url,
-            method="POST",
-            data=data,
-            json=json,
-            session=self.session,
-            headers=headers,
-            **kwargs,
-        )
+        return self._request("POST", url, data=data, json=json, **kwargs)
 
     def put(self, url, data=None, **kwargs) -> requests.Response:
-        headers = self.get_headers(kwargs.pop("headers",  {}))
-        kwargs.setdefault("verify", self._verify)
-        return RequestHandler.request_with_retry(
-            url=url,
-            method="PUT",
-            data=data,
-            session=self.session,
-            headers=headers,
-
-            **kwargs,
-        )
+        return self._request("PUT", url, data=data, **kwargs)
 
     def delete(self, url, **kwargs) -> requests.Response:
-        headers = self.get_headers(kwargs.pop("headers",  {}))
-        kwargs.setdefault("verify", self._verify)
-        return RequestHandler.request_with_retry(
-            url=url,
-            method="DELETE",
-            session=self.session,
-            headers=headers,
-            **kwargs,
-        )
+        return self._request("DELETE", url, **kwargs)
 
     def authenticate(self, session: requests.Session):
         """
-        Authenticates the user and returns access/refresh tokens.
+        Autentica por JWT (POST /security/login) e guarda os tokens de acesso e de renovação.
         """
         if self.username is None:
             self.username = getpass.getuser()
         if self._password is None:
             self._password = getpass.getpass()
 
-        # 1. Login and obtain token
         login_resp = RequestHandler.request_with_retry(
             url=self.login_endpoint,
             method="POST",
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
             json={
                 "username": self.username,
                 "password": self._password,
@@ -214,42 +177,60 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             verify=self._verify,
             session=session
         )
-        self._access_token = login_resp.json()["access_token"]
+        tokens = login_resp.json()
+        self._access_token = tokens["access_token"]
+        self._refresh_token = tokens.get("refresh_token")
         session.headers.update({"Authorization": f"Bearer {self._access_token}"})
         logger.debug("[OK] Token obtained successfully.")
 
-    def run(self, database_id: int, query: str, query_limit: int = None):
+    def refresh_access_token(self) -> None:
+        """Renova o JWT de acesso com o refresh token (POST /security/refresh)."""
+        if not self._refresh_token:
+            raise UnauthorizedError("Sem refresh token: autentique novamente.")
+        response = RequestHandler.request_with_retry(
+            url=self.refresh_endpoint,
+            method="POST",
+            headers={"Authorization": f"Bearer {self._refresh_token}", "Accept": "application/json"},
+            verify=self._verify,
+        )
+        self._access_token = response.json()["access_token"]
+        self.session.headers["Authorization"] = f"Bearer {self._access_token}"
+        logger.debug("[OK] Access token renewed.")
+
+    def run(self, database_id: int, query: str, query_limit: int = None, schema: str | None = None):
         """
-        Runs SQL query against Superset SQL Lab API.
+        Executa SQL pelo SQL Lab (POST /api/v1/sqllab/execute/), de forma síncrona.
 
         Args:
-            database_id (int): Superset database ID.
-            query (str): SQL query.
-            query_limit (int, optional): Row limit.
+            database_id (int): id do database no Superset.
+            query (str): SQL.
+            query_limit (int, opcional): limite de linhas.
+            schema (str, opcional): schema padrão da consulta.
 
         Returns:
-            tuple: (columns, data) from query result.
+            tuple: (columns, data), como devolvidos pelo Superset.
+
+        Raises:
+            QueryLimitReached: o resultado foi truncado pelo limite de exibição.
+            NotImplementedError: o Superset executou a consulta de forma assíncrona (202).
         """
-        payload = {"database_id": database_id, "sql": query}
+        payload = {"database_id": database_id, "sql": query, "runAsync": False}
         if query_limit:
             payload["queryLimit"] = query_limit
+        if schema:
+            payload["schema"] = schema
 
-        response = RequestHandler.request_with_retry(
-            url=self._sql_endpoint,
-            method="POST",
-            session=self.session,
-            json=payload,
-            verify=self._verify,
-            headers=self.session.headers.copy(),  # Garante headers como Authorization e CSRF
-        )
-
+        response = self.post(self._sql_endpoint, json=payload)
+        if response.status_code == 202:
+            raise NotImplementedError("O Superset executou a consulta de forma assíncrona (202); "
+                                      "use um database sem execução assíncrona.")
         result = response.json()
         if result.get("displayLimitReached"):
             raise QueryLimitReached("Display limit reached")
         return result["columns"], result["data"]
 
     def find(self, url: str, filter: QueryStringFilter, columns: list[str] | None = None, page_size: int = 100,
-             page: int = 0):
+             page: int = 0, order_column: str | None = None, order_direction: str | None = None):
         """
         Performs a paginated API search with optional filters.
 
@@ -259,11 +240,16 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             columns (List[str], optional): Columns to include.
             page_size (int): Number of records per page.
             page (int): Page index.
+            order_column (str, optional): Column to sort by.
+            order_direction (str, optional): "asc" or "desc".
 
         Returns:
-            dict: JSON response.
+            requests.Response: JSON response with `count` and `result`.
         """
         query = {"page_size": page_size, "page": page, "filters": filter.filters, "columns": columns or []}
+        if order_column:
+            query["order_column"] = order_column
+            query["order_direction"] = order_direction or "asc"
         params = {"q": json.dumps(query)}
         return self.get(url, params=params)
 
@@ -277,7 +263,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     @property
     def _sql_endpoint(self) -> str:
-        return self.join_urls(self.host, "superset/sql_json/")
+        return self.join_urls(self.base_url, "sqllab/execute/")
 
     @staticmethod
     def join_urls(*args) -> str:
@@ -291,10 +277,3 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         parsed = urlparse(self.base_url)
         domain = parsed.hostname
         return domain
-
-
-class NoVerifyHTTPAdapter(requests.adapters.HTTPAdapter):
-    """An HTTP adapter that disables TLS verification (for self-signed certs)."""
-    def cert_verify(self, conn, url, verify, cert):
-        logger.debug(f"conn: {conn}\nurl: {url}\nverify: {verify}\ncert: {cert}")
-        super().cert_verify(conn=conn, url=url, verify=False, cert=cert)

@@ -4,21 +4,27 @@ from typing import Any
 
 class QueryOperator(str, Enum):
     """
-    Enumeration of supported query operators used in Superset API filters.
+    Operadores de filtro das listagens da API REST (Flask-AppBuilder), enviados em `q.filters[].opr`.
+
+    Conferidos contra o /_info?q=(keys:!(filters)) do Superset 6.1.0. Cada coluna aceita só parte
+    deles; recursos têm ainda filtros próprios (ex.: chart_all_text, dashboard_is_favorite), que
+    podem ser passados como string em QueryStringFilter.add.
     """
     EQUAL = "eq"
-    NOT_EQUAL = "ne"
+    NOT_EQUAL = "neq"
     GREATER_THAN = "gt"
-    GREATER_THAN_OR_EQUAL = "gte"
     LESS_THAN = "lt"
-    LESS_THAN_OR_EQUAL = "lte"
+    CONTAINS = "ct"
+    NOT_CONTAINS = "nct"
+    STARTS_WITH = "sw"
+    NOT_STARTS_WITH = "nsw"
+    ENDS_WITH = "ew"
+    NOT_ENDS_WITH = "new"
     IN = "in"
-    NOT_IN = "not in"
-    LIKE = "like"
-    ILIKE = "ilike"
-    IS_NULL = "is null"
-    IS_NOT_NULL = "is not null"
-    TEMPORAL_RANGE = "TEMPORAL_RANGE"  # For date/time filters
+    NOT_IN = "not_in"
+    RELATION_ONE_TO_MANY = "rel_o_m"
+    NOT_RELATION_ONE_TO_MANY = "nrel_o_m"
+    RELATION_MANY_TO_MANY = "rel_m_m"
 
 
 class QueryStringFilter:
@@ -41,18 +47,19 @@ class QueryStringFilter:
     def __init__(self):
         self._filters: list[dict[str, Any]] = []
 
-    def add(self, column: str, operator: QueryOperator, value: Any) -> None:
+    def add(self, column: str, operator: QueryOperator | str, value: Any) -> None:
         """
         Add a new filter to the filter list.
 
         Args:
             column (str): The column name to be filtered.
-            operator (QueryOperator): The comparison operator.
+            operator (QueryOperator | str): The comparison operator, or the name of a resource-specific
+                filter (e.g. "chart_all_text").
             value (Any): The value to be used in the comparison.
         """
         self._filters.append({
             "col": column,
-            "opr": operator.value,
+            "opr": operator.value if isinstance(operator, QueryOperator) else str(operator),
             "value": value
         })
 

@@ -55,7 +55,6 @@ repos:
         language: python
         additional_dependencies:
           - "requests>=2.32"
-          - "requests-cache>=1.2"
           - "beautifulsoup4>=4.12"
           - "pyyaml>=6.0"
           - "anytree>=2.12"

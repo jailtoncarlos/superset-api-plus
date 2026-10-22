@@ -19,8 +19,7 @@ dependencies = [
   "anytree>=2.13.0",
   "shortuuid>=1.0.13",
   "typing_extensions>=4.16.0",
-  "beautifulsoup4>=4.15.0",
-  "requests-cache>=1.3.3"
+  "beautifulsoup4>=4.15.0"
 ]
 
 [project.optional-dependencies]
@@ -89,4 +88,4 @@ filterwarnings = [
 [tool.codespell]
 # Palavras em português (docstrings, logs e mensagens) que o dicionário inglês do codespell
 # confunde com erros de grafia.
-ignore-words-list = "classe,itens,copie,oficial,conter,gere,ser,erro,erros,limite,nome,nomes,cliente,atual,argumentos,construtor,auxiliar,ignora,zar,validade,utiliza,pares,inicial,essencial,controle,comandos,autor"
+ignore-words-list = "classe,itens,copie,repete,oficial,conter,gere,ser,erro,erros,limite,nome,nomes,cliente,atual,argumentos,construtor,auxiliar,ignora,zar,validade,utiliza,pares,inicial,essencial,controle,comandos,autor"

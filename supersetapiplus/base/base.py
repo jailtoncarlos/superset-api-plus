@@ -984,7 +984,8 @@ class ApiModelFactories(ABC):
 
         return obj
 
-    def find(self, filter: QueryStringFilter, columns: list[str] | None = None, page_size: int = 100, page: int = 0):
+    def find(self, filter: QueryStringFilter, columns: list[str] | None = None, page_size: int = 100, page: int = 0,
+             order_column: str | None = None, order_direction: str | None = None):
         """
         Busca objetos com base em filtros e paginação.
 
@@ -993,11 +994,12 @@ class ApiModelFactories(ABC):
             columns (List[str]): Colunas a serem retornadas.
             page_size (int): Tamanho da página de resultados.
             page (int): Número da página.
+            order_column (str, opcional): coluna de ordenação; order_direction "asc" ou "desc".
 
         Returns:
-            List[SerializableModel]: Lista de objetos encontrados.
+            List[SerializableModel]: Lista de objetos encontrados (UnsupportedObject para tipos sem modelo).
         """
-        response = self.client.find(self.base_url, filter, columns, page_size, page)
+        response = self.client.find(self.base_url, filter, columns, page_size, page, order_column, order_direction)
         data_result = response.json()
 
         objects = []
@@ -1013,15 +1015,28 @@ class ApiModelFactories(ABC):
             objects.append(o)
         return objects
 
-    def count(self):
+    def find_all(self, filter: QueryStringFilter | None = None, columns: list[str] | None = None,
+                 page_size: int = 100, order_column: str | None = None, order_direction: str | None = None):
+        """Busca percorrendo todas as páginas; mesmos parâmetros de `find`."""
+        filter = filter or QueryStringFilter()
+        objects, page = [], 0
+        while True:
+            pagina = self.find(filter, columns, page_size, page, order_column, order_direction)
+            objects.extend(pagina)
+            if len(pagina) < page_size:
+                return objects
+            page += 1
+
+    def count(self, filter: QueryStringFilter | None = None) -> int:
         """
-        Retorna a quantidade de objetos no endpoint.
+        Retorna a quantidade de objetos no endpoint, opcionalmente restrita a um filtro.
 
         Returns:
             int: Contagem de objetos.
         """
-        response = self.client.get(self.base_url)
-        return response.json()["count"]
+        if filter is None:
+            return self.client.get(self.base_url).json()["count"]
+        return self.client.find(self.base_url, filter, ["id"], page_size=1).json()["count"]
 
     def find_one(
             self,

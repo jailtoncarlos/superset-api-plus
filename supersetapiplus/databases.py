@@ -27,11 +27,13 @@ class Database(SerializableModel):
 
     database_name: str
     id: int | None = field(default=None)
-    allow_ctas: bool = True
-    allow_cvas: bool = True
-    allow_dml: bool = True
+    # Mesmos padrões do Superset (models/core.py): DML, CTAS/CVAS e execução assíncrona só quando
+    # pedidos explicitamente (antes eram True, liberando INSERT/UPDATE/DELETE no SQL Lab).
+    allow_ctas: bool = False
+    allow_cvas: bool = False
+    allow_dml: bool = False
     allow_multi_schema_metadata_fetch: bool = True
-    allow_run_async: bool = True
+    allow_run_async: bool = False
     expose_in_sqllab: bool = True
     encrypted_extra: str = default_string()
     engine: str = default_string()

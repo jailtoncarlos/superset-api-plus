@@ -178,10 +178,27 @@ def test_exporta_grafico_em_zip(client, dataset, tmp_path):
         client.charts.delete(chart.id)
 
 
-# --- Lacunas conhecidas (T2, issue #307) ---------------------------------------------------
+# --- SQL Lab -------------------------------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="run() usa /superset/sql_json/, removida no 6.1.0: issue #307")
 def test_executa_sql_pelo_database(client, database):
     colunas, dados = client.databases.get(database.id).run("select 1 as um")
 
     assert dados == [{"um": 1}]
+
+
+# --- Filtros de listagem ---------------------------------------------------------------------
+
+def test_operadores_da_lib_sao_aceitos_pelo_servidor(client):
+    filtros = client.get(client.join_urls(client.charts.base_url, "_info"), params={"q": "(keys:!(filters))"}).json()
+    aceitos = {op["operator"] for coluna in filtros["filters"].values() for op in coluna}
+
+    assert {op.value for op in QueryOperator} <= aceitos
+
+
+@pytest.mark.parametrize("operador,valor", [(QueryOperator.NOT_EQUAL, "x"), (QueryOperator.CONTAINS, "zz"),
+                                            (QueryOperator.STARTS_WITH, "zz"), (QueryOperator.IN, ["table"])])
+def test_listagem_com_operadores_responde_sem_erro(client, operador, valor):
+    filtro = QueryStringFilter()
+    filtro.add("viz_type" if operador in (QueryOperator.IN, QueryOperator.NOT_EQUAL) else "slice_name", operador, valor)
+
+    assert client.charts.count(filtro) >= 0
