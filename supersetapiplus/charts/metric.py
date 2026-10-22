@@ -77,21 +77,18 @@ Metric = AdhocMetric | Literal['count', 'sum', 'avg', 'min', 'max', 'count disti
 OrderByTyping = tuple[Metric, bool]
 
 
+@dataclass(frozen=True)
 class OrderBy:
-    def __init__(self, automate: bool = True, sort_ascending: bool = True):
-        self._automate = automate
-        self._sort_ascending = sort_ascending
+    """Ordenação automática ao adicionar uma métrica.
+
+    `automate` gera o orderby da métrica; `sort_ascending` define o sentido. Imutável, para que
+    a instância usada como valor padrão dos métodos add_*_metric possa ser compartilhada.
+    """
+    automate: bool = True
+    sort_ascending: bool = True
 
     def __str__(self):
-        return f'automate: {self._automate}, sort_ascending: {self._sort_ascending}'
-
-    @property
-    def automate(self):
-        self._automate
-
-    @property
-    def sort_ascending(self):
-        self._sort_ascending
+        return f'automate: {self.automate}, sort_ascending: {self.sort_ascending}'
 
 
 class MetricHelper:

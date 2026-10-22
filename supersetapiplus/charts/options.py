@@ -10,7 +10,6 @@ from supersetapiplus.charts.metric import (
     AdhocMetricColumn,
     MetricHelper,
     MetricsListMixin,
-    OrderBy,
     OrderByTyping,
 )
 from supersetapiplus.charts.queries import CurrencyFormat
@@ -99,16 +98,6 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
 
     def validate(self):
         super().validate()
-
-    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
-        raise NotImplementedError("This method should be implemented in the subclass")
-
-    def _add_custom_metric(self, label: str,
-                           automatic_order: OrderBy,
-                           column: AdhocMetricColumn,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
-        raise NotImplementedError("This method should be implemented in the subclass")
 
     def __post_init__(self):
         super().__post_init__()

@@ -565,35 +565,30 @@ class SerializableModel(ParseMixin, ABC):
         Returns:
             dict: Dicionário representando o estado atual do objeto, com os campos convertidos.
         """
-        def prepare_value_tuple(field_name: str, field_value: str, columns: list, convert_to_json: bool):
-            """Prepara elementos de tupla para conversão recursiva."""
-            values_data = []
-            if isinstance(field_value, tuple):
-                # We always expect a tuple (value, json_key);
-                # not for tuple of size 2, most likely
-                # there was an extra comma when declaring the field in @dataclass.
-                if len(field_value) != 2:
+        def prepare_value_tuple(field_name: str, field_value: tuple, columns: list, convert_to_json: bool) -> tuple:
+            """Converte um par (valor, chave), ex.: item de orderby, convertendo cada elemento.
 
-                    raise ValueError(
-                        f"Invalid default for dataclass field '{field_name}': "
-                        f"got tuple of length {len(field_value)}. "
-                        "This usually happens when there is an extra comma after a "
-                        "field declaration in a @dataclass class. Remove the "
-                        "extra comma and try again."
-                    )
-                l0 = field_value[0]
-                l1 = field_value[1]
+            Devolve o próprio par: antes devolvia uma lista com o par, e o orderby saía com um
+            nível de lista a mais ([[["count", true]]] em vez de [["count", true]]).
+            """
+            # Esperamos sempre um par; tupla de outro tamanho costuma ser vírgula sobrando
+            # na declaração do campo no @dataclass.
+            if len(field_value) != 2:
+                raise ValueError(
+                    f"Invalid default for dataclass field '{field_name}': "
+                    f"got tuple of length {len(field_value)}. "
+                    "This usually happens when there is an extra comma after a "
+                    "field declaration in a @dataclass class. Remove the "
+                    "extra comma and try again."
+                )
+            return tuple(prepare_tuple_item(item, convert_to_json) for item in field_value)
 
-                if l0 and isinstance(l0, SerializableModel):
-                    l0 = l0.to_dict(columns_names, convert_to_json)
-                elif l1 and isinstance(l1, SerializableModel):
-                    l1 = l1.to_dict(columns_names, convert_to_json)
-                elif l0 and isinstance(l0, Enum):
-                    l0 = str(l0)
-                elif l1 and isinstance(l1, Enum):
-                    l1 = str(l1)
-                values_data.append((l0, l1))
-            return values_data
+        def prepare_tuple_item(item, convert_to_json: bool):
+            if isinstance(item, SerializableModel):
+                return item.to_dict(columns_names, convert_to_json)
+            if isinstance(item, Enum):
+                return str(item)
+            return item
 
         # Junta colunas explícitas com as definidas na classe
         columns_names = set(columns or [])

@@ -1,5 +1,5 @@
 """Charts."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from supersetapiplus.base.base import SerializableModel
@@ -95,25 +95,30 @@ class TableQueryObject(Query):
     time_offsets: list[str] = field(default_factory=list)
     post_processing: list[Any] = field(default_factory=list)
 
-    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
-        #In the table the option is sort descending
-        automatic_order.sort_ascending = not automatic_order.sort_ascending
-        super()._add_simple_metric(metric, automatic_order)
-
-    def _add_custom_metric(self, label: str,
-                           automatic_order: OrderBy,
-                           column: AdhocMetricColumn = None,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
-        #In the table the option is sort descending
-        automatic_order.sort_ascending = not automatic_order.sort_ascending
-        super()._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
 
 
 @dataclass
 class TableQueryContext(QueryContext):
     form_data: TableFormData = object_field(cls=TableFormData, default_factory=TableFormData)
     queries: list[TableQueryObject] = object_field(cls=TableQueryObject, default_factory=list)
+
+    @staticmethod
+    def _table_order(automatic_order: OrderBy) -> OrderBy:
+        # Na tabela o sentido padrão é decrescente: inverte o pedido numa cópia, sem alterar o
+        # OrderBy do chamador (que pode ser o valor padrão compartilhado entre chamadas).
+        if not automatic_order:
+            return automatic_order
+        return replace(automatic_order, sort_ascending=not automatic_order.sort_ascending)
+
+    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
+        super()._add_simple_metric(metric, self._table_order(automatic_order))
+
+    def _add_custom_metric(self, label: str,
+                           automatic_order: OrderBy,
+                           column: AdhocMetricColumn = None,
+                           sql_expression: str = None,
+                           aggregate: MetricType = None):
+        super()._add_custom_metric(label, self._table_order(automatic_order), column, sql_expression, aggregate)
 
     def validate(self):
         super().validate()

@@ -309,31 +309,15 @@ class CheckFreeSpaceMixin:
             logger.warning(msg)
             return True, total_width
 
-    #Get the next brother free
     def _validate(self, item: ItemPosition):
-        try:
-            self.parent
-        except:
-            logger.warning(f'self not parent {self}?!'
-                           f'{self.__dict__}')
-            return
-
+        # Componente com relocate=False não pode estourar a largura da linha. Antes, o erro era
+        # levantado dentro de um try/except que só registrava aviso, e a validação nunca valia.
         if not hasattr(item, 'width') or self.parent is None:
             return
 
-        total_width = item.width
-        try:
-            for node_sibling in self.siblings:
-                total_width += node_sibling.item.width
-            if total_width > ItemPosition.MAX_WIDTH and not item.relocate:
-                raise NodePositionValidationError(
-                    f'There is not enough space for this component. Total {total_width} exceeds the maximum allowable width of {MarkdownItemPosition.MAX_WIDTH}')
-        except Exception as err:
-            msg = f"""Unexpected error. Unhandled exception.
-                    err={err}
-                    item={item}
-                """
-            logger.warning(msg)
+        total_width = item.width + sum(getattr(sibling.item, 'width', 0) for sibling in self.siblings)
+        if total_width > ItemPosition.MAX_WIDTH and not item.relocate:
+            raise _not_enough_space(total_width)
 
 
 class MarkdownNodePosition(CheckFreeSpaceMixin, NodePosition):

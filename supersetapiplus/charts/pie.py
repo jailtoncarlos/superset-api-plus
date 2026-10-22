@@ -77,7 +77,7 @@ class PieQueryContext(QueryContext):
                     for order in query.orderby:
                         if not isinstance(order, tuple):
                             raise ValidationError('Order by must be a tuple.',
-                                                  slution=_SOLUTION_USE_ADD_METRIC)
+                                                  solution=_SOLUTION_USE_ADD_METRIC)
                         if self.form_data.metric == order[0]:
                             equals = True
                             break
