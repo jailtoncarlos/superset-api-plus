@@ -154,6 +154,34 @@ On every commit they run, on the staged files:
 `mypy` runs only on demand (`pre-commit run mypy --hook-stage manual`) until the codebase passes
 `mypy --strict`.
 
+### Integration tests (test stack)
+
+`docker-compose.yml` starts a disposable Superset (version set in `.env`, default 6.1.0) plus a
+Postgres for test data. All settings come from `.env` (copy `.env.example`; `.env` is not versioned):
+
+```bash
+cp .env.example .env            # adjust SUPERSET_SECRET_KEY, credentials, port, version
+docker compose -p superset-api-plus up -d --build
+SUPERSET_INTEGRATION=1 pytest tests/integration -v
+docker compose -p superset-api-plus down -v
+```
+
+The suite creates its own database, dataset, charts, dashboard and saved query (prefix
+`zz-superset-api-plus-teste`) and removes them. To target another instance instead, set
+`SUPERSET_URL`, `SUPERSET_USERNAME`, `SUPERSET_PASSWORD` and `SUPERSET_TEST_DATABASE_URI`.
+
+### Configuration through environment variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `SUPERSET_API_PLUS_TIMEOUT_CONNECT` | `10` | connection timeout (s) |
+| `SUPERSET_API_PLUS_TIMEOUT_READ` | `20` | read timeout (s) |
+| `SUPERSET_API_PLUS_RETRIES` | `3` | retries on transient HTTP errors |
+| `SUPERSET_API_PLUS_BACKOFF_FACTOR` | `0.5` | exponential backoff factor |
+| `SUPERSET_API_PLUS_CACHE_EXPIRE_DAYS` | `1` | expiration of the optional HTTP cache |
+
+The examples in `examples/` read `SUPERSET_URL`, `SUPERSET_USERNAME` and `SUPERSET_PASSWORD`.
+
 ### Conformance with the Superset OpenAPI specification
 
 `tests/unit/test_conformidade_openapi.py` checks the library against an excerpt of the official

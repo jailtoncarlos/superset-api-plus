@@ -1,23 +1,29 @@
+"""Altera as cores de rótulos e o título de um dashboard.
+
+Uso: python examples/change_colors.py "<título do dashboard>" "<rótulo>" "<cor hex>"
+"""
+import os
+import sys
+
 from supersetapiplus.client import SupersetClient
+from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 
-client = SupersetClient(
-    host="http://localhost:8080",
-    username="admin",
-    password="admin",
-)
+# Conexão lida do ambiente: SUPERSET_URL, SUPERSET_USERNAME e SUPERSET_PASSWORD.
+client = SupersetClient(os.environ["SUPERSET_URL"], os.environ["SUPERSET_USERNAME"], os.environ["SUPERSET_PASSWORD"])
+client.enable_session_mode()  # cookie + CSRF; necessário quando o papel Public tem permissões (Superset 6.x)
 
-dashboards = client.dashboards.find()
-dashboard = dashboards[0]
 
-# Change color and title
-print(dashboard.colors)
-dashboard.update_colors({"label": "#fcba03"})
-print(dashboard.colors)
-dashboard.dashboard_title = "New title"
+def filtro(coluna: str, valor: str) -> QueryStringFilter:
+    f = QueryStringFilter()
+    f.add(coluna, QueryOperator.EQUAL, valor)
+    return f
 
-# Save all changes
+
+titulo, rotulo, cor = sys.argv[1:4]
+dashboard = client.dashboards.find_one(filtro("dashboard_title", titulo), full=True)
+
+print("antes:", dashboard.colors)
+dashboard.update_colors({rotulo: cor})
 dashboard.save()
 
-# Fetch again
-dashboards = client.dashboards.find()
-print(dashboards)
+print("depois:", client.dashboards.get(dashboard.id).colors)

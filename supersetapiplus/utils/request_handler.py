@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from datetime import timedelta
 
@@ -17,12 +18,24 @@ from supersetapiplus.utils.sensitive import mask_body, mask_headers, mask_reques
 logger = logging.getLogger(__name__)
 
 
-REQUESTS_CACHE_EXPIRE_AFTER_DAYS = 1
+def _numero_do_ambiente(nome: str, padrao: float) -> float:
+    """Lê um parâmetro de rede do ambiente (ex.: SUPERSET_API_PLUS_TIMEOUT_READ=60), com valor padrão."""
+    valor = os.getenv(nome)
+    if valor is None or not valor.strip():
+        return padrao
+    try:
+        return type(padrao)(valor)
+    except ValueError as err:
+        raise ValueError(f"{nome}={valor!r} não é um número válido") from err
 
-TIMEOUT_CONNECT = 10
-TIMEOUT_READ = 20
-DEFAULT_RETRIES = 3
-DEFAULT_BACKOFF_FACTOR = 0.5
+
+# Padrões de rede, ajustáveis por variável de ambiente sem alterar código; cada chamada ainda
+# aceita timeout_connect/timeout_read/retries/backoff_factor explícitos.
+REQUESTS_CACHE_EXPIRE_AFTER_DAYS = _numero_do_ambiente("SUPERSET_API_PLUS_CACHE_EXPIRE_DAYS", 1)
+TIMEOUT_CONNECT = _numero_do_ambiente("SUPERSET_API_PLUS_TIMEOUT_CONNECT", 10)
+TIMEOUT_READ = _numero_do_ambiente("SUPERSET_API_PLUS_TIMEOUT_READ", 20)
+DEFAULT_RETRIES = _numero_do_ambiente("SUPERSET_API_PLUS_RETRIES", 3)
+DEFAULT_BACKOFF_FACTOR = _numero_do_ambiente("SUPERSET_API_PLUS_BACKOFF_FACTOR", 0.5)
 DEFAULT_STATUS_FORCELIST = [
     429,  # Too Many Requests -  Indica que o cliente enviou muitas requisições
     # em um curto período de tempo.

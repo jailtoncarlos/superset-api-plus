@@ -1,6 +1,7 @@
 """Segurança do cliente: logging da aplicação, verificação TLS e segredos fora dos logs."""
 import json
 import logging
+import os
 import subprocess
 import sys
 
@@ -90,3 +91,15 @@ def test_mascara_corpo_json_form_e_uri_de_conexao():
     assert json.loads(mask_body(corpo_json)) == {"username": "robo", "password": MASK, "nested": {"refresh_token": MASK}}
     assert mask_body(corpo_form) == f"csrf_token={MASK.replace('*', '%2A')}&username=robo&password={MASK.replace('*', '%2A')}"
     assert mask_data(database)["sqlalchemy_uri"] == f"postgresql://robo:{MASK}@db:5432/dw"
+
+
+def test_parametros_de_rede_vem_do_ambiente():
+    codigo = ("from supersetapiplus.utils import request_handler as r; "
+              "print(r.TIMEOUT_CONNECT, r.TIMEOUT_READ, r.DEFAULT_RETRIES, r.DEFAULT_BACKOFF_FACTOR)")
+    ambiente = {**os.environ, "SUPERSET_API_PLUS_TIMEOUT_READ": "60", "SUPERSET_API_PLUS_RETRIES": "5",
+                "SUPERSET_API_PLUS_BACKOFF_FACTOR": "1.5"}
+    ambiente.pop("SUPERSET_API_PLUS_TIMEOUT_CONNECT", None)
+
+    saida = subprocess.run([sys.executable, "-c", codigo], capture_output=True, text=True, check=True, env=ambiente)
+
+    assert saida.stdout.split() == ["10", "60", "5", "1.5"]
