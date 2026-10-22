@@ -29,6 +29,14 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Chart(SerializableModel):
     JSON_FIELDS = ['params', 'query_context']
+    PRESERVE_EXTRA_FIELDS = False
+    # Campos que o Superset legitimamente mantém diferentes entre params e
+    # query_context.form_data: identidade (slice_id antigo após import/export de dashboards)
+    # e parâmetros de requisição que o frontend injeta apenas no form_data.
+    VOLATILE_FORM_DATA_FIELDS = {'slice_id', 'dashboards', 'force', 'result_format', 'result_type'}
+    # Sufixos de chaves que o Superset grava em params mas pode omitir de query_context.form_data
+    # (ex.: chaves da query B do mixed_timeseries). Só a ausência é tolerada, não valores divergentes.
+    PARAMS_ONLY_FIELD_SUFFIXES = ()
 
     slice_name: str
     id: int = field(default=None)
@@ -81,14 +89,30 @@ class Chart(SerializableModel):
             if self.params.datasource is None:
                 self.query_context.datasource.id = self.datasource_id
                 self.params.datasource = f'{self.datasource_id}__{self.datasource_type}'
-                self.query_context.form_data = self.params.datasource
+                self.query_context.form_data = copy.deepcopy(self.params)
 
     def validate(self):
         super().validate()
-        if self.params != self.query_context.form_data:
-            added, removed, modified, same = detailed_dict_diff(self.params.to_dict(), self.query_context.form_data.to_dict())
+        # query_context nulo (chart nunca salvo pelo Explore) ou sem form_data (charts de exemplo
+        # carregados por YAML no Superset 6.1) não têm o que comparar com params.
+        if self.query_context is None or not isinstance(self.query_context.form_data, SerializableModel):
+            return
 
-            raise ValidationError(message=f'self.params is not the same as self.query_conext.form_data. Diff: {modified}',
+        params = {k: v for k, v in self.params.to_dict().items() if k not in self.VOLATILE_FORM_DATA_FIELDS}
+        form_data = {k: v for k, v in self.query_context.form_data.to_dict().items()
+                     if k not in self.VOLATILE_FORM_DATA_FIELDS}
+        # Versões antigas do Superset gravavam form_data.datasource como "None__table";
+        # o params continua sendo a fonte da verdade e o Superset ignora o valor inválido.
+        if str(form_data.get('datasource', '')).startswith('None__'):
+            form_data['datasource'] = params.get('datasource')
+        if self.PARAMS_ONLY_FIELD_SUFFIXES:
+            params = {k: v for k, v in params.items()
+                      if k in form_data or not k.endswith(self.PARAMS_ONLY_FIELD_SUFFIXES)}
+        if params != form_data:
+            added, removed, modified, same = detailed_dict_diff(params, form_data)
+
+            raise ValidationError(message=f'self.params is not the same as self.query_conext.form_data. '
+                                          f'Diff: modified={modified}, added={added}, removed={removed}',
                                   solution="We recommend using the public methods of the chart class.")
 
     @classmethod
@@ -206,6 +230,11 @@ class Chart(SerializableModel):
         obj = super().from_json(data)
         obj._dashboards = obj.dashboards
 
+        # O Superset mantém query_context nulo em charts que nunca foram salvos pelo Explore
+        # (comum em charts importados). Preserva o nulo em vez de fabricar um contexto vazio.
+        if data.get('query_context') in (None, '', 'null'):
+            obj.query_context = None
+
         # set default datasource
         if obj.query_context:
             datasource = obj.query_context.datasource
@@ -214,6 +243,10 @@ class Chart(SerializableModel):
                 obj.datasource_type = datasource.type
             else:
                 logger.warning("datasource query_context without 'id' defined")
+        elif obj.params.datasource and '__' in str(obj.params.datasource):
+            datasource_id, datasource_type = str(obj.params.datasource).split('__', 1)
+            obj.datasource_id = int(datasource_id)
+            obj.datasource_type = DatasourceType(datasource_type)
 
         return obj
 

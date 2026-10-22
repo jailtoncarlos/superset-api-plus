@@ -92,6 +92,12 @@ class SerializableModel(ParseMixin, ABC):
 
     _extra_fields: Dict = {}
 
+    # Reemite em to_dict os campos não modelados recebidos em from_json. Necessário para
+    # estruturas livres do Superset (params, query_context, json_metadata), em que a
+    # biblioteca modela só parte das chaves e descartá-las corromperia o objeto ao salvar.
+    # Modelos de endpoints REST com schema estrito (chart, dashboard, dataset...) desativam.
+    PRESERVE_EXTRA_FIELDS = True
+
     def validate(self):
         ...
 
@@ -150,27 +156,29 @@ class SerializableModel(ParseMixin, ABC):
             bool: `True` se os objetos forem equivalentes em todos os atributos relevantes; `False` caso contrário.
                   Retorna `NotImplemented` se o objeto comparado não for do mesmo tipo.
 
-        Exceções:
-            NotImplementedError: Caso o objeto `other` não seja do mesmo tipo da instância atual.
+        Observação:
+            Subclasses decoradas com `@dataclass` recebem um `__eq__` gerado automaticamente,
+            que também retorna `NotImplemented` quando as classes diferem.
         """
 
         # Verifica se os objetos são da mesma classe. Caso contrário, não implementa comparação.
         if not isinstance(other, type(self)):
-            return NotImplementedError()
+            return NotImplemented
 
-        # Obtém os atributos da instância atual e remove o campo _extra_fields da comparação
-        dict_self = vars(self)
-        dict_self.pop('_extra_fields', None)
-
-        # Obtém os atributos do objeto comparado e remove o campo _extra_fields da comparação
-        dict_other = vars(other)
-        dict_other.pop('_extra_fields', None)
+        # Copia os atributos para não remover _extra_fields dos objetos comparados
+        dict_self = {k: v for k, v in vars(self).items() if k != '_extra_fields'}
+        dict_other = {k: v for k, v in vars(other).items() if k != '_extra_fields'}
 
         # Retorna True se os dicionários forem iguais (atributos equivalentes)
         return dict_self == dict_other
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        # `not NotImplemented` é erro a partir do Python 3.14 e, antes disso, resultava
+        # silenciosamente em False (objetos de classes distintas tratados como iguais).
+        result = self.__eq__(other)
+        if result is NotImplemented:
+            return result
+        return not result
 
     def __hash__(self):
         """
@@ -654,6 +662,10 @@ class SerializableModel(ParseMixin, ABC):
                     data[field_name] = json.dumps(value, cls=ObjectDecoder)
                 else:
                     data[field_name] = value
+
+        if self.PRESERVE_EXTRA_FIELDS:
+            for extra_name, extra_value in (self._extra_fields or {}).items():
+                data.setdefault(extra_name, extra_value)
 
         copydata = data
         # Remove campo técnico "_extra_fields" se ainda presente

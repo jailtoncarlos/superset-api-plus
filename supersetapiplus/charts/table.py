@@ -67,9 +67,17 @@ class TableOption(TableOptionBase):
 
     def validate(self):
         super().validate()
-        if not self.metrics:
-            raise ValidationError(message='Field metrics cannot be empty.',
-                                  solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')
+        # No modo raw a tabela lista colunas (all_columns) e não usa métricas.
+        if str(self.query_mode) == str(QueryModeType.RAW):
+            if not self.all_columns:
+                raise ValidationError(message='Field all_columns cannot be empty when query_mode is raw.',
+                                      solution='Inform the columns to be listed in all_columns.')
+        # No modo aggregate o Superset aceita apenas dimensões (valores distintos), apenas
+        # métricas ou ambos; só é inválida a tabela sem nenhum dos três.
+        elif not (self.metrics or self.groupby or self.percent_metrics):
+            raise ValidationError(message='Fields metrics, groupby and percent_metrics cannot all be empty.',
+                                  solution='Use one of the add_simple_metric, add_custom_metric or '
+                                           'add_simple_dimension methods.')
 
     def _add_column_config(self, label:str, column_config:ColumnConfig):
         self.column_config[label] = column_config

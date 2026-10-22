@@ -9,6 +9,7 @@ from supersetapiplus.base.base import SerializableModel, ApiModelFactories
 @dataclass
 class SavedQuery(SerializableModel):
     JSON_FIELDS = []
+    PRESERVE_EXTRA_FIELDS = False
 
     label: str
     id: Optional[int] = field(default=None)

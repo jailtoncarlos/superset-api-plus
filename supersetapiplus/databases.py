@@ -11,6 +11,7 @@ class Database(SerializableModel):
     JSON_FIELDS = [
         "extra",
     ]
+    PRESERVE_EXTRA_FIELDS = False
 
     database_name: str
     id: Optional[int] = field(default=None)

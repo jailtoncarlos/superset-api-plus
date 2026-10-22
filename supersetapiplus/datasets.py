@@ -10,6 +10,7 @@ from supersetapiplus.exceptions import NotFound
 @dataclass
 class Dataset(SerializableModel):
     JSON_FIELDS = []
+    PRESERVE_EXTRA_FIELDS = False
 
     id: Optional[int] = field(default=None)
     table_name: str = ""

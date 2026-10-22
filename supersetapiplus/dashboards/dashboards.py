@@ -23,6 +23,7 @@ def defult_metadata_position():
 @dataclass
 class Dashboard(SerializableModel):
     JSON_FIELDS = ['json_metadata', 'position_json']
+    PRESERVE_EXTRA_FIELDS = False
 
     dashboard_title: str = ''
 
