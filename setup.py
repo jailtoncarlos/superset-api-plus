@@ -35,7 +35,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: Libraries",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.10",
     install_requires=read("requirements/requirements-packaging.txt"),
     packages=find_packages(exclude=["tests*"]),
     url="",

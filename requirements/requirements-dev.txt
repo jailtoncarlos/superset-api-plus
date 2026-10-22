@@ -12,7 +12,7 @@ ipdb>=0.13.13
 # Shell interativo
 # Shell interativo aprimorado para Python, com autocompletar, histórico e
 # introspecção avançada.
-ipython==8.32.0
+ipython>=8.32.0
 
 # Qualidade de Codigo - Garantir código limpo e organizado
 ## Executa checks automáticos antes de cada commit (git commit), garantindo que
@@ -22,17 +22,17 @@ pre-commit>=4.1.0
 pylint>=3.3.4
 ## Formatador automático de código opinionado, reformatando o código para
 ## manter um padrão consistente
-black==25.1.0
+black==26.10.1
 ## Ferramenta de análise estática de código, focada em verificar erros de estilo.
 flake8>=7.1.1
 ## Organiza importações do Python automaticamente, agrupando e ordenando
 ## alfabeticamente.
-isort==6.0.0
+isort==9.0.2
 ## Atualiza código legado para versões mais recentes do Python.
-pyupgrade==3.19.0
+pyupgrade>=3.19.0
 ## Verifica se o código segue as boas práticas de programação definidas pela
 ## comunidade.
-mypy==1.15.0
+mypy==2.4.0
 
 
 twine>=6.1.0

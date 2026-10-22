@@ -3,3 +3,7 @@
 pytest>=8.3.4
 ## Gera relatórios de cobertura de código para testes com pytest
 pytest-cov>=6.0.0
+## Mocks de requisições HTTP usados pelas fixtures (tests/conftest.py)
+requests-mock>=1.12.1
+## Sobe o Superset via docker-compose nos testes de integração
+pytest-docker>=3.2.6

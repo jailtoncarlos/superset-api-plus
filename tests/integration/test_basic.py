@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import string
 import tempfile
@@ -8,12 +9,19 @@ import requests
 import requests.exceptions
 
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.client import SupersetClient, raise_for_status
+from supersetapiplus.client import SupersetClient
+from supersetapiplus.utils.request_handler import RequestHandler
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.databases import Database
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.exceptions import BadRequestError, ComplexBadRequestError, MultipleFound, NotFound, QueryLimitReached
 from supersetapiplus.saved_queries import SavedQuery
+
+raise_for_status = RequestHandler.raise_for_status
+
+# Exige uma instância do Superset via pytest-docker (docker-compose.yml na raiz).
+pytestmark = pytest.mark.skipif(not os.getenv("SUPERSET_INTEGRATION"),
+                                reason="defina SUPERSET_INTEGRATION=1 para rodar os testes de integração")
 
 
 def random_str(length, lowercase=False):

@@ -25,6 +25,9 @@ pandas>=2.2.3
 # Biblioteca para envio de requisições HTTP de forma simples e intuitiva.
 requests>=2.32.3
 
+# Parsing de HTML (extração do token CSRF da página de login do Superset).
+beautifulsoup4>=4.12.3
+
 # Extensão de requests que permite cache local de respostas HTTP, reduzindo chamadas repetidas.
 requests-cache>=1.2.1
 
@@ -39,8 +42,6 @@ requests-oauthlib>=2.0.0
 # Biblioteca para leitura e escrita de arquivos YAML (formato de configuração).
 pyyaml>=6.0.2
 
-# Implementação retrocompatível de propriedades com cache para versões antigas do Python.
-cached_property==2.0.1
 
 # Estrutura de árvore generalizada para representar hierarquias de objetos.
 anytree>=2.12.1
@@ -50,3 +51,6 @@ shortuuid>=1.0.13
 
 # Estrutura de conjunto que mantém a ordem de inserção dos elementos.
 ordered-set>=4.1.0
+
+# Backports de tipagem (Self) usados nos modelos.
+typing_extensions>=4.12.2

@@ -11,7 +11,7 @@ license = { text = "MPL-2.0" }
 authors = [
   { name = "COSINF/DIGTI/IFRN", email = "jailtoncarlos@gmail.com" }
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 keywords = ["superset", "dashboard", "automation", "api", "client"]
 dependencies = [
   "requests>=2.32.3",
@@ -19,26 +19,34 @@ dependencies = [
   "pyyaml>=6.0.2",
   "pandas>=2.2.3",
   "anytree>=2.12.1",
-  "cached_property==2.0.1",
   "shortuuid>=1.0.13",
   "ordered-set>=4.1.0",
-  "python-dotenv>=1.0.1"
+  "python-dotenv>=1.0.1",
+  "typing_extensions>=4.12.2",
+  "beautifulsoup4>=4.12.3",
+  "requests-cache>=1.2.1"
 ]
 
 [project.optional-dependencies]
 dev = [
   "ipdb>=0.13.13",
-  "ipython==8.32.0",
+  "ipython>=8.32.0",
   "pre-commit>=4.1.0",
-  "mypy==1.15.0",
-  "ruff>=0.4.4",
+  "mypy==2.4.0",
+  "ruff>=0.17.2",
   "tabulate>=0.9.0",
   "twine>=6.1.0"
 ]
 
+graph = [
+  "graphviz>=0.20.3"
+]
+
 test = [
   "pytest>=8.3.4",
-  "pytest-cov>=6.0.0"
+  "pytest-cov>=6.0.0",
+  "requests-mock>=1.12.1",
+  "pytest-docker>=3.2.6"
 ]
 
 [project.urls]
