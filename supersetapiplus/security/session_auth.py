@@ -28,13 +28,16 @@ class SessionAuthMixin:
         login_page_url = f"{self.host}/login/"
         logger.debug(f"[SessionAuth] Requisitando página de login para obter CSRF: {login_page_url}")
 
-        # Etapa 1: Obter o token CSRF da página de login
+        # Etapa 1: Obter o token CSRF da página de login. A requisição precisa usar a mesma
+        # sessão do POST: o token do formulário só é válido junto do cookie de sessão emitido
+        # aqui (Flask-WTF); sem ele o Superset rejeita o login e redireciona para /login/.
         resp = RequestHandler.request_with_retry(
             url=login_page_url,
             method="GET",
             verify=self._verify,
             stream=False,
             headers={"Accept": "text/html"},
+            session=session,
         )
         soup = BeautifulSoup(resp.text, "html.parser")
         csrf_token_input = soup.find("input", {"name": "csrf_token"})

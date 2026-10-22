@@ -2,6 +2,7 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 
+from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import Metric, AdhocMetricColumn, OrderBy
@@ -119,7 +120,8 @@ class TableQueryContext(QueryContext):
         # junta todas as métricas dos queries numa lista
         query_metrics = [qm for q in self.queries for qm in q.metrics]
         # filtra as métricas do form_data que não aparecem em query_metrics
-        missing = [fm for fm in self.form_data.metrics if fm not in query_metrics]
+        form_data_metrics = self.form_data.metrics if isinstance(self.form_data, SerializableModel) else []
+        missing = [fm for fm in form_data_metrics if fm not in query_metrics]
         if missing:
             raise ValidationError(
                 message=f'These metrics from form_data are missing in queries.metrics: {missing}',

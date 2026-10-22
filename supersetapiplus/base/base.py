@@ -1,5 +1,6 @@
 """Base classes."""
 import dataclasses
+import importlib
 import logging
 from abc import abstractmethod, ABC
 from enum import Enum
@@ -23,7 +24,7 @@ from typing import List, Union, Dict, get_origin, Any, Optional
 
 import yaml
 
-from supersetapiplus.exceptions import MultipleFound, NotFound, \
+from supersetapiplus.exceptions import MultipleFound, NotFound, UnsupportedTypeError, \
     LoadJsonError
 from supersetapiplus.base.parse import ParseMixin
 from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
@@ -848,6 +849,18 @@ class ApiModelFactories(ABC):
             m.append(type_)
 
             module_name = '.'.join(m)
+
+            # Importa o módulo do tipo sob demanda; antes só funcionava se ele já
+            # tivesse sido importado por outro caminho (sys.modules).
+            try:
+                importlib.import_module(module_name)
+            except ModuleNotFoundError as e:
+                if e.name != module_name:
+                    raise
+                raise UnsupportedTypeError(
+                    f"viz_type '{type_}' is not supported by superset-api-plus "
+                    f"(module '{module_name}' not found)."
+                ) from e
 
             return self._default_object_class().get_class(type_, module_name)
 

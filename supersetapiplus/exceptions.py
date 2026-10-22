@@ -136,3 +136,7 @@ class ChartValidationError(ValidationError):
 
     def __init__(self, message: str, solution: str = None):
         super().__init__(message, solution)
+
+
+class UnsupportedTypeError(NotImplementedError):
+    """Tipo de objeto (ex.: viz_type de chart) sem modelo correspondente na biblioteca."""
