@@ -122,48 +122,6 @@ class EchartsTimeseriesBarChart(Chart):
     query_context: TimeSeriesBarQueryContext = object_field(
         cls=TimeSeriesBarQueryContext,  default_factory=TimeSeriesBarQueryContext)
 
-    def validate(self):
-        """
-        Verifica se params.x_axis_sort corresponde a um 'label' válido em:
-          1) self.params.metrics
-          2) cada uma das listas de metrics em self.query_context.queries
-
-        Lança ChartValidationError em caso de inconsistência.
-        """
-        super().validate()
-        x_axis_sort_label = self.params.x_axis_sort
-
-
-        # # 1) Check in params.metrics
-        # if not any(metric.label == x_axis_sort_label for metric in self.params.metrics):
-        #     raise ChartValidationError(
-        #         message=(
-        #             f"x_axis_sort='{x_axis_sort_label}' is invalid: "
-        #             "it does not match any metric label in params.metrics."
-        #         ),
-        #         solution=(
-        #             "Ensure that 'params.x_axis_sort' matches one of the "
-        #             "'metric.label' entries defined in params.metrics."
-        #         )
-        #     )
-        #
-        # # 2) Check in each query.metrics of query_context
-        # if not any(
-        #         metric.label == x_axis_sort_label
-        #         for query in self.query_context.queries
-        #         for metric in getattr(query, "metrics", [])
-        # ):
-        #     raise ChartValidationError(
-        #         message=(
-        #             f"x_axis_sort='{x_axis_sort_label}' is invalid: "
-        #             "it does not match any metric label in query_context.queries."
-        #         ),
-        #         solution=(
-        #             "Verify that 'query_context.queries' contains the specified "
-        #             "metric label in its metrics lists."
-        #         )
-        #     )
-
     def y_axis(self, label: str,
                sql_expression: str = None,
                sort_ascending: bool = True,

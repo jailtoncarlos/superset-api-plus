@@ -138,7 +138,7 @@ class MetricHelper:
         list_aggregates = [e.value for e in MetricType]
         if str(value) not in list_aggregates:
             raise ValidationError(message='Aggregate not found.',
-                                  solution=f'Use o enum types.MetricType')
+                                  solution='Use o enum types.MetricType')
 
 
 @dataclass

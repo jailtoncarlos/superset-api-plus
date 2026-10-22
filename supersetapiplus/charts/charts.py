@@ -13,7 +13,7 @@ from supersetapiplus.base.fields import object_field
 from supersetapiplus.base.types import DatasourceType
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import Query, AdhocMetricColumn
+from supersetapiplus.charts.queries import AdhocMetricColumn
 from supersetapiplus.charts.query_context import QueryContext, DataSource
 from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, FilterExpressionType, \
     MetricType
@@ -129,12 +129,6 @@ class Chart(SerializableModel):
                         datasource_type=datasource.type)
 
         options.datasource = f'{datasource.id}__{datasource.type}'
-        # options.groupby = groupby
-
-        ClassQuerie = Query.get_class(type_=str(new_chart.viz_type))
-
-        # query = ClassQuerie(columns=groupby)
-        # new_chart.query_context.queries.append(query)
 
         new_chart.params = options
         new_chart.query_context.form_data = copy.deepcopy(options)

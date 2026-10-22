@@ -53,7 +53,6 @@ class TreeNodePosition:
             for child_position_id in parent_node_value.get("children", []):
                 position_node = tree.find_by_id(child_position_id)
                 if not position_node:
-                    type_ = data[child_position_id]['type']
                     kwargs = data[child_position_id].copy()
                     kwargs.pop('children')
                     kwargs.pop('parents')

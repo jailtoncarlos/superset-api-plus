@@ -253,7 +253,7 @@ class CheckFreeSpaceMixin:
                             return node_brother
 
                 # No rows with space were found, so create a new row node.
-                logger.debug(f'There are no rows nodes with space. Creating a new row node and returning it.')
+                logger.debug('There are no rows nodes with space. Creating a new row node and returning it.')
                 return self.get_new_node_position(RowItemPosition(), thisnode.parent)
             elif thisnode.type_ == ItemPositionType.TAB:
                 if thisnode.children:

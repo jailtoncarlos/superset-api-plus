@@ -61,8 +61,14 @@ python_version = "3.10"
 
 [tool.ruff]
 line-length = 127
-select = ["E", "F", "I", "UP", "B", "C", "W", "T201", "T100"]  # T201 = print, T100 = pdb
 exclude = ["tests/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C", "W", "T201", "T100"]  # T201 = print, T100 = pdb
+
+[tool.ruff.lint.per-file-ignores]
+# Scripts de exemplo imprimem o resultado por design.
+"examples/*" = ["T201"]
 
 [tool.pytest.ini_options]
 log_cli = true

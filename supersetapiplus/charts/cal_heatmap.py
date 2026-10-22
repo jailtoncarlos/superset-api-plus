@@ -5,7 +5,7 @@ from typing import List, Type
 
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.options import Option, OptionListGroupByMixin
+from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType

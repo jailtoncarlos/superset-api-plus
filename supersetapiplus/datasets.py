@@ -62,7 +62,7 @@ class Datasets(ApiModelFactories):
                 'type': result['datasource_type']
             }
         else:
-            raise NotFound(f'Attribut result does not exist in object response.')
+            raise NotFound('Attribute result does not exist in object response.')
         return DataSource(**data)
 
     def _default_object_class(self) -> Type[SerializableModel]:
