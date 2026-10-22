@@ -74,3 +74,12 @@ def test_layout_montado_por_codigo_e_consistente():
     assert sorted(g["meta"]["chartId"] for g in graficos) == [1, 2, 3]
     linhas = [i for i in itens.values() if i["type"] == "ROW"]
     assert all(sum(itens[c]["meta"]["width"] for c in linha["children"]) <= 12 for linha in linhas)
+
+
+def test_cores_do_dashboard_sao_lidas_e_atualizadas_no_json_metadata():
+    dashboard = Dashboard.from_json(exportado())
+
+    dashboard.update_colors({"B": "#000000"})
+
+    assert dashboard.colors == {"A": "#ffffff", "B": "#000000"}
+    assert campo(dashboard, "json_metadata")["label_colors"] == {"A": "#ffffff", "B": "#000000"}

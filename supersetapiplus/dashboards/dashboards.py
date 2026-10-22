@@ -96,12 +96,12 @@ class Dashboard(SerializableModel):
     @property
     def colors(self) -> dict:
         """Get dashboard color mapping."""
-        return self.json_metadata.get("label_colors", {})
+        return self.json_metadata.label_colors
 
     @colors.setter
     def colors(self, value: dict) -> None:
         """Set dashboard color mapping."""
-        self.json_metadata["label_colors"] = value
+        self.json_metadata.label_colors = dict(value)
 
     def update_colors(self, value: dict) -> None:
         """Update dashboard colors."""
