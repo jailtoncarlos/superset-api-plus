@@ -1,8 +1,8 @@
 # Testes
 ## Framework de testes para Python, mais poderoso e flexível que unittest.
-pytest>=8.3.4
+pytest>=9.1.1
 ## Gera relatórios de cobertura de código para testes com pytest
-pytest-cov>=6.0.0
+pytest-cov>=7.1.0
 ## Mocks de requisições HTTP usados pelas fixtures (tests/conftest.py)
 requests-mock>=1.12.1
 ## Sobe o Superset via docker-compose nos testes de integração

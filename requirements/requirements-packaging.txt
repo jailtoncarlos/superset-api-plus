@@ -3,36 +3,17 @@
 # ========================================================
 
 # -----------------------
-# Utilitários de Ambiente
-# -----------------------
-
-# Permite carregar variáveis de ambiente a partir de arquivos .env
-python-dotenv>=1.0.1
-
-
-# -----------------------
-# Manipulação de Dados
-# -----------------------
-
-# Biblioteca fundamental para análise e manipulação de dados com suporte a estruturas de dados como DataFrame.
-pandas>=2.2.3
-
-
-# -----------------------
 # Comunicação via HTTP
 # -----------------------
 
 # Biblioteca para envio de requisições HTTP de forma simples e intuitiva.
-requests>=2.32.3
+requests>=2.34.2
 
 # Parsing de HTML (extração do token CSRF da página de login do Superset).
-beautifulsoup4>=4.12.3
+beautifulsoup4>=4.15.0
 
 # Extensão de requests que permite cache local de respostas HTTP, reduzindo chamadas repetidas.
-requests-cache>=1.2.1
-
-# Suporte à autenticação OAuth1 e OAuth2 na biblioteca requests.
-requests-oauthlib>=2.0.0
+requests-cache>=1.3.3
 
 
 # -----------------------
@@ -40,17 +21,14 @@ requests-oauthlib>=2.0.0
 # -----------------------
 
 # Biblioteca para leitura e escrita de arquivos YAML (formato de configuração).
-pyyaml>=6.0.2
+pyyaml>=6.0.3
 
 
 # Estrutura de árvore generalizada para representar hierarquias de objetos.
-anytree>=2.12.1
+anytree>=2.13.0
 
 # Geração de identificadores únicos curtos (UUID compactos).
 shortuuid>=1.0.13
 
-# Estrutura de conjunto que mantém a ordem de inserção dos elementos.
-ordered-set>=4.1.0
-
 # Backports de tipagem (Self) usados nos modelos.
-typing_extensions>=4.12.2
+typing_extensions>=4.16.0
