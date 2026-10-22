@@ -34,26 +34,26 @@ repos:
         args: ["--explicit-package-bases"]
         files: ^supersetapiplus/
         additional_dependencies: ["types-requests", "types-PyYAML"]
-        # Manual até o mypy --strict (configurado no pyproject) zerar na T13: hoje acusa ~855
-        # erros e bloquearia todo commit. Rodar com: pre-commit run mypy --hook-stage manual
+        # Manual until mypy --strict (configured in pyproject) reaches zero in T13: it currently reports ~855
+        # errors and would block every commit. Run with: pre-commit run mypy --hook-stage manual
         stages: [manual]
 
   - repo: local
     hooks:
-      - id: complexidade-nova
-        name: Barra complexidade ciclomática > 10 nova ou aumentada (legado sem piora passa)
+      - id: complexity-ratchet
+        name: Block new or increased cyclomatic complexity > 10 (unchanged legacy passes)
         language: python
         additional_dependencies: ["ruff==0.17.2"]
-        entry: python bin/scripts/complexidade-nova.py
+        entry: python bin/scripts/complexity_ratchet.py
         types:
           - python
         pass_filenames: true
-      - id: conformidade-superset
-        # Especificação OpenAPI (payloads e rotas) e enums/choices do código-fonte do Superset,
-        # pelos recortes versionados em tests/fixtures.
-        name: Conformidade com o Superset (OpenAPI, enums e choices do código-fonte)
-        # Roda a partir do código-fonte (sem instalar o pacote); as dependências de runtime abaixo
-        # repetem as do pyproject até a migração para o uv (T14), quando o hook passa a usar `uv run`.
+      - id: superset-conformance
+        # OpenAPI specification (payloads and routes) and enums/choices from the Superset source code,
+        # through the versioned subsets in tests/fixtures.
+        name: Superset conformance (OpenAPI, source-code enums and choices)
+        # Runs from the source tree (without installing the package); the runtime dependencies below
+        # repeat the pyproject ones until the migration to uv (T14), when the hook switches to `uv run`.
         language: python
         additional_dependencies:
           - "requests>=2.32"
@@ -64,6 +64,6 @@ repos:
           - "typing_extensions>=4.12"
           - "pytest>=8"
           - "requests-mock>=1.12"
-        entry: python -m pytest -q -p no:cacheprovider tests/unit/test_conformidade_openapi.py tests/unit/test_conformidade_enums.py
-        files: ^(supersetapiplus/|tests/fixtures/superset_(openapi|enums)_|tests/unit/test_conformidade_(openapi|enums)\.py)
+        entry: python -m pytest -q -p no:cacheprovider tests/unit/test_openapi_conformance.py tests/unit/test_enum_conformance.py
+        files: ^(supersetapiplus/|tests/fixtures/superset_(openapi|enums)_|tests/unit/test_(openapi|enum)_conformance\.py)
         pass_filenames: false

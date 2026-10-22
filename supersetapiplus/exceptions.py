@@ -55,19 +55,19 @@ class BadRequestError(HTTPError):
 
 
 class UnauthorizedError(BadRequestError):
-    """HTTP 401: credencial ausente, inválida ou expirada (o cliente tenta renovar o JWT uma vez)."""
+    """HTTP 401: missing, invalid or expired credentials (the client tries to renew the JWT once)."""
 
 
 class ForbiddenError(BadRequestError):
-    """HTTP 403: usuário autenticado sem permissão para o recurso."""
+    """HTTP 403: authenticated user without permission for the resource."""
 
 
 class ResourceNotFoundError(BadRequestError):
-    """HTTP 404: recurso inexistente no Superset (ex.: GET /chart/{id} com id inválido)."""
+    """HTTP 404: resource does not exist in Superset (e.g. GET /chart/{id} with an invalid id)."""
 
 
 class UnprocessableEntityError(BadRequestError):
-    """HTTP 422: corpo rejeitado pela validação do schema; `message` traz os erros por campo."""
+    """HTTP 422: body rejected by schema validation; `message` holds the errors per field."""
 
 
 class ComplexBadRequestError(HTTPError):
@@ -155,4 +155,4 @@ class ChartValidationError(ValidationError):
 
 
 class UnsupportedTypeError(NotImplementedError):
-    """Tipo de objeto (ex.: viz_type de chart) sem modelo correspondente na biblioteca."""
+    """Object type (e.g. a chart viz_type) with no corresponding model in the library."""

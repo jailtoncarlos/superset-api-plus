@@ -45,12 +45,12 @@ class ChartVisualOptionsMixin:
 class OptionListGroupByMixin:
     groupby: list[OrderByTyping] = object_field(cls=AdhocMetric, default_factory=list)
 
-    # por padrão, todo mundo exige groupby
+    # by default, every chart requires groupby
     _require_groupby: SerializableNotToJson[bool] = True
 
     def validate(self):
         super().validate()
-        # só valida se a subclasse não desativou
+        # only validate if the subclass did not disable it
         if self._require_groupby \
                 and not isinstance(self.groupby, MissingField) \
                 and not self.groupby:
@@ -59,13 +59,13 @@ class OptionListGroupByMixin:
                 solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.'
             )
 
-    def _groupby_editavel(self) -> list:
+    def _editable_groupby(self) -> list:
         if not isinstance(self.groupby, list):
             self.groupby = []
         return self.groupby
 
     def _add_simple_groupby(self, column_name: str):
-        self._groupby_editavel().append(column_name)
+        self._editable_groupby().append(column_name)
 
     def _add_custom_groupby(self, label: str,
                             column: AdhocMetricColumn = None,
@@ -75,7 +75,7 @@ class OptionListGroupByMixin:
         if column:
             metric.expressionType = FilterExpressionType.CUSTOM_SQL
             column.expressionType = FilterExpressionType.CUSTOM_SQL
-        self._groupby_editavel().append(metric)
+        self._editable_groupby().append(metric)
 
 
 @dataclass
@@ -106,8 +106,8 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
 
     def __post_init__(self):
         super().__post_init__()
-        # None vira lista vazia; MissingField (chave ausente no JSON lido) é mantido para que a
-        # releitura não acrescente "groupby": [] a gráficos que não o tinham.
+        # None becomes an empty list; MissingField (key absent from the JSON read) is kept so that
+        # re-reading does not add "groupby": [] to charts that did not have it.
         if self.groupby is None:
             self.groupby: list[OrderByTyping] = []
 

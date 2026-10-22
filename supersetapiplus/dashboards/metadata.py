@@ -19,7 +19,7 @@ class ChartConfiguration(SerializableModel):
 
 @dataclass
 class GlobalChartconfigurationScope(SerializableModel):
-    # Escopo padrão do cross-filter no frontend (DEFAULT_CROSS_FILTER_SCOPING): o dashboard inteiro.
+    # Default cross-filter scope in the frontend (DEFAULT_CROSS_FILTER_SCOPING): the whole dashboard.
     rootPath: list[str] = field(default_factory=lambda: ['ROOT_ID'])
     excluded: list[str] = field(default_factory=list)
 
@@ -37,7 +37,7 @@ class Metadata(SerializableModel):
 
     color_scheme: str = default_string()
     refresh_frequency: int = field(default=0)
-    # Lista de rótulos no 6.x (SharedLabelsColorsField descarta dict).
+    # List of labels in 6.x (SharedLabelsColorsField discards dicts).
     shared_label_colors: list[str] = field(default_factory=list)
     color_scheme_domain: list[str] = field(default_factory=list)
     expanded_slices: dict = field(default_factory=dict)

@@ -22,7 +22,7 @@ def defult_metadata_position():
 class Dashboard(SerializableModel):
     JSON_FIELDS = ['json_metadata', 'position_json']
     PRESERVE_EXTRA_FIELDS = False
-    # Campos aceitos pela API (OpenAPI 6.1.0: DashboardRestApi.post / DashboardRestApi.put).
+    # Fields accepted by the API (OpenAPI 6.1.0: DashboardRestApi.post / DashboardRestApi.put).
     POST_FIELDS = (
         "certification_details", "certified_by", "css", "dashboard_title", "external_url",
         "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
@@ -69,11 +69,11 @@ class Dashboard(SerializableModel):
 
     def add_chart(self, chart, title: str, parent=None, height: int = 50, width: int = 4, relocate: bool = True):
         """
-        Coloca o gráfico no layout e o associa a este dashboard no Superset.
+        Places the chart in the layout and associates it with this dashboard in Superset.
 
-        O dashboard precisa estar salvo (ter id). Gráfico sem id é criado antes. A associação é feita
-        por PUT no gráfico (Charts.add_to_dashboard); o layout e o json_metadata só são gravados no
-        próximo save() do dashboard.
+        The dashboard must be saved (have an id). A chart without an id is created first. The association
+        is made by a PUT on the chart (Charts.add_to_dashboard); the layout and json_metadata are only
+        stored on the dashboard's next save().
         """
         if not self.id:
             raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the '
@@ -83,13 +83,13 @@ class Dashboard(SerializableModel):
             charts.add(chart)
 
         self.metadata.add_chart(chart)
-        self.position.add_chart(chart, title, parent or self._ultima_linha_ou_grid(), height, width, relocate)
+        self.position.add_chart(chart, title, parent or self._last_row_or_grid(), height, width, relocate)
         charts.add_to_dashboard(chart, self.id)
 
-    def _ultima_linha_ou_grid(self):
+    def _last_row_or_grid(self):
         grid = self.position.tree.grid
-        ultima = grid.children[-1] if grid.children else None
-        return ultima if isinstance(ultima, RowNodePosition) else grid
+        last = grid.children[-1] if grid.children else None
+        return last if isinstance(last, RowNodePosition) else grid
 
     @property
     def colors(self) -> dict:
@@ -108,7 +108,7 @@ class Dashboard(SerializableModel):
         self.colors = colors
 
     def get_charts(self) -> list:
-        """Gráficos associados ao dashboard no Superset (GET /dashboard/{id}/charts), como objetos da lib."""
+        """Charts associated with the dashboard in Superset (GET /dashboard/{id}/charts), as library objects."""
         client = self._factory.client
         url = client.join_urls(self._factory.base_url, self.id, "charts")
         charts = []
@@ -120,7 +120,7 @@ class Dashboard(SerializableModel):
         return charts
 
     def delete(self, exclude_charts: bool = False) -> bool:
-        """Remove o dashboard; com exclude_charts=True, remove também os gráficos associados."""
+        """Deletes the dashboard; with exclude_charts=True, also deletes the associated charts."""
         charts = self.get_charts() if exclude_charts else []
         deleted = self._factory.delete(id=self.id)
         if deleted:
@@ -134,9 +134,9 @@ class Dashboards(ApiModelFactories):
 
     def attach_charts(self, dashboard: Dashboard) -> list[int]:
         """
-        Associa ao dashboard, no Superset, todos os gráficos presentes no seu layout (position_json).
+        Associates with the dashboard, in Superset, every chart present in its layout (position_json).
 
-        Chamar depois de o dashboard ter id; os gráficos já associados não são regravados.
+        Call after the dashboard has an id; charts already associated are not rewritten.
         """
         if not dashboard.id:
             raise DashboardValidationError('Save the dashboard before attaching charts (dashboard.id is empty).')

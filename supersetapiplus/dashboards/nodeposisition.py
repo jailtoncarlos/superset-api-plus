@@ -248,44 +248,44 @@ class CheckFreeSpaceMixin:
             return None
         logger.debug('This node %s(%s)', thisnode.item.id, thisnode.type_)
         if thisnode.type_ == ItemPositionType.ROW:
-            return self._linha_livre_a_partir_da_linha(item, thisnode)
+            return self._free_row_from_row(item, thisnode)
         if thisnode.type_ == ItemPositionType.TAB:
-            return self._linha_livre_na_aba(item, thisnode)
+            return self._free_row_in_tab(item, thisnode)
         if thisnode.type_ == ItemPositionType.COLUMN:
             return thisnode
         logger.debug('Returning a new ROW node, child of this node %s(%s).', thisnode.item.id, thisnode.type_)
         return self.get_new_node_position(RowItemPosition(), thisnode)
 
-    def _linha_livre_a_partir_da_linha(self, item: ItemPosition, linha: NodePosition) -> NodePosition:
-        """A própria linha, se couber; senão uma linha irmã com espaço; senão uma linha nova."""
-        free_space, total_width = self.have_free_space(linha, item)
+    def _free_row_from_row(self, item: ItemPosition, row: NodePosition) -> NodePosition:
+        """The row itself, if the item fits; otherwise a sibling row with space; otherwise a new row."""
+        free_space, total_width = self.have_free_space(row, item)
         if free_space:
-            logger.debug('This node %s(%s) has space, return it.', linha.item.id, linha.type_)
-            return linha
+            logger.debug('This node %s(%s) has space, return it.', row.item.id, row.type_)
+            return row
         if not item.relocate:
             raise _not_enough_space(total_width)
-        for irma in linha.siblings:
-            if self.have_free_space(irma, item)[0]:
+        for sibling in row.siblings:
+            if self.have_free_space(sibling, item)[0]:
                 logger.debug('This node %s(%s) has no space. Its sibling %s(%s) has free space, so return it.',
-                             linha.item.id, linha.type_, irma.item.id, irma.type_)
-                return irma
+                             row.item.id, row.type_, sibling.item.id, sibling.type_)
+                return sibling
         logger.debug('There are no rows nodes with space. Creating a new row node and returning it.')
-        return self.get_new_node_position(RowItemPosition(), linha.parent)
+        return self.get_new_node_position(RowItemPosition(), row.parent)
 
-    def _linha_livre_na_aba(self, item: ItemPosition, aba: NodePosition) -> NodePosition:
-        """Uma linha da aba com espaço; senão uma linha nova (ou erro, se o item não pode ser realocado)."""
+    def _free_row_in_tab(self, item: ItemPosition, tab: NodePosition) -> NodePosition:
+        """A row of the tab with space; otherwise a new row (or an error, if the item cannot be relocated)."""
         total_width = None
-        for filho in aba.children:
-            free_space, total_width = self.have_free_space(filho, item)
+        for child in tab.children:
+            free_space, total_width = self.have_free_space(child, item)
             if free_space:
                 logger.debug('A child node %s(%s) of thisnode with space was found. Return it.',
-                             filho.item.id, filho.type_)
-                return filho
-        if aba.children and not item.relocate:
+                             child.item.id, child.type_)
+                return child
+        if tab.children and not item.relocate:
             raise _not_enough_space(total_width)
         logger.debug('This node %s(%s) does not have rows available, returning a new row node.',
-                     aba.item.id, aba.type_)
-        return self.get_new_node_position(RowItemPosition(), aba)
+                     tab.item.id, tab.type_)
+        return self.get_new_node_position(RowItemPosition(), tab)
 
     @classmethod
     def have_free_space(cls, row_node, item):
@@ -307,8 +307,8 @@ class CheckFreeSpaceMixin:
             return True, total_width
 
     def _validate(self, item: ItemPosition):
-        # Componente com relocate=False não pode estourar a largura da linha. Antes, o erro era
-        # levantado dentro de um try/except que só registrava aviso, e a validação nunca valia.
+        # A component with relocate=False must not exceed the row width. Previously the error was
+        # raised inside a try/except that only logged a warning, so the validation never took effect.
         if not hasattr(item, 'width') or self.parent is None:
             return
 

@@ -1,4 +1,4 @@
-"""Fixtures compartilhadas e configuração dos testes de integração."""
+"""Shared fixtures and integration test configuration."""
 import json
 import os
 from pathlib import Path
@@ -8,31 +8,31 @@ import requests_mock  # noqa
 
 from supersetapiplus.client import SupersetClient
 
-RAIZ = Path(__file__).parent.parent
+ROOT = Path(__file__).parent.parent
 API_MOCKS = Path(__file__).parent / "mocks" / "endpoints"
 
-# Endereço fictício usado só pelos mocks HTTP.
+# Fake address used only by the HTTP mocks.
 SUPERSET_BASE_URI = "https://superset.mock"
 SUPERSET_API_URI = f"{SUPERSET_BASE_URI}/api/v1"
 
 
-def carregar_env(caminho: Path = RAIZ / ".env") -> None:
-    """Carrega o .env da stack de testes no ambiente, sem sobrescrever variáveis já definidas."""
-    if not caminho.is_file():
+def load_env_file(path: Path = ROOT / ".env") -> None:
+    """Load the test stack .env into the environment without overriding variables already set."""
+    if not path.is_file():
         return
-    for linha in caminho.read_text(encoding="utf-8").splitlines():
-        linha = linha.strip()
-        if linha and not linha.startswith("#") and "=" in linha:
-            nome, valor = linha.split("=", 1)
-            os.environ.setdefault(nome.strip(), valor.strip().strip("\"'"))
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            name, value = line.split("=", 1)
+            os.environ.setdefault(name.strip(), value.strip().strip("\"'"))
 
 
-carregar_env()
+load_env_file()
 
 
 @pytest.fixture
 def permanent_requests(requests_mock):  # noqa
-    # Registra cada arquivo de tests/mocks/endpoints/<recurso>/<endpoint>.<método> como resposta.
+    # Register each tests/mocks/endpoints/<resource>/<endpoint>.<method> file as a response.
     for domain in API_MOCKS.iterdir():
         if domain.is_dir():
             for endpoint in domain.iterdir():

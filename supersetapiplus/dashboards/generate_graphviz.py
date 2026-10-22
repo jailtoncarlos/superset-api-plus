@@ -37,7 +37,7 @@ class GenerateGraphMixin:
         raise ValueError('Variable self._treenode:TreeNodePosition not found')
 
     def generate_graph(self, dir_path:str):
-        dot = graphviz.Digraph(comment="Árvore de Dependências")
+        dot = graphviz.Digraph(comment="Dependency Tree")
 
         root_id = self.treenode.root.name
         dot.node(root_id, label=root_id)

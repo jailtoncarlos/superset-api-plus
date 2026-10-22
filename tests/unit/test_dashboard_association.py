@@ -1,4 +1,4 @@
-"""Associação gráfico ↔ dashboard, dados do gráfico, remoção e posicionamento no layout."""
+"""Chart <-> dashboard association, chart data, deletion and layout placement."""
 import json
 
 import pytest
@@ -12,7 +12,7 @@ from supersetapiplus.dashboards.itemposition import ItemPositionType, MarkdownIt
 from supersetapiplus.dashboards.metadataposition import Metadataposition
 from supersetapiplus.exceptions import DashboardValidationError, NodePositionValidationError, NotFound
 
-HOST = "https://superset.exemplo"
+HOST = "https://superset.example"
 API = f"{HOST}/api/v1"
 PARAMS = {"datasource": "1__table", "viz_type": "table", "query_mode": "aggregate", "groupby": ["campus"],
           "metrics": ["count"]}
@@ -35,14 +35,14 @@ def mock():
 
 @pytest.fixture
 def client(mock):
-    return SupersetClient(HOST, "robo", "senha")
+    return SupersetClient(HOST, "robot", "password")
 
 
 def puts(mock, path):
     return [r.json() for r in mock.request_history if r.method == "PUT" and r.path == path]
 
 
-def test_add_to_dashboard_acrescenta_mantendo_as_associacoes_existentes(client, mock):
+def test_add_to_dashboard_appends_keeping_existing_associations(client, mock):
     mock.get(f"{API}/chart/9", json={"id": 9, "result": chart_json(9, dashboards=[3])})
     mock.put(f"{API}/chart/9", json={"id": 9, "result": {}})
 
@@ -50,18 +50,18 @@ def test_add_to_dashboard_acrescenta_mantendo_as_associacoes_existentes(client, 
     assert puts(mock, "/api/v1/chart/9") == [{"dashboards": [3, 5]}]
 
 
-def test_add_to_dashboard_ja_associado_nao_regrava(client, mock):
+def test_add_to_dashboard_already_associated_does_not_save_again(client, mock):
     mock.get(f"{API}/chart/9", json={"id": 9, "result": chart_json(9, dashboards=[5])})
 
     assert client.charts.add_to_dashboard(9, 5) == [5]
     assert puts(mock, "/api/v1/chart/9") == []
 
 
-def test_attach_charts_associa_todos_os_graficos_do_layout(client, mock):
-    dashboard = Dashboard(dashboard_title="Painel", id=5)
-    aba = dashboard.position.add_tab("Aba")
+def test_attach_charts_associates_every_chart_in_the_layout(client, mock):
+    dashboard = Dashboard(dashboard_title="Panel", id=5)
+    tab = dashboard.position.add_tab("Tab")
     for chart_id in (1, 2):
-        dashboard.position.add_chart(TableChart(slice_name=f"G{chart_id}", id=chart_id), f"G{chart_id}", parent=aba)
+        dashboard.position.add_chart(TableChart(slice_name=f"G{chart_id}", id=chart_id), f"G{chart_id}", parent=tab)
         mock.get(f"{API}/chart/{chart_id}", json={"id": chart_id, "result": chart_json(chart_id)})
         mock.put(f"{API}/chart/{chart_id}", json={"result": {}})
 
@@ -69,8 +69,8 @@ def test_attach_charts_associa_todos_os_graficos_do_layout(client, mock):
     assert puts(mock, "/api/v1/chart/1") == [{"dashboards": [5]}] and puts(mock, "/api/v1/chart/2") == [{"dashboards": [5]}]
 
 
-def test_add_chart_exige_dashboard_salvo_antes_de_qualquer_requisicao(client, mock):
-    dashboard = client.dashboards.get_base_object()(dashboard_title="Novo")
+def test_add_chart_requires_saved_dashboard_before_any_request(client, mock):
+    dashboard = client.dashboards.get_base_object()(dashboard_title="New")
     dashboard._factory = client.dashboards
 
     with pytest.raises(DashboardValidationError):
@@ -78,22 +78,22 @@ def test_add_chart_exige_dashboard_salvo_antes_de_qualquer_requisicao(client, mo
     assert [r for r in mock.request_history if r.method in ("POST", "PUT") and "/chart/" in r.path] == []
 
 
-def test_add_chart_cria_o_grafico_poe_no_layout_e_associa(client, mock):
-    dashboard = Dashboard(dashboard_title="Painel", id=5)
+def test_add_chart_creates_the_chart_places_it_in_the_layout_and_associates(client, mock):
+    dashboard = Dashboard(dashboard_title="Panel", id=5)
     dashboard._factory = client.dashboards
     chart = TableChart.from_json(chart_json(None) | {"datasource_id": 1, "datasource_type": "table"})
     mock.post(f"{API}/chart/", json={"id": 9, "result": {}})
     mock.get(f"{API}/chart/9", json={"id": 9, "result": chart_json(9)})
     mock.put(f"{API}/chart/9", json={"result": {}})
 
-    dashboard.add_chart(chart, "Título no painel")
+    dashboard.add_chart(chart, "Title on the dashboard")
 
     assert chart.id == 9
     assert dashboard.position.tree.chart_ids() == [9]
     assert puts(mock, "/api/v1/chart/9") == [{"dashboards": [5]}]
 
 
-def test_get_charts_usa_a_rota_do_dashboard_e_tolera_tipo_sem_modelo(client, mock):
+def test_get_charts_uses_the_dashboard_route_and_tolerates_unmodeled_type(client, mock):
     mock.get(f"{API}/dashboard/5", json={"id": 5, "result": {"id": 5, "dashboard_title": "P"}})
     mock.get(f"{API}/dashboard/5/charts", json={"result": [{"id": 1, "slice_name": "a", "viz_type": "table"},
                                                            {"id": 2, "slice_name": "b", "viz_type": "histogram_v2"}]})
@@ -105,7 +105,7 @@ def test_get_charts_usa_a_rota_do_dashboard_e_tolera_tipo_sem_modelo(client, moc
     assert type(charts[0]).__name__ == "TableChart" and isinstance(charts[1], UnsupportedObject)
 
 
-def test_delete_devolve_bool_e_remove_graficos_quando_pedido(client, mock):
+def test_delete_returns_bool_and_removes_charts_when_requested(client, mock):
     mock.get(f"{API}/dashboard/5", json={"id": 5, "result": {"id": 5, "dashboard_title": "P"}})
     mock.get(f"{API}/dashboard/5/charts", json={"result": [{"id": 1}]})
     mock.get(f"{API}/chart/1", json={"id": 1, "result": chart_json(1)})
@@ -116,50 +116,50 @@ def test_delete_devolve_bool_e_remove_graficos_quando_pedido(client, mock):
     assert [r.path for r in mock.request_history if r.method == "DELETE"] == ["/api/v1/dashboard/5", "/api/v1/chart/1"]
 
 
-def test_get_chart_data_usa_o_query_context_salvo_e_confere_o_dashboard(client, mock):
+def test_get_chart_data_uses_the_saved_query_context_and_checks_the_dashboard(client, mock):
     mock.get(f"{API}/chart/9", json={"id": 9, "result": chart_json(9, dashboards=[5])})
-    mock.get(f"{API}/chart/9/data/", json={"result": [{"rowcount": 2, "data": [{"campus": "Natal", "count": 3}]}]})
+    mock.get(f"{API}/chart/9/data/", json={"result": [{"rowcount": 2, "data": [{"campus": "North", "count": 3}]}]})
 
     assert client.charts.get_chart_data(9, dashboard_id=5)[0]["rowcount"] == 2
     with pytest.raises(NotFound):
         client.charts.get_chart_data(9, dashboard_id=7)
 
 
-def test_add_and_attach_valida_antes_de_criar_o_grafico(client, mock):
+def test_add_and_attach_validates_before_creating_the_chart(client, mock):
     chart = TableChart.from_json(chart_json(None) | {"datasource_id": 1, "datasource_type": "table"})
 
     with pytest.raises(DashboardValidationError):
-        client.charts.add_and_attach_to_dashboard(chart, "Título")
+        client.charts.add_and_attach_to_dashboard(chart, "Title")
     assert not any(r.method == "POST" and r.path == "/api/v1/chart/" for r in mock.request_history)
 
 
-# --- Posicionamento no layout ----------------------------------------------------------------
+# --- Layout placement ----------------------------------------------------------------------
 
-def test_linha_cheia_sem_relocate_levanta_e_com_relocate_abre_linha_nova():
+def test_full_row_raises_without_relocate_and_opens_new_row_with_relocate():
     pos = Metadataposition()
-    aba = pos.add_tab("Aba")
-    primeiro = pos.add_markdown("a", parent=aba, width=8)
-    linha = primeiro.parent
+    tab = pos.add_tab("Tab")
+    first = pos.add_markdown("a", parent=tab, width=8)
+    row = first.parent
 
     with pytest.raises(NodePositionValidationError):
-        pos.add_markdown("b", parent=linha, width=8, relocate=False)
+        pos.add_markdown("b", parent=row, width=8, relocate=False)
 
-    segundo = pos.add_markdown("c", parent=linha, width=8)
-    assert segundo.parent is not linha and segundo.parent.type_ == ItemPositionType.ROW
+    second = pos.add_markdown("c", parent=row, width=8)
+    assert second.parent is not row and second.parent.type_ == ItemPositionType.ROW
 
 
-def test_item_vai_para_linha_irma_com_espaco():
+def test_item_goes_to_sibling_row_with_room():
     pos = Metadataposition()
-    aba = pos.add_tab("Aba")
-    linha_cheia = pos.add_markdown("a", parent=aba, width=12).parent
-    linha_livre = pos.add_markdown("b", parent=aba, width=4).parent
+    tab = pos.add_tab("Tab")
+    full_row = pos.add_markdown("a", parent=tab, width=12).parent
+    free_row = pos.add_markdown("b", parent=tab, width=4).parent
 
-    novo = pos.add_markdown("c", parent=linha_cheia, width=4)
+    new = pos.add_markdown("c", parent=full_row, width=4)
 
-    assert novo.parent is linha_livre
+    assert new.parent is free_row
 
 
-def test_validate_do_pie_aceita_grafico_criado_por_codigo_e_recusa_orderby_que_nao_e_par():
+def test_pie_validate_accepts_chart_created_in_code_and_rejects_non_pair_orderby():
     from supersetapiplus.base.datasource import DataSource
     from supersetapiplus.charts.pie import PieChart
     from supersetapiplus.exceptions import ValidationError
@@ -174,5 +174,5 @@ def test_validate_do_pie_aceita_grafico_criado_por_codigo_e_recusa_orderby_que_n
         chart.query_context.validate()
 
 
-def test_markdown_item_position_continua_disponivel():
+def test_markdown_item_position_is_still_available():
     assert MarkdownItemPosition(code="x").width == 4

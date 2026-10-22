@@ -1,0 +1,105 @@
+"""Client security: application logging, TLS verification and secrets kept out of logs."""
+import json
+import logging
+import os
+import subprocess
+import sys
+
+import pytest
+import requests
+import requests_mock
+
+from supersetapiplus.client import SupersetClient
+from supersetapiplus.utils.request_handler import RequestHandler
+from supersetapiplus.utils.sensitive import MASK, mask_body, mask_data, mask_headers
+
+HOST = "https://superset.example"
+PASSWORD = "s3cr3t-top-secret"
+TOKEN = "eyJhbGciOiJIUzI1NiJ9.access-token"
+
+
+def client_with_session(verify: bool) -> SupersetClient:
+    client = SupersetClient(HOST, username="robot", password=PASSWORD, verify=verify)
+    client._session = requests.Session()  # avoids the real login
+    return client
+
+
+def test_importing_the_package_does_not_configure_application_logging():
+    code = "import logging, supersetapiplus; print(len(logging.getLogger().handlers))"
+    output = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+
+    assert output.stdout.strip() == "0"
+
+
+@pytest.mark.parametrize("verify", [True, False])
+@pytest.mark.parametrize("method", ["get", "post", "put", "delete"])
+def test_client_http_methods_honor_verify(method, verify):
+    client = client_with_session(verify)
+    url = f"{HOST}/api/v1/chart/1"
+
+    with requests_mock.Mocker() as mock:
+        getattr(mock, method)(url, json={"result": {}})
+        getattr(client, method)(url)
+
+    assert mock.last_request.verify is verify
+
+
+def test_request_without_explicit_verify_inherits_the_session():
+    session = requests.Session()
+    session.verify = True
+
+    with requests_mock.Mocker() as mock:
+        mock.get(f"{HOST}/api/v1/me/", json={})
+        RequestHandler.request_with_retry(f"{HOST}/api/v1/me/", session=session)
+
+    assert mock.last_request.verify is True
+
+
+def test_http_error_log_does_not_expose_password_token_or_cookie(caplog):
+    session = requests.Session()
+    session.headers.update({"Authorization": f"Bearer {TOKEN}", "X-CSRFToken": "csrf-123"})
+    session.cookies.set("session", "session-cookie")
+
+    with requests_mock.Mocker() as mock, caplog.at_level(logging.DEBUG):
+        mock.post(f"{HOST}/api/v1/security/login", status_code=401,
+                  json={"message": "Not authorized", "access_token": TOKEN},
+                  headers={"Set-Cookie": "session=session-cookie"})
+        with pytest.raises(requests.HTTPError):
+            RequestHandler.request_with_retry(
+                f"{HOST}/api/v1/security/login", method="POST", session=session, retries=0,
+                json={"username": "robot", "password": PASSWORD, "provider": "db"},
+            )
+
+    assert caplog.text
+    for secret in (PASSWORD, TOKEN, "csrf-123", "session-cookie"):
+        assert secret not in caplog.text, secret
+
+
+def test_masks_sensitive_headers_without_changing_the_others():
+    headers = {"Authorization": "Bearer x", "Cookie": "a=b", "X-CSRFToken": "c", "Accept": "application/json"}
+
+    assert mask_headers(headers) == {"Authorization": MASK, "Cookie": MASK, "X-CSRFToken": MASK,
+                                     "Accept": "application/json"}
+    assert headers["Authorization"] == "Bearer x"
+
+
+def test_masks_json_body_form_body_and_connection_uri():
+    json_body = json.dumps({"username": "robot", "password": PASSWORD, "nested": {"refresh_token": "r"}})
+    form_body = f"csrf_token=abc&username=robot&password={PASSWORD}"
+    database = {"database_name": "dw", "sqlalchemy_uri": f"postgresql://robot:{PASSWORD}@db:5432/dw"}
+
+    assert json.loads(mask_body(json_body)) == {"username": "robot", "password": MASK, "nested": {"refresh_token": MASK}}
+    assert mask_body(form_body) == f"csrf_token={MASK.replace('*', '%2A')}&username=robot&password={MASK.replace('*', '%2A')}"
+    assert mask_data(database)["sqlalchemy_uri"] == f"postgresql://robot:{MASK}@db:5432/dw"
+
+
+def test_network_parameters_come_from_the_environment():
+    code = ("from supersetapiplus.utils import request_handler as r; "
+              "print(r.TIMEOUT_CONNECT, r.TIMEOUT_READ, r.DEFAULT_RETRIES, r.DEFAULT_BACKOFF_FACTOR)")
+    env = {**os.environ, "SUPERSET_API_PLUS_TIMEOUT_READ": "60", "SUPERSET_API_PLUS_RETRIES": "5",
+                "SUPERSET_API_PLUS_BACKOFF_FACTOR": "1.5"}
+    env.pop("SUPERSET_API_PLUS_TIMEOUT_CONNECT", None)
+
+    output = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True, env=env)
+
+    assert output.stdout.split() == ["10", "60", "5", "1.5"]

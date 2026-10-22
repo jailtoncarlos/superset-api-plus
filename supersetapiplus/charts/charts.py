@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class Chart(SerializableModel):
     JSON_FIELDS = ['params', 'query_context']
     PRESERVE_EXTRA_FIELDS = False
-    # Campos aceitos pela API (OpenAPI 6.1.0: ChartRestApi.post / ChartRestApi.put).
+    # Fields accepted by the API (OpenAPI 6.1.0: ChartRestApi.post / ChartRestApi.put).
     POST_FIELDS = (
         "cache_timeout", "certification_details", "certified_by", "dashboards", "datasource_id",
         "datasource_name", "datasource_type", "description", "external_url", "is_managed_externally",
@@ -37,12 +37,12 @@ class Chart(SerializableModel):
         "datasource_type", "description", "external_url", "is_managed_externally", "owners", "params",
         "query_context", "query_context_generation", "slice_name", "tags", "viz_type",
     )
-    # Campos que o Superset legitimamente mantém diferentes entre params e
-    # query_context.form_data: identidade (slice_id antigo após import/export de dashboards)
-    # e parâmetros de requisição que o frontend injeta apenas no form_data.
+    # Fields that Superset legitimately keeps different between params and
+    # query_context.form_data: identity (stale slice_id after dashboard import/export)
+    # and request parameters that the frontend injects only into form_data.
     VOLATILE_FORM_DATA_FIELDS = {'slice_id', 'dashboards', 'force', 'result_format', 'result_type'}
-    # Sufixos de chaves que o Superset grava em params mas pode omitir de query_context.form_data
-    # (ex.: chaves da query B do mixed_timeseries). Só a ausência é tolerada, não valores divergentes.
+    # Suffixes of keys that Superset stores in params but may omit from query_context.form_data
+    # (e.g. the query B keys of mixed_timeseries). Only absence is tolerated, not diverging values.
     PARAMS_ONLY_FIELD_SUFFIXES = ()
 
     slice_name: str
@@ -54,7 +54,7 @@ class Chart(SerializableModel):
     certified_by: str = field(default=None)
     is_managed_externally: bool = field(default=None)
 
-    params: Option = field(init=False)  # Não instanciar Option diretamente!
+    params: Option = field(init=False)  # Do not instantiate Option directly!
     query_context: QueryContext = object_field(cls=QueryContext, default_factory=QueryContext)
 
     datasource_id: SerializableOptional[int] = field(default=None)
@@ -83,7 +83,7 @@ class Chart(SerializableModel):
         self._dashboards = [Dashboard(dashboard_title='')]
 
         if not hasattr(self, "params") or self.params is None:
-            self.params = self._default_option_class()()  # Assume que existe esse método na subclasse concreta
+            self.params = self._default_option_class()()  # Assumes the concrete subclass defines this method
 
         if self.id is None:
             if self.datasource_id is None:
@@ -93,17 +93,17 @@ class Chart(SerializableModel):
                     to get the dataset id by name.
                 """)
 
-            self._preencher_datasource()
+            self._fill_datasource()
 
-    def _preencher_datasource(self):
-        """Gráfico novo: params (e query_context) recebem o datasource de datasource_id/datasource_type.
+    def _fill_datasource(self):
+        """New chart: params (and query_context) get the datasource from datasource_id/datasource_type.
 
-        Chamado no __post_init__ e, de novo, no fim de from_json: durante o from_json o __post_init__
-        roda com params ainda como dict (a conversão para Option vem depois).
+        Called in __post_init__ and again at the end of from_json: during from_json, __post_init__
+        runs while params is still a dict (the conversion to Option happens later).
         """
         if self.id is not None or self.datasource_id is None or not isinstance(self.params, SerializableModel):
             return
-        if not self.params.datasource:  # None ou MissingField (ausente no JSON)
+        if not self.params.datasource:  # None or MissingField (absent from the JSON)
             self.params.datasource = f'{self.datasource_id}__{self.datasource_type}'
             if isinstance(self.query_context, SerializableModel):
                 self.query_context.datasource.id = self.datasource_id
@@ -111,16 +111,16 @@ class Chart(SerializableModel):
 
     def validate(self):
         super().validate()
-        # query_context nulo (chart nunca salvo pelo Explore) ou sem form_data (charts de exemplo
-        # carregados por YAML no Superset 6.1) não têm o que comparar com params.
+        # A null query_context (chart never saved from Explore) or one without form_data (example charts
+        # loaded from YAML in Superset 6.1) has nothing to compare with params.
         if self.query_context is None or not isinstance(self.query_context.form_data, SerializableModel):
             return
 
         params = {k: v for k, v in self.params.to_dict().items() if k not in self.VOLATILE_FORM_DATA_FIELDS}
         form_data = {k: v for k, v in self.query_context.form_data.to_dict().items()
                      if k not in self.VOLATILE_FORM_DATA_FIELDS}
-        # Versões antigas do Superset gravavam form_data.datasource como "None__table";
-        # o params continua sendo a fonte da verdade e o Superset ignora o valor inválido.
+        # Old Superset versions stored form_data.datasource as "None__table";
+        # params remains the source of truth and Superset ignores the invalid value.
         if str(form_data.get('datasource', '')).startswith('None__'):
             form_data['datasource'] = params.get('datasource')
         if self.PARAMS_ONLY_FIELD_SUFFIXES:
@@ -140,7 +140,7 @@ class Chart(SerializableModel):
                  options: Option = None):
 
         if options is None:
-            options = cls._default_option_class()()  # delega para a subclasse
+            options = cls._default_option_class()()  # delegates to the subclass
 
         new_chart = cls(slice_name=slice_name,
                         datasource_id=datasource.id,
@@ -160,7 +160,7 @@ class Chart(SerializableModel):
               clear_filter: bool = True) -> Self:
         new_chart = copy.deepcopy(self)
         new_chart.slice_name = slice_name or f'{new_chart.slice_name}_clone'
-        new_chart._slice_name_override = slice_name_override or f'Chart clone de {new_chart.slice_name}'
+        new_chart._slice_name_override = slice_name_override or f'Chart clone of {new_chart.slice_name}'
         new_chart.id = 0
 
         if clear_dashboard:
@@ -242,13 +242,13 @@ class Chart(SerializableModel):
         obj = super().from_json(data)
         obj._dashboards = obj.dashboards
 
-        # O Superset mantém query_context nulo em charts que nunca foram salvos pelo Explore
-        # (comum em charts importados). Preserva o nulo em vez de fabricar um contexto vazio.
+        # Superset keeps query_context null on charts that were never saved from Explore
+        # (common in imported charts). Preserve the null instead of fabricating an empty context.
         if data.get('query_context') in (None, '', 'null'):
             obj.query_context = None
 
-        # Datasource: o GET /chart/{id} traz datasource_id/datasource_type no topo, que prevalecem;
-        # params.datasource pode estar desatualizado (ex.: charts de exemplo importados).
+        # Datasource: GET /chart/{id} returns datasource_id/datasource_type at the top level, which prevail;
+        # params.datasource may be stale (e.g. imported example charts).
         if data.get('datasource_id'):
             obj.datasource_id = int(data['datasource_id'])
             obj.datasource_type = DatasourceType(data.get('datasource_type') or 'table')
@@ -260,13 +260,13 @@ class Chart(SerializableModel):
             else:
                 logger.warning("datasource query_context without 'id' defined")
         elif isinstance(obj.params, SerializableModel) and '__' in str(obj.params.datasource or ''):
-            # Listagens com colunas restritas (find(columns=[...])) não trazem params: o objeto
-            # parcial fica sem datasource e é completado por find_one(..., full=True).
+            # Listings with restricted columns (find(columns=[...])) do not include params: the partial
+            # object has no datasource and is completed by find_one(..., full=True).
             datasource_id, datasource_type = str(obj.params.datasource).split('__', 1)
             obj.datasource_id = int(datasource_id)
             obj.datasource_type = DatasourceType(datasource_type)
 
-        obj._preencher_datasource()
+        obj._fill_datasource()
         return obj
 
 
@@ -278,14 +278,14 @@ class Charts(ApiModelFactories):
 
     def get_chart_data(self, slice_id: int, dashboard_id: int | None = None) -> list[dict]:
         """
-        Dados do gráfico calculados pelo Superset com o query_context salvo (GET /chart/{pk}/data/).
+        Chart data computed by Superset from the saved query_context (GET /chart/{pk}/data/).
 
         Args:
-            slice_id: id do gráfico.
-            dashboard_id: se informado, confere que o gráfico pertence a esse dashboard.
+            slice_id: chart id.
+            dashboard_id: if given, checks that the chart belongs to this dashboard.
 
         Returns:
-            list[dict]: um item por consulta do query_context (`data`, `colnames`, `rowcount`...).
+            list[dict]: one item per query of the query_context (`data`, `colnames`, `rowcount`...).
         """
         if dashboard_id is not None and dashboard_id not in self.dashboard_ids(slice_id):
             raise NotFound(f'Chart {slice_id} does not belong to dashboard {dashboard_id}.')
@@ -293,47 +293,47 @@ class Charts(ApiModelFactories):
         return self.client.get(url, params={"format": "json", "type": "full"}).json()["result"]
 
     def dashboard_ids(self, chart_id: int) -> list[int]:
-        """Ids dos dashboards associados ao gráfico, como o Superset os tem gravados."""
+        """Ids of the dashboards associated with the chart, as stored by Superset."""
         result = self.client.get(self.client.join_urls(self.base_url, chart_id)).json()["result"]
         return [d["id"] for d in result.get("dashboards") or []]
 
     def add_to_dashboard(self, chart: Chart | int, dashboard_id: int) -> list[int]:
         """
-        Associa o gráfico ao dashboard (PUT /chart/{pk} só com `dashboards`), mantendo as associações existentes.
+        Associates the chart with the dashboard (PUT /chart/{pk} with only `dashboards`), keeping existing associations.
 
-        A associação é por id no gráfico: o campo `dashboards` do ChartPutSchema substitui a lista,
-        por isso as atuais são lidas antes. Devolve a lista gravada.
+        The association is by id on the chart: the `dashboards` field of ChartPutSchema replaces the list,
+        so the current ones are read first. Returns the stored list.
         """
         chart_id = chart if isinstance(chart, int) else chart.id
         if not chart_id:
             raise ChartValidationError('Save the chart before attaching it to a dashboard (chart.id is empty).')
-        atuais = self.dashboard_ids(chart_id)
-        if dashboard_id in atuais:
-            return atuais
-        novos = atuais + [dashboard_id]
-        self.client.put(self.client.join_urls(self.base_url, chart_id), json={"dashboards": novos})
-        return novos
+        current = self.dashboard_ids(chart_id)
+        if dashboard_id in current:
+            return current
+        updated = current + [dashboard_id]
+        self.client.put(self.client.join_urls(self.base_url, chart_id), json={"dashboards": updated})
+        return updated
 
     def add_and_attach_to_dashboard(self, chart: Chart, title: str, parent=None) -> int:
         """
-        Cria o gráfico e o coloca no layout do dashboard ao qual o gráfico de origem pertence.
+        Creates the chart and places it in the layout of the dashboard the source chart belongs to.
 
         Args:
-            chart (Chart): gráfico a criar (ex.: clone de um gráfico já associado a um dashboard).
-            title (str): título exibido no dashboard (sliceNameOverride).
-            parent (NodePosition, opcional): nó do layout onde inserir.
+            chart (Chart): chart to create (e.g. a clone of a chart already associated with a dashboard).
+            title (str): title shown on the dashboard (sliceNameOverride).
+            parent (NodePosition, optional): layout node to insert into.
 
         Returns:
-            int: id do gráfico criado.
+            int: id of the created chart.
 
         Raises:
-            DashboardValidationError: o gráfico de origem não pertence a nenhum dashboard.
+            DashboardValidationError: the source chart does not belong to any dashboard.
         """
-        # Valida antes de criar: antes, o gráfico era criado e ficava órfão quando a validação falhava.
+        # Validate before creating: previously the chart was created and left orphaned when validation failed.
         if not chart.dashboards:
             raise DashboardValidationError(
-                message="Não foi possível anexar o chart: ele não pertence a nenhum dashboard.",
-                solution="Verificar se o chart informado está associado a um dashboard antes de chamar este método."
+                message="Could not attach the chart: it does not belong to any dashboard.",
+                solution="Check that the given chart is associated with a dashboard before calling this method."
             )
         dashboard = self.client.dashboards.get(chart.dashboards[0].id)
         new_id = self.add(chart)

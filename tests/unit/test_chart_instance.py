@@ -1,4 +1,4 @@
-"""Criação de gráficos do zero por Chart.instance()."""
+"""Creating charts from scratch with Chart.instance()."""
 import importlib
 
 import pytest
@@ -11,11 +11,11 @@ VIZ_TYPES = ["table", "pie", "pivot_table_v2", "echarts_timeseries_bar", "big_nu
 
 
 @pytest.mark.parametrize("viz_type", VIZ_TYPES)
-def test_instance_cria_grafico_ligado_ao_datasource(viz_type):
+def test_instance_creates_chart_bound_to_datasource(viz_type):
     importlib.import_module(f"supersetapiplus.charts.{viz_type}")
     chart_class = Chart.get_class(viz_type, f"supersetapiplus.charts.{viz_type}")
 
-    chart = chart_class.instance(slice_name="novo", datasource=DataSource(id=7, type="table"))
+    chart = chart_class.instance(slice_name="new", datasource=DataSource(id=7, type="table"))
 
     assert str(chart.viz_type) == viz_type
     assert chart.datasource_id == 7

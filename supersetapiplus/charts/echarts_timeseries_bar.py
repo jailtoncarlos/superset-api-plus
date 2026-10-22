@@ -75,7 +75,7 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
     tooltipSortByMetric: SerializableOptional[bool] = field(default=None)
 
     def validate(self):
-        # desativa a obrigatoriedade do groupby
+        # groupby is not required
         self._require_groupby: bool = False
         super().validate()
 

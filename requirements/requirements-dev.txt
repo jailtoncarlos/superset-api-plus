@@ -1,37 +1,37 @@
-# Utilitários
-## Formata dados em tabelas de forma legível, útil para exibir informações
-## em CLI ou relatórios.
+# Utilities
+## Formats data into readable tables, useful to display information
+## in CLIs or reports.
 tabulate>=0.10.0
 
-# Depuração
-## Versão aprimorada do pdb (debugger padrão do Python) com suporte a IPython,
-## permitindo debugs interativos e mais poderoso
+# Debugging
+## Enhanced version of pdb (Python's default debugger) with IPython support,
+## allowing more powerful interactive debugging
 ipdb>=0.13.13
 
 
-# Shell interativo
-# Shell interativo aprimorado para Python, com autocompletar, histórico e
-# introspecção avançada.
+# Interactive shell
+# Enhanced interactive Python shell, with autocompletion, history and
+# advanced introspection.
 ipython>=8.39.0
 
-# Qualidade de Codigo - Garantir código limpo e organizado
-## Executa checks automáticos antes de cada commit (git commit), garantindo que
-## o código siga padrões definidos.
+# Code quality - keep the code clean and organized
+## Runs automatic checks before each commit (git commit), ensuring that
+## the code follows the defined standards.
 pre-commit>=4.6.2
-## Analisador estático de código que verifica erros de estilo e más práticas.
+## Static code analyzer that checks style errors and bad practices.
 pylint>=4.1.3
-## Formatador automático de código opinionado, reformatando o código para
-## manter um padrão consistente
+## Opinionated automatic code formatter, reformatting the code to
+## keep a consistent style
 black==26.10.1
-## Ferramenta de análise estática de código, focada em verificar erros de estilo.
+## Static code analysis tool, focused on checking style errors.
 flake8>=7.4.1
-## Organiza importações do Python automaticamente, agrupando e ordenando
-## alfabeticamente.
+## Automatically organizes Python imports, grouping and sorting them
+## alphabetically.
 isort==9.0.2
-## Atualiza código legado para versões mais recentes do Python.
+## Upgrades legacy code to newer Python versions.
 pyupgrade>=3.21.2
-## Verifica se o código segue as boas práticas de programação definidas pela
-## comunidade.
+## Checks whether the code follows the programming best practices defined by
+## the community.
 mypy==2.4.0
 
 

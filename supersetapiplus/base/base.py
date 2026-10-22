@@ -36,27 +36,26 @@ FieldValue = str | int | bool | None | dict[str, Any] | list[Any]
 
 class ObjectDecoder(json.JSONEncoder):
     """
-    Codificador JSON personalizado para serializar objetos que contenham instâncias de Enum.
+    Custom JSON encoder that serializes objects containing Enum instances.
 
-    Essa classe sobrescreve o método `default` do `json.JSONEncoder` para garantir que
-    valores do tipo `Enum` sejam convertidos para suas representações em string
-    (usualmente `value`), facilitando a serialização de objetos que utilizam Enums
-    como atributos.
+    Overrides `json.JSONEncoder.default` so that `Enum` values are converted to
+    their string representation (usually `value`), making it easy to serialize
+    objects that use Enums as attributes.
 
-    Exemplo:
+    Example:
         >>> class Status(Enum):
         ...     OK = "ok"
         ...     FAIL = "fail"
         >>> json.dumps({'status': Status.OK}, cls=ObjectDecoder)
         '{"status": "ok"}'
 
-    Métodos:
-        default(obj): Retorna `str(obj.value)` se `obj` for uma instância de Enum,
-                      caso contrário, delega para o comportamento padrão.
+    Methods:
+        default(obj): returns `str(obj.value)` if `obj` is an Enum instance;
+                      otherwise delegates to the default behavior.
     """
 
     def default(self, obj):
-        # Converte instâncias de Enum para o valor associado em formato string
+        # Convert Enum instances to their value as a string
         if isinstance(obj, Enum):
             return str(obj.value)
         return super().default(obj)
@@ -64,21 +63,21 @@ class ObjectDecoder(json.JSONEncoder):
 
 class SerializableModel(ParseMixin, ABC):
     """
-    Classe base abstrata para representação de objetos que interagem com a API do Superset.
+    Abstract base class for objects that interact with the Superset API.
 
-    Esta classe fornece funcionalidades para:
-    - Serialização e desserialização de objetos via JSON.
-    - Validação de dados.
-    - Conversão para dicionário (`to_dict`) e JSON (`to_json`).
-    - Suporte a campos extras não modelados diretamente.
-    - Comparação, hashing e carregamento de dados.
+    Provides:
+    - serialization and deserialization via JSON;
+    - data validation;
+    - conversion to dictionary (`to_dict`) and JSON (`to_json`);
+    - support for extra fields not modeled directly;
+    - comparison, hashing and data loading.
 
-    A classe assume que cada subclasse será uma `dataclass` com campos definidos para refletir a estrutura esperada da API.
+    Every subclass is assumed to be a `dataclass` whose fields mirror the structure expected by the API.
 
     Attributes:
-        _factory: Referência à factory que gerencia instâncias desse objeto.
-        JSON_FIELDS (List[str]): Lista de campos que devem ser serializados como JSON.
-        _extra_fields (Dict): Armazena campos não mapeados diretamente nos atributos da classe.
+        _factory: reference to the factory that manages instances of this object.
+        JSON_FIELDS (List[str]): fields that must be serialized as JSON strings.
+        _extra_fields (Dict): fields not mapped directly to class attributes.
     """
     _factory = None
 
@@ -86,16 +85,16 @@ class SerializableModel(ParseMixin, ABC):
 
     _extra_fields: dict = {}
 
-    # Reemite em to_dict os campos não modelados recebidos em from_json. Necessário para
-    # estruturas livres do Superset (params, query_context, json_metadata), em que a
-    # biblioteca modela só parte das chaves e descartá-las corromperia o objeto ao salvar.
-    # Modelos de endpoints REST com schema estrito (chart, dashboard, dataset...) desativam.
+    # Re-emit in to_dict the unmodeled fields received in from_json. Needed for Superset's
+    # free-form structures (params, query_context, json_metadata), where the library models
+    # only some of the keys and dropping the rest would corrupt the object on save.
+    # Models of REST endpoints with a strict schema (chart, dashboard, dataset...) disable it.
     PRESERVE_EXTRA_FIELDS = True
 
-    # Campos aceitos pelo endpoint REST na criação (POST) e na alteração (PUT), conforme os schemas
-    # `{Recurso}RestApi.post/.put` da especificação OpenAPI do Superset (verificado em
-    # tests/unit/test_conformidade_openapi.py). None = sem restrição. O /_info não serve para isso:
-    # no 6.1.0 o ChartRestApi declara add/edit_columns = ['slice_name'].
+    # Fields accepted by the REST endpoint on create (POST) and update (PUT), per the
+    # `{Resource}RestApi.post/.put` schemas of Superset's OpenAPI spec (checked in
+    # tests/unit/test_openapi_conformance.py). None = no restriction. /_info cannot be used for this:
+    # in 6.1.0 ChartRestApi declares add/edit_columns = ['slice_name'].
     POST_FIELDS: tuple[str, ...] | None = None
     PUT_FIELDS: tuple[str, ...] | None = None
 
@@ -104,35 +103,35 @@ class SerializableModel(ParseMixin, ABC):
 
     def __post_init__(self):
         """
-        Executa ações pós-inicialização para instâncias da classe Object.
+        Run post-initialization steps for Object instances.
 
-        Este método é chamado automaticamente após a criação de instâncias de dataclasses.
-        Ele possui duas responsabilidades principais:
+        Called automatically after a dataclass instance is created. It has two
+        responsibilities:
 
-        1. Desserializar os campos definidos em `JSON_FIELDS` que tenham sido passados como strings.
-           Esses campos são esperados em formato JSON e, portanto, convertidos para estruturas Python.
+        1. Deserialize the fields listed in `JSON_FIELDS` that were passed as strings.
+           These fields are expected in JSON format and are converted to Python structures.
 
-        2. Atribuir valores padrão explícitos para campos que:
-            - Possuem valor padrão definido.
-            - Não foram preenchidos (valor `None`) durante a instância.
-            - Não são campos do tipo `SerializableOptional`.
+        2. Assign explicit default values to fields that:
+            - have a default value defined;
+            - were not filled in (value `None`) at instantiation;
+            - are not `SerializableOptional` fields.
 
-        Isso garante que os campos obrigatórios possuam valores apropriados,
-        melhorando a consistência do estado interno do objeto logo após sua criação.
+        This ensures required fields hold proper values, keeping the object's
+        internal state consistent right after creation.
         """
 
 
-        # Converte os campos definidos como JSON_FIELDS que foram passados como string em dicionários Python
+        # Convert JSON_FIELDS passed as strings into Python dictionaries
         for f in self.JSON_FIELDS:
             value = getattr(self, f) or "{}"
             if isinstance(value, str):
                 setattr(self, f, json.loads(value))
 
-        # Itera sobre todos os campos da dataclass
+        # Iterate over all dataclass fields
         for field in self.fields():
-            # Se o campo tem valor padrão, está como None
-            # e não é SerializableOptional
-            # Define seu valor padrão
+            # If the field has a default, is currently None
+            # and is not SerializableOptional,
+            # set it to its default
             if not isinstance(field.default, dataclasses._MISSING_TYPE) \
                     and getattr(self, field.name) is None \
                     and get_origin(field.type) is not SerializableOptional:
@@ -144,38 +143,38 @@ class SerializableModel(ParseMixin, ABC):
 
     def __eq__(self, other):
         """
-        Compara a instância atual com outro objeto para verificar igualdade estrutural.
+        Compare this instance with another object for structural equality.
 
-        Este método sobrescreve o operador `==` para comparar objetos do tipo `Object`.
-        A comparação é feita com base nos atributos internos (`__dict__`) de cada objeto, com exceção
-        do atributo `_extra_fields`, que é ignorado por não compor o núcleo da estrutura serializável.
+        Overrides `==` for `Object` instances. The comparison uses each object's internal
+        attributes (`__dict__`), except `_extra_fields`, which is ignored because it is not
+        part of the core serializable structure.
 
         Args:
-            other (object): Objeto a ser comparado.
+            other (object): object to compare with.
 
         Returns:
-            bool: `True` se os objetos forem equivalentes em todos os atributos relevantes; `False` caso contrário.
-                  Retorna `NotImplemented` se o objeto comparado não for do mesmo tipo.
+            bool: `True` if the objects are equivalent in all relevant attributes; `False` otherwise.
+                  Returns `NotImplemented` if the other object is not of the same type.
 
-        Observação:
-            Subclasses decoradas com `@dataclass` recebem um `__eq__` gerado automaticamente,
-            que também retorna `NotImplemented` quando as classes diferem.
+        Note:
+            Subclasses decorated with `@dataclass` get an auto-generated `__eq__`,
+            which also returns `NotImplemented` when the classes differ.
         """
 
-        # Verifica se os objetos são da mesma classe. Caso contrário, não implementa comparação.
+        # Only objects of the same class are compared
         if not isinstance(other, type(self)):
             return NotImplemented
 
-        # Copia os atributos para não remover _extra_fields dos objetos comparados
+        # Copy the attributes so _extra_fields is not removed from the compared objects
         dict_self = {k: v for k, v in vars(self).items() if k != '_extra_fields'}
         dict_other = {k: v for k, v in vars(other).items() if k != '_extra_fields'}
 
-        # Retorna True se os dicionários forem iguais (atributos equivalentes)
+        # True if the dictionaries are equal (equivalent attributes)
         return dict_self == dict_other
 
     def __ne__(self, other):
-        # `not NotImplemented` é erro a partir do Python 3.14 e, antes disso, resultava
-        # silenciosamente em False (objetos de classes distintas tratados como iguais).
+        # `not NotImplemented` is an error since Python 3.14 and, before that, silently
+        # evaluated to False (objects of different classes treated as equal).
         result = self.__eq__(other)
         if result is NotImplemented:
             return result
@@ -183,46 +182,45 @@ class SerializableModel(ParseMixin, ABC):
 
     def __hash__(self):
         """
-        Gera um hash único para a instância da classe com base em seus atributos internos.
+        Compute a hash for the instance from its internal attributes.
 
-        Este método sobrescreve o comportamento padrão de `__hash__` para permitir que
-        objetos da classe `Object` possam ser utilizados como chaves em dicionários ou
-        armazenados em conjuntos (`set`). O campo `_extra_fields` é explicitamente removido
-        da base de cálculo do hash por não fazer parte da estrutura essencial serializável do objeto.
+        Overrides the default `__hash__` so `Object` instances can be used as dictionary
+        keys or stored in sets. `_extra_fields` is explicitly left out of the hash because
+        it is not part of the object's essential serializable structure.
 
         Returns:
-            int: Valor de hash calculado com base nos atributos principais do objeto.
+            int: hash computed from the object's main attributes.
         """
 
-        # Obtém todos os atributos da instância
+        # Get all instance attributes
         dict_self = vars(self)
 
-        # Remove o campo _extra_fields para garantir consistência no hash
+        # Drop _extra_fields to keep the hash consistent
         dict_self.pop('_extra_fields', None)
 
-        # Gera o hash a partir da função utilitária definida no projeto
+        # Compute the hash with the project's helper function
         return dict_hash(dict_self)
 
     @classmethod
     def fields(cls) -> set:
         """
-        Retorna o conjunto de campos definidos na dataclass.
+        Return the set of fields defined in the dataclass.
 
-        Este método combina os campos definidos explicitamente na metaclasse
-        `__dataclass_fields__` com os campos obtidos por meio da função `dataclasses.fields`.
-        É utilizado para recuperar todas as declarações de atributos da classe herdada de `Object`.
+        Combines the fields declared in `__dataclass_fields__` with those returned by
+        `dataclasses.fields`. Used to retrieve every attribute declaration of a class
+        inheriting from `Object`.
 
         Returns:
-            set: Conjunto de objetos do tipo `dataclasses.Field` representando os campos da classe.
+            set: `dataclasses.Field` objects representing the class fields.
         """
         _fields = set()
 
-        # Adiciona campos definidos diretamente na metaclasse
+        # Add fields declared directly on the class
         for f in cls.__dataclass_fields__.values():
             if isinstance(f, dataclasses.Field):
                 _fields.add(f)
 
-        # Adiciona também os campos descobertos via dataclasses.fields (pode incluir heranças)
+        # Also add the fields found by dataclasses.fields (may include inherited ones)
         _fields.update(dataclasses.fields(cls))
 
         return _fields
@@ -230,16 +228,16 @@ class SerializableModel(ParseMixin, ABC):
     @classmethod
     def get_field(cls, name) -> dataclasses.Field:
         """
-        Retorna o campo da dataclass com o nome fornecido.
+        Return the dataclass field with the given name.
 
-        Este método percorre todos os campos definidos na dataclass e retorna
-        aquele cujo nome coincide com o argumento fornecido.
+        Iterates over all dataclass fields and returns the one whose name
+        matches the argument.
 
         Args:
-            name (str): Nome do campo a ser localizado.
+            name (str): name of the field to look up.
 
         Returns:
-            dataclasses.Field: Campo correspondente ao nome fornecido, ou None se não encontrado.
+            dataclasses.Field: the matching field, or None if not found.
         """
         for f in cls.fields():
             if f.name == name:
@@ -248,17 +246,17 @@ class SerializableModel(ParseMixin, ABC):
     @classmethod
     def field_names(cls) -> list:
         """
-        Retorna uma lista com os nomes de todos os campos definidos na dataclass.
+        Return the names of all fields defined in the dataclass.
 
-        Campos cujo valor padrão seja uma instância da própria classe `Object`
-        são ignorados, pois representam subobjetos complexos.
+        Fields whose default is an `Object` instance are skipped, since they
+        represent complex sub-objects.
 
         Returns:
-            list: Lista de strings contendo os nomes dos campos relevantes.
+            list: names of the relevant fields.
         """
         fields = []
         for f in cls.fields():
-            # Ignora campos cujo default é uma instância de Object
+            # Skip fields whose default is an Object instance
             if not isinstance(f.default, SerializableModel):
                 fields.append(f.name)
         return fields
@@ -266,16 +264,16 @@ class SerializableModel(ParseMixin, ABC):
     @classmethod
     def required_fields(cls, data) -> dict:
         """
-        Extrai os campos obrigatórios da dataclass a partir dos dados fornecidos.
+        Extract the dataclass's required fields from the given data.
 
-        Um campo é considerado obrigatório se não possuir valor padrão (`MISSING`)
-        e não for um campo complexo baseado em `SerializeObject`.
+        A field is required when it has no default (`MISSING`) and is not a
+        complex `SerializeObject`-based field.
 
         Args:
-            data (dict): Dicionário com os dados brutos a serem verificados.
+            data (dict): raw data to check.
 
         Returns:
-            dict: Subconjunto dos dados contendo apenas os campos obrigatórios.
+            dict: subset of the data containing only the required fields.
         """
         rdata = {}
         for f in cls.fields():
@@ -286,76 +284,75 @@ class SerializableModel(ParseMixin, ABC):
     @classmethod
     def __get_extra_fields(cls, data: dict) -> dict:
         """
-        Extrai os campos extras não definidos como atributos na classe.
+        Extract the extra fields not defined as class attributes.
 
-        Este método identifica e separa os pares chave-valor do dicionário `data`
-        que não correspondem a nenhum campo definido na classe. Esses campos
-        são considerados "extras" e são removidos do dicionário original, sendo
-        retornados separadamente.
+        Identifies the key-value pairs of `data` that do not match any field defined
+        in the class. These "extra" fields are removed from the original dictionary
+        and returned separately.
 
         Args:
-            data (dict): Dicionário contendo os dados de entrada, geralmente obtido de uma resposta JSON.
+            data (dict): input data, usually taken from a JSON response.
 
         Returns:
-            dict: Dicionário com os campos extras não reconhecidos como atributos da classe.
+            dict: the extra fields not recognized as class attributes.
         """
-        # Recupera os nomes dos campos definidos na classe
-        # Identifica as chaves presentes no dicionário de dados
-        # Calcula a diferença para encontrar as chaves não esperadas
-        # Remove e armazena os campos não definidos no modelo da classe
+        # Get the field names defined in the class
+        # Get the keys present in the data dictionary
+        # Compute the difference to find the unexpected keys
+        # Remove and store the fields not defined in the class model
 
         if not data:
             return {}
 
-        field_names = set(cls.field_names())  # Recupera os nomes dos campos definidos na classe
+        field_names = set(cls.field_names())  # Field names defined in the class
 
-        data_keys = set(data.keys())  # Chaves presentes no dicionário recebido
-        extra_fields_keys = data_keys - field_names  # Identifica chaves desconhecidas
+        data_keys = set(data.keys())  # Keys present in the received dictionary
+        extra_fields_keys = data_keys - field_names  # Unknown keys
         extra_fields = {}
         for field_name in extra_fields_keys:
-            extra_fields[field_name] = data.pop(field_name)  # Remove os campos extras do dicionário original
+            extra_fields[field_name] = data.pop(field_name)  # Remove the extra fields from the original dictionary
 
         return extra_fields
 
     @classmethod
     def _subclass_object(cls, field: dataclasses.Field):
         """
-        Recupera a classe que herda de `Object` associada a um campo de dataclass.
+        Retrieve the `Object` subclass associated with a dataclass field.
 
-        Esta função é utilizada para determinar dinamicamente o tipo de objeto que deve
-        ser instanciado durante a desserialização de estruturas aninhadas.
+        Used to determine dynamically which object type must be instantiated
+        while deserializing nested structures.
 
-        A busca pelo tipo de classe é feita em dois níveis:
-        1. A partir da metadata do campo (`cls`) — normalmente passada via `object_field`.
-        2. A partir da `default_factory`, caso ela seja uma subclasse de `Object`.
+        The class is looked up at two levels:
+        1. the field metadata (`cls`), usually passed through `object_field`;
+        2. the `default_factory`, if it is an `Object` subclass.
 
         Args:
-            field (dataclasses.Field): Campo da dataclass cujo tipo será analisado.
+            field (dataclasses.Field): dataclass field whose type is inspected.
 
         Returns:
-            Optional[Type[Object]]: Classe que herda de `Object`, caso encontrada; caso contrário, `None`.
+            Optional[Type[Object]]: the `Object` subclass, if found; otherwise `None`.
         """
 
         if field is None:
             return None
 
-        # Primeiro tenta recuperar a classe diretamente da metadata, se disponível
+        # First try to get the class directly from the metadata, if available
         if hasattr(field, 'metadata'):
             if field.metadata.get("cls"):
                 return field.metadata.get("cls")
         else:
-            logger.warning(f'Campo {field.name} não possui atributo "metadados". '
-                           f'\nSe o tipo do campo for uma classe filha de "SerializableModel", '
-                           f'verifique se o campo foi definido corretamente com object_field.')
+            logger.warning(f'Field {field.name} has no "metadata" attribute. '
+                           f'\nIf the field type is a subclass of "SerializableModel", '
+                           f'check that the field was declared correctly with object_field.')
 
-        # Em seguida tenta deduzir a partir do default_factory
+        # Then try to infer it from the default_factory
         default_factory = getattr(field, 'default_factory', None)
 
         if default_factory and default_factory is not dataclasses.MISSING:
             if isinstance(default_factory, type) and issubclass(default_factory, SerializableModel):
                 return default_factory
 
-        # Se nenhuma das abordagens funcionar, retorna None
+        # If neither approach works, return None
         return None
 
     @classmethod
@@ -410,34 +407,32 @@ class SerializableModel(ParseMixin, ABC):
     @classmethod
     def from_json(cls, data: dict) -> Self:
         """
-        Constrói uma instância da classe a partir de um dicionário JSON.
+        Build an instance of the class from a JSON dictionary.
 
-        Este método realiza o processo de desserialização, instanciando um objeto da classe
-        a partir de um dicionário que representa seus atributos. Campos adicionais não
-        definidos na classe são capturados em `_extra_fields`. O método também é capaz de
-        desserializar campos JSON aninhados, listas de objetos e objetos com metadados
-        específicos, incluindo estruturas que fazem uso de `dict_right`.
+        Deserializes an object of the class from a dictionary representing its
+        attributes. Additional fields not defined in the class are captured in
+        `_extra_fields`. It also deserializes nested JSON fields, lists of objects and
+        objects with specific metadata, including structures that use `dict_right`.
 
-        Durante o processo, valores `None` são substituídos por instâncias do tipo
-        `CUSTOM_NONE`, permitindo preservar a semântica da ausência de valor sem conflitar
-        com ausência literal.
+        During the process, `None` values are replaced by `CUSTOM_NONE` instances,
+        preserving the semantics of a missing value without clashing with a literal absence.
 
         Args:
-            data (dict): Dicionário contendo os dados a serem mapeados para uma instância da classe.
+            data (dict): data to map onto an instance of the class.
 
         Returns:
-            Self: Uma nova instância da classe, populada com os dados informados.
+            Self: a new instance of the class, populated with the given data.
 
         Raises:
-            LoadJsonError: Em caso de falha ao mapear algum campo, incluindo erros de estrutura,
-                           tipo ou parsing de campos compostos.
+            LoadJsonError: if mapping any field fails, including structure, type or
+                           parsing errors in composite fields.
         """
-        extra_fields = cls.__get_extra_fields(data)  # Separa campos não definidos na classe
+        extra_fields = cls.__get_extra_fields(data)  # Split off fields not defined in the class
         field_name = None
         data_value = None
 
         try:
-            logger.debug('Instancia %s com dados: %s', cls.__name__, mask_data(data))
+            logger.debug('Instantiating %s with data: %s', cls.__name__, mask_data(data))
             obj = cls.instantiate_with_missing_check(**data)
 
             for field_name in cls.JSON_FIELDS:
@@ -447,8 +442,8 @@ class SerializableModel(ParseMixin, ABC):
                     field = cls.get_field(field_name)
                     serializable_object_class = cls._subclass_object(field)
                     value = json.loads(data[field_name])
-                    # 'null' gravado como texto (ex.: query_context de chart importado) vira None,
-                    # sem passar pelo from_json da subclasse.
+                    # 'null' stored as text (e.g. the query_context of an imported chart) becomes None,
+                    # without going through the subclass's from_json.
                     if serializable_object_class and value is not None:
                         value = serializable_object_class.from_json(value)
                     setattr(obj, field_name, value)
@@ -504,7 +499,7 @@ class SerializableModel(ParseMixin, ABC):
                 data_value={data_value}
                 data={data}
                 extra_fields={extra_fields}
-                causa do erro consta acima: {err}
+                the cause of the error is shown above: {err}
             """
             logger.exception(msg)
             raise LoadJsonError(msg) from err
@@ -529,10 +524,10 @@ class SerializableModel(ParseMixin, ABC):
 
             if isinstance(value, MissingField):
                 exclude = True
-            # Exclui sempre que o campo for marcado como SerializableNotToJson
+            # Always exclude fields marked as SerializableNotToJson
             elif get_origin(field.type) is SerializableNotToJson:
                 exclude = True
-            # Exclui se for SerializableOptional e valor ausente ou igual ao default
+            # Exclude SerializableOptional fields when the value is missing or equals the default
             elif get_origin(field.type) is SerializableOptional:
                 if not value and default_value is dataclasses.MISSING:
                     exclude = True
@@ -547,7 +542,7 @@ class SerializableModel(ParseMixin, ABC):
                     exclude = False
 
         except Exception as err:
-            logger.warning(f'Ignorando erro ao verificar se o campo "{field_name}" deve ser excluído, Error: {err}')
+            logger.warning(f'Ignoring error while checking whether field "{field_name}" should be excluded, Error: {err}')
             pass
 
         if exclude:
@@ -556,31 +551,31 @@ class SerializableModel(ParseMixin, ABC):
 
     def to_dict(self, columns: list = None, convert_to_json: bool = False) -> dict:
         """
-        Serializa o objeto em um dicionário Python, convertendo todos os campos relevantes.
+        Serialize the object into a Python dictionary, converting every relevant field.
 
-        A serialização considera colunas explicitamente listadas ou, se omitidas, todas as colunas do objeto.
-        Campos do tipo `Object`, `Enum`, listas, tuplas e dicionários aninhados são tratados de forma especial
-        para garantir compatibilidade com formatos JSON.
+        Serialization covers the explicitly listed columns or, if omitted, all of the object's columns.
+        `Object` fields, `Enum`s, lists, tuples and nested dictionaries get special handling
+        to stay compatible with JSON formats.
 
-        Tuplas são convertidas recursivamente com suporte a `Object` e `Enum`.
-        Dicionários com metadados `dict_left` ou `dict_right` são transformados respeitando as direções
-        especificadas.
+        Tuples are converted recursively, with support for `Object` and `Enum`.
+        Dictionaries with `dict_left` or `dict_right` metadata are transformed following
+        the given directions.
 
         Args:
-            columns (list, optional): Lista de nomes de campos a serem incluídos.
-                Se vazia, todos os campos definidos na classe serão serializados.
+            columns (list, optional): names of the fields to include.
+                If empty, all fields defined in the class are serialized.
 
         Returns:
-            dict: Dicionário representando o estado atual do objeto, com os campos convertidos.
+            dict: dictionary representing the object's current state, with the fields converted.
         """
         def prepare_value_tuple(field_name: str, field_value: tuple, columns: list, convert_to_json: bool) -> tuple:
-            """Converte um par (valor, chave), ex.: item de orderby, convertendo cada elemento.
+            """Convert a (value, key) pair, e.g. an orderby item, converting each element.
 
-            Devolve o próprio par: antes devolvia uma lista com o par, e o orderby saía com um
-            nível de lista a mais ([[["count", true]]] em vez de [["count", true]]).
+            Returns the pair itself: it used to return a list containing the pair, and orderby
+            came out with an extra list level ([[["count", true]]] instead of [["count", true]]).
             """
-            # Esperamos sempre um par; tupla de outro tamanho costuma ser vírgula sobrando
-            # na declaração do campo no @dataclass.
+            # A pair is always expected; a tuple of any other length is usually a stray comma
+            # in the field declaration of the @dataclass.
             if len(field_value) != 2:
                 raise ValueError(
                     f"Invalid default for dataclass field '{field_name}': "
@@ -598,13 +593,13 @@ class SerializableModel(ParseMixin, ABC):
                 return str(item)
             return item
 
-        # Junta colunas explícitas com as definidas na classe
+        # Merge the explicit columns with those defined in the class
         columns_names = set(columns or [])
         columns_names.update(self.field_names())
 
         data = {}
         for field_name in columns_names:
-            if not hasattr(self, field_name):  # Ignora colunas ainda não mapeada
+            if not hasattr(self, field_name):  # Skip columns not mapped yet
                 continue
 
             value = getattr(self, field_name)
@@ -613,15 +608,15 @@ class SerializableModel(ParseMixin, ABC):
                 # logger.warning(f"field_name {field_name} typeof MissingField.")
                 continue
 
-            # Converte Enums para string
+            # Convert Enums to string
             if isinstance(value, Enum):
                 value = str(value)
 
-            # Converte objetos recursivamente
+            # Convert objects recursively
             elif value and isinstance(value, SerializableModel):
                 value = value.to_dict(columns_names, convert_to_json)
 
-            # Converte listas de objetos, tuplas ou enums
+            # Convert lists of objects, tuples or enums
             elif value and isinstance(value, list):
                 values_data = []
                 for field_value in value:
@@ -635,7 +630,7 @@ class SerializableModel(ParseMixin, ABC):
                         values_data.append(field_value)
                     value = values_data
 
-            # Converte dicionários de objetos baseados em metadados
+            # Convert dictionaries of objects based on metadata
             elif value and isinstance(value, dict):
                 field = self.get_field(field_name)
                 serializable_object_class = self._subclass_object(field)
@@ -650,13 +645,13 @@ class SerializableModel(ParseMixin, ABC):
                             _value[k] = obj.to_dict(columns_names, convert_to_json)
                     value = _value
 
-            # Converte tuplas simples
+            # Convert plain tuples
             elif value and isinstance(value, tuple):
                 value = prepare_value_tuple(field_name, value, columns, convert_to_json)
 
             if not self.__class__._is_exclude(value, field_name, convert_to_json):
                 if convert_to_json and field_name in self.JSON_FIELDS:
-                    # Nulo é enviado como null, não como o texto "null" (que o Superset gravaria literalmente).
+                    # None is sent as null, not as the text "null" (which Superset would store literally).
                     data[field_name] = None if value is None else json.dumps(value, cls=ObjectDecoder)
                 else:
                     data[field_name] = value
@@ -666,10 +661,10 @@ class SerializableModel(ParseMixin, ABC):
                 data.setdefault(extra_name, extra_value)
 
         copydata = data
-        # Remove campo técnico "_extra_fields" se ainda presente
+        # Remove the technical "_extra_fields" field if still present
         if data.get('extra_fields'):
             copydata = data.copy()
-            logger.debug(f'remove campo técnico _extra_fields: {copydata}')
+            logger.debug(f'removing technical field _extra_fields: {copydata}')
             copydata.pop('extra_fields')
 
         if convert_to_json:
@@ -679,32 +674,32 @@ class SerializableModel(ParseMixin, ABC):
 
     def to_json(self, columns: list = None) -> dict:
         """
-        Serializa o objeto em um dicionário JSON-ready, com suporte a campos aninhados.
+        Serialize the object into a JSON-ready dictionary, with support for nested fields.
 
-        Este método converte o objeto em uma estrutura de dicionário apropriada para
-        exportação JSON, aplicando regras de serialização específicas para campos definidos
-        em `JSON_FIELDS` (armazenados como string JSON), remoção de campos opcionais não preenchidos
-        e exclusão de campos marcados como não serializáveis (`SerializableNotToJson`).
+        Converts the object into a dictionary suitable for JSON export, applying specific
+        serialization rules to the fields in `JSON_FIELDS` (stored as JSON strings),
+        dropping unfilled optional fields and excluding fields marked as non-serializable
+        (`SerializableNotToJson`).
 
         Args:
-            columns (list, optional): Lista de nomes de campos a incluir na exportação.
-                Se omitida, todos os campos definidos na classe serão considerados.
+            columns (list, optional): names of the fields to include in the export.
+                If omitted, all fields defined in the class are considered.
 
         Returns:
-            dict: Estrutura de dicionário pronta para serialização JSON.
+            dict: dictionary ready for JSON serialization.
         """
         if columns is None:
             columns = []
 
-        # Primeiro converte o objeto inteiro em um dicionário comum (com tratamento recursivo)
+        # First convert the whole object into a plain dictionary (recursively)
         data = self.to_dict(columns, convert_to_json=True)
 
-        # `columns` restringe os campos de primeiro nível (to_dict une a lista aos campos do modelo
-        # para serializar objetos aninhados, então sem este filtro o argumento não tinha efeito).
+        # `columns` restricts the top-level fields (to_dict merges the list with the model fields
+        # to serialize nested objects, so without this filter the argument had no effect).
         if columns:
             data = {k: v for k, v in data.items() if k in columns}
 
-        # Loga a estrutura final antes de retornar
+        # Log the final structure before returning it
         logger.debug('return data %s', mask_data(data))
 
         return data
@@ -712,32 +707,31 @@ class SerializableModel(ParseMixin, ABC):
     @property
     def base_url(self) -> str:
         """
-        Retorna a URL base específica para a instância do objeto.
+        Return the base URL of this object instance.
 
-        Utiliza o client do factory para compor a URL concatenando o endpoint base
-        com o identificador (`id`) do objeto atual.
+        Uses the factory's client to build the URL by joining the base endpoint
+        with the current object's identifier (`id`).
 
         Returns:
-            str: URL completa para operações no objeto.
+            str: full URL for operations on the object.
         """
         return self._factory.client.join_urls(self._factory.base_url, self.id)
 
     def export(self, path: Path | str) -> None:
         """
-        Exporta os dados do objeto atual para um arquivo no caminho especificado.
+        Export the current object's data to a file at the given path.
 
         Args:
-            path (Union[Path, str]): Caminho onde o conteúdo será exportado.
+            path (Union[Path, str]): destination path for the exported content.
         """
         self._factory.export(ids=[self.id], path=path)
 
     def fetch(self) -> None:
         """
-        Recarrega os dados da instância a partir da API remota.
+        Reload the instance data from the remote API.
 
-        Realiza uma requisição GET na URL do objeto e atualiza os atributos da
-        instância com os valores retornados, incluindo a desserialização de campos
-        JSON especificados em `JSON_FIELDS`.
+        Performs a GET request on the object URL and updates the instance attributes
+        with the returned values, deserializing the JSON fields listed in `JSON_FIELDS`.
         """
         field_names = self.field_names()
         client = self._factory.client
@@ -747,21 +741,21 @@ class SerializableModel(ParseMixin, ABC):
         for k, v in o.items():
             if k in field_names:
                 if k in self.JSON_FIELDS:
-                    # Converte JSON string para dicionário Python
+                    # Convert the JSON string into a Python dictionary
                     setattr(self, k, json.loads(v or "{}"))
                 else:
                     setattr(self, k, v)
 
     def save(self) -> None:
         """
-        Atualiza ou persiste os dados do objeto na API remota.
+        Update or persist the object's data in the remote API.
 
-        Converte os dados atuais da instância em JSON e envia via requisição PUT
-        para a API. Loga o payload e a resposta da operação.
+        Converts the instance's current data to JSON and sends it to the API in a PUT
+        request. Logs the payload and the response.
         """
-        # Envia os campos do modelo. O /_info não serve para filtrar: no Superset 6.1.0 o
-        # ChartRestApi declara edit_columns = ['slice_name'], mas valida o corpo com o
-        # ChartPutSchema, que exige/aceita datasource_id, params, query_context etc.
+        # Send the model fields. /_info cannot be used as a filter: in Superset 6.1.0
+        # ChartRestApi declares edit_columns = ['slice_name'], but validates the body with
+        # ChartPutSchema, which requires/accepts datasource_id, params, query_context etc.
         payload = self.to_json(columns=list(self.PUT_FIELDS or []))
         payload.pop("id", None)
 
@@ -772,22 +766,22 @@ class SerializableModel(ParseMixin, ABC):
 
     def delete(self) -> bool:
         """
-        Exclui o objeto da API remota.
+        Delete the object from the remote API.
 
         Returns:
-            bool: `True` se a exclusão for bem-sucedida, `False` caso contrário.
+            bool: `True` if the deletion succeeded, `False` otherwise.
         """
         return self._factory.delete(id=self.id)
 
     def get_request_response(self):
         """
-        Retorna a resposta bruta da última requisição associada ao objeto.
+        Return the raw response of the last request associated with the object.
 
-        Retorna o conteúdo do JSON com os campos definidos em `JSON_FIELDS`
-        desserializados a partir de string JSON.
+        Returns the JSON content with the fields listed in `JSON_FIELDS`
+        deserialized from JSON strings.
 
         Returns:
-            dict: Estrutura JSON com os dados da resposta, incluindo campos convertidos.
+            dict: JSON structure with the response data, including converted fields.
         """
         jdict = self._request_response.json()
         # for field_name in self.JSON_FIELDS:
@@ -797,11 +791,11 @@ class SerializableModel(ParseMixin, ABC):
 
 
 class UnsupportedObject:
-    """Item de listagem cujo tipo não tem modelo na biblioteca (ex.: viz_type não suportado).
+    """Listing item whose type has no model in the library (e.g. an unsupported viz_type).
 
-    Devolvido por `find()` para que um único item desconhecido não quebre a listagem inteira.
-    Expõe os campos recebidos como atributos (`id`, `slice_name`, `viz_type`...) e o dict original
-    em `data`. É somente leitura: não tem `save()`; `get(id)` do mesmo item levanta
+    Returned by `find()` so that a single unknown item does not break the whole listing.
+    Exposes the received fields as attributes (`id`, `slice_name`, `viz_type`...) and the original
+    dict in `data`. It is read-only: it has no `save()`; `get(id)` on the same item raises
     `UnsupportedTypeError`.
     """
 
@@ -816,17 +810,17 @@ class UnsupportedObject:
 
 class ApiModelFactories(ABC):
     """
-    Classe base abstrata para construção de fábricas de objetos que interagem com a API do Superset.
+    Abstract base class for factories of objects that interact with the Superset API.
 
-    Esta classe encapsula a lógica de comunicação com endpoints RESTful do Superset, permitindo
-    a manipulação de entidades como gráficos, conjuntos de dados e bancos de dados. As subclasses
-    devem especificar a classe de objeto padrão e o endpoint correspondente.
+    Encapsulates the communication with Superset's RESTful endpoints, allowing the
+    handling of entities such as charts, datasets and databases. Subclasses must
+    specify the default object class and the corresponding endpoint.
 
-    A classe fornece métodos para:
-    - Buscar objetos por ID ou filtros
-    - Criar, atualizar e deletar objetos
-    - Importar e exportar objetos via arquivos JSON ou ZIP
-    - Obter metainformações dos endpoints (_info)
+    Provides methods to:
+    - find objects by ID or filters
+    - create, update and delete objects
+    - import and export objects via JSON or ZIP files
+    - get endpoint meta-information (_info)
     """
 
     endpoint = ""
@@ -834,17 +828,17 @@ class ApiModelFactories(ABC):
 
     def __init__(self, client):
         """
-        Inicializa a fábrica com o cliente que realizará as requisições HTTP.
+        Initialize the factory with the client that performs the HTTP requests.
 
         Args:
-            client: Instância de cliente que encapsula métodos de requisição (GET, POST, DELETE, etc.)
+            client: client instance wrapping the request methods (GET, POST, DELETE, etc.)
         """
         self.client = client
 
     @abstractmethod
     def _default_object_class(self) -> type[SerializableModel]:
         """
-        Deve ser implementado pelas subclasses para retornar a classe padrão dos objetos manipulados.
+        Must be implemented by subclasses to return the default class of the handled objects.
         """
         ...
 
@@ -873,8 +867,8 @@ class ApiModelFactories(ABC):
 
             module_name = '.'.join(m)
 
-            # Importa o módulo do tipo sob demanda; antes só funcionava se ele já
-            # tivesse sido importado por outro caminho (sys.modules).
+            # Import the type's module on demand; previously it only worked if the module
+            # had already been imported some other way (sys.modules).
             try:
                 importlib.import_module(module_name)
             except ModuleNotFoundError as e:
@@ -892,112 +886,112 @@ class ApiModelFactories(ABC):
     @cached_property
     def _infos(self):
         """
-        Obtém metainformações do endpoint, como colunas disponíveis para adição e edição.
+        Get endpoint meta-information, such as the columns available for adding and editing.
 
         Returns:
-            dict: Dados obtidos do endpoint /_info.
+            dict: data returned by the /_info endpoint.
         """
         response = self.client.get(self.info_url, params={"q": json.dumps(self._INFO_QUERY)})
         return response.json()
 
     @property
     def add_columns(self):
-        """Lista de colunas disponíveis para adição."""
+        """Columns available for adding."""
         return [e.get("name") for e in self._infos.get("add_columns", [])]
 
     @property
     def edit_columns(self):
-        """Lista de colunas disponíveis para edição."""
+        """Columns available for editing."""
         return [e.get("name") for e in self._infos.get("edit_columns", [])]
 
     @property
     def base_url(self):
-        """Retorna a URL base para o endpoint atual."""
+        """Return the base URL of the current endpoint."""
         url = self.client.join_urls(self.client.base_url, self.endpoint)
         logger.info(f'url: {url}')
         return url
 
     @property
     def info_url(self):
-        """URL para obter informações sobre o schema do endpoint."""
+        """URL to get information about the endpoint schema."""
         return self.client.join_urls(self.base_url, "_info")
 
     @property
     def import_url(self):
-        """URL para importação de objetos."""
+        """URL for importing objects."""
         return self.client.join_urls(self.base_url, "import/")
 
     @property
     def export_url(self):
-        """URL para exportação de objetos."""
+        """URL for exporting objects."""
         return self.client.join_urls(self.base_url, "export/")
 
     def get(self, id: str):
         """
-        Recupera e instancia um objeto a partir de uma requisição HTTP baseada no ID fornecido.
+        Fetch and instantiate an object through an HTTP request for the given ID.
 
-        Este método realiza uma requisição GET à URL formada pela junção de `base_url` com o `id`
-        informado. O conteúdo da resposta JSON é convertido em um dicionário Python, tendo os campos
-        `None` substituídos por um valor personalizado (`CUSTOM_NONE`). Em seguida, uma classe base é
-        determinada dinamicamente e o objeto correspondente é instanciado a partir dos dados.
+        Performs a GET request to the URL formed by joining `base_url` with the given `id`.
+        The JSON response is converted into a Python dictionary, with `None` fields replaced
+        by a custom value (`CUSTOM_NONE`). A base class is then determined dynamically and
+        the corresponding object is instantiated from the data.
 
-        A instância final inclui as referências à resposta original (`_request_response`) e à fábrica
-        de origem (`_factory`), para fins de rastreamento e reutilização posterior.
+        The resulting instance keeps references to the original response (`_request_response`)
+        and to the originating factory (`_factory`), for tracing and later reuse.
 
         Args:
-            id (str): Identificador único do recurso a ser recuperado.
+            id (str): unique identifier of the resource to fetch.
 
         Returns:
-            SerializableModel: Instância da classe base adequada, representando o recurso retornado.
+            SerializableModel: instance of the appropriate base class, representing the returned resource.
 
         Raises:
-            requests.HTTPError: Caso a resposta HTTP indique erro (status != 2xx).
-            LoadJsonError: Caso ocorra falha durante a desserialização do conteúdo JSON.
+            requests.HTTPError: if the HTTP response indicates an error (status != 2xx).
+            LoadJsonError: if deserializing the JSON content fails.
         """
 
-        # Monta a URL de requisição combinando a base com o identificador do recurso
+        # Build the request URL by joining the base with the resource identifier
         url = self.client.join_urls(self.base_url, id)
         logger.info(f'url: {url}')
 
-        # Executa a requisição HTTP GET para o endpoint
+        # Perform the HTTP GET request on the endpoint
         response = self.client.get(url)
 
-        # Converte o corpo da resposta JSON em um dicionário Python
+        # Convert the JSON response body into a Python dictionary
         result = response.json()
         logger.debug('response: %s', mask_data(result))
 
-        # Obtém o conteúdo principal do recurso a partir da chave 'result'
+        # Get the main resource content from the 'result' key
         data_result = result['result']
 
-        # Garante que o campo 'id' esteja presente no dicionário principal
+        # Make sure the 'id' field is present in the main dictionary
         data_result["id"] = result.get('id', data_result.get('id', id))
 
-        # Determina dinamicamente a classe base apropriada com base nos dados
+        # Dynamically determine the appropriate base class from the data
         BaseClass = self.get_base_object(data_result)
 
-        # Instancia o objeto usando o método de desserialização
+        # Instantiate the object through the deserialization method
         obj = BaseClass.from_json(data_result)
 
-        # Armazena metadados adicionais na instância
-        obj._request_response = response  # Referência à resposta original
-        obj._factory = self  # Referência à fábrica usada
+        # Store additional metadata on the instance
+        obj._request_response = response  # Reference to the original response
+        obj._factory = self  # Reference to the factory used
 
         return obj
 
     def find(self, filter: QueryStringFilter, columns: list[str] | None = None, page_size: int = 100, page: int = 0,
              order_column: str | None = None, order_direction: str | None = None):
         """
-        Busca objetos com base em filtros e paginação.
+        Find objects using filters and pagination.
 
         Args:
-            filter (QueryStringFilter): Filtro a ser aplicado na query string.
-            columns (List[str]): Colunas a serem retornadas.
-            page_size (int): Tamanho da página de resultados.
-            page (int): Número da página.
-            order_column (str, opcional): coluna de ordenação; order_direction "asc" ou "desc".
+            filter (QueryStringFilter): filter applied to the query string.
+            columns (List[str]): columns to return.
+            page_size (int): size of the results page.
+            page (int): page number.
+            order_column (str, optional): sort column; order_direction "asc" or "desc".
 
         Returns:
-            List[SerializableModel]: Lista de objetos encontrados (UnsupportedObject para tipos sem modelo).
+            List[SerializableModel]: objects found (UnsupportedObject for types without a model).
         """
         response = self.client.find(self.base_url, filter, columns, page_size, page, order_column, order_direction)
         data_result = response.json()
@@ -1017,22 +1011,22 @@ class ApiModelFactories(ABC):
 
     def find_all(self, filter: QueryStringFilter | None = None, columns: list[str] | None = None,
                  page_size: int = 100, order_column: str | None = None, order_direction: str | None = None):
-        """Busca percorrendo todas as páginas; mesmos parâmetros de `find`."""
+        """Find across all pages; same parameters as `find`."""
         filter = filter or QueryStringFilter()
         objects, page = [], 0
         while True:
-            pagina = self.find(filter, columns, page_size, page, order_column, order_direction)
-            objects.extend(pagina)
-            if len(pagina) < page_size:
+            page_objects = self.find(filter, columns, page_size, page, order_column, order_direction)
+            objects.extend(page_objects)
+            if len(page_objects) < page_size:
                 return objects
             page += 1
 
     def count(self, filter: QueryStringFilter | None = None) -> int:
         """
-        Retorna a quantidade de objetos no endpoint, opcionalmente restrita a um filtro.
+        Return the number of objects in the endpoint, optionally restricted by a filter.
 
         Returns:
-            int: Contagem de objetos.
+            int: object count.
         """
         if filter is None:
             return self.client.get(self.base_url).json()["count"]
@@ -1045,19 +1039,19 @@ class ApiModelFactories(ABC):
             full: bool = False,
     ):
         """
-        Busca por um único objeto com base em um filtro.
+        Find a single object using a filter.
 
         Args:
-            filter (QueryStringFilter): Filtros de busca.
-            columns (List[str], opcional): Colunas a retornar.
-            full (bool, opcional): Se True, recarrega o objeto pelo ID com dados completos.
+            filter (QueryStringFilter): search filters.
+            columns (List[str], optional): columns to return.
+            full (bool, optional): if True, reload the object by ID with complete data.
 
         Raises:
-            NotFound: Nenhum objeto encontrado.
-            MultipleFound: Mais de um objeto encontrado.
+            NotFound: no object found.
+            MultipleFound: more than one object found.
 
         Returns:
-            SerializableModel: Objeto encontrado.
+            SerializableModel: the object found.
         """
         objects = self.find(filter, columns)
         if len(objects) == 0:
@@ -1067,22 +1061,22 @@ class ApiModelFactories(ABC):
 
         obj = objects[0]
         if full and hasattr(obj, "id"):
-            obj = self.get(obj.id)  # Recharge with all complete data via ID
+            obj = self.get(obj.id)  # Reload with complete data via ID
         return obj
 
     def add(self, obj) -> int:
         """
-        Adiciona um novo objeto ao endpoint remoto.
+        Add a new object to the remote endpoint.
 
         Args:
-            obj (SerializableModel): Objeto a ser adicionado.
+            obj (SerializableModel): object to add.
 
         Returns:
-            int: ID do objeto criado.
+            int: ID of the created object.
         """
 
-        # Campos do modelo, não os add_columns do /_info (ver save()): no 6.1.0 o _info do chart
-        # lista só slice_name e o POST exige datasource_id/datasource_type (ChartPostSchema).
+        # Model fields, not the add_columns from /_info (see save()): in 6.1.0 the chart _info
+        # lists only slice_name and the POST requires datasource_id/datasource_type (ChartPostSchema).
         payload = obj.to_json(columns=list(obj.POST_FIELDS or []))
         payload.pop("id", None)
 
@@ -1096,11 +1090,11 @@ class ApiModelFactories(ABC):
 
     def export(self, ids: list[int], path: Path | str) -> None:
         """
-        Exporta objetos para um arquivo em formato compatível (ZIP, JSON ou YAML).
+        Export objects to a file in a compatible format (ZIP, JSON or YAML).
 
         Args:
-            ids (List[int]): Lista de IDs dos objetos a serem exportados.
-            path (Path | str): Caminho do arquivo de destino.
+            ids (List[int]): IDs of the objects to export.
+            path (Path | str): destination file path.
         """
         ids_array = ",".join([str(i) for i in ids])
         response = self.client.get(self.export_url, params={"q": f"[{ids_array}]"})
@@ -1123,13 +1117,13 @@ class ApiModelFactories(ABC):
 
     def delete(self, id: int) -> bool:
         """
-        Remove um objeto do endpoint remoto.
+        Remove an object from the remote endpoint.
 
         Args:
-            id (int): Identificador do objeto.
+            id (int): object identifier.
 
         Returns:
-            bool: True se a exclusão foi bem-sucedida.
+            bool: True if the deletion succeeded.
         """
         url = self.client.join_urls(self.base_url, id)
         logger.info(f'url: {url}')
@@ -1139,15 +1133,15 @@ class ApiModelFactories(ABC):
 
     def import_file(self, file_path, overwrite=False, passwords=None) -> dict:
         """
-        Importa um arquivo (JSON ou ZIP) para o Superset.
+        Import a file (JSON or ZIP) into Superset.
 
         Args:
-            file_path (str | Path): Caminho do arquivo a ser importado.
-            overwrite (bool): Se True, sobrescreve objetos existentes.
-            passwords (dict): Dicionário com senhas para conexões de banco de dados.
+            file_path (str | Path): path of the file to import.
+            overwrite (bool): if True, overwrite existing objects.
+            passwords (dict): passwords for database connections.
 
         Returns:
-            dict: Resultado da importação com status.
+            dict: import result with status.
         """
         data = {"overwrite": json.dumps(overwrite)}
         passwords = {f"databases/{db}.yaml": pwd for db, pwd in (passwords or {}).items()}

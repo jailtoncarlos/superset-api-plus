@@ -11,7 +11,7 @@ class Database(SerializableModel):
         "extra",
     ]
     PRESERVE_EXTRA_FIELDS = False
-    # Campos aceitos pela API (OpenAPI 6.1.0: DatabaseRestApi.post / DatabaseRestApi.put).
+    # Fields accepted by the API (OpenAPI 6.1.0: DatabaseRestApi.post / DatabaseRestApi.put).
     POST_FIELDS = (
         "allow_ctas", "allow_cvas", "allow_dml", "allow_file_upload", "allow_run_async", "cache_timeout",
         "configuration_method", "database_name", "driver", "engine", "expose_in_sqllab", "external_url",
@@ -27,8 +27,8 @@ class Database(SerializableModel):
 
     database_name: str
     id: int | None = field(default=None)
-    # Mesmos padrões do Superset (models/core.py): DML, CTAS/CVAS e execução assíncrona só quando
-    # pedidos explicitamente (antes eram True, liberando INSERT/UPDATE/DELETE no SQL Lab).
+    # Same defaults as Superset (models/core.py): DML, CTAS/CVAS and async execution only when
+    # explicitly requested (they used to be True, allowing INSERT/UPDATE/DELETE in SQL Lab).
     allow_ctas: bool = False
     allow_cvas: bool = False
     allow_dml: bool = False

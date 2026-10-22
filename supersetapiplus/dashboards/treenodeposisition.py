@@ -23,7 +23,7 @@ class TreeNodePosition:
         return NodePositionParse.get_instance(item, item.type_, parent)
 
     def chart_ids(self) -> list[int]:
-        """Ids dos gráficos presentes no layout, na ordem da árvore."""
+        """Ids of the charts present in the layout, in tree order."""
         return [node.item.chart_id for node in PreOrderIter(self._root) if node.type_ == ItemPositionType.CHART]
 
     def find_by_id(self, id: str):
@@ -32,7 +32,7 @@ class TreeNodePosition:
 
     def print(self):
         for pre, _fill, node in RenderTree(self.root):
-            print(f"{pre}{node.item}")  # noqa: T201 - método público cuja função é imprimir a árvore
+            print(f"{pre}{node.item}")  # noqa: T201 - public method whose purpose is to print the tree
 
     def __to_dict(self, node: NodePosition, values: dict):
         for child_id in node.item.children:

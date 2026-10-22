@@ -8,7 +8,7 @@ class ChartType(StringEnum):
     TABLE = 'table'
     TIMESERIES_BAR = 'echarts_timeseries_bar'
     PIVOT_TABLE_V2 = 'pivot_table_v2'
-    PIVOT_TALBE_V2 = 'pivot_table_v2'  # alias do nome antigo, com erro de grafia
+    PIVOT_TALBE_V2 = 'pivot_table_v2'  # alias for the old, misspelled name
     BIG_NUMBER_TOTAL = 'big_number_total'
     BOX_PLOT = 'box_plot'
     CAL_HEATMAP = 'cal_heatmap'
@@ -90,8 +90,8 @@ class TimeGrain(StringEnum):
     TEN_MINUTES = "PT10M"
     FIFTEEN_MINUTES = "PT15M"
     THIRTY_MINUTES = "PT30M"
-    # HALF_HOUR e QUARTER_YEAR são constantes oficiais, mas o schema de chart data só os aceita com
-    # TIME_GRAIN_ADDONS configurado no Superset (não estão em builtin_time_grains).
+    # HALF_HOUR and QUARTER_YEAR are official constants, but the chart data schema only accepts them when
+    # TIME_GRAIN_ADDONS is configured in Superset (they are not in builtin_time_grains).
     HALF_HOUR = "PT0.5H"
     HOUR = "PT1H"
     SIX_HOURS = "PT6H"
@@ -117,10 +117,10 @@ class LabelType(StringEnum):
 
 
 class FilterOperatorType(StringEnum):
-    """Operadores de adhoc filter (superset/utils/core.py FilterOperator, Superset 6.1.0).
+    """Adhoc filter operators (superset/utils/core.py FilterOperator, Superset 6.1.0).
 
-    O nome do membro vira o `operatorId` do filtro e segue o enum `Operators` do frontend
-    (src/explore/constants.ts); os nomes antigos ficam como aliases.
+    The member name becomes the filter's `operatorId` and follows the frontend `Operators` enum
+    (src/explore/constants.ts); the old names are kept as aliases.
     """
     EQUALS = '=='
     NOT_EQUALS = '!='
@@ -140,7 +140,7 @@ class FilterOperatorType(StringEnum):
     IS_TRUE = 'IS TRUE'
     IS_FALSE = 'IS FALSE'
     TEMPORAL_RANGE = 'TEMPORAL_RANGE'
-    NOT_EQUAL = '!='  # alias do nome antigo
+    NOT_EQUAL = '!='  # alias for the old name
 
 
 class FilterExpressionType(StringEnum):
@@ -443,7 +443,7 @@ class OrderType(StringEnum):
 
 
 class PivotAggregateFunction(StringEnum):
-    """Agregadores do pivot_table_v2 (controlPanel do plugin-chart-pivot-table, Superset 6.1.0)."""
+    """pivot_table_v2 aggregators (controlPanel of plugin-chart-pivot-table, Superset 6.1.0)."""
     COUNT = 'Count'
     COUNT_UNIQUE_VALUES = 'Count Unique Values'
     LIST_UNIQUE_VALUES = 'List Unique Values'

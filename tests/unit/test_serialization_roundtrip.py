@@ -1,8 +1,8 @@
-"""Round-trip (from_json -> to_json) de charts com payloads no formato exportado pelo Superset.
+"""Chart round trip (from_json -> to_json) with payloads in the format exported by Superset.
 
-Os payloads são sintéticos, mas reproduzem situações encontradas em dashboards reais:
-query_context nulo, chaves não modeladas pela biblioteca e divergências que o próprio
-Superset mantém entre params e query_context.form_data.
+The payloads are synthetic but reproduce situations found in real dashboards: null
+query_context, keys not modeled by the library and mismatches that Superset itself keeps
+between params and query_context.form_data.
 """
 import importlib
 import json
@@ -16,10 +16,10 @@ DATASOURCE = "1__table"
 
 METRIC_COUNT_DISTINCT = {
     "aggregate": "COUNT_DISTINCT",
-    "column": {"column_name": "respondente_id", "type": "INTEGER", "filterable": True, "groupby": True},
+    "column": {"column_name": "respondent_id", "type": "INTEGER", "filterable": True, "groupby": True},
     "expressionType": "SIMPLE",
     "hasCustomLabel": True,
-    "label": "Respondentes",
+    "label": "Respondents",
     "optionName": "metric_abc",
     "sqlExpression": None,
 }
@@ -47,7 +47,7 @@ def word_cloud_params() -> dict:
     return {
         "datasource": DATASOURCE,
         "viz_type": "word_cloud",
-        "series": "palavra",
+        "series": "word",
         "metric": METRIC_COUNT_DISTINCT,
         "adhoc_filters": [],
         "row_limit": 100,
@@ -60,7 +60,7 @@ def word_cloud_params() -> dict:
     }
 
 
-def test_preserva_chaves_nao_modeladas_em_params():
+def test_preserves_unmodeled_keys_in_params():
     chart = load_chart("word_cloud", word_cloud_params())
 
     params = dumped(chart, "params")
@@ -69,7 +69,7 @@ def test_preserva_chaves_nao_modeladas_em_params():
         assert params[key] == word_cloud_params()[key], key
 
 
-def test_query_context_nulo_e_preservado_e_datasource_vem_de_params():
+def test_null_query_context_is_preserved_and_datasource_comes_from_params():
     chart = load_chart("word_cloud", word_cloud_params(), query_context=None)
 
     assert chart.query_context is None
@@ -77,7 +77,7 @@ def test_query_context_nulo_e_preservado_e_datasource_vem_de_params():
     assert dumped(chart, "query_context") is None
 
 
-def test_slice_id_e_parametros_de_requisicao_divergentes_sao_tolerados():
+def test_mismatched_slice_id_and_request_parameters_are_tolerated():
     params = {
         "datasource": DATASOURCE,
         "viz_type": "table",
@@ -102,7 +102,7 @@ def test_slice_id_e_parametros_de_requisicao_divergentes_sao_tolerados():
     assert dumped(chart, "query_context")["form_data"]["slice_id"] == 1135
 
 
-def test_form_data_com_datasource_legado_none_e_tolerado():
+def test_form_data_with_legacy_none_datasource_is_tolerated():
     params = {"datasource": DATASOURCE, "viz_type": "table", "query_mode": "aggregate",
               "groupby": ["uo_nome"], "metrics": [METRIC_COUNT_DISTINCT]}
     query_context = {
@@ -130,7 +130,7 @@ def mixed_timeseries_payload(form_data_b: dict) -> tuple:
     return params, query_context
 
 
-def test_mixed_timeseries_sem_chaves_da_query_b_no_form_data_e_tolerado():
+def test_mixed_timeseries_without_query_b_keys_in_form_data_is_tolerated():
     params, query_context = mixed_timeseries_payload({})
 
     chart = load_chart("mixed_timeseries", params, query_context)
@@ -139,7 +139,7 @@ def test_mixed_timeseries_sem_chaves_da_query_b_no_form_data_e_tolerado():
     assert "groupby_b" not in dumped(chart, "query_context")["form_data"]
 
 
-def test_mixed_timeseries_com_query_b_divergente_continua_bloqueado():
+def test_mixed_timeseries_with_mismatched_query_b_is_still_rejected():
     params, query_context = mixed_timeseries_payload({"row_limit_b": 500})
 
     chart = load_chart("mixed_timeseries", params, query_context)
@@ -148,7 +148,7 @@ def test_mixed_timeseries_com_query_b_divergente_continua_bloqueado():
         chart.to_json()
 
 
-def test_divergencia_real_entre_params_e_form_data_continua_bloqueada():
+def test_real_mismatch_between_params_and_form_data_is_still_rejected():
     params = {"datasource": DATASOURCE, "viz_type": "table", "query_mode": "aggregate",
               "groupby": ["uo_nome"], "metrics": [METRIC_COUNT_DISTINCT], "row_limit": 10}
     query_context = {
@@ -163,9 +163,9 @@ def test_divergencia_real_entre_params_e_form_data_continua_bloqueada():
         chart.to_json()
 
 
-def test_tabela_agregada_somente_com_dimensoes_e_valida():
+def test_aggregate_table_with_only_dimensions_is_valid():
     params = {"datasource": DATASOURCE, "viz_type": "table", "query_mode": "aggregate",
-              "groupby": [{"expressionType": "SQL", "label": "Respostas", "sqlExpression": "(resposta_valor)"}],
+              "groupby": [{"expressionType": "SQL", "label": "Answers", "sqlExpression": "(answer_value)"}],
               "metrics": [], "percent_metrics": []}
 
     chart = load_chart("table", params)
@@ -173,7 +173,7 @@ def test_tabela_agregada_somente_com_dimensoes_e_valida():
     assert dumped(chart, "params")["groupby"] == params["groupby"]
 
 
-def test_tabela_raw_sem_metricas_e_valida():
+def test_raw_table_without_metrics_is_valid():
     params = {"datasource": DATASOURCE, "viz_type": "table", "query_mode": "raw",
               "all_columns": ["uo_nome", "curso"], "metrics": []}
 
@@ -182,7 +182,7 @@ def test_tabela_raw_sem_metricas_e_valida():
     assert dumped(chart, "params")["all_columns"] == ["uo_nome", "curso"]
 
 
-def test_tabela_sem_metricas_nem_dimensoes_e_invalida():
+def test_table_without_metrics_or_dimensions_is_invalid():
     params = {"datasource": DATASOURCE, "viz_type": "table", "query_mode": "aggregate",
               "groupby": [], "metrics": [], "percent_metrics": []}
 
@@ -192,7 +192,7 @@ def test_tabela_sem_metricas_nem_dimensoes_e_invalida():
         chart.to_json()
 
 
-def test_comparacao_entre_classes_distintas_nao_falha_nem_altera_objetos():
+def test_comparing_different_classes_neither_fails_nor_changes_objects():
     chart = load_chart("word_cloud", word_cloud_params())
     extra_before = dict(chart.params.extra_fields)
 
@@ -201,13 +201,13 @@ def test_comparacao_entre_classes_distintas_nao_falha_nem_altera_objetos():
     assert chart.params.extra_fields == extra_before
 
 
-def test_query_context_nulo_e_gravado_como_null_e_nao_como_texto():
+def test_null_query_context_is_written_as_null_not_as_text():
     chart = load_chart("word_cloud", word_cloud_params(), query_context=None)
 
     assert chart.to_json()["query_context"] is None
 
 
-def test_query_context_gravado_como_texto_null_e_lido_como_nulo():
+def test_query_context_stored_as_text_null_is_read_as_none():
     importlib.import_module("supersetapiplus.charts.pie")
     chart_class = Chart.get_class("pie", "supersetapiplus.charts.pie")
     params = {"datasource": DATASOURCE, "viz_type": "pie", "groupby": ["campus"], "metric": "count"}
@@ -218,7 +218,7 @@ def test_query_context_gravado_como_texto_null_e_lido_como_nulo():
     assert chart.query_context is None
 
 
-def test_datasource_do_topo_da_resposta_prevalece_sobre_params():
+def test_top_level_response_datasource_takes_precedence_over_params():
     params = dict(word_cloud_params(), datasource="42__table")
     importlib.import_module("supersetapiplus.charts.word_cloud")
     chart_class = Chart.get_class("word_cloud", "supersetapiplus.charts.word_cloud")
@@ -233,11 +233,11 @@ def test_datasource_do_topo_da_resposta_prevalece_sobre_params():
     ("pie", {"viz_type": "pie", "groupby": ["campus"], "metric": "count"}),
     ("cal_heatmap", {"viz_type": "cal_heatmap", "metrics": ["count"]}),
 ])
-def test_grafico_novo_criado_por_from_json_recebe_o_datasource(viz_type, params):
+def test_new_chart_created_by_from_json_receives_the_datasource(viz_type, params):
     importlib.import_module(f"supersetapiplus.charts.{viz_type}")
     chart_class = Chart.get_class(viz_type, f"supersetapiplus.charts.{viz_type}")
 
-    chart = chart_class.from_json({"id": None, "slice_name": "novo", "viz_type": viz_type, "params": json.dumps(params),
+    chart = chart_class.from_json({"id": None, "slice_name": "new", "viz_type": viz_type, "params": json.dumps(params),
                                    "query_context": None, "datasource_id": 29, "datasource_type": "table"})
 
     assert chart.params.datasource == "29__table"

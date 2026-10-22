@@ -1,7 +1,7 @@
-# Testes
-## Framework de testes para Python, mais poderoso e flexível que unittest.
+# Tests
+## Testing framework for Python, more powerful and flexible than unittest.
 pytest>=9.1.1
-## Gera relatórios de cobertura de código para testes com pytest
+## Generates code coverage reports for tests run with pytest
 pytest-cov>=7.1.0
-## Mocks de requisições HTTP usados pelas fixtures (tests/conftest.py)
+## HTTP request mocks used by the fixtures (tests/conftest.py)
 requests-mock>=1.12.1

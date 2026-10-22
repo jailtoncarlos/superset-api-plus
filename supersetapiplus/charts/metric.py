@@ -25,7 +25,7 @@ class AdhocMetricColumn(SerializableModel):
     type: SerializableOptional[SqlMapType] = field(default=None)
     type_generic: SerializableOptional[GenericDataType] = field(default=None)
 
-    # Novos campos conforme o JSON da API
+    # Newer fields, as returned in the API JSON
     advanced_data_type: str = field(default=None)
     is_certified: bool = False
     certification_details: str = field(default=None)
@@ -63,7 +63,7 @@ class AdhocMetric(SerializableModel):
     timeGrain: SerializableOptional[str] = field(default=None)
     columnType: SerializableOptional[ColumnType] = field(default=None)
 
-    # Novos campos
+    # Newer fields
     optionName: SerializableOptional[str] = field(default=None)
     datasourceWarning: SerializableOptional[bool] = field(default=None)
 
@@ -79,10 +79,10 @@ OrderByTyping = tuple[Metric, bool]
 
 @dataclass(frozen=True)
 class OrderBy:
-    """Ordenação automática ao adicionar uma métrica.
+    """Automatic ordering when adding a metric.
 
-    `automate` gera o orderby da métrica; `sort_ascending` define o sentido. Imutável, para que
-    a instância usada como valor padrão dos métodos add_*_metric possa ser compartilhada.
+    `automate` generates the metric's orderby; `sort_ascending` sets the direction. Immutable, so that
+    the instance used as the default value of the add_*_metric methods can be shared.
     """
     automate: bool = True
     sort_ascending: bool = True
@@ -133,21 +133,21 @@ class MetricHelper:
         list_aggregates = [e.value for e in MetricType]
         if str(value) not in list_aggregates:
             raise ValidationError(message='Aggregate not found.',
-                                  solution='Use o enum types.MetricType')
+                                  solution='Use the types.MetricType enum')
 
 
 @dataclass
 class MetricsListMixin:
     metrics: list[Metric] = object_field(cls=AdhocMetric, default_factory=list)
 
-    def _metrics_editavel(self) -> list:
+    def _editable_metrics(self) -> list:
         if not isinstance(self.metrics, list):
             self.metrics = []
         return self.metrics
 
     def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         MetricHelper.check_metric(metric)
-        self._metrics_editavel().append(metric)
+        self._editable_metrics().append(metric)
 
     def _add_custom_metric(self,
                            label: str,
@@ -156,7 +156,7 @@ class MetricsListMixin:
                            sql_expression: str = None,
                            aggregate: MetricType = None):
         metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
-        self._metrics_editavel().append(metric)
+        self._editable_metrics().append(metric)
 
 
 @dataclass

@@ -61,7 +61,7 @@ class TableOption(TableOptionBase):
 
     def __post_init__(self):
         super().__post_init__()
-        # None vira lista vazia; MissingField (chave ausente, ex.: tabela em modo raw) é mantido.
+        # None becomes an empty list; MissingField (absent key, e.g. a table in raw mode) is kept.
         if self.metrics is None:
             self.metrics: list[Metric] = []
         if self.server_page_length == 0:
@@ -69,13 +69,13 @@ class TableOption(TableOptionBase):
 
     def validate(self):
         super().validate()
-        # No modo raw a tabela lista colunas (all_columns) e não usa métricas.
+        # In raw mode the table lists columns (all_columns) and does not use metrics.
         if str(self.query_mode) == str(QueryModeType.RAW):
             if not self.all_columns:
                 raise ValidationError(message='Field all_columns cannot be empty when query_mode is raw.',
                                       solution='Inform the columns to be listed in all_columns.')
-        # No modo aggregate o Superset aceita apenas dimensões (valores distintos), apenas
-        # métricas ou ambos; só é inválida a tabela sem nenhum dos três.
+        # In aggregate mode Superset accepts only dimensions (distinct values), only
+        # metrics, or both; only a table with none of the three is invalid.
         elif not (self.metrics or self.groupby or self.percent_metrics):
             raise ValidationError(message='Fields metrics, groupby and percent_metrics cannot all be empty.',
                                   solution='Use one of the add_simple_metric, add_custom_metric or '
@@ -105,8 +105,8 @@ class TableQueryContext(QueryContext):
 
     @staticmethod
     def _table_order(automatic_order: OrderBy) -> OrderBy:
-        # Na tabela o sentido padrão é decrescente: inverte o pedido numa cópia, sem alterar o
-        # OrderBy do chamador (que pode ser o valor padrão compartilhado entre chamadas).
+        # In the table the default direction is descending: invert the request on a copy, without changing
+        # the caller's OrderBy (which may be the default value shared between calls).
         if not automatic_order:
             return automatic_order
         return replace(automatic_order, sort_ascending=not automatic_order.sort_ascending)
@@ -123,15 +123,15 @@ class TableQueryContext(QueryContext):
 
     def validate(self):
         super().validate()
-        # junta todas as métricas dos queries numa lista
+        # gather all query metrics into one list
         query_metrics = [qm for q in self.queries for qm in q.metrics]
-        # filtra as métricas do form_data que não aparecem em query_metrics
+        # keep the form_data metrics that do not appear in query_metrics
         form_data_metrics = self.form_data.metrics if isinstance(self.form_data, SerializableModel) else []
         missing = [fm for fm in form_data_metrics if fm not in query_metrics]
         if missing:
             raise ValidationError(
                 message=f'These metrics from form_data are missing in queries.metrics: {missing}',
-                solution="Use add_simple_metric ou add_custom_metric para garantir integridade."
+                solution="Use add_simple_metric or add_custom_metric to ensure integrity."
             )
 
     def _default_query_object_class(self) -> type[Query]:

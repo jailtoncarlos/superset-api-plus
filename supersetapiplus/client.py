@@ -92,14 +92,14 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     @property
     def session(self) -> requests.Session:
-        """Sessão autenticada (JWT, ou cookie após enable_session_mode()), criada no primeiro uso."""
+        """Authenticated session (JWT, or cookie after enable_session_mode()), created on first use."""
         if self._session is None:
             self._init_session()
         return self._session
 
     @staticmethod
     def get_headers(headers: dict | None = None, json_body: bool = True) -> dict:
-        """Cabeçalhos da requisição; Content-Type JSON só quando o corpo é JSON (não em multipart)."""
+        """Request headers; JSON Content-Type only when the body is JSON (not for multipart)."""
         headers = dict(headers or {})
         if json_body:
             headers.setdefault("Content-Type", "application/json")
@@ -118,11 +118,11 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self._session = session
 
     def enable_session_mode(self) -> requests.Session:
-        """Inicializa uma sessão autenticada baseada em cookie (não JWT)."""
+        """Initializes a cookie-based (non-JWT) authenticated session."""
         session = requests.Session()
         session.verify = self._verify
         self.enable_session_auth(session, self.username, self._password)
-        # POST/PUT/DELETE com cookie exigem o token CSRF ("The CSRF token is missing." no 6.1.0).
+        # POST/PUT/DELETE with a cookie require the CSRF token ("The CSRF token is missing." in 6.1.0).
         if self.use_csrf:
             self.enable_csrf(session, verify=self._verify)
         self._session_cookie = session
@@ -132,7 +132,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         return self._session
 
     def _request(self, method: str, url: str, **kwargs) -> requests.Response:
-        """Requisição autenticada; no modo JWT, um 401 renova o token e repete a chamada uma vez."""
+        """Authenticated request; in JWT mode, a 401 renews the token and retries the call once."""
         kwargs["headers"] = self.get_headers(kwargs.pop("headers", None), json_body="files" not in kwargs)
         kwargs.setdefault("verify", self._verify)
         try:
@@ -157,7 +157,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     def authenticate(self, session: requests.Session):
         """
-        Autentica por JWT (POST /security/login) e guarda os tokens de acesso e de renovação.
+        Authenticates via JWT (POST /security/login) and stores the access and refresh tokens.
         """
         if self.username is None:
             self.username = getpass.getuser()
@@ -184,9 +184,9 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         logger.debug("[OK] Token obtained successfully.")
 
     def refresh_access_token(self) -> None:
-        """Renova o JWT de acesso com o refresh token (POST /security/refresh)."""
+        """Renews the access JWT using the refresh token (POST /security/refresh)."""
         if not self._refresh_token:
-            raise UnauthorizedError("Sem refresh token: autentique novamente.")
+            raise UnauthorizedError("No refresh token: authenticate again.")
         response = RequestHandler.request_with_retry(
             url=self.refresh_endpoint,
             method="POST",
@@ -199,20 +199,20 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     def run(self, database_id: int, query: str, query_limit: int = None, schema: str | None = None):
         """
-        Executa SQL pelo SQL Lab (POST /api/v1/sqllab/execute/), de forma síncrona.
+        Runs SQL through SQL Lab (POST /api/v1/sqllab/execute/), synchronously.
 
         Args:
-            database_id (int): id do database no Superset.
+            database_id (int): database id in Superset.
             query (str): SQL.
-            query_limit (int, opcional): limite de linhas.
-            schema (str, opcional): schema padrão da consulta.
+            query_limit (int, optional): row limit.
+            schema (str, optional): default schema of the query.
 
         Returns:
-            tuple: (columns, data), como devolvidos pelo Superset.
+            tuple: (columns, data), as returned by Superset.
 
         Raises:
-            QueryLimitReached: o resultado foi truncado pelo limite de exibição.
-            NotImplementedError: o Superset executou a consulta de forma assíncrona (202).
+            QueryLimitReached: the result was truncated by the display limit.
+            NotImplementedError: Superset ran the query asynchronously (202).
         """
         payload = {"database_id": database_id, "sql": query, "runAsync": False}
         if query_limit:
@@ -222,8 +222,8 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
         response = self.post(self._sql_endpoint, json=payload)
         if response.status_code == 202:
-            raise NotImplementedError("O Superset executou a consulta de forma assíncrona (202); "
-                                      "use um database sem execução assíncrona.")
+            raise NotImplementedError("Superset ran the query asynchronously (202); "
+                                      "use a database without asynchronous execution.")
         result = response.json()
         if result.get("displayLimitReached"):
             raise QueryLimitReached("Display limit reached")

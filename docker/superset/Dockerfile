@@ -1,9 +1,9 @@
-# Superset da stack de testes de integração da superset-api-plus.
+# Superset for the superset-api-plus integration test stack.
 ARG SUPERSET_IMAGE=apachesuperset.docker.scarf.sh/apache/superset
 ARG SUPERSET_VERSION=6.1.0
 FROM ${SUPERSET_IMAGE}:${SUPERSET_VERSION}
 
-# A imagem oficial 6.x não traz drivers de banco; os testes registram um database Postgres.
+# The official 6.x image ships no database drivers; the tests register a Postgres database.
 ARG PSYCOPG2_VERSION=2.9.13
 USER root
 RUN uv pip install --no-cache --python /app/.venv/bin/python "psycopg2-binary==${PSYCOPG2_VERSION}"

@@ -1,42 +1,42 @@
 {
  "big_number_total": {
   "dataset": "main.cleaned_sales_data",
-  "query_context": "nulo",
+  "query_context": "null",
   "slice_name": "Big Number"
  },
  "box_plot": {
   "dataset": "main.cleaned_sales_data",
-  "query_context": "nulo",
+  "query_context": "null",
   "slice_name": "Box Plot"
  },
  "echarts_timeseries_bar": {
   "dataset": "main.cleaned_sales_data",
-  "query_context": "nulo",
+  "query_context": "null",
   "slice_name": "Bar"
  },
  "mixed_timeseries": {
   "dataset": "main.cleaned_sales_data",
-  "query_context": "nulo",
+  "query_context": "null",
   "slice_name": "Mixed"
  },
  "pie": {
   "dataset": "main.cleaned_sales_data",
-  "query_context": "nulo",
+  "query_context": "null",
   "slice_name": "Pie"
  },
  "pivot_table_v2": {
   "dataset": "main.cleaned_sales_data",
-  "query_context": "nulo",
+  "query_context": "null",
   "slice_name": "Pivot Table"
  },
  "table": {
   "dataset": "main.cleaned_sales_data",
-  "query_context": "nulo",
+  "query_context": "null",
   "slice_name": "Table"
  },
  "word_cloud": {
   "dataset": "main.cleaned_sales_data",
-  "query_context": "nulo",
+  "query_context": "null",
   "slice_name": "Word Cloud"
  }
 }

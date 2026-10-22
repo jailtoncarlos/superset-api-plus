@@ -1,7 +1,7 @@
-"""Exemplo de configuração do lado do SERVIDOR (superset_config.py), não do cliente.
+"""Example of SERVER-side configuration (superset_config.py), not client-side.
 
-Security manager do Superset que aceita JWT externo via `Authorization: Bearer <token>`.
-Não faz parte do pacote supersetapiplus: depende do próprio `superset` instalado.
+Superset security manager that accepts an external JWT via `Authorization: Bearer <token>`.
+It is not part of the supersetapiplus package: it depends on `superset` itself being installed.
 """
 import logging
 import os
@@ -12,19 +12,19 @@ from werkzeug.exceptions import Unauthorized
 
 logger = logging.getLogger(__name__)
 
-# Chave secreta ou chave pública usada para validar o JWT; nunca fixa no código.
+# Secret key or public key used to validate the JWT; never hardcoded.
 JWT_SECRET = os.environ["SUPERSET_JWT_SECRET"]
-JWT_ALGORITHM = os.environ.get("SUPERSET_JWT_ALGORITHM", "HS256")  # ou "RS256"
+JWT_ALGORITHM = os.environ.get("SUPERSET_JWT_ALGORITHM", "HS256")  # or "RS256"
 
 class CustomJwtSecurityManager(SupersetSecurityManager):
     """
-    Custom security manager que aceita JWT via header Authorization: Bearer <token>
-    e cria/sincroniza usuários conforme os dados contidos no token.
+    Custom security manager that accepts a JWT via the Authorization: Bearer <token> header
+    and creates/syncs users from the data contained in the token.
     """
 
     def get_user_from_request(self, request):
         """
-        Extrai e valida o token JWT do cabeçalho Authorization.
+        Extract and validate the JWT from the Authorization header.
         """
         auth_header = request.headers.get("Authorization", "")
         if not auth_header.startswith("Bearer "):
@@ -34,26 +34,26 @@ class CustomJwtSecurityManager(SupersetSecurityManager):
         try:
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         except jwt.ExpiredSignatureError as err:
-            raise Unauthorized("Token expirado") from err
+            raise Unauthorized("Token expired") from err
         except jwt.InvalidTokenError as err:
-            raise Unauthorized("Token inválido") from err
+            raise Unauthorized("Invalid token") from err
 
-        logger.debug("[CustomJWT] Token válido para %s.", payload.get("email") or payload.get("preferred_username"))
+        logger.debug("[CustomJWT] Valid token for %s.", payload.get("email") or payload.get("preferred_username"))
 
-        # Campos esperados no token (ajuste conforme necessário)
+        # Fields expected in the token (adjust as needed)
         username = payload.get("email") or payload.get("preferred_username")
         email = payload.get("email")
         first_name = payload.get("given_name", "")
         last_name = payload.get("family_name", "")
-        role_names = payload.get("roles") or []  # opcional
+        role_names = payload.get("roles") or []  # optional
 
         if not username or not email:
-            raise Unauthorized("Token não contém informações de usuário suficientes.")
+            raise Unauthorized("Token does not contain enough user information.")
 
-        # Cria ou atualiza o usuário local
+        # Create the local user if missing
         user = self.find_user(username=username)
         if not user:
-            # Primeiro papel do token que exista no Superset; sem nenhum, "Public".
+            # First token role that exists in Superset; if none, "Public".
             role = next((r for r in map(self.find_role, role_names) if r), None) or self.find_role("Public")
             user = self.add_user(
                 username=username,
@@ -62,6 +62,6 @@ class CustomJwtSecurityManager(SupersetSecurityManager):
                 email=email,
                 role=role,
             )
-            logger.info(f"[CustomJWT] Usuário criado: {username}")
+            logger.info(f"[CustomJWT] User created: {username}")
 
         return user

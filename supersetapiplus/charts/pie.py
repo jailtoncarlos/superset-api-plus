@@ -60,21 +60,21 @@ class PieQueryContext(QueryContext):
     def validate(self):
         super().validate()
         if self.form_data.metric or self.queries:
-            self._validar_metrica_nas_queries()
+            self._validate_metric_in_queries()
             if self.automatic_order and self.automatic_order.automate:
-                self._validar_orderby_da_metrica()
+                self._validate_metric_orderby()
 
-    def _validar_metrica_nas_queries(self):
-        metricas = (metric for query in self.queries for metric in query.metrics)
-        if not any(self.form_data.metric == metric for metric in metricas):
+    def _validate_metric_in_queries(self):
+        metrics = (metric for query in self.queries for metric in query.metrics)
+        if not any(self.form_data.metric == metric for metric in metrics):
             raise ValidationError(message='The metric definition in formdata is not included in queries.metrics.',
                                   solution=_SOLUTION_USE_ADD_METRIC)
 
-    def _validar_orderby_da_metrica(self):
-        ordens = [order for query in self.queries for order in query.orderby]
-        if any(not isinstance(order, tuple) for order in ordens):
+    def _validate_metric_orderby(self):
+        orders = [order for query in self.queries for order in query.orderby]
+        if any(not isinstance(order, tuple) for order in orders):
             raise ValidationError('Order by must be a tuple.', solution=_SOLUTION_USE_ADD_METRIC)
-        if not any(self.form_data.metric == order[0] for order in ordens):
+        if not any(self.form_data.metric == order[0] for order in orders):
             raise ValidationError(message='The metric definition in formdata is not included in queries.orderby.',
                                   solution=_SOLUTION_USE_ADD_METRIC)
 

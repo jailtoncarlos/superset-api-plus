@@ -14,9 +14,9 @@ def read(file_path):
 setup(
     name="supersetapiclient",
     version="0.5.0",
-    description="Framework para facilita a obtenção de parâmetros e "
-                "configurações necessárias para consulta de dados no TabNet Web",
-    long_description=read("README.md"),  # Lê diretamente do arquivo README.md
+    description="Framework that makes it easier to obtain the parameters and "
+                "settings needed to query data in TabNet Web",
+    long_description=read("README.md"),  # Read directly from README.md
     long_description_content_type="text/markdown",
     author="Jailton Paiva",
     author_email="jailtoncarlos@gmail.com",

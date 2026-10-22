@@ -1,4 +1,4 @@
-"""Mascaramento de dados sensíveis (credenciais, tokens e cookies) antes de registrá-los em log."""
+"""Masking of sensitive data (credentials, tokens and cookies) before it is logged."""
 import json
 import re
 from collections.abc import Mapping
@@ -14,7 +14,7 @@ SENSITIVE_KEYS = frozenset({
     "secret", "encrypted_extra", "masked_encrypted_extra", "ssh_tunnel_passwords",
 })
 
-# Senha embutida em URI de conexão (ex.: sqlalchemy_uri "postgresql://user:senha@host/db")
+# Password embedded in a connection URI (e.g. sqlalchemy_uri "postgresql://user:password@host/db")
 _URI_PASSWORD = re.compile(r"(://[^:/@\s]+:)[^@\s]+(@)")
 
 
@@ -23,12 +23,12 @@ def _is_sensitive_key(key: Any) -> bool:
 
 
 def mask_headers(headers: Mapping[str, Any] | None) -> dict:
-    """Cópia dos cabeçalhos com os valores de autenticação substituídos por `***`."""
+    """Copy of the headers with authentication values replaced by `***`."""
     return {k: (MASK if k.lower() in SENSITIVE_HEADERS else v) for k, v in (headers or {}).items()}
 
 
 def mask_data(data: Any) -> Any:
-    """Cópia de dict/list com valores de chaves sensíveis mascarados e senhas de URI ocultadas."""
+    """Copy of a dict/list with sensitive-key values masked and URI passwords hidden."""
     if isinstance(data, Mapping):
         return {k: (MASK if _is_sensitive_key(k) else mask_data(v)) for k, v in data.items()}
     if isinstance(data, (list, tuple)):
@@ -39,7 +39,7 @@ def mask_data(data: Any) -> Any:
 
 
 def mask_body(body: Any) -> Any:
-    """Mascara um corpo de requisição/resposta em JSON, form-urlencoded ou estrutura Python."""
+    """Mask a request/response body given as JSON, form-urlencoded or a Python structure."""
     if body is None or isinstance(body, (Mapping, list, tuple)):
         return mask_data(body)
     if isinstance(body, bytes):
@@ -60,7 +60,7 @@ def mask_body(body: Any) -> Any:
 
 
 def mask_request_kwargs(kwargs: Mapping[str, Any]) -> dict:
-    """Cópia dos kwargs de `requests` com cabeçalhos e corpos mascarados, para log."""
+    """Copy of the `requests` kwargs with headers and bodies masked, for logging."""
     masked = dict(kwargs)
     if "headers" in masked:
         masked["headers"] = mask_headers(masked["headers"])

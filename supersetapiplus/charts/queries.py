@@ -123,7 +123,7 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
     custom_form_data: dict = field(default_factory=dict)
     annotation_layers: list = field(default_factory=list)
 
-    # Campos adicionais conforme necessário no JSON da API
+    # Additional fields, as needed in the API JSON
     row_offset: SerializableOptional[int] = None
     order_desc: SerializableOptional[bool] = None
 

@@ -6,14 +6,14 @@ on:
 
 jobs:
   lint:
-    # Mesmos hooks do pre-commit local (ruff, codespell, fins de linha e a catraca de
-    # complexidade), aplicados só ao que o PR altera em relação à branch de destino.
+    # Same hooks as the local pre-commit (ruff, codespell, line endings and the complexity
+    # ratchet), applied only to what the PR changes relative to the target branch.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0  # a catraca compara com o merge-base da branch de destino
+          fetch-depth: 0  # the ratchet compares against the merge-base of the target branch
 
       - uses: actions/setup-python@v7
         with:

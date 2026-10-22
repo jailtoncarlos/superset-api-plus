@@ -1,17 +1,17 @@
 #!/bin/bash
-# Inicializa o Superset da stack de testes e sobe o servidor (gunicorn de /usr/bin/run-server.sh).
+# Initialize the test stack's Superset and start the server (gunicorn from /usr/bin/run-server.sh).
 set -euo pipefail
 
-: "${SUPERSET_ADMIN_USERNAME:?defina SUPERSET_ADMIN_USERNAME}"
-: "${SUPERSET_ADMIN_PASSWORD:?defina SUPERSET_ADMIN_PASSWORD}"
+: "${SUPERSET_ADMIN_USERNAME:?set SUPERSET_ADMIN_USERNAME}"
+: "${SUPERSET_ADMIN_PASSWORD:?set SUPERSET_ADMIN_PASSWORD}"
 
 superset db upgrade
 superset fab create-admin \
   --username "${SUPERSET_ADMIN_USERNAME}" \
   --password "${SUPERSET_ADMIN_PASSWORD}" \
   --firstname "${SUPERSET_ADMIN_FIRSTNAME:-Admin}" \
-  --lastname "${SUPERSET_ADMIN_LASTNAME:-Testes}" \
-  --email "${SUPERSET_ADMIN_EMAIL:-admin@example.com}" || true  # já existe em reinícios
+  --lastname "${SUPERSET_ADMIN_LASTNAME:-Tests}" \
+  --email "${SUPERSET_ADMIN_EMAIL:-admin@example.com}" || true  # already exists on restarts
 superset init
 
 if [ "${SUPERSET_LOAD_EXAMPLES:-0}" = "1" ]; then

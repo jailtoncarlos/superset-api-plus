@@ -4,11 +4,11 @@ from typing import Any
 
 class QueryOperator(str, Enum):
     """
-    Operadores de filtro das listagens da API REST (Flask-AppBuilder), enviados em `q.filters[].opr`.
+    Filter operators of the REST API listings (Flask-AppBuilder), sent in `q.filters[].opr`.
 
-    Conferidos contra o /_info?q=(keys:!(filters)) do Superset 6.1.0. Cada coluna aceita só parte
-    deles; recursos têm ainda filtros próprios (ex.: chart_all_text, dashboard_is_favorite), que
-    podem ser passados como string em QueryStringFilter.add.
+    Checked against /_info?q=(keys:!(filters)) of Superset 6.1.0. Each column accepts only some
+    of them; resources also have their own filters (e.g. chart_all_text, dashboard_is_favorite), which
+    can be passed as a string to QueryStringFilter.add.
     """
     EQUAL = "eq"
     NOT_EQUAL = "neq"

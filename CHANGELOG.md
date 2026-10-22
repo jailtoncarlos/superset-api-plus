@@ -2,52 +2,52 @@
 
 ## 1.0.0a1 (2025-04-10)
 
-### Refatoração e Melhorias de Empacotamento
+### Refactoring and Packaging Improvements
 
-* **Refatoração da Estrutura de Empacotamento e Qualidade:**
-    * Substituição da estrutura baseada em `setup.py`/`setup.cfg` por `pyproject.toml`.
-    * Adição de `CHANGELOG.md` para rastrear o histórico de versões.
-    * Remoção de arquivos legados: `setup.py`, `setup.cfg`, `requirements.txt`, `pytest.ini`.
-    * Remoção de scripts locais de lint (`bin/`) e arquivo `.pylintrc`.
-    * Atualização de `.pre-commit-config.yaml` com ferramentas modernas: `ruff`, `mypy`, `codespell`.
-    * Remoção de `black`, `isort` e `pylint` do pre-commit (substituídos por `ruff`).
-    * Migração da configuração do `pytest.ini` para `[tool.pytest.ini_options]` no `pyproject.toml`.
-    * Adição das regras `T201` (print) e `T100` (pdb) no `ruff` para detectar comandos indevidos.
-    * Simplificação da estrutura para seguir boas práticas modernas de bibliotecas Python.
+* **Refactoring of the Packaging and Quality Structure:**
+    * Replaced the `setup.py`/`setup.cfg`-based structure with `pyproject.toml`.
+    * Added `CHANGELOG.md` to track the version history.
+    * Removed legacy files: `setup.py`, `setup.cfg`, `requirements.txt`, `pytest.ini`.
+    * Removed local lint scripts (`bin/`) and the `.pylintrc` file.
+    * Updated `.pre-commit-config.yaml` with modern tools: `ruff`, `mypy`, `codespell`.
+    * Removed `black`, `isort` and `pylint` from pre-commit (replaced by `ruff`).
+    * Migrated the `pytest.ini` configuration to `[tool.pytest.ini_options]` in `pyproject.toml`.
+    * Added the `T201` (print) and `T100` (pdb) rules to `ruff` to detect leftover debug statements.
+    * Simplified the structure to follow modern Python library best practices.
 
-* **Remoção da Pasta `requirements` e Migração de Extras para `pyproject.toml`:**
-    * Remoção dos arquivos `requirements-dev.txt`, `requirements-testing.txt` e `requirements-packaging.txt`.
-    * Definição das seções `[project.optional-dependencies]` com os extras "dev" e "test".
-    * Permissão de instalação via `pip install .[dev,test]`.
-    * Eliminação de redundância e centralização da configuração no `pyproject.toml`.
+* **Removal of the `requirements` Folder and Migration of Extras to `pyproject.toml`:**
+    * Removed the `requirements-dev.txt`, `requirements-testing.txt` and `requirements-packaging.txt` files.
+    * Defined the `[project.optional-dependencies]` sections with the "dev" and "test" extras.
+    * Enabled installation via `pip install .[dev,test]`.
+    * Eliminated redundancy and centralized the configuration in `pyproject.toml`.
 
-* **Preparação da Versão 1.0.0a1:**
-    * Adição de `pyproject.toml` com metadados do projeto e ferramentas de linting (`black`, `isort`, `mypy`, `ruff`).
-    * Atualização da versão do projeto para `1.0.0a1` (alpha release pública).
-    * Adição do changelog inicial com o registro da refatoração e funcionalidades principais.
+* **Preparation of Version 1.0.0a1:**
+    * Added `pyproject.toml` with project metadata and linting tools (`black`, `isort`, `mypy`, `ruff`).
+    * Bumped the project version to `1.0.0a1` (public alpha release).
+    * Added the initial changelog recording the refactoring and main features.
 
-* **Renomeação e Reestruturação do Projeto:**
-    * Renomeação do projeto de `superset-api-client` para `superset-api-plus`.
-    * Definição do nome do pacote Python como `supersetapiclientplus`.
-    * Atualização de todos os imports no código-fonte, exemplos e testes.
-    * Substituição de ferramentas antigas no pre-commit por `ruff`, `black`, `mypy`, `isort` e `codespell`.
-    * Adição de arquivos essenciais para empacotamento e publicação: `setup.py`, `setup.cfg`, `MANIFEST.in`, `.pylintrc`, `.pypirc`.
-    * Organização dos requirements por ambiente (dev, packaging, testing).
-    * Atualização dos metadados do projeto (autor, e-mail, keywords, versão).
-    * Remoção de dependências não utilizadas no `requirements-packaging`.
-    * Preparação da biblioteca para publicação no PyPI (versão 0.5.0).
+* **Project Renaming and Restructuring:**
+    * Renamed the project from `superset-api-client` to `superset-api-plus`.
+    * Set the Python package name to `supersetapiclientplus`.
+    * Updated all imports in the source code, examples and tests.
+    * Replaced old pre-commit tools with `ruff`, `black`, `mypy`, `isort` and `codespell`.
+    * Added the files needed for packaging and publishing: `setup.py`, `setup.cfg`, `MANIFEST.in`, `.pylintrc`, `.pypirc`.
+    * Organized the requirements by environment (dev, packaging, testing).
+    * Updated the project metadata (author, e-mail, keywords, version).
+    * Removed unused dependencies from `requirements-packaging`.
+    * Prepared the library for publishing on PyPI (version 0.5.0).
 
-* **Criação do README.md:**
-    * Adicionado o arquivo `README.md`.
+* **Creation of README.md:**
+    * Added the `README.md` file.
 
-* **Remoção do arquivo `MANIFEST.in`:**
-    * Arquivo removido por não ser mais necessário no novo empacotamento.
+* **Removal of the `MANIFEST.in` file:**
+    * Removed because it is no longer needed with the new packaging.
 
 
 ### Continuous Integration
 
-* Atualizado o workflow `python-package.yaml`:
-  * Removido suporte ao Python 3.7 (EOL e incompatível com Ubuntu 24.04)
-  * Adicionadas versões 3.10, 3.11 e 3.12 à matriz de testes
-  * Substituídas ferramentas de lint (`black`, `flake8`, `isort`) por `ruff`
-  * Corrigido nome do pacote `supersetapiplus` na execução de testes com `pytest --cov`
+* Updated the `python-package.yaml` workflow:
+  * Dropped Python 3.7 support (EOL and incompatible with Ubuntu 24.04)
+  * Added versions 3.10, 3.11 and 3.12 to the test matrix
+  * Replaced lint tools (`black`, `flake8`, `isort`) with `ruff`
+  * Fixed the `supersetapiplus` package name when running tests with `pytest --cov`

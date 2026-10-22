@@ -1,4 +1,4 @@
-"""Dashboards."""
+"""Datasets."""
 from dataclasses import dataclass, field
 
 from supersetapiplus.base.base import ApiModelFactories, QueryStringFilter, SerializableModel
@@ -11,7 +11,7 @@ from supersetapiplus.query_string import QueryOperator
 class Dataset(SerializableModel):
     JSON_FIELDS = []
     PRESERVE_EXTRA_FIELDS = False
-    # Campos aceitos pela API (OpenAPI 6.1.0: DatasetRestApi.post / DatasetRestApi.put).
+    # Fields accepted by the API (OpenAPI 6.1.0: DatasetRestApi.post / DatasetRestApi.put).
     POST_FIELDS = (
         "always_filter_main_dttm", "catalog", "database", "external_url", "is_managed_externally",
         "normalize_columns", "owners", "schema", "sql", "table_name",
@@ -35,7 +35,7 @@ class Dataset(SerializableModel):
 
     @classmethod
     def from_json(cls, data: dict):
-        # Lido antes do super(): from_json remove de `data` as chaves que não são campos do modelo.
+        # Read before super(): from_json removes from `data` the keys that are not model fields.
         database = data.get("database")
         res = super().from_json(data)
         if isinstance(database, dict) and database.get("id"):
@@ -46,7 +46,7 @@ class Dataset(SerializableModel):
         o = super().to_json(columns)
         o.pop("columns", None)
         if self.database_id:
-            # PUT usa database_id; POST usa database (DatasetRestApi.put / .post).
+            # PUT uses database_id; POST uses database (DatasetRestApi.put / .post).
             o["database_id" if self.id else "database"] = self.database_id
         return o
 
@@ -60,7 +60,7 @@ class Datasets(ApiModelFactories):
     endpoint = "dataset/"
 
     def get_datasource(self, name: str) -> DataSource:
-        """DataSource (id e tipo) do dataset com o `table_name` informado."""
+        """DataSource (id and type) of the dataset with the given `table_name`."""
         filter = QueryStringFilter()
         filter.add('table_name', QueryOperator.EQUAL, name)
         result = self.client.find(self.base_url, filter, ['id', 'datasource_type']).json().get('result')

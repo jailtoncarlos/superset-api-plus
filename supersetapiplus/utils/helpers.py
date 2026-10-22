@@ -9,14 +9,14 @@ logger = logging.getLogger(__name__)
 
 def normalize_str(text: str) -> str:
     """
-    Normaliza uma string removendo acentos e substituindo espaços por sublinhados,
-    mantendo apenas letras, números e sublinhados.
+    Normalize a string by removing accents and replacing spaces with underscores,
+    keeping only letters, digits and underscores.
 
     Args:
-        text (str): Texto de entrada.
+        text (str): input text.
 
     Returns:
-        str: String normalizada.
+        str: normalized string.
     """
     return re.sub('[^A-Za-z0-9_]+', '', unicodedata.normalize('NFKD', text.replace(' ', '_').lower()))
 
@@ -27,14 +27,14 @@ def generate_uuid(_type):
 
 def compare_objects(obj1, obj2):
     """
-    Compara atributos públicos de dois objetos Python, desconsiderando métodos e atributos privados.
+    Compare the public attributes of two Python objects, ignoring methods and private attributes.
 
     Args:
-        obj1 (Any): Primeiro objeto.
-        obj2 (Any): Segundo objeto.
+        obj1 (Any): first object.
+        obj2 (Any): second object.
 
     Returns:
-        bool: True se todos os atributos públicos forem iguais; False caso contrário.
+        bool: True if all public attributes are equal; False otherwise.
     """
     logger.debug(f'compare_objects: {type(obj1)} vs {type(obj2)}')
     for attr in dir(obj1):

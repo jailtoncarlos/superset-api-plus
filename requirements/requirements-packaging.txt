@@ -1,32 +1,32 @@
 # ========================================================
-# Requisitos do Projeto - Desenvolvimento e Execução
+# Project Requirements - Development and Runtime
 # ========================================================
 
 # -----------------------
-# Comunicação via HTTP
+# HTTP communication
 # -----------------------
 
-# Biblioteca para envio de requisições HTTP de forma simples e intuitiva.
+# Library for sending HTTP requests in a simple and intuitive way.
 requests>=2.34.2
 
-# Parsing de HTML (extração do token CSRF da página de login do Superset).
+# HTML parsing (extraction of the CSRF token from the Superset login page).
 beautifulsoup4>=4.15.0
 
 
 
 # -----------------------
-# Suporte e Utilitários
+# Support and Utilities
 # -----------------------
 
-# Biblioteca para leitura e escrita de arquivos YAML (formato de configuração).
+# Library for reading and writing YAML files (configuration format).
 pyyaml>=6.0.3
 
 
-# Estrutura de árvore generalizada para representar hierarquias de objetos.
+# Generalized tree structure to represent object hierarchies.
 anytree>=2.13.0
 
-# Geração de identificadores únicos curtos (UUID compactos).
+# Generation of short unique identifiers (compact UUIDs).
 shortuuid>=1.0.13
 
-# Backports de tipagem (Self) usados nos modelos.
+# Typing backports (Self) used by the models.
 typing_extensions>=4.16.0

@@ -1,28 +1,28 @@
 [MASTER]
 ignore=.github,submodules
 
-# Caminho de módulos adicionais a serem incluídos.
+# Path of additional modules to include.
 # init-hook='import sys; sys.path.append("submodules/app")'
 
-# Plugins opcionais do pylint
+# Optional pylint plugins
 # load-plugins=pylint_django
 # django-settings-module=djud.settings
 
-# Limite de complexidade permitido para uma função/método
+# Complexity limit allowed for a function/method
 # max-complexity=10
 
-# Limite de profundidade de recursão no código
+# Recursion depth limit in the code
 # max-recursion-depth=20
 
-# Definir o encoding padrão
+# Set the default encoding
 # encoding=utf-8
 
 [MESSAGES CONTROL]
-# Desabilitar categorias de mensagens específicas
+# Disable specific message categories
 disable=C0114,  # Missing module docstring
-        C0115,  # Ignora docstrings ausentes em classes
+        C0115,  # Missing class docstring
         C0116,  # Missing function or method docstring
-#        C0301,  # Desativa avisos de linhas que excedem o limite de largura especificado. O black já etsá formatando.
+#        C0301,  # Line too long. black already formats it.
         R0801,  # Duplicated code
 #        R0902,  # Too many instance attributes
 #        R0903,  # Too few public methods
@@ -34,48 +34,48 @@ disable=C0114,  # Missing module docstring
 #        R1706   # Simplifiable "if" statement
 
 [REPORTS]
-# Define o tipo de relatório, removendo os mais detalhados
+# Report type, without the most detailed ones
 output-format=colorized
 reports=no
 score=yes
 
 [FORMAT]
-# Número máximo de caracteres por linha
+# Maximum number of characters per line
 max-line-length=80
 
-# Número de linhas permitidas em uma função antes do aviso
+# Number of lines allowed in a function before the warning
 # max-function-length=50
 
-# Número de linhas antes e depois de uma função ou classe
+# Function name pattern
 function-rgx=[a-z_][a-z0-9_]{2,30}$
 
-# Separação de seções e importações
+# Accepted short names
 good-names=i,j,k,ex,Run,_,pk,id,db
 
 [DESIGN]
-# Limites de design e complexidade
-max-args=10  # Número máximo de argumentos permitidos em funções/métodos
-max-locals=50  # Número máximo de variáveis locais permitidas
-max-returns=6  # Número máximo de pontos de retorno permitidos em uma função
-max-branches=12  # Número máximo de ramos permitidos em estruturas de decisão
-max-statements=100  # Número máximo de declarações permitidas em uma função
-max-parents=7  # Número máximo de classes base permitidas
-max-attributes=10  # Número máximo de atributos permitidos em uma classe
-min-public-methods=0  # Número mínimo de métodos públicos permitidos
-max-public-methods=20  # Número máximo de métodos públicos permitidos
+# Design and complexity limits
+max-args=10  # Maximum number of arguments in functions/methods
+max-locals=50  # Maximum number of local variables
+max-returns=6  # Maximum number of return points in a function
+max-branches=12  # Maximum number of branches in decision structures
+max-statements=100  # Maximum number of statements in a function
+max-parents=7  # Maximum number of base classes
+max-attributes=10  # Maximum number of attributes in a class
+min-public-methods=0  # Minimum number of public methods
+max-public-methods=20  # Maximum number of public methods
 
 [TYPECHECK]
-# Ignorar certos erros de tipagem para evitar avisos desnecessários
+# Ignore some typing errors to avoid unnecessary warnings
 ignored-modules=logging,django
 ignored-classes=builtins.object,QLObjectS,SQLAlchemy,sqlalchemy.orm.decl_api.Base,optparse.Values,thread._local,_thread._local
 
 
 # [IMPORTS]
-# Permitir imports padrão mesmo se não usados explicitamente no código
+# Allow standard imports even if not explicitly used in the code
 # known-standard-library=numpy, pandas, os, sys
 # known-third-party=requests, flask, django
 
 [LOGGING]
-# Configura o nível de logging
+# Logging configuration
 logging-format-style=new
 logging-modules=logging

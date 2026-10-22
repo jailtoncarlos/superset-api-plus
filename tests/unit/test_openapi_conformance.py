@@ -1,11 +1,11 @@
-"""Conformidade com a especificação OpenAPI oficial do Superset (recorte em tests/fixtures).
+"""Conformance with Superset's official OpenAPI specification (excerpt in tests/fixtures).
 
-Para cada recurso que a biblioteca grava, o payload de criação (POST) e de alteração (PUT)
-precisa conter só campos aceitos pelo schema `{Recurso}RestApi.post/.put`, incluir os
-obrigatórios e respeitar o tipo declarado. As rotas chamadas precisam existir com o método usado.
+For every resource the library writes, the create (POST) and update (PUT) payloads must
+contain only fields accepted by the `{Resource}RestApi.post/.put` schema, include the required
+ones and respect the declared type. The routes called must exist with the method used.
 
-Para validar outra versão do Superset, gere um novo recorte com bin/scripts/extrair_openapi.py
-e aponte SPEC para ele.
+To validate another Superset version, generate a new excerpt with bin/scripts/extract_openapi.py
+and point SPEC to it.
 """
 import json
 import re
@@ -22,26 +22,26 @@ from supersetapiplus.datasets import Dataset
 from supersetapiplus.saved_queries import SavedQuery
 
 SPEC = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_openapi_6.1.0.json").read_text())
-HOST = "https://superset.exemplo"
+HOST = "https://superset.example"
 API = f"{HOST}/api/v1"
 
-TIPOS_JSON = {"string": str, "integer": int, "boolean": bool, "array": list, "object": dict, "number": (int, float)}
+JSON_TYPES = {"string": str, "integer": int, "boolean": bool, "array": list, "object": dict, "number": (int, float)}
 
 PARAMS = {"datasource": "1__table", "viz_type": "table", "query_mode": "aggregate",
           "groupby": ["campus"], "metrics": ["count"], "row_limit": 100}
 
-# Objeto como o usuário cria (POST) e como chega da API num GET (PUT), por recurso.
-RECURSOS = {
+# Object as the user creates it (POST) and as it comes from the API in a GET (PUT), per resource.
+RESOURCES = {
     "chart": ("ChartRestApi",
-              lambda: TableChart.from_json({"slice_name": "Novo", "viz_type": "table", "params": json.dumps(PARAMS),
+              lambda: TableChart.from_json({"slice_name": "New", "viz_type": "table", "params": json.dumps(PARAMS),
                                             "query_context": None, "datasource_id": 1, "datasource_type": "table"}),
               {"id": 9, "slice_name": "G", "viz_type": "table", "params": json.dumps(PARAMS), "query_context": None,
                "description": None, "cache_timeout": None, "dashboards": [], "url": "/explore/?slice_id=9",
                "thumbnail_url": "/t", "changed_on_delta_humanized": "1 day ago", "owners": [{"id": 1}],
                "tags": []}),
     "dashboard": ("DashboardRestApi",
-                  lambda: Dashboard(dashboard_title="Painel", published=True, slug="painel"),
-                  {"id": 9, "dashboard_title": "Painel", "published": True, "slug": "painel", "css": "",
+                  lambda: Dashboard(dashboard_title="Panel", published=True, slug="panel"),
+                  {"id": 9, "dashboard_title": "Panel", "published": True, "slug": "panel", "css": "",
                    "json_metadata": json.dumps({"color_scheme": "supersetColors"}),
                    "position_json": json.dumps({
                        "DASHBOARD_VERSION_KEY": "v2",
@@ -50,8 +50,8 @@ RECURSOS = {
                    "url": "/superset/dashboard/9/", "thumbnail_url": "/t", "owners": [], "roles": [],
                    "changed_by_name": "x", "charts": ["G"]}),
     "dataset": ("DatasetRestApi",
-                lambda: Dataset(table_name="vw_respostas", schema="aai", database_id=1, sql="select 1"),
-                {"id": 9, "table_name": "vw_respostas", "schema": "aai", "sql": "select 1", "kind": "virtual",
+                lambda: Dataset(table_name="vw_answers", schema="analytics", database_id=1, sql="select 1"),
+                {"id": 9, "table_name": "vw_answers", "schema": "analytics", "sql": "select 1", "kind": "virtual",
                  "description": None, "datasource_type": "table", "database": {"id": 1, "database_name": "dw"},
                  "columns": [{"column_name": "campus"}], "metrics": [], "owners": []}),
     "database": ("DatabaseRestApi",
@@ -60,15 +60,15 @@ RECURSOS = {
                   "allow_ctas": False, "allow_cvas": False, "allow_dml": False, "allow_run_async": False,
                   "expose_in_sqllab": True, "extra": "{}", "backend": "postgresql"}),
     "saved_query": ("SavedQueryRestApi",
-                    lambda: SavedQuery(label="Consulta", sql="select 1", db_id=1, schema="aai"),
-                    {"id": 9, "label": "Consulta", "sql": "select 1", "schema": "aai", "description": "",
+                    lambda: SavedQuery(label="Query", sql="select 1", db_id=1, schema="analytics"),
+                    {"id": 9, "label": "Query", "sql": "select 1", "schema": "analytics", "description": "",
                      "database": {"id": 1}, "db_id": 1}),
 }
 
 
-def fabrica(client, recurso):
+def factory_for(client, resource):
     return {"chart": client.charts, "dashboard": client.dashboards, "dataset": client.datasets,
-            "database": client.databases, "saved_query": client.saved_queries}[recurso]
+            "database": client.databases, "saved_query": client.saved_queries}[resource]
 
 
 @pytest.fixture
@@ -82,58 +82,58 @@ def mock():
 
 @pytest.fixture
 def client(mock):
-    return SupersetClient(HOST, "robo", "senha")
+    return SupersetClient(HOST, "robot", "password")
 
 
-def violacoes(payload: dict, schema: dict, obrigatorios: bool) -> list[str]:
-    erros = [f"campo não aceito: {k}" for k in payload if k not in schema["properties"]]
-    if obrigatorios:
-        erros += [f"obrigatório ausente: {k}" for k in schema["required"] if k not in payload]
-    for nome, valor in payload.items():
-        prop = schema["properties"].get(nome, {})
-        tipo = TIPOS_JSON.get(prop.get("type"))
-        if tipo and valor is not None and not isinstance(valor, tipo):
-            erros.append(f"{nome}: esperado {prop['type']}, enviado {type(valor).__name__} ({valor!r:.60})")
-        if valor is None and tipo and not prop.get("nullable"):
-            erros.append(f"{nome}: null não permitido")
-    return erros
+def violations(payload: dict, schema: dict, check_required: bool) -> list[str]:
+    errors = [f"field not accepted: {k}" for k in payload if k not in schema["properties"]]
+    if check_required:
+        errors += [f"missing required field: {k}" for k in schema["required"] if k not in payload]
+    for name, value in payload.items():
+        prop = schema["properties"].get(name, {})
+        expected = JSON_TYPES.get(prop.get("type"))
+        if expected and value is not None and not isinstance(value, expected):
+            errors.append(f"{name}: expected {prop['type']}, sent {type(value).__name__} ({value!r:.60})")
+        if value is None and expected and not prop.get("nullable"):
+            errors.append(f"{name}: null not allowed")
+    return errors
 
 
-@pytest.mark.parametrize("recurso", RECURSOS)
-def test_post_respeita_o_schema(recurso, client, mock):
-    api, novo, _ = RECURSOS[recurso]
-    factory = fabrica(client, recurso)
+@pytest.mark.parametrize("resource", RESOURCES)
+def test_post_follows_the_schema(resource, client, mock):
+    api, new, _ = RESOURCES[resource]
+    factory = factory_for(client, resource)
     mock.post(factory.base_url, json={"id": 1, "result": {}})
 
-    factory.add(novo())
+    factory.add(new())
 
-    assert violacoes(mock.last_request.json(), SPEC["schemas"][f"{api}.post"], obrigatorios=True) == []
+    assert violations(mock.last_request.json(), SPEC["schemas"][f"{api}.post"], check_required=True) == []
 
 
-@pytest.mark.parametrize("recurso", RECURSOS)
-def test_put_respeita_o_schema(recurso, client, mock):
-    api, _, lido = RECURSOS[recurso]
-    factory = fabrica(client, recurso)
-    mock.get(f"{factory.base_url}9", json={"id": 9, "result": lido})
+@pytest.mark.parametrize("resource", RESOURCES)
+def test_put_follows_the_schema(resource, client, mock):
+    api, _, fetched = RESOURCES[resource]
+    factory = factory_for(client, resource)
+    mock.get(f"{factory.base_url}9", json={"id": 9, "result": fetched})
     mock.put(f"{factory.base_url}9", json={"id": 9, "result": {}})
 
     factory.get(9).save()
 
-    assert violacoes(mock.last_request.json(), SPEC["schemas"][f"{api}.put"], obrigatorios=False) == []
+    assert violations(mock.last_request.json(), SPEC["schemas"][f"{api}.put"], check_required=False) == []
 
 
-def caminhos_na_spec(url: str) -> list[str]:
-    """Paths da spec compatíveis com a URL chamada (ids e slugs casam com os parâmetros)."""
+def spec_paths_for(url: str) -> list[str]:
+    """Spec paths matching the called URL (ids and slugs match the parameters)."""
     path = "/" + url.split(HOST, 1)[1].lstrip("/").split("?")[0]
-    compativeis = []
-    for candidato in SPEC["paths"]:
-        padrao = re.sub(r"\\{[^}]+\\}", r"[^/]+", re.escape(candidato))
-        if re.fullmatch(padrao, path):
-            compativeis.append(candidato)
-    return compativeis
+    matches = []
+    for candidate in SPEC["paths"]:
+        pattern = re.sub(r"\\{[^}]+\\}", r"[^/]+", re.escape(candidate))
+        if re.fullmatch(pattern, path):
+            matches.append(candidate)
+    return matches
 
 
-ROTAS = [
+ROUTES = [
     ("get", lambda c: c.charts.base_url), ("post", lambda c: c.charts.base_url),
     ("get", lambda c: f"{c.charts.base_url}9"), ("put", lambda c: f"{c.charts.base_url}9"),
     ("delete", lambda c: f"{c.charts.base_url}9"), ("get", lambda c: c.charts.info_url),
@@ -151,27 +151,27 @@ ROTAS = [
 ]
 
 
-@pytest.mark.parametrize("metodo,url", ROTAS, ids=[f"{m}-{i}" for i, (m, _) in enumerate(ROTAS)])
-def test_rotas_chamadas_existem_na_spec(metodo, url):
-    client = SupersetClient(HOST, "robo", "senha")
-    chamada = url(client)
+@pytest.mark.parametrize("method,url", ROUTES, ids=[f"{m}-{i}" for i, (m, _) in enumerate(ROUTES)])
+def test_called_routes_exist_in_the_spec(method, url):
+    client = SupersetClient(HOST, "robot", "password")
+    called = url(client)
 
-    caminhos = caminhos_na_spec(chamada)
+    paths = spec_paths_for(called)
 
-    assert caminhos, f"rota inexistente na spec: {chamada}"
-    assert any(metodo in SPEC["paths"][c] for c in caminhos), f"{metodo.upper()} não existe em {caminhos}"
-
-
-def test_execucao_de_sql_usa_rota_da_spec():
-    client = SupersetClient(HOST, "robo", "senha")
-
-    assert caminhos_na_spec(client._sql_endpoint)
+    assert paths, f"route not found in the spec: {called}"
+    assert any(method in SPEC["paths"][c] for c in paths), f"{method.upper()} does not exist in {paths}"
 
 
-@pytest.mark.parametrize("recurso", RECURSOS)
-def test_campos_declarados_nos_modelos_sao_os_da_spec(recurso):
-    api, novo, _ = RECURSOS[recurso]
-    modelo = type(novo())
+def test_sql_execution_uses_a_spec_route():
+    client = SupersetClient(HOST, "robot", "password")
 
-    assert set(modelo.POST_FIELDS) == set(SPEC["schemas"][f"{api}.post"]["properties"])
-    assert set(modelo.PUT_FIELDS) == set(SPEC["schemas"][f"{api}.put"]["properties"])
+    assert spec_paths_for(client._sql_endpoint)
+
+
+@pytest.mark.parametrize("resource", RESOURCES)
+def test_fields_declared_in_models_are_the_spec_fields(resource):
+    api, new, _ = RESOURCES[resource]
+    model = type(new())
+
+    assert set(model.POST_FIELDS) == set(SPEC["schemas"][f"{api}.post"]["properties"])
+    assert set(model.PUT_FIELDS) == set(SPEC["schemas"][f"{api}.put"]["properties"])

@@ -62,19 +62,19 @@ line-length = 127
 exclude = ["tests/*"]
 
 [tool.ruff.lint]
-# C901 (complexidade) não entra aqui: é aplicada pela catraca bin/scripts/complexidade-nova.py,
-# que barra função nova ou piorada acima do limite sem punir o legado (mesmo esquema do SUAP).
+# C901 (complexity) is not selected here: it is enforced by the ratchet bin/scripts/complexity_ratchet.py,
+# which blocks new or worsened functions above the limit without penalizing legacy code.
 select = ["E", "F", "I", "UP", "B", "C4", "W", "T201", "T100"]  # T201 = print, T100 = pdb
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 
 [tool.ruff.lint.flake8-bugbear]
-# OrderBy é dataclass imutável: seguro como valor padrão de argumento.
+# OrderBy is an immutable dataclass: safe as a default argument value.
 extend-immutable-calls = ["supersetapiplus.charts.metric.OrderBy"]
 
 [tool.ruff.lint.per-file-ignores]
-# Scripts de exemplo e de linha de comando imprimem o resultado por design.
+# Example and command-line scripts print their output by design.
 "examples/*" = ["T201"]
 "bin/*" = ["T201"]
 
@@ -87,8 +87,7 @@ filterwarnings = [
 ]
 
 [tool.codespell]
-# Recortes gerados a partir do Superset (dados, não texto do projeto).
+# Subsets generated from Superset (data, not project text).
 skip = "tests/fixtures/*"
-# Palavras em português (docstrings, logs e mensagens) que o dicionário inglês do codespell
-# confunde com erros de grafia.
-ignore-words-list = "classe,itens,copie,repete,controles,momento,comando,oficial,conter,gere,ser,erro,erros,limite,nome,nomes,cliente,atual,argumentos,construtor,auxiliar,ignora,zar,validade,utiliza,pares,inicial,essencial,controle,comandos,autor"
+# Currency code (South African rand) in CurrencyCodeType, not a typo.
+ignore-words-list = "zar"

@@ -1,5 +1,5 @@
-# Stack de testes de integração: Superset (versão configurável) + Postgres para os dados de teste.
-# Configuração no .env (copie de .env.example). Uso: docker compose up -d --build
+# Integration test stack: Superset (configurable version) + Postgres for the test data.
+# Configuration in .env (copy from .env.example). Usage: docker compose up -d --build
 services:
   superset:
     build:
@@ -12,9 +12,9 @@ services:
     ports:
       - "127.0.0.1:${SUPERSET_TEST_PORT:-8089}:8088"
     environment:
-      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:?defina SUPERSET_SECRET_KEY no .env}
-      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME:?defina SUPERSET_ADMIN_USERNAME no .env}
-      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:?defina SUPERSET_ADMIN_PASSWORD no .env}
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:?set SUPERSET_SECRET_KEY in .env}
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME:?set SUPERSET_ADMIN_USERNAME in .env}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:?set SUPERSET_ADMIN_PASSWORD in .env}
       SUPERSET_LOAD_EXAMPLES: ${SUPERSET_LOAD_EXAMPLES:-0}
     depends_on:
       - postgres
@@ -23,6 +23,6 @@ services:
     image: postgres:${POSTGRES_VERSION:-16}
     hostname: pg
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
-      POSTGRES_DB: ${POSTGRES_DB:-testes}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-tests}

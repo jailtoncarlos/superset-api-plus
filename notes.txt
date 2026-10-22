@@ -1,27 +1,27 @@
-### Publicar o Pacote
+### Publish the package
 python setup.py sdist bdist_wheel
 twine upload --repository github dist/*
 
-### Testar a autenticação
-- Verifique se a configuração está correta rodando:
+### Test authentication
+- Check that the configuration is correct by running:
 twine check dist/*
-- publicar o pacote
+- publish the package
 twine upload --repository github dist/*
 
 
-### Configurar permissões para acessar o pacote privado
-Por padrão, pacotes de repositórios privados só podem ser acessados pelo dono do repositório.
+### Configure permissions to access the private package
+By default, packages from private repositories can only be accessed by the repository owner.
 
-Se quiser permitir que outras pessoas instalem o pacote, siga estes passos:
+To allow other people to install the package, follow these steps:
 
-Vá para GitHub → Settings → Packages.
-Selecione o pacote tabnet-data-framework.
-Na seção Manage Access, adicione usuários ou equipes que podem baixar o pacote.
+Go to GitHub → Settings → Packages.
+Select the package tabnet-data-framework.
+In the Manage Access section, add users or teams that can download the package.
 
-### Como instalar um pacote privado do GitHub Packages?
+### How to install a private package from GitHub Packages?
 
-pip install --index-url https://pypi.pkg.github.com/seu_usuario/ tabnet-data-framework
+pip install --index-url https://pypi.pkg.github.com/your_user/ tabnet-data-framework
 
 
-### Para instalar o pacote:
-pip install --index-url https://pypi.pkg.github.com/seu_usuario/ tabnet-data-framework
+### To install the package:
+pip install --index-url https://pypi.pkg.github.com/your_user/ tabnet-data-framework

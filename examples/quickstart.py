@@ -1,20 +1,20 @@
-"""Conecta ao Superset e lista contagens e alguns gráficos.
+"""Connect to Superset and list counts and a few charts.
 
-Uso: python examples/quickstart.py
+Usage: python examples/quickstart.py
 """
 import os
 
 from supersetapiplus.client import SupersetClient
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 
-# Conexão lida do ambiente: SUPERSET_URL, SUPERSET_USERNAME e SUPERSET_PASSWORD.
+# Connection read from the environment: SUPERSET_URL, SUPERSET_USERNAME and SUPERSET_PASSWORD.
 client = SupersetClient(os.environ["SUPERSET_URL"], os.environ["SUPERSET_USERNAME"], os.environ["SUPERSET_PASSWORD"])
-client.enable_session_mode()  # cookie + CSRF; necessário quando o papel Public tem permissões (Superset 6.x)
+client.enable_session_mode()  # cookie + CSRF; required when the Public role has permissions (Superset 6.x)
 
 
-def filtro(coluna: str, valor: str) -> QueryStringFilter:
+def equals_filter(column: str, value: str) -> QueryStringFilter:
     f = QueryStringFilter()
-    f.add(coluna, QueryOperator.EQUAL, valor)
+    f.add(column, QueryOperator.EQUAL, value)
     return f
 
 

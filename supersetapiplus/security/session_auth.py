@@ -10,27 +10,27 @@ logger = logging.getLogger(__name__)
 
 class SessionAuthMixin:
     """
-    Mixin para autenticação baseada em sessão (via cookie 'session') usando o formulário de login do Superset.
+    Mixin for session-based authentication (via the 'session' cookie) using the Superset login form.
 
-    Esta abordagem é necessária para acessar endpoints como `/api/v1/me/` que exigem autenticação baseada em sessão
-    e não funcionam apenas com JWT.
+    This approach is required to access endpoints such as `/api/v1/me/` that require session-based authentication
+    and do not work with JWT alone.
     """
 
     def enable_session_auth(self, session: requests.Session, username: str, password: str) -> None:
         """
-        Realiza autenticação via sessão (cookie) no Superset. Após sucesso, o cookie `session` é armazenado na sessão.
+        Authenticates with Superset via session (cookie). On success, the `session` cookie is stored in the session.
 
         Args:
-            session (requests.Session): Sessão de requisições.
-            username (str): Nome de usuário do Superset.
-            password (str): Senha do usuário.
+            session (requests.Session): Requests session.
+            username (str): Superset username.
+            password (str): User password.
         """
         login_page_url = f"{self.host}/login/"
-        logger.debug(f"[SessionAuth] Requisitando página de login para obter CSRF: {login_page_url}")
+        logger.debug(f"[SessionAuth] Requesting login page to obtain CSRF: {login_page_url}")
 
-        # Etapa 1: Obter o token CSRF da página de login. A requisição precisa usar a mesma
-        # sessão do POST: o token do formulário só é válido junto do cookie de sessão emitido
-        # aqui (Flask-WTF); sem ele o Superset rejeita o login e redireciona para /login/.
+        # Step 1: Get the CSRF token from the login page. The request must use the same session
+        # as the POST: the form token is only valid together with the session cookie issued
+        # here (Flask-WTF); without it Superset rejects the login and redirects to /login/.
         resp = RequestHandler.request_with_retry(
             url=login_page_url,
             method="GET",
@@ -42,11 +42,11 @@ class SessionAuthMixin:
         soup = BeautifulSoup(resp.text, "html.parser")
         csrf_token_input = soup.find("input", {"name": "csrf_token"})
         if not csrf_token_input or not csrf_token_input.get("value"):
-            raise RuntimeError("CSRF token não encontrado no formulário de login.")
+            raise RuntimeError("CSRF token not found in the login form.")
         csrf_token = csrf_token_input["value"]
-        logger.debug("[SessionAuth] Token CSRF extraído.")
+        logger.debug("[SessionAuth] CSRF token extracted.")
 
-        # Etapa 2: Autenticar com credenciais e CSRF token
+        # Step 2: Authenticate with credentials and CSRF token
         login_data = {
             "username": username,
             "password": password,
@@ -57,7 +57,7 @@ class SessionAuthMixin:
             "Referer": login_page_url,
         }
 
-        # Realiza POST com sessão externa fornecida (não usada diretamente em RequestHandler)
+        # POST with the given external session (not used directly by RequestHandler)
         response = session.post(
             login_page_url,
             data=login_data,
@@ -66,8 +66,8 @@ class SessionAuthMixin:
         )
         RequestHandler.raise_for_status(response)
 
-        # Etapa 3: Verificação de sucesso
+        # Step 3: Check for success
         if "session" not in session.cookies:
-            raise RuntimeError("Autenticação por sessão falhou: cookie 'session' não encontrado.")
+            raise RuntimeError("Session authentication failed: 'session' cookie not found.")
 
-        logger.info("[SessionAuth] Autenticação por sessão realizada com sucesso.")
+        logger.info("[SessionAuth] Session authentication succeeded.")

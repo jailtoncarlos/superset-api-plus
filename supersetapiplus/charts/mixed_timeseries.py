@@ -60,7 +60,7 @@ class MixedTimeseriesChart(Chart):
       - params: MixedTimeseriesOption
       - query_context: MixedTimeseriesQueryContext
     """
-    # O Superset pode gravar query_context.form_data sem as chaves da query B (metrics_b, groupby_b...).
+    # Superset may store query_context.form_data without the query B keys (metrics_b, groupby_b...).
     PARAMS_ONLY_FIELD_SUFFIXES = ('_b',)
 
     viz_type: ChartType = field(default_factory=lambda: ChartType.MIXED_TIMESERIES)

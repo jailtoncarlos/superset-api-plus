@@ -1,21 +1,19 @@
 """
-Módulo typing.py
+Module typing.py
 
-Este módulo define tipos genéricos auxiliares utilizados na serialização e deserialização
-de objetos no framework `supersetapiplus`. Os tipos aqui definidos são fundamentais
-para o controle de exportação seletiva de atributos e manipulação de campos opcionais
-em modelos que herdam da classe base `Object`.
+Defines generic helper types used to serialize and deserialize objects in `supersetapiplus`.
+These types control selective export of attributes and the handling of optional fields
+in models that inherit from the base class `Object`.
 
 Classes:
-    NotToJson[T]: Tipo genérico que encapsula valores que não devem ser serializados
-                  no JSON final (omitidos na exportação).
-    Optional[T]: Tipo genérico que encapsula valores opcionais, aplicando lógica
-                 personalizada na exclusão de campos nulos ou com valor padrão durante
-                 a serialização para JSON.
+    NotToJson[T]: generic type wrapping values that must not be serialized
+                  into the final JSON (omitted on export).
+    Optional[T]: generic type wrapping optional values, with custom logic to drop
+                 null or default-valued fields during JSON serialization.
 
 Aliases:
-    FilterValue: Tipo auxiliar que representa os tipos básicos aceitos em filtros (bool, datetime, float, int, str).
-    FilterValues: Tipo que aceita um único FilterValue, uma lista ou uma tupla desses valores.
+    FilterValue: helper type for the basic types accepted in filters (bool, datetime, float, int, str).
+    FilterValues: accepts a single FilterValue, or a list or tuple of them.
 """
 
 from datetime import datetime
@@ -26,56 +24,54 @@ T = TypeVar('T')
 
 class SerializableNotToJson(Generic[T]):
     """
-    Classe genérica que encapsula um valor que **não deve ser incluído na serialização JSON**.
+    Generic wrapper for a value that **must not be included in JSON serialization**.
 
-    Esta classe é utilizada nos modelos que herdam de `Object`, em conjunto com a
-    lógica do método `remove_exclude_keys`, para excluir automaticamente campos do
-    JSON de saída.
+    Used in models that inherit from `Object`, together with the logic of
+    `remove_exclude_keys`, to automatically drop fields from the output JSON.
 
-    Parâmetros:
-        value (T): Valor encapsulado que será utilizado internamente, mas não exportado.
+    Parameters:
+        value (T): wrapped value, used internally but never exported.
 
-    Métodos:
+    Methods:
         get() -> T:
-            Retorna o valor encapsulado.
+            Returns the wrapped value.
     """
 
     def __init__(self, value: T):
         self.value = value
 
     def get(self) -> T:
-        """Retorna o valor encapsulado."""
+        """Return the wrapped value."""
         return self.value
 
 
 class SerializableOptional(Generic[T]):
     """
-    Classe genérica que encapsula um valor **opcional** com lógica de exclusão condicional
-    durante a serialização JSON.
+    Generic wrapper for an **optional** value, conditionally excluded during JSON serialization.
 
-    Ao contrário do `typing.Optional`, esta classe permite que o método `remove_exclude_keys`
-    exclua o campo da saída JSON caso:
-      - O valor seja `None` e o campo não tenha valor padrão.
-      - O valor seja igual ao valor padrão definido na dataclass.
+    Unlike `typing.Optional`, this class lets `remove_exclude_keys` drop the field
+    from the JSON output when:
+      - the value is `None` and the field has no default; or
+      - the value equals the default defined in the dataclass.
 
-    Parâmetros:
-        value (T): Valor encapsulado, que pode ser opcional.
+    Parameters:
+        value (T): wrapped value, possibly optional.
 
-    Métodos:
+    Methods:
         get() -> T:
-            Retorna o valor encapsulado.
+            Returns the wrapped value.
     """
 
     def __init__(self, value: T):
         self.value = value
 
     def get(self) -> T:
-        """Retorna o valor encapsulado."""
+        """Return the wrapped value."""
         return self.value
 
 
-#: Tipo auxiliar para valores simples aceitos em filtros.
+#: Helper type for the simple values accepted in filters.
 FilterValue = bool | datetime | float | int | str
 
-#: Tipo auxiliar para representar múltiplos valores em filtros (valor único, lista ou tupla).
+#: Helper type for multiple filter values (single value, list or tuple).
 FilterValues = FilterValue | list[FilterValue] | tuple[FilterValue]

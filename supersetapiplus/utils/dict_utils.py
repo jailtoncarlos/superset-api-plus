@@ -4,13 +4,13 @@ from typing import Any
 
 def detailed_dict_diff(d1, d2):
     """
-    Compara dois dicionários e identifica diferenças em termos de chaves e valores.
+    Compare two dictionaries and identify differences in keys and values.
 
-    Retorna:
-        added (set): Chaves presentes em d1 mas não em d2.
-        removed (set): Chaves presentes em d2 mas não em d1.
-        modified (dict): Chaves presentes em ambos mas com valores diferentes.
-        same (set): Chaves presentes em ambos com valores iguais.
+    Returns:
+        added (set): keys present in d1 but not in d2.
+        removed (set): keys present in d2 but not in d1.
+        modified (dict): keys present in both but with different values.
+        same (set): keys present in both with equal values.
     """
     d1_keys = set(d1.keys())
     d2_keys = set(d2.keys())
@@ -24,18 +24,18 @@ def detailed_dict_diff(d1, d2):
 
 def dicts_equal_and_all_values_none(dict1: dict[str, Any], dict2: dict[str, Any]) -> bool:
     """
-    Verifica se dois dicionários são iguais e se todos os valores de ambos são nulos
-    (None ou instâncias de CustomNoneType).
+    Check whether two dictionaries are equal and all their values are null
+    (None or CustomNoneType instances).
 
     Args:
-        dict1 (dict): Primeiro dicionário.
-        dict2 (dict): Segundo dicionário.
+        dict1 (dict): first dictionary.
+        dict2 (dict): second dictionary.
 
     Returns:
-        bool: True se os dicionários forem iguais e todos os valores forem nulos; False caso contrário.
+        bool: True if the dictionaries are equal and all values are null; False otherwise.
     """
     def all_values_null(d: dict) -> bool:
-        # Verifica se todos os valores são None ou CustomNoneType
+        # Check that every value is None or CustomNoneType
         return all(v is None or isinstance(v, NoneType) for v in d.values())
 
     return dict1 == dict2 and all_values_null(dict1) and all_values_null(dict2)

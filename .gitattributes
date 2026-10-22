@@ -1,5 +1,5 @@
-# Normaliza todos os arquivos de texto para LF no repositório, independentemente do
-# editor ou sistema operacional (mesmo padrão do SUAP).
+# Normalize every text file to LF in the repository, regardless of the
+# editor or operating system.
 * text=auto eol=lf
 
 *.py text eol=lf
