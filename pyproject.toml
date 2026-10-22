@@ -90,4 +90,4 @@ filterwarnings = [
 [tool.codespell]
 # Palavras em português (docstrings, logs e mensagens) que o dicionário inglês do codespell
 # confunde com erros de grafia.
-ignore-words-list = "classe,ser,erro,erros,limite,nome,nomes,cliente,atual,argumentos,construtor,auxiliar,ignora,zar,validade,utiliza,pares,inicial,essencial,controle,comandos,autor"
+ignore-words-list = "classe,itens,ser,erro,erros,limite,nome,nomes,cliente,atual,argumentos,construtor,auxiliar,ignora,zar,validade,utiliza,pares,inicial,essencial,controle,comandos,autor"
