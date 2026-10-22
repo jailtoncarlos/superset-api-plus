@@ -1,7 +1,6 @@
 # supersetapiplus/charts/box_plot.py
 
 from dataclasses import dataclass, field
-from typing import List, Type
 
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
@@ -42,14 +41,14 @@ class BoxPlotQueryContext(QueryContext):
       - a list of BoxPlotQueryObject
       - the associated form_data
     """
-    queries: List[BoxPlotQueryObject] = object_field(
+    queries: list[BoxPlotQueryObject] = object_field(
         cls=BoxPlotQueryObject, default_factory=list
     )
     form_data: BoxPlotFormData = object_field(
         cls=BoxPlotFormData, default_factory=BoxPlotFormData
     )
 
-    def _default_query_object_class(self) -> Type[Query]:
+    def _default_query_object_class(self) -> type[Query]:
         return BoxPlotQueryObject
 
 
@@ -69,5 +68,5 @@ class BoxPlotChart(Chart):
     )
 
     @classmethod
-    def _default_option_class(cls) -> Type[Option]:
+    def _default_option_class(cls) -> type[Option]:
         return BoxPlotOption

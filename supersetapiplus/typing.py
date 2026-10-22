@@ -19,7 +19,7 @@ Aliases:
 """
 
 from datetime import datetime
-from typing import Union, Generic, TypeVar
+from typing import Generic, TypeVar
 
 T = TypeVar('T')
 
@@ -75,7 +75,7 @@ class SerializableOptional(Generic[T]):
 
 
 #: Tipo auxiliar para valores simples aceitos em filtros.
-FilterValue = Union[bool, datetime, float, int, str]
+FilterValue = bool | datetime | float | int | str
 
 #: Tipo auxiliar para representar múltiplos valores em filtros (valor único, lista ou tupla).
-FilterValues = Union[FilterValue, list[FilterValue], tuple[FilterValue]]
+FilterValues = FilterValue | list[FilterValue] | tuple[FilterValue]

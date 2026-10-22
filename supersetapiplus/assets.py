@@ -1,7 +1,6 @@
 """Assets."""
 import json
 from pathlib import Path
-from typing import Union
 
 
 class Assets:
@@ -23,7 +22,7 @@ class Assets:
     def export_url(self):
         return self.client.join_urls(self.base_url, "export/")
 
-    def export(self, path: Union[Path, str]) -> None:
+    def export(self, path: Path | str) -> None:
         """Export object into an importable file"""
         response = self.client.get(self.export_url)
 

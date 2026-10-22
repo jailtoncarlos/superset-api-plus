@@ -1,18 +1,19 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import List
 
 from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
-from supersetapiplus.charts.options import Option, ChartVisualOptionsMixin
+from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, LabelType, DateFormatType, \
-    NumberFormatType
+from supersetapiplus.charts.types import ChartType, DateFormatType, LabelType, NumberFormatType
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional
+
+_SOLUTION_USE_ADD_METRIC = ("We recommend using one of the Chart class's add_simple_metric or add_custom_metric "
+                            "methods to ensure data integrity.")
 
 
 @dataclass
@@ -54,7 +55,7 @@ class PieQueryObject(Query):
 @dataclass
 class PieQueryContext(QueryContext):
     form_data: PieFormData = object_field(cls=PieFormData, default_factory=PieFormData)
-    queries: List[PieQueryObject] = object_field(cls=Query, default_factory=list)
+    queries: list[PieQueryObject] = object_field(cls=Query, default_factory=list)
 
     def validate(self):
         super().validate()
@@ -67,7 +68,7 @@ class PieQueryContext(QueryContext):
                         break
             if not equals:
                 raise ValidationError(message='The metric definition in formdata is not included in queries.metrics.',
-                                      solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
+                                      solution=_SOLUTION_USE_ADD_METRIC)
 
         if self.automatic_order and self.automatic_order.automate:
             equals = False
@@ -76,14 +77,14 @@ class PieQueryContext(QueryContext):
                     for order in query.orderby:
                         if not isinstance(order, tuple):
                             raise ValidationError('Order by must be a tuple.',
-                                                  slution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
+                                                  slution=_SOLUTION_USE_ADD_METRIC)
                         if self.form_data.metric == order[0]:
                             equals = True
                             break
 
                 if not equals:
                     raise ValidationError(message='The metric definition in formdata is not included in queries.orderby.',
-                                          solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
+                                          solution=_SOLUTION_USE_ADD_METRIC)
 
     def _default_query_object_class(self) -> type[Query]:
         return PieQueryObject
@@ -99,9 +100,11 @@ class PieChart(Chart):
         super().validate()
         if self.query_context is None or not isinstance(self.query_context.form_data, SerializableModel):
             return
-        if (self.params.metric or self.query_context.form_data.metric) and not (self.params.metric == self.query_context.form_data.metric):
-                raise ValidationError(message='The metric definition in self.params.metric not equals self.query_context.form_data.metric.',
-                                      solution="We recommend using one of the Chart class's add_simple_metric or add_custom_metric methods to ensure data integrity.")
+        form_data_metric = self.query_context.form_data.metric
+        if (self.params.metric or form_data_metric) and self.params.metric != form_data_metric:
+            raise ValidationError(
+                message='The metric definition in self.params.metric not equals self.query_context.form_data.metric.',
+                solution=_SOLUTION_USE_ADD_METRIC)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

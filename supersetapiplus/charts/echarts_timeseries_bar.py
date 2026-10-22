@@ -1,15 +1,24 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import List, Any
+from typing import Any
 
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.options import Option, ChartVisualOptionsMixin
+from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import AdhocMetric, Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, DateFormatType, \
-    NumberFormatType, Orientation, ContributionType, SortSeriesType, StackStylyType, \
-    TitlepositionType, LabelRotation, FilterExpressionType
+from supersetapiplus.charts.types import (
+    ChartType,
+    ContributionType,
+    DateFormatType,
+    FilterExpressionType,
+    LabelRotation,
+    NumberFormatType,
+    Orientation,
+    SortSeriesType,
+    StackStylyType,
+    TitlepositionType,
+)
 from supersetapiplus.typing import SerializableOptional
 
 
@@ -27,7 +36,7 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
     contributionMode: SerializableOptional[ContributionType] = field(default=None)
     row_limit: int = 1000
     truncate_metric: bool = True
-    annotation_layers: List = field(default_factory=list)
+    annotation_layers: list = field(default_factory=list)
     forecastPeriods: SerializableOptional[int] = field(default=None)
     forecastInterval: SerializableOptional[float] = field(default=None)
     orientation: Orientation = field(default_factory=lambda: Orientation.HORIZONTAL)
@@ -94,21 +103,21 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
 
 @dataclass()
 class TimeSeriesBarFormData(TimeSeriesBarOption):
-    series_columns: SerializableOptional[List] = field(default=None)
+    series_columns: SerializableOptional[list] = field(default=None)
 
 
 
 @dataclass
 class TimeSeriesBarQueryObject(Query):
-    series_columns: SerializableOptional[List] = field(default_factory=list)
-    time_offsets: List[str] = field(default_factory=list)
-    post_processing: List[Any] = field(default_factory=list)
+    series_columns: SerializableOptional[list] = field(default_factory=list)
+    time_offsets: list[str] = field(default_factory=list)
+    post_processing: list[Any] = field(default_factory=list)
 
 
 @dataclass
 class TimeSeriesBarQueryContext(QueryContext):
     form_data: TimeSeriesBarFormData = object_field(cls=TimeSeriesBarFormData, default_factory=TimeSeriesBarFormData)
-    queries: List[TimeSeriesBarQueryObject] = object_field(cls=TimeSeriesBarQueryObject, default_factory=list)
+    queries: list[TimeSeriesBarQueryObject] = object_field(cls=TimeSeriesBarQueryObject, default_factory=list)
 
     def _default_query_object_class(self) -> type[Query]:
         return TimeSeriesBarQueryObject

@@ -1,7 +1,6 @@
 # supersetapiplus/charts/cal_heatmap.py
 
 from dataclasses import dataclass, field
-from typing import List, Type
 
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
@@ -22,7 +21,7 @@ class CalHeatmapOption(Option):
       - groupby: list of fields to group by
     """
     viz_type: ChartType = field(default_factory=lambda: ChartType.CAL_HEATMAP)
-    groupby: List[str] = field(default_factory=list)
+    groupby: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -44,14 +43,14 @@ class CalHeatmapQueryContext(QueryContext):
       - queries: list of CalHeatmapQueryObject
       - form_data: CalHeatmapFormData
     """
-    queries: List[CalHeatmapQueryObject] = object_field(
+    queries: list[CalHeatmapQueryObject] = object_field(
         cls=CalHeatmapQueryObject, default_factory=list
     )
     form_data: CalHeatmapFormData = object_field(
         cls=CalHeatmapFormData, default_factory=CalHeatmapFormData
     )
 
-    def _default_query_object_class(self) -> Type[Query]:
+    def _default_query_object_class(self) -> type[Query]:
         return CalHeatmapQueryObject
 
 
@@ -71,5 +70,5 @@ class CalHeatmapChart(Chart):
     )
 
     @classmethod
-    def _default_option_class(cls) -> Type[Option]:
+    def _default_option_class(cls) -> type[Option]:
         return CalHeatmapOption

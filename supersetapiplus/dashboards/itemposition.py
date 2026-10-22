@@ -1,9 +1,8 @@
 """Dashboard Nodes Objects."""
 
 import json
-from dataclasses import dataclass, field, asdict, make_dataclass
+from dataclasses import asdict, dataclass, field, make_dataclass
 from enum import Enum
-from typing import List
 
 from supersetapiplus.base.enum_str import StringEnum
 from supersetapiplus.base.parse import ParseMixin
@@ -58,8 +57,8 @@ class ItemPosition(ParseMixin):
 
     id: str = field(init=False, repr=False)
     type_: ItemPositionType = field(init=False, repr=False)
-    children: List[str] = field(default_factory=set)
-    parents: List[str] = field(default_factory=set)
+    children: list[str] = field(default_factory=set)
+    parents: list[str] = field(default_factory=set)
 
     def __init__(self, **kwargs):
         type_ = kwargs.get('type_') or kwargs.get('type')
@@ -232,7 +231,8 @@ class MarkdownItemPosition(RelocateMixin, ItemPosition):
 
 class ChartItemPosition(RelocateMixin, ItemPosition):
     ACCEPT_CHILD = False
-    def __init__(self, chartId: int, sliceName: str, sliceNameOverride: str = None, height: int = 50, width: int = 4, uuid: str = None, relocate:bool = True, **kwargs):
+    def __init__(self, chartId: int, sliceName: str, sliceNameOverride: str = None, height: int = 50, width: int = 4,
+                 uuid: str = None, relocate: bool = True, **kwargs):
         if not chartId:
             raise NodePositionValidationError('chartId argument cannot be null or empty')
         if not sliceName:

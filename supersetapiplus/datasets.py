@@ -1,8 +1,7 @@
 """Dashboards."""
 from dataclasses import dataclass, field
-from typing import Optional, Type
 
-from supersetapiplus.base.base import SerializableModel, ApiModelFactories, QueryStringFilter
+from supersetapiplus.base.base import ApiModelFactories, QueryStringFilter, SerializableModel
 from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.exceptions import NotFound
 
@@ -12,13 +11,13 @@ class Dataset(SerializableModel):
     JSON_FIELDS = []
     PRESERVE_EXTRA_FIELDS = False
 
-    id: Optional[int] = field(default=None)
+    id: int | None = field(default=None)
     table_name: str = ""
     schema: str = ""
     columns: list = field(default_factory=list)
     description: str = ""
     kind: str = ""
-    database_id: Optional[int] = None
+    database_id: int | None = None
     datasource_type: str = ""
     sql: str = ""
 
@@ -65,5 +64,5 @@ class Datasets(ApiModelFactories):
             raise NotFound('Attribute result does not exist in object response.')
         return DataSource(**data)
 
-    def _default_object_class(self) -> Type[SerializableModel]:
+    def _default_object_class(self) -> type[SerializableModel]:
         return Dataset

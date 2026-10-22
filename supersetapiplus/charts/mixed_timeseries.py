@@ -1,7 +1,6 @@
 # supersetapiplus/charts/mixed_timeseries.py
 
 from dataclasses import dataclass, field
-from typing import List, Type
 
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
@@ -43,14 +42,14 @@ class MixedTimeseriesQueryContext(QueryContext):
       - queries: list of MixedTimeseriesQueryObject
       - form_data: MixedTimeseriesFormData
     """
-    queries: List[MixedTimeseriesQueryObject] = object_field(
+    queries: list[MixedTimeseriesQueryObject] = object_field(
         cls=MixedTimeseriesQueryObject, default_factory=list
     )
     form_data: MixedTimeseriesFormData = object_field(
         cls=MixedTimeseriesFormData, default_factory=MixedTimeseriesFormData
     )
 
-    def _default_query_object_class(self) -> Type[Query]:
+    def _default_query_object_class(self) -> type[Query]:
         return MixedTimeseriesQueryObject
 
 
@@ -73,5 +72,5 @@ class MixedTimeseriesChart(Chart):
     )
 
     @classmethod
-    def _default_option_class(cls) -> Type[Option]:
+    def _default_option_class(cls) -> type[Option]:
         return MixedTimeseriesOption

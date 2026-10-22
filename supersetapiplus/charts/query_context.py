@@ -1,15 +1,20 @@
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import List
 
 from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import Query, AdhocMetricColumn
-from supersetapiplus.charts.types import FilterOperatorType, FilterClausesType, MetricType, FilterExpressionType, \
-    ResultFormat, ResultType
+from supersetapiplus.charts.queries import AdhocMetricColumn, Query
+from supersetapiplus.charts.types import (
+    FilterClausesType,
+    FilterExpressionType,
+    FilterOperatorType,
+    MetricType,
+    ResultFormat,
+    ResultType,
+)
 from supersetapiplus.exceptions import ChartValidationError, ValidationError
 from supersetapiplus.typing import SerializableOptional
 
@@ -22,7 +27,7 @@ class FormData(Option):
 @dataclass
 class QueryContext(SerializableModel):
     datasource: DataSource = object_field(cls=DataSource, default_factory=DataSource)
-    queries: List[Query] = object_field(cls=Query, default_factory=list)
+    queries: list[Query] = object_field(cls=Query, default_factory=list)
     form_data: FormData = object_field(cls=FormData, default_factory=FormData)
 
     force: bool = False
@@ -62,7 +67,7 @@ class QueryContext(SerializableModel):
                                        We don't know which one to include the filter in.""")
         if not self.queries:
             QueryObjectClass = self._default_query_object_class()
-            self.queries: List[QueryObjectClass] = []
+            self.queries: list[QueryObjectClass] = []
         if len(self.queries) == 0:
             QueryObjectClass = self._default_query_object_class()
             self.queries.append(QueryObjectClass())

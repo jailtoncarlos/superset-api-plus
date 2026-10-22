@@ -1,9 +1,8 @@
 """Saved queries."""
 from dataclasses import dataclass, field
-from typing import Optional, Type
 
+from supersetapiplus.base.base import ApiModelFactories, SerializableModel
 from supersetapiplus.base.fields import default_string
-from supersetapiplus.base.base import SerializableModel, ApiModelFactories
 
 
 @dataclass
@@ -12,7 +11,7 @@ class SavedQuery(SerializableModel):
     PRESERVE_EXTRA_FIELDS = False
 
     label: str
-    id: Optional[int] = field(default=None)
+    id: int | None = field(default=None)
     description: str = default_string()
     sql: str = default_string()
     db_id: int = None
@@ -34,5 +33,5 @@ class SavedQueries(ApiModelFactories):
     endpoint = "saved_query/"
     base_object = SavedQuery
 
-    def _default_object_class(self) -> Type[SerializableModel]:
+    def _default_object_class(self) -> type[SerializableModel]:
         return SavedQuery

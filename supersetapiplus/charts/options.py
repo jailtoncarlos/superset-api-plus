@@ -1,18 +1,33 @@
 import logging
 from dataclasses import dataclass, field
-from typing import List, Dict
 
 from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.fields import object_field, default_string
+from supersetapiplus.base.fields import default_string, object_field
 from supersetapiplus.base.sentinels import MissingField
 from supersetapiplus.charts.filters import AdhocFilterClause
-from supersetapiplus.charts.metric import OrderByTyping, AdhocMetricColumn, MetricHelper, AdhocMetric, OrderBy, \
-    MetricsListMixin
+from supersetapiplus.charts.metric import (
+    AdhocMetric,
+    AdhocMetricColumn,
+    MetricHelper,
+    MetricsListMixin,
+    OrderBy,
+    OrderByTyping,
+)
 from supersetapiplus.charts.queries import CurrencyFormat
-from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, \
-    FilterExpressionType, MetricType, LegendType, LegendOrientationType, ResultFormat, ResultType, TimeGrain
+from supersetapiplus.charts.types import (
+    ChartType,
+    FilterClausesType,
+    FilterExpressionType,
+    FilterOperatorType,
+    LegendOrientationType,
+    LegendType,
+    MetricType,
+    ResultFormat,
+    ResultType,
+    TimeGrain,
+)
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableOptional, SerializableNotToJson
+from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +44,7 @@ class ChartVisualOptionsMixin:
 
 @dataclass
 class OptionListGroupByMixin:
-    groupby: List[OrderByTyping] = object_field(cls=AdhocMetric, default_factory=list)
+    groupby: list[OrderByTyping] = object_field(cls=AdhocMetric, default_factory=list)
 
     # por padrão, todo mundo exige groupby
     _require_groupby: SerializableNotToJson[bool] = True
@@ -66,11 +81,11 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
 
     datasource: str = field(default=None)
 
-    extra_form_data: Dict = field(default_factory=dict)
+    extra_form_data: dict = field(default_factory=dict)
     row_limit: int = 100
 
-    adhoc_filters: List[AdhocFilterClause] = object_field(cls=AdhocFilterClause, default_factory=list)
-    dashboards: List[int] = field(default_factory=list)
+    adhoc_filters: list[AdhocFilterClause] = object_field(cls=AdhocFilterClause, default_factory=list)
+    dashboards: list[int] = field(default_factory=list)
 
     force: SerializableOptional[bool] = field(default=None)
     result_format: SerializableOptional[ResultFormat] = field(default=None)
@@ -98,7 +113,7 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
     def __post_init__(self):
         super().__post_init__()
         if not self.groupby:
-            self.groupby: List[OrderByTyping] = []
+            self.groupby: list[OrderByTyping] = []
 
     def add_dashboard(self, dashboard_id):
         dashboards = set(self.dashboards)

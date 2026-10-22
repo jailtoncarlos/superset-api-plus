@@ -1,15 +1,21 @@
 import logging
 from dataclasses import dataclass, field
-from typing import List, Union, Dict
 
 from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.fields import object_field, default_string
+from supersetapiplus.base.fields import default_string, object_field
 from supersetapiplus.base.sentinels import MissingField
-from supersetapiplus.charts.metric import AdhocMetricColumn, MetricHelper, Metric, OrderByTyping, MetricsListMixin, \
-    AdhocMetric
-from supersetapiplus.charts.types import FilterOperatorType, TimeGrain, FilterExpressionType, HorizontalAlignType, \
-    NumberFormatType, CurrentPositionType, CurrencyCodeType, MetricType, \
-    ColumnType
+from supersetapiplus.charts.metric import AdhocMetric, AdhocMetricColumn, Metric, MetricHelper, MetricsListMixin, OrderByTyping
+from supersetapiplus.charts.types import (
+    ColumnType,
+    CurrencyCodeType,
+    CurrentPositionType,
+    FilterExpressionType,
+    FilterOperatorType,
+    HorizontalAlignType,
+    MetricType,
+    NumberFormatType,
+    TimeGrain,
+)
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import FilterValues, SerializableOptional
 
@@ -50,7 +56,7 @@ class AdhocColumn(SerializableModel):
     columnType: SerializableOptional[ColumnType] = field(default=None)
 
 
-QueryFormColumn = Union[AdhocColumn, str]
+QueryFormColumn = AdhocColumn | str
 
 
 @dataclass
@@ -62,7 +68,7 @@ class QueryFilterClause(SerializableModel):
 
 @dataclass
 class ColumnsMixin:
-    columns: SerializableOptional[List[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
+    columns: SerializableOptional[list[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
 
     def _add_simple_columns(self, column_name:str):
         self.columns.append(column_name)
@@ -79,7 +85,7 @@ class ColumnsMixin:
 
 @dataclass
 class OrderByMixin:
-    orderby: SerializableOptional[List[OrderByTyping]] = object_field(default_factory=list)
+    orderby: SerializableOptional[list[OrderByTyping]] = object_field(default_factory=list)
 
     def _add_simple_orderby(self, column_name: str,
                             sort_ascending: bool):
@@ -97,7 +103,9 @@ class OrderByMixin:
         super().validate()
         if not isinstance(self.orderby, MissingField) and not self.orderby:
             raise ValidationError(message='Field orderby cannot be empty.',
-                                  solution='Set the "automatic_order=OrderBy(automate=True)" argument in the add_simple_metric or add_custom_metric methods. If you want to customize a different order, use the add_simple_orderby or add_custom_orderby methods.')
+                                  solution='Set the "automatic_order=OrderBy(automate=True)" argument in the '
+                                           'add_simple_metric or add_custom_metric methods. If you want to customize '
+                                           'a different order, use the add_simple_orderby or add_custom_orderby methods.')
 
 
 @dataclass
@@ -106,14 +114,14 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
     series_limit: SerializableOptional[int] = 0
     series_limit_metric: SerializableOptional[Metric] = object_field(default=None)
 
-    filters: List[QueryFilterClause] = object_field(cls=QueryFilterClause, default_factory=list)
+    filters: list[QueryFilterClause] = object_field(cls=QueryFilterClause, default_factory=list)
     extras: QuerieExtra = object_field(cls=QuerieExtra, default_factory=QuerieExtra)
 
-    applied_time_extras: Dict = field(default_factory=dict)
-    url_params: Dict = field(default_factory=dict)
-    custom_params: Dict = field(default_factory=dict)
-    custom_form_data: Dict = field(default_factory=dict)
-    annotation_layers: List = field(default_factory=list)
+    applied_time_extras: dict = field(default_factory=dict)
+    url_params: dict = field(default_factory=dict)
+    custom_params: dict = field(default_factory=dict)
+    custom_form_data: dict = field(default_factory=dict)
+    annotation_layers: list = field(default_factory=list)
 
     # Campos adicionais conforme necessário no JSON da API
     row_offset: SerializableOptional[int] = None

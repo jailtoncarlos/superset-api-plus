@@ -1,23 +1,22 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
+from typing import Any
 
 from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.metric import Metric, AdhocMetricColumn, OrderBy
+from supersetapiplus.charts.metric import AdhocMetricColumn, Metric, OrderBy
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import ColumnConfig, Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, DateFormatType, QueryModeType, MetricType, ResultFormat, \
-    ResultType
+from supersetapiplus.charts.types import ChartType, DateFormatType, MetricType, QueryModeType, ResultFormat, ResultType
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
 class TableOptionBase(Option):
-    conditional_formatting: SerializableOptional[List] = field(default_factory=list)
+    conditional_formatting: SerializableOptional[list] = field(default_factory=list)
     temporal_columns_lookup: SerializableOptional[dict] = field(default=None)
     annotation_layers: SerializableOptional[list] = field(default=None)
 
@@ -28,7 +27,7 @@ class TableOption(TableOptionBase):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
     query_mode: QueryModeType = field(default_factory=lambda: QueryModeType.AGGREGATE)
 
-    order_by_cols: List = field(default_factory=list)
+    order_by_cols: list = field(default_factory=list)
 
     server_pagination: SerializableOptional[bool] = field(default=None)
     server_page_length: SerializableOptional[int] = field(default=None)
@@ -46,14 +45,15 @@ class TableOption(TableOptionBase):
     table_filter: SerializableOptional[bool] = field(default=None)
     granularity_sqla: SerializableOptional[str] = field(default=None)
 
-    column_config: SerializableOptional[Dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True, default_factory=dict)
+    column_config: SerializableOptional[dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True,
+                                                                               default_factory=dict)
 
     all_columns: SerializableOptional[list] = field(default_factory=list)
     percent_metrics: SerializableOptional[list] = field(default_factory=list)
     allow_render_html: SerializableOptional[bool] = True
     comparison_color_scheme: SerializableOptional[str] = field(default=None)
 
-    timeseries_limit_metric: Optional[Metric] = object_field(default=None)
+    timeseries_limit_metric: Metric | None = object_field(default=None)
 
     force: SerializableOptional[bool] = field(default=None)
     result_format: SerializableOptional[ResultFormat] = field(default=None)
@@ -62,7 +62,7 @@ class TableOption(TableOptionBase):
     def __post_init__(self):
         super().__post_init__()
         if not self.metrics:
-            self.metrics: List[Metric] = []
+            self.metrics: list[Metric] = []
         if self.server_page_length == 0:
             self.server_page_length = 10
 
@@ -92,8 +92,8 @@ class TableFormData(TableOption):
 @dataclass
 class TableQueryObject(Query):
     granularity: SerializableOptional[str] = None
-    time_offsets: List[str] = field(default_factory=list)
-    post_processing: List[Any] = field(default_factory=list)
+    time_offsets: list[str] = field(default_factory=list)
+    post_processing: list[Any] = field(default_factory=list)
 
     def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         #In the table the option is sort descending
@@ -113,7 +113,7 @@ class TableQueryObject(Query):
 @dataclass
 class TableQueryContext(QueryContext):
     form_data: TableFormData = object_field(cls=TableFormData, default_factory=TableFormData)
-    queries: List[TableQueryObject] = object_field(cls=TableQueryObject, default_factory=list)
+    queries: list[TableQueryObject] = object_field(cls=TableQueryObject, default_factory=list)
 
     def validate(self):
         super().validate()
@@ -160,4 +160,4 @@ class TableChart(Chart):
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:
-        return TableOption
+        return TableOption

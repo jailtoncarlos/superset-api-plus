@@ -1,7 +1,8 @@
 """Mascaramento de dados sensíveis (credenciais, tokens e cookies) antes de registrá-los em log."""
 import json
 import re
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import parse_qsl, urlencode
 
 MASK = "***"

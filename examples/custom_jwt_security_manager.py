@@ -33,10 +33,10 @@ class CustomJwtSecurityManager(SupersetSecurityManager):
         token = auth_header[len("Bearer "):]
         try:
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        except jwt.ExpiredSignatureError:
-            raise Unauthorized("Token expirado")
-        except jwt.InvalidTokenError:
-            raise Unauthorized("Token inválido")
+        except jwt.ExpiredSignatureError as err:
+            raise Unauthorized("Token expirado") from err
+        except jwt.InvalidTokenError as err:
+            raise Unauthorized("Token inválido") from err
 
         logger.debug("[CustomJWT] Token válido para %s.", payload.get("email") or payload.get("preferred_username"))
 

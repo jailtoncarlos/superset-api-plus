@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any
 
 
 class QueryOperator(str, Enum):
@@ -39,7 +39,7 @@ class QueryStringFilter:
     """
 
     def __init__(self):
-        self._filters: List[Dict[str, Any]] = []
+        self._filters: list[dict[str, Any]] = []
 
     def add(self, column: str, operator: QueryOperator, value: Any) -> None:
         """
@@ -57,7 +57,7 @@ class QueryStringFilter:
         })
 
     @property
-    def filters(self) -> List[Dict[str, Any]]:
+    def filters(self) -> list[dict[str, Any]]:
         """
         Returns:
             List[Dict[str, Any]]: The list of filters in dictionary format.

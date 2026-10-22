@@ -1,16 +1,14 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import List
 
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import OrderByTyping
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import Query, QueryFormColumn, CurrencyFormat
+from supersetapiplus.charts.queries import CurrencyFormat, Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.table import TableOptionBase
-from supersetapiplus.charts.types import ChartType, MetricsLayoutEnum, MetricType, OrderType, NumberFormatType, \
-    DateFormatType
+from supersetapiplus.charts.types import ChartType, DateFormatType, MetricsLayoutEnum, MetricType, NumberFormatType, OrderType
 from supersetapiplus.typing import SerializableOptional
 
 
@@ -18,10 +16,10 @@ from supersetapiplus.typing import SerializableOptional
 class PivotTableV2Option(TableOptionBase):
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
 
-    groupby: SerializableOptional[List[OrderByTyping]] = None
+    groupby: SerializableOptional[list[OrderByTyping]] = None
 
-    groupbyColumns: List[QueryFormColumn] = object_field(default_factory=list)
-    groupbyRows: List[QueryFormColumn] = object_field(default_factory=list)
+    groupbyColumns: list[QueryFormColumn] = object_field(default_factory=list)
+    groupbyRows: list[QueryFormColumn] = object_field(default_factory=list)
 
     metricsLayout: MetricsLayoutEnum = field(default_factory=lambda: MetricsLayoutEnum.COLUMNS)
     combineMetric: bool = False,
@@ -72,7 +70,7 @@ class PivotTableV2QueryObject(Query):
 
 @dataclass
 class PivotTableV2QueryContext(QueryContext):
-    queries: List[PivotTableV2QueryObject] = object_field(cls=PivotTableV2QueryObject, default_factory=list)
+    queries: list[PivotTableV2QueryObject] = object_field(cls=PivotTableV2QueryObject, default_factory=list)
     form_data: PivotTableV2FormData = object_field(cls=PivotTableV2FormData, default_factory=PivotTableV2FormData)
 
     def _default_query_object_class(self) -> type[Query]:

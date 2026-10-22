@@ -1,8 +1,7 @@
 """Dashboards."""
 from dataclasses import dataclass, field
-from typing import List, Type, Optional
 
-from supersetapiplus.base.base import SerializableModel, ApiModelFactories
+from supersetapiplus.base.base import ApiModelFactories, SerializableModel
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.dashboards.itemposition import ItemPosition
 from supersetapiplus.dashboards.metadata import Metadata
@@ -28,12 +27,13 @@ class Dashboard(SerializableModel):
     dashboard_title: str = ''
 
     published: SerializableOptional[bool] = field(default=None)
-    id: Optional[int] = field(default=None)
+    id: int | None = field(default=None)
     css: SerializableOptional[str] = field(default=None)
     slug: SerializableOptional[str] = field(default=None)
 
     json_metadata: Metadata = object_field(cls=Metadata, default_factory=Metadata)
-    position_json: SerializableOptional(Metadataposition) = object_field(cls=Metadataposition, default_factory=Metadataposition)
+    position_json: SerializableOptional(Metadataposition) = object_field(cls=Metadataposition,
+                                                                         default_factory=Metadataposition)
     # charts: List[Chart] = field(default_factory=Chart)
 
     def __post_init__(self):
@@ -58,10 +58,12 @@ class Dashboard(SerializableModel):
     def position(self):
         return self.position_json
 
-    def add_chart(self, chart, title: str, parent: ItemPosition = None, height: int = 50, width: int = 4, relocate:bool = True):
+    def add_chart(self, chart, title: str, parent: ItemPosition = None, height: int = 50, width: int = 4,
+                  relocate: bool = True):
         chart.add_dashboard(self)
         if not self.id:
-            raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the client.dashboards.add([this-dashboard]) method.')
+            raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the '
+                                           'client.dashboards.add([this-dashboard]) method.')
 
         if not chart.id:
             self._factory.client.charts.add(chart)
@@ -97,7 +99,7 @@ class Dashboard(SerializableModel):
         colors.update(value)
         self.colors = colors
 
-    def get_charts(self) -> List[int]:
+    def get_charts(self) -> list[int]:
         """Get chart objects"""
         #http://localhost:8088/api/v1/dashboard/21/charts
         charts = []
@@ -116,5 +118,5 @@ class Dashboard(SerializableModel):
 class Dashboards(ApiModelFactories):
     endpoint = "dashboard/"
 
-    def _default_object_class(self) -> Type[SerializableModel]:
+    def _default_object_class(self) -> type[SerializableModel]:
         return Dashboard

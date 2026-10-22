@@ -1,7 +1,6 @@
 import logging
 import time
 from datetime import timedelta
-from typing import Optional
 
 import requests
 from bs4 import BeautifulSoup
@@ -12,7 +11,7 @@ from requests.exceptions import (
 from requests_cache import CachedSession
 from urllib3 import Retry
 
-from supersetapiplus.exceptions import ComplexBadRequestError, BadRequestError
+from supersetapiplus.exceptions import BadRequestError, ComplexBadRequestError
 from supersetapiplus.utils.sensitive import mask_body, mask_headers, mask_request_kwargs
 
 logger = logging.getLogger(__name__)
@@ -135,7 +134,7 @@ class RequestHandler:
         cls,
         url: str,
         method: str = "GET",
-        session: Optional[requests.Session] = None,
+        session: requests.Session | None = None,
         **kwargs,
     ) -> requests.Response:
         """
@@ -343,7 +342,7 @@ class RequestHandler:
         """
         try:
             # Abre o arquivo no modo de leitura
-            with open(file_path, "r", encoding="utf-8") as file:
+            with open(file_path, encoding="utf-8") as file:
                 content = file.read()
 
             # Verifica se o conteúdo do arquivo não está vazio

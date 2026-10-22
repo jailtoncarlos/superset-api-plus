@@ -1,12 +1,10 @@
 import logging
 from dataclasses import dataclass, field
-from typing import Union, Literal, get_args, List, Optional
+from typing import Literal, get_args
 
 from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.fields import default_string, object_field
-from supersetapiplus.charts.types import FilterExpressionType, SqlMapType, \
-    GenericDataType, MetricType, \
-    ColumnType
+from supersetapiplus.charts.types import ColumnType, FilterExpressionType, GenericDataType, MetricType, SqlMapType
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional
 
@@ -16,7 +14,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AdhocMetricColumn(SerializableModel):
     column_name: str = default_string()
-    id: Optional[int] = field(default=None)
+    id: int | None = field(default=None)
     verbose_name: str = field(default=None)
     description: str = field(default=None)
     expression: str = field(default=None)
@@ -75,7 +73,7 @@ class AdhocMetric(SerializableModel):
             self.column: SerializableOptional[AdhocMetricColumn] = None
 
 
-Metric = Union[AdhocMetric, Literal['count', 'sum', 'avg', 'min', 'max', 'count distinct']]
+Metric = AdhocMetric | Literal['count', 'sum', 'avg', 'min', 'max', 'count distinct']
 OrderByTyping = tuple[Metric, bool]
 
 
@@ -143,7 +141,7 @@ class MetricHelper:
 
 @dataclass
 class MetricsListMixin:
-    metrics: List[Metric] = object_field(cls=AdhocMetric, default_factory=list)
+    metrics: list[Metric] = object_field(cls=AdhocMetric, default_factory=list)
 
     def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         MetricHelper.check_metric(metric)

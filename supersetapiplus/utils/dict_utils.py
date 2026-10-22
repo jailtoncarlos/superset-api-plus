@@ -18,7 +18,7 @@ def detailed_dict_diff(d1, d2):
     added = d1_keys - d2_keys
     removed = d2_keys - d1_keys
     modified = {o: (d1[o], d2[o]) for o in intersect_keys if d1[o] != d2[o]}
-    same = set(o for o in intersect_keys if d1[o] == d2[o])
+    same = {o for o in intersect_keys if d1[o] == d2[o]}
     return added, removed, modified, same
 
 

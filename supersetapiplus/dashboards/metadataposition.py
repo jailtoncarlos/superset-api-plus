@@ -1,10 +1,14 @@
 from dataclasses import dataclass
 
 from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.dashboards.itemposition import TabItemPosition, MarkdownItemPosition, ItemPosition, \
-    ChartItemPosition, ColumnItemPosition
-from supersetapiplus.dashboards.nodeposisition import MarkdownNodePosition, TabNodePosition, NodePosition, \
-    ChartNodePosition
+from supersetapiplus.dashboards.itemposition import (
+    ChartItemPosition,
+    ColumnItemPosition,
+    ItemPosition,
+    MarkdownItemPosition,
+    TabItemPosition,
+)
+from supersetapiplus.dashboards.nodeposisition import ChartNodePosition, MarkdownNodePosition, NodePosition, TabNodePosition
 from supersetapiplus.dashboards.treenodeposisition import TreeNodePosition
 
 
@@ -42,17 +46,20 @@ class Metadataposition(SerializableModel):
             parent = self.tree.grid
         return self.tree.insert(TabItemPosition(text=title), parent)
 
-    def add_column(self, parent: ItemPosition = None, width: int = 4, background:str = 'BACKGROUND_TRANSPARENT', relocate:bool = True) -> MarkdownNodePosition:
+    def add_column(self, parent: ItemPosition = None, width: int = 4, background: str = 'BACKGROUND_TRANSPARENT',
+                   relocate: bool = True) -> MarkdownNodePosition:
         if not parent:
             parent = self.tree.grid
         return self.tree.insert(ColumnItemPosition(width=width, background=background, relocate=relocate), parent)
 
-    def add_markdown(self, markdown: str, parent: ItemPosition = None, height: int = 50, width: int = 4, relocate:bool = True) -> MarkdownNodePosition:
+    def add_markdown(self, markdown: str, parent: ItemPosition = None, height: int = 50, width: int = 4,
+                     relocate: bool = True) -> MarkdownNodePosition:
         if not parent:
             parent = self.tree.grid
         return self.tree.insert(MarkdownItemPosition(code=markdown, height=height, width=width, relocate=relocate), parent)
 
-    def add_chart(self, chart, title:str, parent: ItemPosition = None, height: int = 50, width: int = 4, relocate:bool = True) -> ChartNodePosition:
+    def add_chart(self, chart, title: str, parent: ItemPosition = None, height: int = 50, width: int = 4,
+                  relocate: bool = True) -> ChartNodePosition:
         if not parent:
             parent = self.tree.grid
         return self.tree.insert(ChartItemPosition(chartId=chart.id,

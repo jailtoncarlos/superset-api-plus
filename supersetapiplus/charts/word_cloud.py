@@ -1,7 +1,6 @@
 # supersetapiplus/charts/word_cloud.py
 
 from dataclasses import dataclass, field
-from typing import List, Type
 
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
@@ -43,14 +42,14 @@ class WordCloudQueryContext(QueryContext):
       - queries: list of WordCloudQueryObject
       - form_data: WordCloudFormData
     """
-    queries: List[WordCloudQueryObject] = object_field(
+    queries: list[WordCloudQueryObject] = object_field(
         cls=WordCloudQueryObject, default_factory=list
     )
     form_data: WordCloudFormData = object_field(
         cls=WordCloudFormData, default_factory=WordCloudFormData
     )
 
-    def _default_query_object_class(self) -> Type[Query]:
+    def _default_query_object_class(self) -> type[Query]:
         return WordCloudQueryObject
 
 
@@ -70,5 +69,5 @@ class WordCloudChart(Chart):
     )
 
     @classmethod
-    def _default_option_class(cls) -> Type[Option]:
+    def _default_option_class(cls) -> type[Option]:
         return WordCloudOption

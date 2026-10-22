@@ -4,22 +4,20 @@ import json
 import logging
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Type
 
 from typing_extensions import Self
 
-from supersetapiplus.base.base import SerializableModel, ApiModelFactories, ObjectDecoder
+from supersetapiplus.base.base import ApiModelFactories, ObjectDecoder, SerializableModel
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.base.types import DatasourceType
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import AdhocMetricColumn
-from supersetapiplus.charts.query_context import QueryContext, DataSource
-from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, FilterExpressionType, \
-    MetricType
+from supersetapiplus.charts.query_context import DataSource, QueryContext
+from supersetapiplus.charts.types import ChartType, FilterClausesType, FilterExpressionType, FilterOperatorType, MetricType
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.itemposition import ItemPosition
-from supersetapiplus.exceptions import NotFound, ChartValidationError, ValidationError, DashboardValidationError
+from supersetapiplus.exceptions import ChartValidationError, DashboardValidationError, NotFound, ValidationError
 from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.utils.dict_utils import detailed_dict_diff
 
@@ -54,7 +52,7 @@ class Chart(SerializableModel):
     datasource_type: SerializableOptional[DatasourceType] = field(default=None)
     cache_timeout: int = field(default=None)
 
-    dashboards: SerializableNotToJson[List[Dashboard]] = object_field(cls=Dashboard, default_factory=list)
+    dashboards: SerializableNotToJson[list[Dashboard]] = object_field(cls=Dashboard, default_factory=list)
     owners: SerializableNotToJson[list[dict]] = field(default=None)
 
     tags: SerializableNotToJson[list] = field(default=None)
@@ -81,8 +79,8 @@ class Chart(SerializableModel):
         if self.id is None:
             if self.datasource_id is None:
                 raise ChartValidationError("""
-                    When id is None, argument datasource id becomes mandatory. 
-                    We recommend using the [client_superset].datasets.get_id_by_name('name_dataset') method 
+                    When id is None, argument datasource id becomes mandatory.
+                    We recommend using the [client_superset].datasets.get_id_by_name('name_dataset') method
                     to get the dataset id by name.
                 """)
 
@@ -248,7 +246,7 @@ class Chart(SerializableModel):
 class Charts(ApiModelFactories):
     endpoint = "chart/"
 
-    def _default_object_class(self) -> Type[SerializableModel]:
+    def _default_object_class(self) -> type[SerializableModel]:
         return Chart
 
     def get_chart_data(self, slice_id: str, dashboard_id: int) -> dict:

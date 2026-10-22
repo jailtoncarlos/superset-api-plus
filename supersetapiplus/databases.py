@@ -1,9 +1,8 @@
 """Databases."""
 from dataclasses import dataclass, field
-from typing import Optional, Type
 
+from supersetapiplus.base.base import ApiModelFactories, SerializableModel
 from supersetapiplus.base.fields import default_string, json_field
-from supersetapiplus.base.base import SerializableModel, ApiModelFactories
 
 
 @dataclass
@@ -14,7 +13,7 @@ class Database(SerializableModel):
     PRESERVE_EXTRA_FIELDS = False
 
     database_name: str
-    id: Optional[int] = field(default=None)
+    id: int | None = field(default=None)
     allow_ctas: bool = True
     allow_cvas: bool = True
     allow_dml: bool = True
@@ -61,5 +60,5 @@ class Databases(ApiModelFactories):
         response = self.client.post(url, json=o)
         return response.json().get("message") == "OK"
 
-    def _default_object_class(self) -> Type[SerializableModel]:
+    def _default_object_class(self) -> type[SerializableModel]:
         return Database

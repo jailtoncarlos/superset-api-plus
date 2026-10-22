@@ -2,7 +2,7 @@
 import dataclasses
 import importlib
 import logging
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from enum import Enum
 
 from typing_extensions import Self
@@ -21,25 +21,17 @@ except ImportError:  # pragma: no cover
 import json
 import os.path
 from pathlib import Path
-from typing import List, Union, Dict, get_origin, Any, Optional
+from typing import Any, get_origin
 
 import yaml
 
-from supersetapiplus.exceptions import MultipleFound, NotFound, UnsupportedTypeError, \
-    LoadJsonError
 from supersetapiplus.base.parse import ParseMixin
+from supersetapiplus.exceptions import LoadJsonError, MultipleFound, NotFound, UnsupportedTypeError
 from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 logger = logging.getLogger(__name__)
 
-FieldValue = Union[
-    str,
-    int,
-    bool,
-    None,
-    Dict[str, Any],
-    List[Any],
-]
+FieldValue = str | int | bool | None | dict[str, Any] | list[Any]
 
 
 class ObjectDecoder(json.JSONEncoder):
@@ -92,7 +84,7 @@ class SerializableModel(ParseMixin, ABC):
 
     JSON_FIELDS = []
 
-    _extra_fields: Dict = {}
+    _extra_fields: dict = {}
 
     # Reemite em to_dict os campos não modelados recebidos em from_json. Necessário para
     # estruturas livres do Superset (params, query_context, json_metadata), em que a
@@ -136,7 +128,7 @@ class SerializableModel(ParseMixin, ABC):
             # Define seu valor padrão
             if not isinstance(field.default, dataclasses._MISSING_TYPE) \
                     and getattr(self, field.name) is None \
-                    and not get_origin(field.type) is SerializableOptional:
+                    and get_origin(field.type) is not SerializableOptional:
                 setattr(self, field.name, field.default)
 
     @property
@@ -219,7 +211,7 @@ class SerializableModel(ParseMixin, ABC):
         _fields = set()
 
         # Adiciona campos definidos diretamente na metaclasse
-        for n, f in cls.__dataclass_fields__.items():
+        for f in cls.__dataclass_fields__.values():
             if isinstance(f, dataclasses.Field):
                 _fields.add(f)
 
@@ -721,7 +713,7 @@ class SerializableModel(ParseMixin, ABC):
         """
         return self._factory.client.join_urls(self._factory.base_url, self.id)
 
-    def export(self, path: Union[Path, str]) -> None:
+    def export(self, path: Path | str) -> None:
         """
         Exporta os dados do objeto atual para um arquivo no caminho especificado.
 
@@ -826,7 +818,7 @@ class ApiModelFactories(ABC):
         """
         ...
 
-    def get_base_object(self, data: Optional[Dict] = None):
+    def get_base_object(self, data: dict | None = None):
         """
         Returns the class to be instantiated based on the 'viz_type' field in the provided data.
 
@@ -962,7 +954,7 @@ class ApiModelFactories(ABC):
 
         return obj
 
-    def find(self, filter: QueryStringFilter, columns: List[str] = [], page_size: int = 100, page: int = 0):
+    def find(self, filter: QueryStringFilter, columns: list[str] = [], page_size: int = 100, page: int = 0):
         """
         Busca objetos com base em filtros e paginação.
 
@@ -999,7 +991,7 @@ class ApiModelFactories(ABC):
     def find_one(
             self,
             filter: QueryStringFilter,
-            columns: List[str] = [],
+            columns: list[str] = [],
             full: bool = False,
     ):
         """
@@ -1050,7 +1042,7 @@ class ApiModelFactories(ABC):
         obj._factory = self
         return obj.id
 
-    def export(self, ids: List[int], path: Union[Path, str]) -> None:
+    def export(self, ids: list[int], path: Path | str) -> None:
         """
         Exporta objetos para um arquivo em formato compatível (ZIP, JSON ou YAML).
 

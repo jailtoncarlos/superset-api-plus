@@ -1,12 +1,9 @@
-from typing import Dict
 
 from anytree import RenderTree, search
 from typing_extensions import Self
 
-from supersetapiplus.dashboards.itemposition import ItemPosition, RootItemPosition, \
-    GridItemPosition
-from supersetapiplus.dashboards.nodeposisition import NodePosition, \
-    NodePositionParse, GridNodePosition, RootNodePosition
+from supersetapiplus.dashboards.itemposition import GridItemPosition, ItemPosition, RootItemPosition
+from supersetapiplus.dashboards.nodeposisition import GridNodePosition, NodePosition, NodePositionParse, RootNodePosition
 
 
 class TreeNodePosition:
@@ -30,10 +27,10 @@ class TreeNodePosition:
         return node
 
     def print(self):
-        for pre, fill, node in RenderTree(self.root):
+        for pre, _fill, node in RenderTree(self.root):
             print(f"{pre}{node.item}")  # noqa: T201 - método público cuja função é imprimir a árvore
 
-    def __to_dict(self, node: NodePosition, values: Dict):
+    def __to_dict(self, node: NodePosition, values: dict):
         for child_id in node.item.children:
             node_child = self.find_by_id(child_id)
             values[child_id] = node_child.item.to_dict()

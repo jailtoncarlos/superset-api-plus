@@ -1,7 +1,6 @@
 # supersetapiplus/charts/big_number_total.py
 
 from dataclasses import dataclass, field
-from typing import List, Type
 
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
@@ -43,14 +42,14 @@ class BigNumberTotalQueryContext(QueryContext):
       - queries: list of BigNumberTotalQueryObject
       - form_data: BigNumberTotalFormData
     """
-    queries: List[BigNumberTotalQueryObject] = object_field(
+    queries: list[BigNumberTotalQueryObject] = object_field(
         cls=BigNumberTotalQueryObject, default_factory=list
     )
     form_data: BigNumberTotalFormData = object_field(
         cls=BigNumberTotalFormData, default_factory=BigNumberTotalFormData
     )
 
-    def _default_query_object_class(self) -> Type[Query]:
+    def _default_query_object_class(self) -> type[Query]:
         return BigNumberTotalQueryObject
 
 
@@ -70,5 +69,5 @@ class BigNumberTotalChart(Chart):
     )
 
     @classmethod
-    def _default_option_class(cls) -> Type[Option]:
+    def _default_option_class(cls) -> type[Option]:
         return BigNumberTotalOption

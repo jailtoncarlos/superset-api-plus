@@ -14,7 +14,6 @@ import getpass
 import json
 import logging
 from functools import cached_property
-from typing import List, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -97,7 +96,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             self._init_session()
         return self._session
 
-    def get_headers(self, headers: Optional[dict] = None):
+    def get_headers(self, headers: dict | None = None):
         if headers is None:
             headers = {}
 
@@ -246,7 +245,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             raise QueryLimitReached("Display limit reached")
         return result["columns"], result["data"]
 
-    def find(self, url: str, filter: QueryStringFilter, columns: List[str] = [], page_size: int = 100, page: int = 0):
+    def find(self, url: str, filter: QueryStringFilter, columns: list[str] = [], page_size: int = 100, page: int = 0):
         """
         Performs a paginated API search with optional filters.
 
