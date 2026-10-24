@@ -23,6 +23,9 @@ related:
 
 Based on [research/2026-10-24-superset-client-landscape.md](../research/2026-10-24-superset-client-landscape.md).
 Paths of this repository refer to commit `10f4159`; external paths to the commits listed in the research.
+Superset `mcp_service` paths are from master `1721cbe`: several of its files (e.g. `manage_native_filters.py`,
+`layout_validation.py`) do not exist at tag 6.1.0, so they are references for rules to check against the
+6.1.0 frontend and backend, not 6.1.0 sources.
 
 ## TL;DR
 
@@ -45,8 +48,8 @@ prompted the check.
 |---|---|---|---|---|
 | D1 | **License is inconsistent.** `LICENSE` is Apache-2.0 (inherited from opus-42), while `pyproject.toml:10`, `setup.py:27` and the README badge/section (`README.md:3,225`) say MPL-2.0 and `setup.cfg:13` says MIT. There is no `NOTICE` or README credit to opus-42. | files listed | lineage check against `opus-42/superset-api-client` | Maintainer decision: pick one license, align all four places and credit the upstream project as Apache-2.0 requires for the derived parts. |
 | D2 | **`ComplexBadRequestError` is not a `BadRequestError`.** It subclasses `HTTPError` (`supersetapiplus/exceptions.py:73`), and `raise_for_status` checks a body `errors` list before the status code (`supersetapiplus/utils/request_handler.py:171-175`). A 401/403/404/422 whose body carries `errors` (the SIP-40 shape Superset uses for security and data errors) is neither `UnauthorizedError`/`ForbiddenError`/... nor catchable as `BadRequestError`, contrary to `AGENTS.md` ("all subclasses of `BadRequestError`"); a 401 in that shape would also skip the JWT renewal in `client.py:143`. | lines cited | bintocher error flattening (`client.py:75-110`) | Make the status-specific class win and carry `errors` (or make `ComplexBadRequestError` a `BadRequestError` subclass); integration test with a 403 from `/api/v1/chart/data` for a user without access. |
-| D3 | **A time native filter cannot be created without a dataset.** `filter_config` always calls `dataset_target(dataset, column)`, which raises `TypeError` when `dataset` is `None` (`supersetapiplus/dashboards/native_filters.py:83,106`). Superset saves `filter_time` with `targets: [{}]`. | lines cited | Superset `mcp_service/dashboard/tool/manage_native_filters.py:371-377` | Accept `dataset=None` for `filter_time` and emit `[{}]`; integration test that saves and reloads the dashboard. |
-| D4 | **Native filter scope is root-only.** `filter_config` always writes `root_scope()` (`native_filters.py:58,109`); there is no way to restrict a filter to some charts. | lines cited | Superset `manage_native_filters.py:264-283` | `scope_chart_ids=[...]` (and/or `excluded=[...]`) mapped to `{"rootPath": ["ROOT_ID"], "excluded": [...]}`; `update_native_filter_scopes` already derives `chartsInScope` from it. |
+| D3 | **A time native filter cannot be created without a dataset.** `filter_config` always calls `dataset_target(dataset, column)`, which raises `TypeError` when `dataset` is `None` (`supersetapiplus/dashboards/native_filters.py:83,106`). Superset saves `filter_time` with `targets: [{}]`. | lines cited | Superset 6.1.0 frontend `FiltersConfigModal/utils.ts` (`createHandleSave`, `targets: [target]` with an empty target for time filters); Superset master `1721cbe` `mcp_service/dashboard/tool/manage_native_filters.py:371-377` | Accept `dataset=None` for `filter_time` and emit `[{}]`; integration test that saves and reloads the dashboard. |
+| D4 | **Native filter scope is root-only.** `filter_config` always writes `root_scope()` (`native_filters.py:58,109`); there is no way to restrict a filter to some charts. | lines cited | Superset master `1721cbe` `manage_native_filters.py:264-283` | `scope_chart_ids=[...]` (and/or `excluded=[...]`) mapped to `{"rootPath": ["ROOT_ID"], "excluded": [...]}`; `update_native_filter_scopes` already derives `chartsInScope` from it. |
 | D5 | **Exported YAML is parsed with `yaml.FullLoader`** (`supersetapiplus/base/base.py:1110`). | line cited | Preset safe-loading practice | Use `yaml.safe_load`; Superset exports plain YAML. |
 
 ## 2. Improvement opportunities
@@ -61,8 +64,8 @@ rule or technique can be checked (code from Preset projects is not reusable, see
 | H1 | Layout validation: parent/child **depth** rules (ROW only up to depth 4, TAB children ROW/COLUMN/TABS up to depth 3), cycle detection, also for layouts loaded from Superset | `supersetapiplus/dashboards/layout.py` (`_ALLOWED_CHILDREN`, `_row_for`) | Superset `dashboard/layout_validation.py:34-90,203-323` (port of frontend `isValidChild.ts`) |
 | H2 | Size limits: width 1–12 per component, row height 5–100 units; today only the row budget is checked (`layout.py:251-262`) and `height` is not validated | `layout.py:230-249` | Superset `dashboard/constants.py:27-30` |
 | H3 | Renew the CSRF token once on "CSRF token missing/expired" (400) and retry the request; today it is fetched once (`security/csrf.py`, `client.py:117,128`) | `client.py`, `security/csrf.py` | bintocher `client.py:160-172,322-337` |
-| H4 | Default value of a select filter turned into `defaultDataMask` (`extraFormData.filters` with `IN`), with the frontend's constraints | `dashboards/native_filters.py` | Superset `manage_native_filters.py:120-170` (`getSelectExtraFormData`) |
-| H5 | `filter_range` requires a numeric target column; warn when a filter column is missing from a chart's dataset in scope | `dashboards/metadata.py:71` | Superset `manage_native_filters.py:449`; bintocher `tools/dashboards.py:120-138` |
+| H4 | Default value of a select filter turned into `defaultDataMask` (`extraFormData.filters` with `IN`), with the frontend's constraints | `dashboards/native_filters.py` | Superset master `1721cbe` `manage_native_filters.py:120-170`, mirroring the frontend's `getSelectExtraFormData` |
+| H5 | `filter_range` requires a numeric target column; warn when a filter column is missing from a chart's dataset in scope | `dashboards/metadata.py:71` | Superset master `1721cbe` `manage_native_filters.py:449`; bintocher `tools/dashboards.py:120-138` |
 
 ### Medium
 
