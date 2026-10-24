@@ -295,6 +295,7 @@ class Chart(SerializableModel):
 
 class Charts(ApiModelFactories):
     endpoint = "chart/"
+    TYPE_COLUMN = "viz_type"
 
     def _default_object_class(self) -> type[SerializableModel]:
         return Chart

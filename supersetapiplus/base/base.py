@@ -824,6 +824,8 @@ class ApiModelFactories(ABC):
     """
 
     endpoint = ""
+    # Column whose value selects the model class of a listing item (None: a single class).
+    TYPE_COLUMN: str | None = None
     _INFO_QUERY = {"keys": ["add_columns", "edit_columns"]}
 
     def __init__(self, client):
@@ -993,6 +995,10 @@ class ApiModelFactories(ABC):
         Returns:
             List[SerializableModel]: objects found (UnsupportedObject for types without a model).
         """
+        # The class of each item comes from its type column (viz_type for charts): a listing restricted to
+        # other columns would leave nothing to choose the class from.
+        if columns and self.TYPE_COLUMN and self.TYPE_COLUMN not in columns:
+            columns = [*columns, self.TYPE_COLUMN]
         response = self.client.find(self.base_url, filter, columns, page_size, page, order_column, order_direction)
         data_result = response.json()
 
