@@ -47,6 +47,13 @@ reorganized, tested package.
 * `Chart.get_class(viz_type, module)` resolves through an explicit registry (`Chart.for_viz_type`), importing
   `supersetapiplus.charts.<viz_type>` on demand; the module no longer needs to be imported first.
 
+* Packaging: `pyproject.toml` is the only source of dependencies, locked in `uv.lock` (`uv sync --locked
+  --all-extras`); `setup.py`, `setup.cfg`, `requirements.txt`, `requirements/` and `pytest.ini` were removed.
+  Runtime floors lowered to the lowest versions the suite passes with (`requests>=2.31`, `pyyaml>=6.0.1`,
+  `beautifulsoup4>=4.11`...), and `urllib3`, imported directly, is now declared. Installing under the
+  Airflow 3.3.2 constraints changes none of their pinned versions.
+* Tests no longer hide `DeprecationWarning` (pytest configuration in `pyproject.toml`).
+
 ### Deprecated
 
 Misspelled public names were renamed. The old names keep working as aliases and emit `DeprecationWarning`;

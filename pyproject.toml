@@ -14,14 +14,22 @@ authors = [
 ]
 requires-python = ">=3.10"
 keywords = ["superset", "dashboard", "automation", "api", "client"]
+# Floors: the lowest versions the test suite passes with (uv sync --resolution lowest-direct, Python 3.10
+# and 3.14), at or below the constraints of the Airflow image that embeds the library.
 dependencies = [
-  "requests>=2.34.2",
-  "pyyaml>=6.0.3",
-  "anytree>=2.13.0",
-  "shortuuid>=1.0.13",
-  "typing_extensions>=4.16.0",
-  "beautifulsoup4>=4.15.0"
+  "requests>=2.31.0",
+  "urllib3>=1.26.0; python_version < '3.12'",
+  "urllib3>=2.0.0; python_version >= '3.12'",
+  "pyyaml>=6.0.1; python_version < '3.14'",
+  "pyyaml>=6.0.3; python_version >= '3.14'",
+  "anytree>=2.8.0",
+  "shortuuid>=1.0.1",
+  "typing_extensions>=4.6.0",
+  "beautifulsoup4>=4.11.0"
 ]
+
+[tool.setuptools.packages.find]
+include = ["supersetapiplus*"]
 
 [project.optional-dependencies]
 dev = [
@@ -113,9 +121,6 @@ extend-immutable-calls = ["supersetapiplus.charts.metric.OrderBy"]
 log_cli = true
 log_cli_level = "INFO"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-filterwarnings = [
-    "ignore::DeprecationWarning"
-]
 
 [tool.codespell]
 # Subsets generated from Superset (data, not project text).

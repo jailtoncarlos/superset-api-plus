@@ -1,4 +1,2 @@
-include README.md
-recursive-include tabnet_framework/tests *.py
-include tabnet_framework/settings.py
+include README.md LICENSE NOTICE CHANGELOG.md
 recursive-exclude * __pycache__ *.py[co]

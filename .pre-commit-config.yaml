@@ -60,8 +60,9 @@ repos:
       - id: superset-conformance
         # Request payloads and routes vs. the official OpenAPI specification (versioned subset in tests/fixtures).
         name: Superset conformance (OpenAPI payloads and routes)
-        # Runs from the source tree (without installing the package); the runtime dependencies below
-        # repeat the pyproject ones until the migration to uv (T14), when the hook switches to `uv run`.
+        # Runs from the source tree (without installing the package); the runtime dependencies below repeat
+        # pyproject.toml because the CI lint job runs pre-commit without uv. Switching these hooks to
+        # `uv run --locked` needs the CI change of issue #317 (pending authorization).
         language: python
         additional_dependencies:
           - "requests>=2.32"

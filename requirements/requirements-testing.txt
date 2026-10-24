@@ -1,7 +1,0 @@
-# Tests
-## Testing framework for Python, more powerful and flexible than unittest.
-pytest>=9.1.1
-## Generates code coverage reports for tests run with pytest
-pytest-cov>=7.1.0
-## HTTP request mocks used by the fixtures (tests/conftest.py)
-requests-mock>=1.12.1

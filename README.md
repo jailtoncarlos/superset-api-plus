@@ -168,17 +168,27 @@ Old module paths keep working with a `DeprecationWarning` (see the [CHANGELOG](C
 
 ## Development Setup
 
-To install development and testing dependencies using `pyproject.toml` extras:
+Dependencies are declared only in `pyproject.toml` (runtime `dependencies` and the `dev`, `test` and `graph`
+extras) and locked in `uv.lock`. With [uv](https://docs.astral.sh/uv/):
 
 ```bash
-# Install development dependencies (linters, tools, debuggers)
-pip install .[dev]
+uv sync --locked --all-extras        # creates .venv from the lock (Python from .python-version: 3.10)
+uv run pytest tests/unit             # unit tests
+uv lock --upgrade                    # refresh the lock to the newest allowed versions
+uv build                             # sdist and wheel in dist/
+```
 
-# Install testing dependencies
-pip install .[test]
+Without uv, `pip install -e ".[dev,test]"` installs the same extras. If uv reports odd failures (a package
+that does not import although its version is right), clear its cache with `uv cache clean`.
 
-# Or install both at once
-pip install .[dev,test]
+**Dependency floors.** The library runs inside an Airflow image installed with the official Airflow
+constraints, so the runtime floors are the lowest versions the suite passes with, not the newest ones.
+Check both ends after changing a dependency:
+
+```bash
+uv sync --resolution lowest-direct --all-extras && uv run pytest tests/unit   # floors
+uv sync --locked --all-extras && uv run pytest tests/unit                     # locked (newest)
+uv pip install --constraint <airflow constraints URL> .                       # no conflict expected
 ```
 
 ### Pre-commit hooks
