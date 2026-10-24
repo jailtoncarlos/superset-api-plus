@@ -92,23 +92,15 @@ class Dashboard(SerializableModel):
         return super().to_dict(columns, convert_to_json)
 
     def add_chart(self, chart, title: str, parent=None, height: int = 50, width: int = 4, id: str | None = None):
-        """
-        Places the chart in the layout and associates it with this dashboard in Superset.
+        """Places the chart in the layout and associates it with this dashboard in Superset (see DashboardCharts).
 
-        The dashboard must be saved (have an id). A chart without an id is created first. The association
-        is made by a PUT on the chart (Charts.add_to_dashboard); the layout and json_metadata are only
-        stored on the dashboard's next save().
+        The dashboard must be saved (have an id); a chart without an id is created first.
         """
         if not self.id:
             raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the '
                                            'client.dashboards.add([this-dashboard]) method.')
-        charts = self._repository().client.charts
-        if not chart.id:
-            charts.add(chart)
-
-        self.metadata.add_chart(chart)
-        self.position.add_chart(chart, title=title, parent=parent, height=height, width=width, id=id)
-        charts.add_to_dashboard(chart, self.id)
+        self._repository().client.dashboard_charts.add_chart(self, chart, title, parent, height=height, width=width,
+                                                             id=id)
 
     @property
     def colors(self) -> dict:
@@ -168,17 +160,8 @@ class Dashboards(ApiModelFactories):
         return response.json()["result"]["id"]
 
     def attach_charts(self, dashboard: Dashboard) -> list[int]:
-        """
-        Associates with the dashboard, in Superset, every chart present in its layout (position_json).
-
-        Call after the dashboard has an id; charts already associated are not rewritten.
-        """
-        if not dashboard.id:
-            raise DashboardValidationError('Save the dashboard before attaching charts (dashboard.id is empty).')
-        chart_ids = dashboard.position.chart_ids()
-        for chart_id in chart_ids:
-            self.client.charts.add_to_dashboard(chart_id, dashboard.id)
-        return chart_ids
+        """Associates with the dashboard every chart present in its layout (see DashboardCharts)."""
+        return self.client.dashboard_charts.attach_charts(dashboard)
 
     def _default_object_class(self) -> type[SerializableModel]:
         return Dashboard

@@ -30,6 +30,7 @@ from supersetapiplus.datasets import Datasets
 from supersetapiplus.exceptions import QueryLimitReached, UnauthorizedError
 from supersetapiplus.query_string import QueryStringFilter
 from supersetapiplus.saved_queries import SavedQueries
+from supersetapiplus.services.dashboard_charts import DashboardCharts
 from supersetapiplus.transport.http import RequestHandler
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,8 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self.datasets = self.datasets_cls(self)
         self.databases = self.databases_cls(self)
         self.saved_queries = self.saved_queries_cls(self)
+        # Operations across resources (charts and dashboards together).
+        self.dashboard_charts = DashboardCharts(self)
 
     @property
     def base_url(self):

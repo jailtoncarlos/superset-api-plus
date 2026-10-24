@@ -19,7 +19,7 @@ from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.dashboards.dashboards import Dashboard
-from supersetapiplus.exceptions import ChartValidationError, DashboardValidationError, NotFound, ValidationError
+from supersetapiplus.exceptions import ChartValidationError, NotFound, ValidationError
 from supersetapiplus.resources.repository import ApiModelFactories
 
 logger = logging.getLogger(__name__)
@@ -327,45 +327,9 @@ class Charts(ApiModelFactories):
         return [d["id"] for d in result.get("dashboards") or []]
 
     def add_to_dashboard(self, chart: Chart | int, dashboard_id: int) -> list[int]:
-        """
-        Associates the chart with the dashboard (PUT /chart/{pk} with only `dashboards`), keeping existing associations.
-
-        The association is by id on the chart: the `dashboards` field of ChartPutSchema replaces the list,
-        so the current ones are read first. Returns the stored list.
-        """
-        chart_id = chart if isinstance(chart, int) else chart.id
-        if not chart_id:
-            raise ChartValidationError('Save the chart before attaching it to a dashboard (chart.id is empty).')
-        current = self.dashboard_ids(chart_id)
-        if dashboard_id in current:
-            return current
-        updated = current + [dashboard_id]
-        self.client.put(self.client.join_urls(self.base_url, chart_id), json={"dashboards": updated})
-        return updated
+        """Associates the chart with the dashboard, keeping existing associations (see DashboardCharts)."""
+        return self.client.dashboard_charts.add_to_dashboard(chart, dashboard_id)
 
     def add_and_attach_to_dashboard(self, chart: Chart, title: str, parent=None) -> int:
-        """
-        Creates the chart and places it in the layout of the dashboard the source chart belongs to.
-
-        Args:
-            chart (Chart): chart to create (e.g. a clone of a chart already associated with a dashboard).
-            title (str): title shown on the dashboard (sliceNameOverride).
-            parent (NodePosition, optional): layout node to insert into.
-
-        Returns:
-            int: id of the created chart.
-
-        Raises:
-            DashboardValidationError: the source chart does not belong to any dashboard.
-        """
-        # Validate before creating: previously the chart was created and left orphaned when validation failed.
-        if not chart.dashboards:
-            raise DashboardValidationError(
-                message="Could not attach the chart: it does not belong to any dashboard.",
-                solution="Check that the given chart is associated with a dashboard before calling this method."
-            )
-        dashboard = self.client.dashboards.get(chart.dashboards[0].id)
-        new_id = self.add(chart)
-        dashboard.add_chart(chart, title, parent)
-        dashboard.save()
-        return new_id
+        """Creates the chart and places it in the dashboard of the source chart (see DashboardCharts)."""
+        return self.client.dashboard_charts.add_and_attach_to_dashboard(chart, title, parent)

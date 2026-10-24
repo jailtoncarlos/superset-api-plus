@@ -191,3 +191,14 @@ def test_copy_and_delete_many(client, add_chart, add_dashboard, cleanup):
     for pk in (dashboard.id, copy_id):
         with pytest.raises(ResourceNotFoundError):
             client.dashboards.get(pk)
+
+
+def test_dashboard_charts_service_associates_and_places(client, add_chart, add_dashboard):
+    chart, dashboard = add_chart(), add_dashboard()
+
+    client.dashboard_charts.add_chart(dashboard, chart, title="Via service", width=6)
+    dashboard.save()
+
+    stored = client.dashboards.get(dashboard.id)
+    assert stored.position_json.chart_ids() == [chart.id]
+    assert client.charts.dashboard_ids(chart.id) == [dashboard.id]
