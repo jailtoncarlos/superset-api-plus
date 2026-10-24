@@ -28,6 +28,7 @@ dev = [
   "ipdb>=0.13.13",
   "ipython>=8.39.0",
   "pre-commit>=4.6.2",
+  "import-linter>=2.1",
   "mypy==2.4.0",
   "ruff>=0.17.2",
   "tabulate>=0.10.0",
@@ -59,6 +60,33 @@ profile = "black"
 [tool.mypy]
 strict = true
 python_version = "3.10"
+
+# Layer contracts of the package (AGENTS.md); checked by the import-layers pre-commit hook (lint-imports).
+[tool.importlinter]
+root_package = "supersetapiplus"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Each layer imports only the layers below it"
+type = "layers"
+layers = [
+  "supersetapiplus.client",
+  "supersetapiplus.services",
+  "supersetapiplus.charts",
+  "supersetapiplus.dashboards",
+  "supersetapiplus.resources",
+  "supersetapiplus.auth",
+  "supersetapiplus.transport",
+  "supersetapiplus.core",
+]
+
+[[tool.importlinter.contracts]]
+name = "The model layer has no HTTP"
+type = "forbidden"
+source_modules = ["supersetapiplus.core"]
+forbidden_modules = ["requests", "supersetapiplus.transport", "supersetapiplus.auth", "supersetapiplus.client"]
+# exceptions.py (shared) subclasses requests.HTTPError: only direct imports are forbidden.
+allow_indirect_imports = true
 
 [tool.ruff]
 line-length = 127

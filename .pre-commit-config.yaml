@@ -48,6 +48,15 @@ repos:
         types:
           - python
         pass_filenames: true
+      - id: import-layers
+        # Layer contracts of the package ([tool.importlinter] in pyproject.toml): each layer imports only
+        # the layers below it, and the model layer (core) has no HTTP.
+        name: Import layers (import-linter)
+        language: python
+        additional_dependencies: ["import-linter>=2.1"]
+        entry: lint-imports
+        files: ^(supersetapiplus/|pyproject\.toml$)
+        pass_filenames: false
       - id: superset-conformance
         # Request payloads and routes vs. the official OpenAPI specification (versioned subset in tests/fixtures).
         name: Superset conformance (OpenAPI payloads and routes)

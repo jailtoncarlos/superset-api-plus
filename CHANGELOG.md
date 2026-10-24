@@ -4,6 +4,12 @@
 
 ### Changed
 
+* The package is organized in layers checked by `import-linter`: `core` (models, no HTTP), `transport`,
+  `auth`, `resources`, `dashboards`, `charts`, `services`, `client`. `supersetapiplus` exports the names
+  applications use (`SupersetClient`, `Chart`, `Dashboard`, `ChartRef`, `Dataset`, `Database`...); the
+  datasets, databases, saved queries and assets modules are implemented in `supersetapiplus.resources` and
+  keep their public paths. Charts and dashboards together are handled by `client.dashboard_charts`.
+
 * String enums (`ChartType`, `TimeGrain`, `FilterOperatorType`...) are `str` subclasses: a member equals and
   hashes as its value (`ChartType.PIE == "pie"`) and can be a dictionary key. Before, members were unhashable
   and never equal to strings.

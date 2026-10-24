@@ -93,8 +93,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 - `pre-commit install` once per clone. Hooks: ruff, codespell, LF line endings (`.gitattributes` also
   enforces LF), `complexity-ratchet` (ruff C901, limit 10: new or worsened functions above the limit are
   rejected; legacy functions may be edited without increasing their complexity), `superset-conformance`
-  (request payloads and routes vs. the OpenAPI specification) and `model-attributes` (enums and `str`
-  fields vs. the Superset source). `mypy` runs on demand
+  (request payloads and routes vs. the OpenAPI specification), `model-attributes` (enums and `str`
+  fields vs. the Superset source) and `import-layers` (the layer contracts of `[tool.importlinter]` in
+  `pyproject.toml`, run by `lint-imports`). `mypy` runs on demand
   (`pre-commit run mypy --hook-stage manual`) until the code passes `mypy --strict`.
 - CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on push/PR; pre-commit on
   the PR diff. CI/CD changes require explicit authorization from the maintainer.
@@ -132,9 +133,12 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 - Models will move to **pydantic v2** during the package reorganization: `extra="allow"` for free-form
   Superset structures, discriminated union by `viz_type`, `from_json`/`to_dict`/`to_json`/`validate`
   kept as a facade. Public API fully typed (`mypy --strict`).
-- Package layout target: `core/` (serialization), `transport/` and `auth/` (HTTP), `resources/`
-  (one subpackage per REST resource), `charts/`, `dashboards/` (`layout/`, `native_filters`),
-  `services/` (cross-resource operations); layer contracts checked with `import-linter`.
+- Package layout (in place since issue #318), from the top layer down; a layer imports only the layers
+  below it (`import-layers` hook): `client.py` (facade) → `services/` (operations across resources, e.g.
+  `DashboardCharts`) → `charts/` → `dashboards/` (`layout/`, `native_filters`, `metadata`) → `resources/`
+  (repositories and the dataset, database, saved query and asset models) → `auth/` → `transport/` (HTTP) →
+  `core/` (models, fields, enums and masking; no HTTP). Old module paths are compatibility modules that warn
+  on import; `supersetapiplus.datasets`, `.databases`, `.saved_queries` and `.assets` stay public paths.
 - Dependency management will migrate to **uv** (`pyproject.toml` as the single source, `uv.lock`,
   dependency groups). Runtime dependency floors must stay at or below the constraints of the Airflow
   version used by the integration that embeds this library, and the suite must pass with the lowest

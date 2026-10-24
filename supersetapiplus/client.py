@@ -19,17 +19,17 @@ import requests
 import requests.adapters
 import requests.exceptions
 
-from supersetapiplus.assets import Assets
 from supersetapiplus.auth.csrf import CSRFSupportMixin
 from supersetapiplus.auth.session import SessionAuthMixin
 from supersetapiplus.charts.charts import Charts
 from supersetapiplus.core.types import LimitingFactor
 from supersetapiplus.dashboards.dashboards import Dashboards
-from supersetapiplus.databases import Databases
-from supersetapiplus.datasets import Datasets
 from supersetapiplus.exceptions import QueryLimitReached, UnauthorizedError
 from supersetapiplus.query_string import QueryStringFilter
-from supersetapiplus.saved_queries import SavedQueries
+from supersetapiplus.resources.assets import Assets
+from supersetapiplus.resources.databases import Databases
+from supersetapiplus.resources.datasets import Datasets
+from supersetapiplus.resources.saved_queries import SavedQueries
 from supersetapiplus.services.dashboard_charts import DashboardCharts
 from supersetapiplus.transport.http import RequestHandler
 
