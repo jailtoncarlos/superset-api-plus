@@ -23,12 +23,9 @@ def deprecate_members(enum_cls: type, renamed: dict[str, str]) -> None:
     _RENAMED_MEMBERS[enum_cls] = renamed
 
 
-class StringEnum(Enum, metaclass=_StringEnumMeta):
+class StringEnum(str, Enum, metaclass=_StringEnumMeta):
+    """Enum of Superset string values: members are `str` (equal to and hashed as their value, serialized
+    as the value by `json`), so `ChartType.PIE == "pie"`."""
+
     def __str__(self):
         return str(self.value)
-
-    def __eq__(self, other):
-        if str(self.__class__) == str(other.__class__):
-            return self.value == other.value
-        # elif isinstance(other, str):
-        #     return self.value == other

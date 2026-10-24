@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Changed
+
+* String enums (`ChartType`, `TimeGrain`, `FilterOperatorType`...) are `str` subclasses: a member equals and
+  hashes as its value (`ChartType.PIE == "pie"`) and can be a dictionary key. Before, members were unhashable
+  and never equal to strings.
+* Model equality is the field-by-field equality of each `@dataclass` (the base class methods were never
+  used); unmodeled keys read from Superset (`extra_fields`) belong to each instance and do not take part.
+
 ### Deprecated
 
 Misspelled public names were renamed. The old names keep working as aliases and emit `DeprecationWarning`;

@@ -40,6 +40,7 @@ class QueryContext(SerializableModel):
         raise NotImplementedError()
 
     def __post_init__(self):
+        super().__post_init__()
         self._automatic_order: OrderBy = None
 
     @property
