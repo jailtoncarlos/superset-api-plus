@@ -206,7 +206,7 @@ clients), and "dashboard as code" lab repositories without a reusable library.
 | Native filters | builder, scopes computed from layout | select/range/time/timegrain, scope by chart IDs, data mask | pass-through | CRUD, static scopes | partial | none |
 | Round trip | lossless | rejects unknown input; update overlays | pass-through | lossy updates | `extra="ignore"` | lossy |
 | Auth | JWT + refresh, session/CSRF mode | server-side verifier | re-login, Preset tokens | mixed; some broken | session→JWT fallback | JWT (+CSRF) |
-| Retries | idempotent methods only, timeouts | n/a | all methods, `https` only | 401/CSRF retry | all methods incl. POST | none |
+| Retries | transient failures on idempotent methods only, 429 on any method (honoring `Retry-After`); timeouts | n/a | all methods, `https` only | 401/CSRF retry | 429 and timeouts on all methods incl. POST | none |
 | Tests | real Superset 6.1.0 + generated fixtures | mocks | mocks | mocks or none | mocks | container / mocks |
 
 ## License notes

@@ -7,10 +7,11 @@ cutoff: 2026-10-24
 confidence: 0.85
 tldr: |
   The landscape study confirms the library's niche and its main design rules (typed models,
-  values traced to Superset sources, derived query_context, lossless round trip, idempotent-only
-  retries, tests against a real server). Re-checking our code against what the other projects handle
-  surfaced five defects (inconsistent license, exception hierarchy, dataset-less time filter,
-  root-only filter scope, unsafe YAML loader) and a prioritized list of improvements, led by
+  values traced to Superset sources, derived query_context, lossless round trip, retries of
+  transient failures on idempotent methods only, tests against a real server). Re-checking our
+  code against what the other projects handle surfaced five defects (inconsistent license,
+  exception hierarchy, dataset-less time filter, root-only filter scope, unsafe YAML loader)
+  and a prioritized list of improvements, led by
   dashboard layout validation and native filter scopes taken from Superset's own MCP service.
 tags: [analysis, superset, ecosystem, roadmap, defects]
 related:
@@ -21,7 +22,7 @@ related:
 # Impact of the client landscape on superset-api-plus
 
 Based on [research/2026-10-24-superset-client-landscape.md](../research/2026-10-24-superset-client-landscape.md).
-Paths of this repository refer to commit `6b9a738`; external paths to the commits listed in the research.
+Paths of this repository refer to commit `10f4159`; external paths to the commits listed in the research.
 
 ## TL;DR
 
@@ -84,7 +85,7 @@ rule or technique can be checked (code from Preset projects is not reusable, see
 | L2 | Box plot whiskers: accept custom `"<low>/<high> percentiles"` besides the four presets (`charts/types.py`, `WhiskerOptions`) | frontend `PERCENTILE_REGEX` |
 | L3 | Reject moment.js tokens in `*_format` fields | bintocher `tools/charts.py:226-237` |
 | L4 | Guest token, embedded dashboard, dashboard copy, CSS templates | ishahroz `client.py:267`, `dashboards.py:72-98` |
-| L5 | Optional async transport (httpx) keeping the idempotent-only retry rule | superset-ai `api/client.py:42-68`; fits the planned `transport/` package |
+| L5 | Optional async transport (httpx) keeping the retry rule (transient failures on idempotent methods only, 429 on any method) | superset-ai `api/client.py:42-68`; fits the planned `transport/` package |
 | L6 | Preset workspace auth (API token → JWT) as an extra auth strategy | Preset `auth/preset.py` (idea only) |
 
 ## 3. Design choices the landscape confirms
@@ -96,7 +97,7 @@ rule or technique can be checked (code from Preset projects is not reusable, see
 | `query_context` derived by a buildQuery port checked against the frontend | superset-ai's generic query lacks `post_processing` and uses `granularity`; bintocher and Winding leave `params` and `query_context` out of sync |
 | Lossless round trip (`MissingField`, preserved extra keys) | superset-ai `extra="ignore"` and boolean-default pollution; opus-42 turns `null` into `{}` |
 | `chart.save()` does not send `dashboards` | opus-42 overwrites dashboard associations on every save |
-| Retries only on idempotent methods | superset-ai retries POST on timeout (duplicate objects); Preset retries every method |
+| Transient failures retried only on idempotent methods; 429 (request not processed) on any method | superset-ai retries POST on timeout, which can create duplicates; Preset retries every method on connection and read errors |
 | TLS verified by default | Preset resends after re-auth with `verify=False` |
 | Never store or log secrets | aptro writes the JWT in plaintext next to the code |
 | Server behavior tested against the real Superset | every other project uses mocks only, and each has defects a live test would catch |
