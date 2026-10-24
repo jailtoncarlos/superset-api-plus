@@ -101,3 +101,17 @@ def test_error_list_with_another_status_is_a_complex_bad_request_error():
     with pytest.raises(ComplexBadRequestError) as info:
         RequestHandler.raise_for_status(response(500, SIP40))
     assert isinstance(info.value, BadRequestError) and info.value.errors == SIP40["errors"]
+
+
+@pytest.mark.parametrize("status,msg", [(401, "Token has expired"), (422, "Not enough segments"),
+                                        (422, "Only non-refresh tokens are allowed")])
+def test_token_rejected_by_flask_jwt_extended_is_unauthorized_with_its_message(status, msg):
+    # Formats measured on Superset 6.1.0: flask-jwt-extended answers {"msg": ...}, with 422 for a bad token.
+    with pytest.raises(UnauthorizedError) as info:
+        RequestHandler.raise_for_status(response(status, {"msg": msg}))
+    assert info.value.message == msg and msg in str(info.value)
+
+
+def test_validation_422_with_message_stays_unprocessable():
+    with pytest.raises(UnprocessableEntityError):
+        RequestHandler.raise_for_status(response(422, {"message": {"datasource_id": ["Datasource does not exist"]}}))

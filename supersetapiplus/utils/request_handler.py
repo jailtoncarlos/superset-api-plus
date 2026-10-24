@@ -155,6 +155,8 @@ class RequestHandler:
 
         - 401/403/404/422: specific exception (BadRequestError subclasses), with `message` (for 422, the
           dict of errors per field) and `errors` (SIP-40 list), whatever the body format;
+        - token rejected by flask-jwt-extended (body `{"msg": ...}`): UnauthorizedError with `msg` as the
+          message, also for its 422 (malformed token, refresh token used as access token);
         - other statuses with `errors` (list of Superset errors): ComplexBadRequestError;
         - other statuses with `message`: BadRequestError; no recognizable body: requests.HTTPError.
         """
@@ -170,8 +172,11 @@ class RequestHandler:
                 body = None
             errors = body.get("errors") if isinstance(body, dict) else None
             message = body.get("message") if isinstance(body, dict) else None
+            jwt_rejected = isinstance(body, dict) and "msg" in body and message is None and not errors
+            if jwt_rejected:
+                message = body["msg"]
 
-            exception_class = STATUS_EXCEPTIONS.get(response.status_code)
+            exception_class = UnauthorizedError if jwt_rejected else STATUS_EXCEPTIONS.get(response.status_code)
             if not exception_class and errors:
                 exception_class = ComplexBadRequestError
             if exception_class or message:

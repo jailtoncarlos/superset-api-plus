@@ -208,3 +208,22 @@ def test_filter_restricted_to_some_charts_excludes_the_others_of_the_layout():
     assert course["scope"] == {"rootPath": ["ROOT_ID"], "excluded": [2]} and course["chartsInScope"] == [1, 3]
     with pytest.raises(ValueError):
         meta.add_native_filter("Both", 7, "x", charts=[1], excluded_charts=[2])
+
+
+@pytest.mark.parametrize("width,height", [(0, 50), (-1, 50), (13, 50), (4, 0), (4, 4), (4, 101)])
+def test_component_sizes_outside_the_editor_grid_are_rejected(width, height):
+    pos = Dashboard(dashboard_title="P").reset_layout()
+
+    with pytest.raises(NodePositionValidationError):
+        pos.add_chart(ChartRef(1, "A"), width=width, height=height)
+    with pytest.raises(NodePositionValidationError):
+        pos.add_markdown("text", width=width, height=height)
+    assert pos.chart_ids() == []
+
+
+def test_component_sizes_at_the_grid_limits_are_accepted():
+    pos = Dashboard(dashboard_title="P").reset_layout()
+
+    pos.add_chart(ChartRef(1, "A"), width=1, height=5)
+    pos.add_markdown("text", width=11, height=100)
+    pos.add_markdown("no height", width=12, height=None)

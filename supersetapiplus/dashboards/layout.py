@@ -23,7 +23,12 @@ GRID_ID = "GRID_ID"
 HEADER_ID = "HEADER_ID"
 VERSION_KEY = "DASHBOARD_VERSION_KEY"
 LAYOUT_VERSION = "v2"
+# Grid limits of the dashboard editor (superset-frontend/src/dashboard/util/constants.ts, Superset 6.1.0).
+# Superset does not validate position_json on save, so the builder enforces what the editor can produce.
 GRID_COLUMN_COUNT = 12
+GRID_MIN_COLUMN_COUNT = 1
+GRID_MIN_ROW_UNITS = 5
+GRID_MAX_ROW_UNITS = 100
 DEFAULT_CHART_WIDTH = 4
 DEFAULT_HEIGHT = 50
 
@@ -230,6 +235,7 @@ class DashboardLayout(SerializableModel):
     def add_markdown(self, code: str, parent=None, height: int | None = DEFAULT_HEIGHT, width: int = DEFAULT_CHART_WIDTH,
                      id: str | None = None) -> LayoutComponent:
         """Markdown block; ``height=None`` omits the height from ``meta``, as some exports do."""
+        _check_size(width, height)
         meta: dict = {"code": code, "width": width}
         if height is not None:
             meta["height"] = height
@@ -240,6 +246,7 @@ class DashboardLayout(SerializableModel):
         """Place a saved chart (a library Chart or a :class:`ChartRef`); `title` becomes ``sliceNameOverride``."""
         if not getattr(chart, "id", None):
             raise NodePositionValidationError("Save the chart before placing it in a layout (chart.id is empty).")
+        _check_size(width, height)
         meta: dict = {"chartId": chart.id, "sliceName": chart.slice_name, "width": width, "height": height}
         uuid = getattr(chart, "uuid", None)
         if uuid:
@@ -288,3 +295,13 @@ class DashboardLayout(SerializableModel):
         }
         parent_data.setdefault("children", []).append(component_id)
         return LayoutComponent(self, component_id)
+
+
+def _check_size(width: int, height: int | None) -> None:
+    """Width in grid columns and height in grid row units, within the limits of the dashboard editor."""
+    if not GRID_MIN_COLUMN_COUNT <= width <= GRID_COLUMN_COUNT:
+        raise NodePositionValidationError(
+            f"Width {width} is out of the grid: use {GRID_MIN_COLUMN_COUNT} to {GRID_COLUMN_COUNT} columns.")
+    if height is not None and not GRID_MIN_ROW_UNITS <= height <= GRID_MAX_ROW_UNITS:
+        raise NodePositionValidationError(
+            f"Height {height} is out of the grid: use {GRID_MIN_ROW_UNITS} to {GRID_MAX_ROW_UNITS} row units.")

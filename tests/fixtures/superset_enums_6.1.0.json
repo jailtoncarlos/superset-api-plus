@@ -380,6 +380,16 @@
   "MEMORY_TRANSFER_RATE_DECIMAL",
   "MEMORY_TRANSFER_RATE_BINARY"
  ],
+ "numbers": {
+  "dashboard.grid": {
+   "GRID_BASE_UNIT": 8,
+   "GRID_COLUMN_COUNT": 12,
+   "GRID_DEFAULT_CHART_WIDTH": 4,
+   "GRID_MAX_ROW_UNITS": 100,
+   "GRID_MIN_COLUMN_COUNT": 1,
+   "GRID_MIN_ROW_UNITS": 5
+  }
+ },
  "objects": {
   "AGGREGATES": {
    "AVG": "AVG",

@@ -152,3 +152,12 @@ def test_operator_names_are_the_frontend_operator_ids():
     # NOT_LIKE/NOT_ILIKE exist in the backend but not in the frontend Operators enum.
     assert names - {"NOT_LIKE", "NOT_ILIKE"} == set(FRONTEND["Operators"].values())
     assert T.FilterOperatorType.NOT_EQUAL is T.FilterOperatorType.NOT_EQUALS
+
+
+def test_dashboard_grid_limits_are_the_editor_ones():
+    grid = OFFICIAL["numbers"]["dashboard.grid"]
+
+    assert (L.GRID_COLUMN_COUNT, L.GRID_MIN_COLUMN_COUNT, L.GRID_MIN_ROW_UNITS, L.GRID_MAX_ROW_UNITS,
+            L.DEFAULT_CHART_WIDTH) == (grid["GRID_COLUMN_COUNT"], grid["GRID_MIN_COLUMN_COUNT"],
+                                       grid["GRID_MIN_ROW_UNITS"], grid["GRID_MAX_ROW_UNITS"],
+                                       grid["GRID_DEFAULT_CHART_WIDTH"])

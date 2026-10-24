@@ -63,6 +63,28 @@ def test_expired_access_token_is_renewed_with_the_refresh_token():
     assert renewals == [1] and client._access_token != expired
 
 
+def test_malformed_access_token_is_renewed_with_the_refresh_token():
+    # Superset (flask-jwt-extended) answers 422 {"msg": "Not enough segments"}, not 401, for a malformed token.
+    client = new_client(session_mode=False)
+    client.charts.count()
+    client._access_token = "malformed"
+    client.session.headers["Authorization"] = "Bearer malformed"
+
+    assert client.charts.count() >= 0
+    assert client._access_token != "malformed"
+
+
+def test_jwt_error_message_reaches_the_exception():
+    client = new_client(session_mode=False)
+    client.charts.count()
+    client._refresh_token = None  # no renewal: the server's explanation must reach the caller
+    client.session.headers["Authorization"] = "Bearer malformed"
+
+    with pytest.raises(UnauthorizedError) as info:
+        client.charts.count()
+    assert info.value.message == "Not enough segments"
+
+
 def test_session_without_cookie_is_unauthorized_and_does_not_try_to_refresh(monkeypatch):
     client = new_client()
     client.session.cookies.clear()

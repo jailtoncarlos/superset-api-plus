@@ -55,7 +55,8 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   that are null are written as `null`, not as the text `"null"`.
 - **Authentication**: instances where the `Public` role has permissions ignore JWT on public endpoints
   (FAB 5). Use `client.enable_session_mode()` (login form cookie + `X-CSRFToken`/`Referer`). In JWT mode
-  a 401 renews the token once with the refresh token.
+  a rejected token renews it once with the refresh token: a 401, or the 422 `{"msg": ...}` that
+  flask-jwt-extended returns for a malformed token (both raise `UnauthorizedError` with the server `msg`).
 - **HTTP**: retries transient failures only on idempotent methods (never POST), except 429 (rate limit:
   the request was not processed, so any method is retried, honoring Retry-After); HTTP errors map by
   status to `UnauthorizedError`/`ForbiddenError`/`ResourceNotFoundError`/`UnprocessableEntityError`

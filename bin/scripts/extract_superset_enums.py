@@ -93,6 +93,11 @@ CONSTANTS = [
     ("dashboard.backgrounds", "superset-frontend/src/dashboard/util/constants.ts", r"^BACKGROUND_"),
 ]
 
+# Frontend numeric constants grouped by name: (key, file, regex on the constant name).
+NUMBERS = [
+    ("dashboard.grid", "superset-frontend/src/dashboard/util/constants.ts", r"^GRID_"),
+]
+
 # controlPanel control `choices`: (key, file, control name).
 CHOICES = [
     ("pivot_table_v2.aggregateFunction",
@@ -137,6 +142,11 @@ def typescript_enum(source: str, name: str) -> dict[str, str]:
     if not body:
         raise ValueError(f"enum {name} not found")
     return dict(re.findall(r"(\w+)\s*=\s*'([^']*)'", body.group(1)))
+
+
+def typescript_numbers(source: str, name_pattern: str) -> dict[str, int]:
+    found = dict(re.findall(r"export const (\w+) = (\d+);", source))
+    return {name: int(value) for name, value in found.items() if re.search(name_pattern, name)}
 
 
 def typescript_constants(source: str, name_pattern: str) -> dict[str, str]:
@@ -233,6 +243,7 @@ def main(version: str) -> None:
                     **{key: const_choices(source(file), name) for key, file, name in CONST_CHOICES}},
         "constants": {key: typescript_constants(source(file), pattern) for key, file, pattern in CONSTANTS},
         "objects": {name: typescript_object(source(file), name) for file, name in OBJECTS},
+        "numbers": {key: typescript_numbers(source(file), pattern) for key, file, pattern in NUMBERS},
         "options": {name: option_values(source(file), name, identifiers) for file, name in OPTIONS},
         "number_formats": number_formats(source(D3_FORMATTING)),
         "unions": {key: typescript_union(source(file), prop) for key, file, prop in UNIONS},
