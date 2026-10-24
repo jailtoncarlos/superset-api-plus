@@ -30,6 +30,11 @@ class LegendOrientationType(StringEnum):
 
 
 class NumberFormatType(StringEnum):
+    """Number formats suggested by the UI (superset-ui-chart-controls D3_FORMAT_OPTIONS).
+
+    The control is free-form: any d3 format is valid, so the members beyond the suggestions are d3 formats
+    or NumberFormats ids of superset-ui-core. Values read from Superset are kept as stored.
+    """
     ORIGINAL_VALUE = '~g'
     SMART_NUMBER = 'SMART_NUMBER'  # Adaptive formatting
     SMART_NUMBER_SIGNED = 'SMART_NUMBER_SIGNED'
@@ -57,6 +62,10 @@ class NumberFormatType(StringEnum):
     PERCENT_2_POINT = ',.2%'
     PERCENT_3_POINT = ',.3%'
 
+    PERCENT_2_POINT_NO_GROUPING = '.2%'
+    PERCENT_3_POINT_NO_GROUPING = '.3%'
+    PRECISION_4 = '.4r'
+    SIGNED = '+,'
     PERCENT_SIGNED_1_POINT = '+,.1%'
     PERCENT_SIGNED_2_POINT = '+,.2%'
     PERCENT_SIGNED_3_POINT = '+,.3%'
@@ -69,14 +78,21 @@ class NumberFormatType(StringEnum):
 
     DURATION = 'DURATION' #Duration in ms (66000 => 1m 6s)
     DURATION_SUB = 'DURATION_SUB' #Duration in ms (100.40008 => 100ms 400µs 80ns)
+    DURATION_COL = 'DURATION_COL'  # Duration in ms (10500 => 0:10.5)
+    MEMORY_DECIMAL = 'MEMORY_DECIMAL'
+    MEMORY_BINARY = 'MEMORY_BINARY'
+    MEMORY_TRANSFER_RATE_DECIMAL = 'MEMORY_TRANSFER_RATE_DECIMAL'
+    MEMORY_TRANSFER_RATE_BINARY = 'MEMORY_TRANSFER_RATE_BINARY'
 
 
 class DateFormatType(StringEnum):
+    """Time formats suggested by the UI (superset-ui-chart-controls D3_TIME_FORMAT_OPTIONS); free-form control."""
     SMART_DATE = 'smart_date'
     DATABASE_DATETIME = '%Y-%m-%d %H:%M:%S'
     DATABASE_DATETIME_REVERSE = '%d-%m-%Y %H:%M:%S'
     US_DATE = '%m/%d/%Y'
     INTERNATIONAL_DATE = '%d/%m/%Y'
+    DOTTED_DATE = '%d.%m.%Y'
     DATABASE_DATE = '%Y-%m-%d'
     TIME = '%H:%M:%S'
 
@@ -113,7 +129,10 @@ class LabelType(StringEnum):
     PERCENTAGE = 'percent'
     CATEGORY_AND_VALUE = 'key_value'
     CATEGORY_AND_PERCENTAGE = 'key_percent'
-    CATEGORI_VALUE_AND_PERCENTAG = 'key_value_percent'
+    CATEGORY_VALUE_AND_PERCENTAGE = 'key_value_percent'
+    CATEGORI_VALUE_AND_PERCENTAG = 'key_value_percent'  # alias for the old, misspelled name
+    VALUE_AND_PERCENTAGE = 'value_percent'
+    TEMPLATE = 'template'
 
 
 class FilterOperatorType(StringEnum):
@@ -154,6 +173,8 @@ class ColumnType(StringEnum):
 
 
 class SqlMapType(StringEnum):
+    """Deprecated: not a Superset enum. A column `type` is the native database type (free text, e.g.
+    "VARCHAR(255)"); `AdhocMetricColumn.type` is a `str`. Kept so that existing imports keep working."""
     BOOLEAN = "BOOLEAN"
     INTEGER = "INTEGER"
     VARCHAR = "VARCHAR"
@@ -191,15 +212,22 @@ class QueryModeType(StringEnum):
 
 
 class MetricType(StringEnum):
+    """Aggregate of a simple adhoc metric (src/explore/constants.ts AGGREGATES, Superset 6.1.0).
+
+    The backend looks the value up as is (`sqla_aggregations[metric["aggregate"]]`), so it is uppercase.
+    """
+    AVG = "AVG"
+    COUNT = "COUNT"
     COUNT_DISTINCT = "COUNT_DISTINCT"
-    COUNT = "count"
-    SUM = "sum"
-    AVG = "avg"
-    MIN = "min"
-    MAX = "max"
+    MAX = "MAX"
+    MIN = "MIN"
+    SUM = "SUM"
 
 
 class CurrencyCodeType(StringEnum):
+    """Currency of a number format: ISO 4217 codes, offered in the UI from the CURRENCIES setting
+    (superset/config.py), plus AUTO (superset-ui-core AUTO_CURRENCY_SYMBOL: currency taken from a column)."""
+    AUTO = 'AUTO'
     AED = 'AED'
     AFN = 'AFN'
     ALL = 'ALL'
@@ -389,19 +417,29 @@ class SortSeriesType(StringEnum):
 
 
 class StackStylyType(StringEnum):
+    """Stack style (plugin-chart-echarts StackControlsValue). "No stack" is `null`, not a value of the enum."""
     STACK = 'Stack'
     STREAM = 'Stream'
-    NONE = 'None'
+    EXPAND = 'Expand'  # area charts only (AreaChartStackControlOptions)
 
 
 class TitlepositionType(StringEnum):
+    """Axis title position (superset-ui-chart-controls TITLE_POSITION_OPTIONS)."""
     LEFT = 'Left'
-    RIGHT = 'Right'
+    TOP = 'Top'
 
 
 class LabelRotation(IntEnum):
+    """xAxisLabelRotation choices (plugin-chart-echarts controls.tsx)."""
     ZERO = 0
     FORTY_FIVE = 45
+    NINETY = 90
+
+
+class ComparisonColorScheme(StringEnum):
+    """Table comparison colors (superset-ui-chart-controls ColorSchemeEnum)."""
+    GREEN = 'Green'
+    RED = 'Red'
 
 
 class ComparisonType(StringEnum):

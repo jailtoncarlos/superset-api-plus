@@ -1,52 +1,150 @@
-"""Library enums vs. enums and choices from the Superset source code (excerpt in tests/fixtures).
+"""Library enums vs. enums, choices and constants of the Superset source code (excerpt in tests/fixtures).
 
-The OpenAPI specification types these fields only as `string`; the accepted values come from the
-source. For another version, generate the excerpt with bin/scripts/extract_superset_enums.py and
-point OFFICIAL to it.
+The OpenAPI specification types these fields only as `string`; the accepted values come from the source.
+Every enum of the package must be listed in SOURCES (official values) or in LIBRARY_ONLY (with the reason):
+a new enum without a declared source fails `test_every_enum_has_a_declared_source`.
+
+To support another Superset version, generate the excerpt with bin/scripts/extract_superset_enums.py and
+point OFFICIAL to it; the divergences show up as failures here.
 """
+import enum
+import importlib
 import json
+import pkgutil
 from pathlib import Path
 
 import pytest
 
-from supersetapiplus.base.types import LimitingFactor
+import supersetapiplus
+from supersetapiplus import query_string as Q
+from supersetapiplus.base import types as B
 from supersetapiplus.charts import types as T
+from supersetapiplus.dashboards import itemposition as IP
 from supersetapiplus.dashboards import layout as L
 from supersetapiplus.dashboards import native_filters as NF
 
 OFFICIAL = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_enums_6.1.0.json").read_text())
+BACKEND, FRONTEND, CHOICES = OFFICIAL["backend"], OFFICIAL["frontend"], OFFICIAL["choices"]
 
 
-def values(enum_cls) -> set[str]:
+def official(group: dict, name: str) -> set:
+    return set(group[name].values())
+
+
+# Exact match: library enum -> official values (extras, when any, are in EXTRAS with the reason).
+SOURCES = {
+    B.DatasourceKind: official(BACKEND, "DatasourceKind"),
+    B.LimitingFactor: official(BACKEND, "LimitingFactor"),
+    T.FilterOperatorType: official(BACKEND, "FilterOperator"),
+    T.TimeGrain: official(BACKEND, "TimeGrain"),
+    T.ResultFormat: official(BACKEND, "ChartDataResultFormat"),
+    T.ResultType: official(BACKEND, "ChartDataResultType"),
+    T.GenericDataType: official(BACKEND, "GenericDataType"),
+    T.ComparisonType: official(FRONTEND, "ComparisonType"),
+    T.ComparisonColorScheme: official(FRONTEND, "ColorSchemeEnum"),
+    T.ContributionType: official(FRONTEND, "ContributionType"),
+    T.QueryModeType: official(FRONTEND, "QueryMode"),
+    T.SortSeriesType: official(FRONTEND, "SortSeriesType"),
+    T.FilterExpressionType: official(FRONTEND, "ExpressionTypes"),
+    T.FilterClausesType: official(FRONTEND, "Clauses"),
+    T.LegendOrientationType: official(FRONTEND, "LegendOrientation"),
+    T.LegendType: official(FRONTEND, "LegendType"),
+    T.StackStylyType: official(FRONTEND, "StackControlsValue"),
+    T.LabelType: official(FRONTEND, "EchartsPieLabelType"),
+    T.Orientation: official(FRONTEND, "OrientationType"),
+    T.MetricsLayoutEnum: official(FRONTEND, "MetricsLayoutEnum"),
+    T.MetricType: set(OFFICIAL["objects"]["AGGREGATES"].values()),
+    T.TitlepositionType: set(OFFICIAL["options"]["TITLE_POSITION_OPTIONS"]),
+    T.ColumnType: set(OFFICIAL["unions"]["Column.columnType"]),
+    T.HorizontalAlignType: set(OFFICIAL["unions"]["ColumnConfig.horizontalAlign"]),
+    T.CurrentPositionType: set(OFFICIAL["value_options"]["CURRENCY_SYMBOL_POSITION_OPTIONS"]),
+    T.PivotAggregateFunction: set(CHOICES["pivot_table_v2.aggregateFunction"]),
+    T.OrderType: set(CHOICES["pivot_table_v2.rowOrder"]),
+    T.LabelRotation: set(CHOICES["echarts.xAxisLabelRotation"]),
+    NF.FilterType: official(FRONTEND, "FilterPlugins"),
+    NF.NativeFilterType: official(FRONTEND, "NativeFilterType"),
+    L.Background: set(OFFICIAL["constants"]["dashboard.backgrounds"].values()),
+    L.HeaderSize: set(OFFICIAL["constants"]["dashboard.headerSizes"].values()),
+    # NEW_COMPONENT_SOURCE is the editor's drag source, never stored in position_json.
+    L.ComponentType: set(OFFICIAL["constants"]["dashboard.componentTypes"].values()) - {"NEW_COMPONENT_SOURCE"},
+}
+
+# Library values allowed beyond the official ones, with the reason.
+EXTRAS = {
+    # Frontend-only operator (Operators.LatestPartition): the frontend sends it, the backend enum lacks it.
+    T.FilterOperatorType: {"LATEST PARTITION"},
+}
+
+# The library models part of the official set: each library value must be official.
+PARTIAL = {
+    # Only the viz_types the library models (the frontend VizType lists all plugins).
+    T.ChartType: official(FRONTEND, "VizType"),
+    # Component types of the legacy layout builder (dashboards/itemposition.py, replaced by layout.py).
+    IP.ItemPositionType: set(OFFICIAL["constants"]["dashboard.componentTypes"].values()),
+    # Flask-AppBuilder filters usable in `q`: eqf/inf filter by a server-side function and Superset exposes
+    # neither (tests/integration/test_data.py checks the operators against the server's /_info).
+    Q.QueryOperator: set(OFFICIAL["fab"]["filter_operators"]),
+}
+
+# Open sets: every official value must be available; the library may hold more, for the reason given.
+OPEN = {
+    # Suggested formats of free-form controls: the extra members are valid d3 formats / NumberFormats ids.
+    T.NumberFormatType: set(OFFICIAL["number_formats"]),
+    T.DateFormatType: set(OFFICIAL["options"]["D3_TIME_FORMAT_OPTIONS"]),
+    # The UI offers the CURRENCIES setting (configurable) plus AUTO; the library lists all ISO 4217 codes.
+    T.CurrencyCodeType: set(OFFICIAL["config"]["CURRENCIES"]) | {OFFICIAL["identifiers"]["AUTO_CURRENCY_SYMBOL"]},
+    # Backend and frontend DatasourceType differ (view / sl_table): the library holds the union.
+    B.DatasourceType: official(BACKEND, "DatasourceType") | official(FRONTEND, "DatasourceType"),
+}
+
+# Enums with no counterpart in Superset, with the reason.
+LIBRARY_ONLY = {
+    T.SqlMapType: "deprecated: a column type is free text (native database type); kept for old imports",
+    IP.PositionType: "placement option of the legacy layout builder; never sent to Superset",
+}
+
+
+def values(enum_cls) -> set:
     return {m.value for m in enum_cls}
 
 
-# (library enum, official values, library extras that are allowed and justified)
-CASES = [
-    (T.FilterOperatorType, set(OFFICIAL["backend"]["FilterOperator"].values()),
-     {"LATEST PARTITION"}),  # frontend-only operator (Operators.LatestPartition)
-    (T.TimeGrain, set(OFFICIAL["backend"]["TimeGrain"].values()), set()),
-    (T.ResultFormat, set(OFFICIAL["backend"]["ChartDataResultFormat"].values()), set()),
-    (T.ResultType, set(OFFICIAL["backend"]["ChartDataResultType"].values()), set()),
-    (T.PivotAggregateFunction, set(OFFICIAL["choices"]["pivot_table_v2.aggregateFunction"]), set()),
-    (LimitingFactor, set(OFFICIAL["backend"]["LimitingFactor"].values()), set()),
-    (NF.FilterType, set(OFFICIAL["frontend"]["FilterPlugins"].values()), set()),
-    (NF.NativeFilterType, set(OFFICIAL["frontend"]["NativeFilterType"].values()), set()),
-    (L.Background, set(OFFICIAL["constants"]["dashboard.backgrounds"].values()), set()),
-    (L.HeaderSize, set(OFFICIAL["constants"]["dashboard.headerSizes"].values()), set()),
-    # NEW_COMPONENT_SOURCE is the editor's drag source, never stored in position_json.
-    (L.ComponentType, set(OFFICIAL["constants"]["dashboard.componentTypes"].values()) - {"NEW_COMPONENT_SOURCE"},
-     set()),
-]
+def package_enums() -> set:
+    found = set()
+    for info in pkgutil.walk_packages(supersetapiplus.__path__, "supersetapiplus."):
+        if info.name.endswith("generate_graphviz"):  # optional dependency (graphviz)
+            continue
+        module = importlib.import_module(info.name)
+        found |= {obj for obj in vars(module).values()
+                  if isinstance(obj, type) and issubclass(obj, enum.Enum) and obj.__module__ == info.name
+                  and len(obj)}
+    return found
 
 
-@pytest.mark.parametrize("enum_cls,official,extras", CASES, ids=[c[0].__name__ for c in CASES])
-def test_enum_values_match_the_source_code(enum_cls, official, extras):
-    assert values(enum_cls) - extras == official
+def test_every_enum_has_a_declared_source():
+    declared = set(SOURCES) | set(PARTIAL) | set(OPEN) | set(LIBRARY_ONLY)
+    missing = sorted(f"{e.__module__}.{e.__name__}" for e in package_enums() - declared)
+
+    assert missing == [], ("enums without a declared source: add them to SOURCES/PARTIAL/OPEN with the official values "
+                           f"(bin/scripts/extract_superset_enums.py) or to LIBRARY_ONLY with the reason: {missing}")
+
+
+@pytest.mark.parametrize("enum_cls", list(SOURCES), ids=[e.__name__ for e in SOURCES])
+def test_enum_values_match_the_source_code(enum_cls):
+    assert values(enum_cls) - EXTRAS.get(enum_cls, set()) == SOURCES[enum_cls]
+
+
+@pytest.mark.parametrize("enum_cls", list(PARTIAL), ids=[e.__name__ for e in PARTIAL])
+def test_partial_enum_holds_only_official_values(enum_cls):
+    assert values(enum_cls) <= PARTIAL[enum_cls]
+
+
+@pytest.mark.parametrize("enum_cls", list(OPEN), ids=[e.__name__ for e in OPEN])
+def test_open_enum_offers_every_official_value(enum_cls):
+    assert OPEN[enum_cls] <= values(enum_cls)
 
 
 def test_operator_names_are_the_frontend_operator_ids():
     names = {m.name for m in T.FilterOperatorType}
     # NOT_LIKE/NOT_ILIKE exist in the backend but not in the frontend Operators enum.
-    assert names - {"NOT_LIKE", "NOT_ILIKE"} == set(OFFICIAL["frontend"]["Operators"].values())
+    assert names - {"NOT_LIKE", "NOT_ILIKE"} == set(FRONTEND["Operators"].values())
     assert T.FilterOperatorType.NOT_EQUAL is T.FilterOperatorType.NOT_EQUALS

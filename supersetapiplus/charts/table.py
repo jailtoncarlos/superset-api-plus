@@ -9,7 +9,15 @@ from supersetapiplus.charts.metric import AdhocMetricColumn, Metric, OrderBy
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import ColumnConfig, Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType, DateFormatType, MetricType, QueryModeType, ResultFormat, ResultType
+from supersetapiplus.charts.types import (
+    ChartType,
+    ComparisonColorScheme,
+    DateFormatType,
+    MetricType,
+    QueryModeType,
+    ResultFormat,
+    ResultType,
+)
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional
 
@@ -51,7 +59,7 @@ class TableOption(TableOptionBase):
     all_columns: SerializableOptional[list] = field(default_factory=list)
     percent_metrics: SerializableOptional[list] = field(default_factory=list)
     allow_render_html: SerializableOptional[bool] = True
-    comparison_color_scheme: SerializableOptional[str] = field(default=None)
+    comparison_color_scheme: SerializableOptional[ComparisonColorScheme] = field(default=None)
 
     timeseries_limit_metric: Metric | None = object_field(default=None)
 

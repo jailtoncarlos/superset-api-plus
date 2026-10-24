@@ -24,9 +24,11 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   `src/explore/constants.ts`. Model them as enums with the official values and cite the source.
 - **Rule for every `str` attribute**: whenever a model attribute is (or would be) typed as `str`,
   inspect the Superset source code of the target version to check whether it is an enum or a closed set
-  of `choices`. If it is, type it with an enum holding the official values (add it to
-  `bin/scripts/extract_superset_enums.py` so the `superset-conformance` hook checks it); keep `str` only
-  for genuinely free text (titles, SQL, labels) and say so in a comment when it is not obvious.
+  of `choices`. If it is, type it with an enum holding the official values (add the source to
+  `bin/scripts/extract_superset_enums.py` and the enum to `tests/unit/test_enum_conformance.py`); keep
+  `str` only for genuinely free text (titles, SQL, labels, names of the instance's objects) and declare it
+  with the reason in `tests/unit/test_attribute_types.py`. The `model-attributes` hook rejects an enum
+  without a declared source and a `str` field that is neither an enum nor declared free text.
 - **Query building**: in the Superset UI the `query_context` is derived from `params` by each plugin's
   `buildQuery`. `supersetapiplus/charts/build_query.py` is a port of that code (checked against the
   frontend captures); charts built in code send its result, charts read from Superset keep their stored
@@ -81,8 +83,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 
 - `pre-commit install` once per clone. Hooks: ruff, codespell, LF line endings (`.gitattributes` also
   enforces LF), `complexity-ratchet` (ruff C901, limit 10: new or worsened functions above the limit are
-  rejected; legacy functions may be edited without increasing their complexity) and
-  `superset-conformance` (OpenAPI and enum conformance tests). `mypy` runs on demand
+  rejected; legacy functions may be edited without increasing their complexity), `superset-conformance`
+  (request payloads and routes vs. the OpenAPI specification) and `model-attributes` (enums and `str`
+  fields vs. the Superset source). `mypy` runs on demand
   (`pre-commit run mypy --hook-stage manual`) until the code passes `mypy --strict`.
 - CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on push/PR; pre-commit on
   the PR diff. CI/CD changes require explicit authorization from the maintainer.

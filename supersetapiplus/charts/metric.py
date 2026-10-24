@@ -1,10 +1,15 @@
 import logging
 from dataclasses import dataclass, field
-from typing import Literal, get_args
 
 from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.fields import default_string, object_field
-from supersetapiplus.charts.types import ColumnType, FilterExpressionType, GenericDataType, MetricType, SqlMapType
+from supersetapiplus.charts.types import (
+    ColumnType,
+    FilterExpressionType,
+    GenericDataType,
+    MetricType,
+    TimeGrain,
+)
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional
 
@@ -22,7 +27,7 @@ class AdhocMetricColumn(SerializableModel):
     groupby: bool = True
     is_dttm: bool = False
     python_date_format: str = field(default=None)
-    type: SerializableOptional[SqlMapType] = field(default=None)
+    type: SerializableOptional[str] = field(default=None)  # native database type, e.g. "VARCHAR(255)"
     type_generic: SerializableOptional[GenericDataType] = field(default=None)
 
     # Newer fields, as returned in the API JSON
@@ -60,7 +65,7 @@ class AdhocMetric(SerializableModel):
     column: AdhocMetricColumn = object_field(cls=AdhocMetricColumn, default=None)
     aggregate: MetricType = field(default=None)
 
-    timeGrain: SerializableOptional[str] = field(default=None)
+    timeGrain: SerializableOptional[TimeGrain] = field(default=None)
     columnType: SerializableOptional[ColumnType] = field(default=None)
 
     # Newer fields
@@ -73,7 +78,8 @@ class AdhocMetric(SerializableModel):
             self.column: SerializableOptional[AdhocMetricColumn] = None
 
 
-Metric = AdhocMetric | Literal['count', 'sum', 'avg', 'min', 'max', 'count distinct']
+# A string metric is the name of a metric saved in the dataset (free text, e.g. "count").
+Metric = AdhocMetric | str
 OrderByTyping = tuple[Metric, bool]
 
 
@@ -123,15 +129,14 @@ class MetricHelper:
 
     @classmethod
     def check_metric(cls, value):
-        simple_metrics = get_args(get_args(Metric)[-1])
-        if str(value) not in simple_metrics:
-            raise ValidationError(message='Metric not found.',
-                                  solution=f'Use one of the options:{simple_metrics}')
+        if not isinstance(value, str) or not value.strip():
+            raise ValidationError(message='A simple metric is the name of a metric saved in the dataset.',
+                                  solution='Pass the metric name, e.g. "count", or use add_custom_metric.')
 
     @classmethod
     def check_aggregate(cls, value):
         list_aggregates = [e.value for e in MetricType]
-        if str(value) not in list_aggregates:
+        if str(value).upper() not in list_aggregates:
             raise ValidationError(message='Aggregate not found.',
                                   solution='Use the types.MetricType enum')
 

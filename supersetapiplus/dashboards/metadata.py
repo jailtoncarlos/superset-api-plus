@@ -22,14 +22,14 @@ class ChartConfiguration(SerializableModel):
 class GlobalChartconfigurationScope(SerializableModel):
     # Default cross-filter scope in the frontend (DEFAULT_CROSS_FILTER_SCOPING): the whole dashboard.
     rootPath: list[str] = field(default_factory=lambda: ['ROOT_ID'])
-    excluded: list[str] = field(default_factory=list)
+    excluded: list[int] = field(default_factory=list)  # chart ids (NativeFilterScope.excluded: number[])
 
 
 @dataclass
 class GlobalChartconfiguration(SerializableModel):
     scope: GlobalChartconfigurationScope = object_field(cls=GlobalChartconfigurationScope,
                                                         default_factory=GlobalChartconfigurationScope)
-    chartsInScope: list[str] = field(default_factory=list)
+    chartsInScope: list[int] = field(default_factory=list)  # chart ids
 
 
 @dataclass

@@ -14,6 +14,9 @@ import sys
 import urllib.request
 
 RAW_ROOT = "https://raw.githubusercontent.com/apache/superset/{version}/{path}"
+# Flask-AppBuilder, at the version pinned by Superset in requirements/base.txt.
+FAB_ROOT = "https://raw.githubusercontent.com/dpgaspar/Flask-AppBuilder/v{version}/{path}"
+FAB_FILTERS = "flask_appbuilder/models/sqla/filters.py"
 
 # Backend Python enums: (file, class).
 BACKEND = [
@@ -22,6 +25,9 @@ BACKEND = [
     ("superset/common/chart_data.py", "ChartDataResultType"),
     ("superset/constants.py", "TimeGrain"),
     ("superset/sqllab/limiting_factor.py", "LimitingFactor"),
+    ("superset/utils/core.py", "DatasourceType"),
+    ("superset/utils/core.py", "GenericDataType"),
+    ("superset/connectors/sqla/models.py", "DatasourceKind"),
 ]
 
 # Frontend TypeScript enums: (file, enum).
@@ -29,6 +35,55 @@ FRONTEND = [
     ("superset-frontend/src/explore/constants.ts", "Operators"),
     ("superset-frontend/src/constants.ts", "FilterPlugins"),
     ("superset-frontend/packages/superset-ui-core/src/query/types/Dashboard.ts", "NativeFilterType"),
+    ("superset-frontend/packages/superset-ui-core/src/query/types/Datasource.ts", "DatasourceType"),
+    ("superset-frontend/packages/superset-ui-core/src/query/types/Query.ts", "ContributionType"),
+    ("superset-frontend/packages/superset-ui-core/src/query/types/QueryFormData.ts", "QueryMode"),
+    ("superset-frontend/packages/superset-ui-core/src/query/types/AdvancedAnalytics.ts", "ComparisonType"),
+    ("superset-frontend/packages/superset-ui-chart-controls/src/types.ts", "SortSeriesType"),
+    ("superset-frontend/packages/superset-ui-chart-controls/src/types.ts", "ColorSchemeEnum"),
+    ("superset-frontend/src/explore/components/controls/FilterControl/types.ts", "ExpressionTypes"),
+    ("superset-frontend/src/explore/components/controls/FilterControl/types.ts", "Clauses"),
+    ("superset-frontend/plugins/plugin-chart-echarts/src/types.ts", "LegendOrientation"),
+    ("superset-frontend/plugins/plugin-chart-echarts/src/types.ts", "LegendType"),
+    ("superset-frontend/plugins/plugin-chart-echarts/src/constants.ts", "StackControlsValue"),
+    ("superset-frontend/plugins/plugin-chart-echarts/src/Pie/types.ts", "EchartsPieLabelType"),
+    ("superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/types.ts", "OrientationType"),
+    ("superset-frontend/plugins/plugin-chart-pivot-table/src/types.ts", "MetricsLayoutEnum"),
+    ("superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts", "VizType"),
+]
+
+# String literal unions of TypeScript properties (`name?: 'a' | 'b'`): (key, file, property).
+UNIONS = [
+    ("Column.columnType", "superset-frontend/packages/superset-ui-core/src/query/types/Column.ts", "columnType"),
+    ("ColumnConfig.horizontalAlign", "superset-frontend/packages/superset-ui-chart-controls/src/types.ts",
+     "horizontalAlign"),
+]
+
+# Option lists of objects (`export const NAME = [{ value: 'a', ... }, ...]`): (file, name).
+VALUE_OPTIONS = [
+    ("superset-frontend/src/explore/components/controls/CurrencyControl/CurrencyControl.tsx",
+     "CURRENCY_SYMBOL_POSITION_OPTIONS"),
+]
+
+# Default values of superset/config.py: names of list settings.
+CONFIG = "superset/config.py"
+CONFIG_LISTS = ["CURRENCIES"]
+
+# Frontend object constants (`export const NAME = { KEY: 'value', ... }`): (file, name).
+OBJECTS = [
+    ("superset-frontend/src/explore/constants.ts", "AGGREGATES"),
+]
+
+# Frontend option lists (`export const NAME: [string, string][] = [['value', label], ...]`): (file, name).
+OPTIONS = [
+    ("superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts", "D3_TIME_FORMAT_OPTIONS"),
+    ("superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx", "TITLE_POSITION_OPTIONS"),
+]
+D3_FORMATTING = "superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts"
+# Identifiers used as option values, resolved from their definition: (identifier, file).
+IDENTIFIERS = [
+    ("SMART_DATE_ID", "superset-frontend/packages/superset-ui-core/src/time-format/formatters/smartDate.ts"),
+    ("AUTO_CURRENCY_SYMBOL", "superset-frontend/packages/superset-ui-core/src/currency-format/CurrencyFormats.ts"),
 ]
 
 # Frontend string constants grouped by name: (key, file, regex on the constant name).
@@ -42,11 +97,15 @@ CONSTANTS = [
 CHOICES = [
     ("pivot_table_v2.aggregateFunction",
      "superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx", "aggregateFunction"),
+    ("pivot_table_v2.rowOrder",
+     "superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx", "rowOrder"),
+    ("echarts.xAxisLabelRotation", "superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx",
+     "xAxisLabelRotation"),
 ]
 
 
-def download(version: str, path: str) -> str:
-    with urllib.request.urlopen(RAW_ROOT.format(version=version, path=path), timeout=60) as response:
+def download(version: str, path: str, root: str = RAW_ROOT) -> str:
+    with urllib.request.urlopen(root.format(version=version, path=path), timeout=60) as response:
         return response.read().decode("utf-8")
 
 
@@ -73,11 +132,68 @@ def typescript_constants(source: str, name_pattern: str) -> dict[str, str]:
     return {name: value for name, value in found.items() if re.search(name_pattern, name)}
 
 
-def control_choices(source: str, control: str) -> list[str]:
+def control_choices(source: str, control: str) -> list:
     block = re.search(rf"name:\s*'{control}'.*?choices:\s*\[(.*?)\n\s*\],", source, re.S)
     if not block:
         raise ValueError(f"choices of {control} not found")
-    return re.findall(r"\[\s*'([^']+)'\s*,", block.group(1))
+    return [int(number) if number else text
+            for text, number in re.findall(r"\[\s*(?:'([^']+)'|(\d+))\s*,", block.group(1))]
+
+
+def typescript_object(source: str, name: str) -> dict[str, str]:
+    body = re.search(rf"export const {name} = \{{(.*?)\}};", source, re.S)
+    if not body:
+        raise ValueError(f"object {name} not found")
+    return dict(re.findall(r"(\w+):\s*'([^']*)'", body.group(1)))
+
+
+def option_values(source: str, name: str, identifiers: dict[str, str]) -> list[str]:
+    body = re.search(rf"export const {name}\b[^=]*= \[(.*?)\n\];", source, re.S)
+    if not body:
+        raise ValueError(f"options {name} not found")
+    return [text or identifiers[identifier]
+            for text, identifier in re.findall(r"^\s*\[\s*(?:'([^']*)'|(\w+)),", body.group(1), re.M)]
+
+
+def typescript_union(source: str, prop: str) -> list[str]:
+    union = re.search(rf"\b{prop}\??:\s*((?:'[^']*'\s*\|?\s*)+);", source)
+    if not union:
+        raise ValueError(f"union of {prop} not found")
+    return re.findall(r"'([^']*)'", union.group(1))
+
+
+def value_options(source: str, name: str) -> list[str]:
+    body = re.search(rf"export const {name}\b[^=]*= \[(.*?)\n\];", source, re.S)
+    if not body:
+        raise ValueError(f"options {name} not found")
+    return re.findall(r"value:\s*'([^']*)'", body.group(1))
+
+
+def config_list(source: str, name: str) -> list:
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.Assign) and any(getattr(t, "id", None) == name for t in node.targets):
+            return ast.literal_eval(node.value)
+    raise ValueError(f"setting {name} not found")
+
+
+def fab_version(requirements: str) -> str:
+    return re.search(r"^flask-appbuilder==([\w.]+)$", requirements, re.M).group(1)
+
+
+def fab_operators(source: str) -> list[str]:
+    """Rison filter operators (`arg_name`) of the Flask-AppBuilder SQLAlchemy filters."""
+    return sorted(set(re.findall(r'arg_name = "([^"]+)"', source)))
+
+
+def number_formats(source: str) -> list[str]:
+    """Suggested number formats of D3_FORMAT_OPTIONS (the control is free-form: other d3 formats are valid)."""
+    formatted = re.search(r"const d3Formatted[^=]*= \[(.*?)\]\.map", source, re.S)
+    options = re.search(r"export const D3_FORMAT_OPTIONS\b[^=]*= \[(.*?)\n\];", source, re.S)
+    if not (formatted and options):
+        raise ValueError("D3 number formats not found")
+    literal = re.findall(r"\[\s*'([^']*)'|^\s*'([^']*)',\s*$", options.group(1), re.M)
+    return (["SMART_NUMBER"] + re.findall(r"'([^']*)'", formatted.group(1))
+            + [first or second for first, second in literal])
 
 
 def main(version: str) -> None:
@@ -88,12 +204,22 @@ def main(version: str) -> None:
             cache[path] = download(version, path)
         return cache[path]
 
+    identifiers = {name: typescript_constants(source(file), rf"^{name}$")[name] for name, file in IDENTIFIERS}
+    fab = fab_version(source("requirements/base.txt"))
     subset = {
         "superset_version": version,
         "backend": {cls: python_enum(source(file), cls) for file, cls in BACKEND},
         "frontend": {name: typescript_enum(source(file), name) for file, name in FRONTEND},
         "choices": {key: control_choices(source(file), control) for key, file, control in CHOICES},
         "constants": {key: typescript_constants(source(file), pattern) for key, file, pattern in CONSTANTS},
+        "objects": {name: typescript_object(source(file), name) for file, name in OBJECTS},
+        "options": {name: option_values(source(file), name, identifiers) for file, name in OPTIONS},
+        "number_formats": number_formats(source(D3_FORMATTING)),
+        "unions": {key: typescript_union(source(file), prop) for key, file, prop in UNIONS},
+        "value_options": {name: value_options(source(file), name) for file, name in VALUE_OPTIONS},
+        "identifiers": identifiers,
+        "config": {name: config_list(source(CONFIG), name) for name in CONFIG_LISTS},
+        "fab": {"version": fab, "filter_operators": fab_operators(download(fab, FAB_FILTERS, FAB_ROOT))},
     }
     json.dump(subset, sys.stdout, ensure_ascii=False, indent=1, sort_keys=True)
     sys.stdout.write("\n")

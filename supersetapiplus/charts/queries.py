@@ -52,7 +52,7 @@ class AdhocColumn(SerializableModel):
     hasCustomLabel: SerializableOptional[bool] = field(default=None)
     label: str = default_string()
     sqlExpression: str = default_string()
-    timeGrain: SerializableOptional[str] = field(default=None)
+    timeGrain: SerializableOptional[TimeGrain] = field(default=None)
     columnType: SerializableOptional[ColumnType] = field(default=None)
 
 

@@ -15,6 +15,7 @@ from supersetapiplus.charts.metric import (
 from supersetapiplus.charts.queries import CurrencyFormat
 from supersetapiplus.charts.types import (
     ChartType,
+    ComparisonType,
     FilterClausesType,
     FilterExpressionType,
     FilterOperatorType,
@@ -37,7 +38,7 @@ class ChartVisualOptionsMixin:
     show_legend: SerializableOptional[bool] = True
     legendType: LegendType = field(default_factory=lambda: LegendType.SCROLL)
     legendOrientation: LegendOrientationType = field(default_factory=lambda: LegendOrientationType.TOP)
-    legendMargin: str = None
+    legendMargin: SerializableOptional[int] = None  # TextControl with isInt: a number or null
     currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default=None)
 
 
@@ -99,7 +100,7 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
     time_grain_sqla: SerializableOptional[TimeGrain] = field(default=None)
     order_desc: SerializableOptional[bool] = field(default=None)
 
-    comparison_type: SerializableOptional[str] = field(default=None)
+    comparison_type: SerializableOptional[ComparisonType] = field(default=None)
 
     def validate(self):
         super().validate()

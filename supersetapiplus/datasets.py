@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 from supersetapiplus.base.base import ApiModelFactories, QueryStringFilter, SerializableModel
 from supersetapiplus.base.datasource import DataSource
+from supersetapiplus.base.types import DatasourceKind, DatasourceType
 from supersetapiplus.exceptions import NotFound
 from supersetapiplus.query_string import QueryOperator
 
@@ -28,9 +29,9 @@ class Dataset(SerializableModel):
     schema: str = ""
     columns: list = field(default_factory=list)
     description: str = ""
-    kind: str = ""
+    kind: DatasourceKind | None = None  # read-only: virtual when the dataset has sql
     database_id: int | None = None
-    datasource_type: str = ""
+    datasource_type: DatasourceType | None = None  # read-only
     sql: str = ""
 
     @classmethod
