@@ -11,6 +11,7 @@ register a database, SUPERSET_TEST_DATABASE_URI (URI as seen by the Superset ser
 The tests create their own objects (prefix "zz-superset-api-plus-test") and remove them at the end.
 """
 import importlib
+import json
 import os
 import uuid
 import zipfile
@@ -148,6 +149,20 @@ def test_chart_created_in_code_round_trips(client, dataset, viz_type):
         fetched.slice_name = f"{chart.slice_name}-changed"
         fetched.save()
         assert client.charts.get(chart.id).slice_name.endswith("-changed")
+    finally:
+        assert client.charts.delete(chart.id)
+
+
+@pytest.mark.parametrize("viz_type", ["table", "pie", "pivot_table_v2", "word_cloud"])
+def test_chart_created_in_code_returns_data_from_its_query_context(client, dataset, viz_type):
+    chart = new_chart(viz_type, dataset)
+
+    client.charts.add(chart)
+    try:
+        stored = client.get(client.join_urls(client.charts.base_url, chart.id)).json()["result"]["query_context"]
+        assert json.loads(stored) == chart.ui_query_context()
+        (result, *_) = client.charts.get_chart_data(chart.id)
+        assert {value for row in result["data"] for value in row.values()} >= {"North", "South"}
     finally:
         assert client.charts.delete(chart.id)
 

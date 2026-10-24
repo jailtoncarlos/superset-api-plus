@@ -1,0 +1,10 @@
+{
+ "big_number_total": "Big Number",
+ "box_plot": "Box Plot",
+ "echarts_timeseries_bar": "Bar",
+ "mixed_timeseries": "Mixed",
+ "pie": "Pie",
+ "pivot_table_v2": "Pivot Table",
+ "table": "Table",
+ "word_cloud": "Word Cloud"
+}

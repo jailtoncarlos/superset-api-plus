@@ -63,6 +63,15 @@ class PivotTableV2Option(TableOptionBase):
     def __post_init__(self):
         super().__post_init__()
         self.groupby = None
+        # The pivot has no groupby control: its dimensions are groupbyRows/groupbyColumns, both optional.
+        self._require_groupby = False
+
+    def _editable_groupby(self) -> list:
+        # The pivot buildQuery reads only groupbyColumns/groupbyRows: dimensions added in code are rows,
+        # as the "Rows" control in Explore.
+        if not isinstance(self.groupbyRows, list):
+            self.groupbyRows = []
+        return self.groupbyRows
 
 
 @dataclass()

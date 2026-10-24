@@ -58,7 +58,8 @@ def test_pie_created_in_code_serializes_orderby_without_extra_nesting():
 
     data = chart.to_json()
 
-    assert json.loads(data["query_context"])["queries"][0]["orderby"] == [["count", True]]
+    # Pie/buildQuery.ts: sort_by_metric orders by the metric, descending.
+    assert json.loads(data["query_context"])["queries"][0]["orderby"] == [["count", False]]
     assert json.loads(data["params"])["sort_by_metric"] is True
 
 

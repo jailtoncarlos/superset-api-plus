@@ -1,5 +1,6 @@
 """Charts."""
 import copy
+import json
 import logging
 from abc import abstractmethod
 from dataclasses import dataclass, field
@@ -9,6 +10,7 @@ from typing_extensions import Self
 from supersetapiplus.base.base import ApiModelFactories, SerializableModel
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.base.types import DatasourceType
+from supersetapiplus.charts.build_query import query_context_for
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import AdhocMetricColumn
@@ -84,6 +86,10 @@ class Chart(SerializableModel):
 
         if not hasattr(self, "params") or self.params is None:
             self.params = self._default_option_class()()  # Assumes the concrete subclass defines this method
+
+        # Charts built in code send the query_context the Superset UI would derive from params
+        # (build_query); charts read from Superset keep the stored one (lossless round trip).
+        self._derive_query_context = self.id is None
 
         if self.id is None:
             if self.datasource_id is None:
@@ -233,8 +239,24 @@ class Chart(SerializableModel):
     def add_extra_having(self, sql: str):
         self.query_context._add_extra_having(sql)
 
+    def derive_query_context(self, enabled: bool = True) -> None:
+        """Rebuild the query_context from params on the next save, as Explore does when the chart is saved.
+
+        Enabled automatically for charts built in code; call it on a chart read from Superset after
+        changing its params, so the stored query_context (used by /chart/{id}/data, reports and cache
+        warm-up) follows them.
+        """
+        self._derive_query_context = enabled
+
+    def ui_query_context(self) -> dict:
+        """Query context the Superset UI derives from the current params (frontend buildQuery, 6.1.0)."""
+        return query_context_for(self.params.to_dict())
+
     def to_json(self, columns: list = None) -> dict:
         data = super().to_json(columns).copy()
+        if getattr(self, '_derive_query_context', False) and 'query_context' in data \
+                and isinstance(self.params, SerializableModel):
+            data['query_context'] = json.dumps(self.ui_query_context())
         return data
 
     @classmethod
@@ -267,6 +289,7 @@ class Chart(SerializableModel):
             obj.datasource_type = DatasourceType(datasource_type)
 
         obj._fill_datasource()
+        obj._derive_query_context = obj.id is None
         return obj
 
 
