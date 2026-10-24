@@ -7,6 +7,11 @@ in Explore with a headless browser and records the body of the `POST /api/v1/cha
 request. Instance-dependent values (datasource id) are removed, so the output is deterministic
 for the same version and the same example charts.
 
+Legacy plugins (`useLegacyApi`, e.g. cal_heatmap) do not call /api/v1/chart/data, and the examples have
+no cal_heatmap. For them the script creates a chart with the fixed params in LEGACY_CHARTS on an example
+dataset, saves it through Explore (Save, overwrite) and records the query_context of the PUT the frontend
+sends (`saveModalActions` → `buildV1ChartDataPayload`); the chart is removed afterwards.
+
 Requires the test stack with the public examples (SUPERSET_LOAD_EXAMPLES=1) and Playwright
 (`pip install playwright`; it uses the installed Chromium or `CHROME_PATH`).
 
@@ -28,6 +33,16 @@ from supersetapiplus.client import SupersetClient  # noqa: E402
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter  # noqa: E402
 
 CHART_DATA = "/api/v1/chart/data"
+LEGACY_DATASET = "cleaned_sales_data"
+# Legacy charts captured on save: viz_type -> params (controlPanel defaults of the plugin, Superset 6.1.0).
+LEGACY_CHARTS = {
+    "cal_heatmap": {
+        "granularity_sqla": "order_date", "time_range": "No filter", "metrics": ["count"], "adhoc_filters": [],
+        "domain_granularity": "month", "subdomain_granularity": "day", "linear_color_scheme": "blue_white_yellow",
+        "cell_size": 10, "cell_padding": 2, "cell_radius": 0, "steps": 10, "y_axis_format": "SMART_NUMBER",
+        "x_axis_time_format": "smart_date", "show_legend": True, "show_values": False, "show_metric_name": True,
+    },
+}
 TIMEOUT_MS = 60_000
 
 
@@ -82,6 +97,25 @@ def capture(page, url: str, pk: int) -> dict:
     return json.loads(info.value.post_data)
 
 
+def capture_on_save(client: SupersetClient, page, url: str, viz_type: str, params: dict) -> dict:
+    """Query context sent by Explore when a legacy chart is saved."""
+    datasource = client.datasets.get_datasource(LEGACY_DATASET)
+    params = {"viz_type": viz_type, "datasource": f"{datasource.id}__table", **params}
+    pk = client.post(client.charts.base_url, json={
+        "slice_name": f"superset-api-plus-reference-{viz_type}", "viz_type": viz_type, "datasource_id": datasource.id,
+        "datasource_type": "table", "params": json.dumps(params)}).json()["id"]
+    try:
+        page.goto(f"{url}/explore/?slice_id={pk}")
+        page.wait_for_load_state("networkidle")
+        page.click('[data-test="query-save-button"]')
+        with page.expect_request(lambda r: r.method == "PUT" and f"/api/v1/chart/{pk}" in r.url,
+                                 timeout=TIMEOUT_MS) as info:
+            page.click('[data-test="btn-modal-save"]')
+        return json.loads(json.loads(info.value.post_data)["query_context"])
+    finally:
+        client.charts.delete(pk)
+
+
 def main(version: str) -> None:
     url = os.environ["SUPERSET_URL"].rstrip("/")
     client = SupersetClient(url, os.environ["SUPERSET_USERNAME"], os.environ["SUPERSET_PASSWORD"])
@@ -105,6 +139,9 @@ def main(version: str) -> None:
                 continue
             write_json(target_dir / f"{viz_type}.json", normalize(capture(page, f"{url}/explore/?slice_id={pk}", pk)))
             captured[viz_type] = entry["slice_name"]
+        for viz_type, params in LEGACY_CHARTS.items():
+            write_json(target_dir / f"{viz_type}.json", normalize(capture_on_save(client, page, url, viz_type, params)))
+            captured[viz_type] = f"saved from Explore (params in LEGACY_CHARTS, dataset {LEGACY_DATASET})"
         browser.close()
 
     write_json(target_dir / "INDEX.json", captured)

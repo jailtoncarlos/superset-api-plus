@@ -1,6 +1,7 @@
 {
  "big_number_total": "Big Number",
  "box_plot": "Box Plot",
+ "cal_heatmap": "saved from Explore (params in LEGACY_CHARTS, dataset cleaned_sales_data)",
  "echarts_timeseries_bar": "Bar",
  "mixed_timeseries": "Mixed",
  "pie": "Pie",

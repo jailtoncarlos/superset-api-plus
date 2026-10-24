@@ -24,8 +24,10 @@ def form_data_of(viz_type: str) -> dict:
     """The form_data given to buildQuery. For mixed_timeseries the request carries the form data of query A
     only (removeFormDataSuffix), so the "_b" controls come from the saved chart params."""
     form_data = dict(json.loads((CAPTURES / f"{viz_type}.json").read_text())["form_data"])
-    params = json.loads(json.loads((FIXTURES / "ui_references_6.1.0" / f"{viz_type}.json").read_text())["params"])
-    form_data.update({k: v for k, v in params.items() if k.endswith("_b")})
+    saved = FIXTURES / "ui_references_6.1.0" / f"{viz_type}.json"
+    if saved.exists():  # legacy charts captured on save (cal_heatmap) have no example reference
+        params = json.loads(json.loads(saved.read_text())["params"])
+        form_data.update({k: v for k, v in params.items() if k.endswith("_b")})
     return form_data
 
 
@@ -131,7 +133,7 @@ def test_box_plot_percentile_whiskers():
 
 
 def test_unknown_viz_type_uses_the_generic_query():
-    (query,) = bq.query_context_for({**BASE, "viz_type": "cal_heatmap", "metrics": ["count"]})["queries"]
+    (query,) = bq.query_context_for({**BASE, "viz_type": "unknown_plugin", "metrics": ["count"]})["queries"]
 
     assert query["metrics"] == ["count"] and query["columns"] == []
 
