@@ -1,8 +1,6 @@
 """Dashboard: json_metadata/position_json round trip and consistency of the layout built in code."""
 import json
 
-import pytest
-
 from supersetapiplus.charts.table import TableChart
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.metadataposition import Metadataposition
@@ -51,7 +49,6 @@ def test_json_metadata_round_trips_without_loss():
     assert field(Dashboard.from_json(exported()), "json_metadata") == METADATA
 
 
-@pytest.mark.xfail(strict=True, reason="position_json round trip is not lossless yet (issue #300)")
 def test_position_json_round_trips_without_loss():
     assert field(Dashboard.from_json(exported()), "position_json") == POSITION
 

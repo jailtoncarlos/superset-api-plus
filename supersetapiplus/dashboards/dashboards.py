@@ -3,9 +3,8 @@ from dataclasses import dataclass, field
 
 from supersetapiplus.base.base import ApiModelFactories, SerializableModel, UnsupportedObject
 from supersetapiplus.base.fields import object_field
+from supersetapiplus.dashboards.layout import DashboardLayout
 from supersetapiplus.dashboards.metadata import Metadata
-from supersetapiplus.dashboards.metadataposition import Metadataposition
-from supersetapiplus.dashboards.nodeposisition import RowNodePosition
 from supersetapiplus.exceptions import DashboardValidationError, UnsupportedTypeError
 from supersetapiplus.typing import SerializableOptional
 
@@ -15,7 +14,7 @@ def defult_metadata():
 
 
 def defult_metadata_position():
-    return Metadataposition()
+    return DashboardLayout.empty()
 
 
 @dataclass
@@ -41,9 +40,8 @@ class Dashboard(SerializableModel):
     slug: SerializableOptional[str] = field(default=None)
 
     json_metadata: Metadata = object_field(cls=Metadata, default_factory=Metadata)
-    position_json: SerializableOptional[Metadataposition] = object_field(cls=Metadataposition,
-                                                                         default_factory=Metadataposition)
-    # charts: List[Chart] = field(default_factory=Chart)
+    position_json: SerializableOptional[DashboardLayout] = object_field(cls=DashboardLayout,
+                                                                        default_factory=DashboardLayout.empty)
 
     def __post_init__(self):
         super().__post_init__()
@@ -67,7 +65,21 @@ class Dashboard(SerializableModel):
     def position(self):
         return self.position_json
 
-    def add_chart(self, chart, title: str, parent=None, height: int = 50, width: int = 4, relocate: bool = True):
+    def reset_layout(self) -> DashboardLayout:
+        """Replaces the layout with an empty one (root, grid and title header); returns the new layout."""
+        self.position_json = DashboardLayout.empty(self.dashboard_title)
+        return self.position_json
+
+    def to_dict(self, columns: list = None, convert_to_json: bool = False) -> dict:
+        # Native filter scopes (chartsInScope/tabsInScope) are derived from the layout, as the editor does.
+        if isinstance(self.position_json, DashboardLayout):
+            if self.position_json.created_by_library:
+                self.position_json.set_title(self.dashboard_title)
+            if isinstance(self.json_metadata, Metadata):
+                self.json_metadata.update_native_filter_scopes(self.position_json)
+        return super().to_dict(columns, convert_to_json)
+
+    def add_chart(self, chart, title: str, parent=None, height: int = 50, width: int = 4, id: str | None = None):
         """
         Places the chart in the layout and associates it with this dashboard in Superset.
 
@@ -83,13 +95,8 @@ class Dashboard(SerializableModel):
             charts.add(chart)
 
         self.metadata.add_chart(chart)
-        self.position.add_chart(chart, title, parent or self._last_row_or_grid(), height, width, relocate)
+        self.position.add_chart(chart, title=title, parent=parent, height=height, width=width, id=id)
         charts.add_to_dashboard(chart, self.id)
-
-    def _last_row_or_grid(self):
-        grid = self.position.tree.grid
-        last = grid.children[-1] if grid.children else None
-        return last if isinstance(last, RowNodePosition) else grid
 
     @property
     def colors(self) -> dict:
@@ -140,7 +147,7 @@ class Dashboards(ApiModelFactories):
         """
         if not dashboard.id:
             raise DashboardValidationError('Save the dashboard before attaching charts (dashboard.id is empty).')
-        chart_ids = dashboard.position.tree.chart_ids()
+        chart_ids = dashboard.position.chart_ids()
         for chart_id in chart_ids:
             self.client.charts.add_to_dashboard(chart_id, dashboard.id)
         return chart_ids

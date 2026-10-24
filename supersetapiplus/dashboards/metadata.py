@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 
 from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.fields import default_string, object_field
+from supersetapiplus.dashboards import native_filters
 from supersetapiplus.typing import SerializableOptional
 
 
@@ -51,7 +52,46 @@ class Metadata(SerializableModel):
                                                                         default_factory=GlobalChartconfiguration)
     default_filters: SerializableOptional[dict] = field(default=None)
 
-    native_filter_configuration: SerializableOptional[dict] = field(default=None)
+    # List of native filters and dividers, kept as the dicts Superset stores (see native_filters).
+    native_filter_configuration: SerializableOptional[list] = field(default=None)
+
+    def __post_init__(self):
+        super().__post_init__()
+        # Ids of the native filter items created by the library: only their scopes are recomputed.
+        self._library_filter_ids = set()
+
+    def clear_native_filters(self) -> None:
+        self.native_filter_configuration = []
+        self._library_filter_ids = set()
+
+    def add_filter_divider(self, title: str, description: str = "", id: str | None = None):
+        """Section divider in the native filter bar."""
+        return self._add_native_item(native_filters.divider_config(title, description, id))
+
+    def add_native_filter(self, name: str, dataset, column: str | None = None, parent=None, **options):
+        """Native filter on `column` of `dataset` (a saved Dataset, its id or its uuid).
+
+        `parent` is a filter (or a list of filters) returned by this method: the new filter depends on them
+        (``cascadeParentIds``). Other options are those of :func:`native_filters.filter_config`, for example
+        ``adhoc_filters=[...]``, ``multiSelect=True`` or ``inverseSelection=True``.
+        """
+        parents = parent if isinstance(parent, (list, tuple)) else [parent] if parent else []
+        return self._add_native_item(native_filters.filter_config(name, dataset, column, parents, **options))
+
+    def update_native_filter_scopes(self, layout) -> None:
+        """Sets chartsInScope/tabsInScope of the items created by the library from the dashboard layout."""
+        for item in self.native_filter_configuration or []:
+            if item.get("id") in self._library_filter_ids:
+                scope = item.get("scope") or native_filters.root_scope()
+                item["chartsInScope"], item["tabsInScope"] = layout.charts_and_tabs_in_scope(
+                    scope.get("rootPath", []), scope.get("excluded", []))
+
+    def _add_native_item(self, config: dict):
+        if not isinstance(self.native_filter_configuration, list):
+            self.native_filter_configuration = []
+        self.native_filter_configuration.append(config)
+        self._library_filter_ids.add(config["id"])
+        return native_filters.NativeFilterItem(config)
 
     def add_chart(self, chart):
         chart_configuration = ChartConfiguration(id=chart.id)

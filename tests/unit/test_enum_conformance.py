@@ -10,6 +10,8 @@ from pathlib import Path
 import pytest
 
 from supersetapiplus.charts import types as T
+from supersetapiplus.dashboards import layout as L
+from supersetapiplus.dashboards import native_filters as NF
 
 OFFICIAL = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_enums_6.1.0.json").read_text())
 
@@ -26,6 +28,13 @@ CASES = [
     (T.ResultFormat, set(OFFICIAL["backend"]["ChartDataResultFormat"].values()), set()),
     (T.ResultType, set(OFFICIAL["backend"]["ChartDataResultType"].values()), set()),
     (T.PivotAggregateFunction, set(OFFICIAL["choices"]["pivot_table_v2.aggregateFunction"]), set()),
+    (NF.FilterType, set(OFFICIAL["frontend"]["FilterPlugins"].values()), set()),
+    (NF.NativeFilterType, set(OFFICIAL["frontend"]["NativeFilterType"].values()), set()),
+    (L.Background, set(OFFICIAL["constants"]["dashboard.backgrounds"].values()), set()),
+    (L.HeaderSize, set(OFFICIAL["constants"]["dashboard.headerSizes"].values()), set()),
+    # NEW_COMPONENT_SOURCE is the editor's drag source, never stored in position_json.
+    (L.ComponentType, set(OFFICIAL["constants"]["dashboard.componentTypes"].values()) - {"NEW_COMPONENT_SOURCE"},
+     set()),
 ]
 
 

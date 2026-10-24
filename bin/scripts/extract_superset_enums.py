@@ -26,6 +26,15 @@ BACKEND = [
 # Frontend TypeScript enums: (file, enum).
 FRONTEND = [
     ("superset-frontend/src/explore/constants.ts", "Operators"),
+    ("superset-frontend/src/constants.ts", "FilterPlugins"),
+    ("superset-frontend/packages/superset-ui-core/src/query/types/Dashboard.ts", "NativeFilterType"),
+]
+
+# Frontend string constants grouped by name: (key, file, regex on the constant name).
+CONSTANTS = [
+    ("dashboard.componentTypes", "superset-frontend/src/dashboard/util/componentTypes.ts", r"_TYPE$"),
+    ("dashboard.headerSizes", "superset-frontend/src/dashboard/util/constants.ts", r"_HEADER$"),
+    ("dashboard.backgrounds", "superset-frontend/src/dashboard/util/constants.ts", r"^BACKGROUND_"),
 ]
 
 # controlPanel control `choices`: (key, file, control name).
@@ -58,6 +67,11 @@ def typescript_enum(source: str, name: str) -> dict[str, str]:
     return dict(re.findall(r"(\w+)\s*=\s*'([^']*)'", body.group(1)))
 
 
+def typescript_constants(source: str, name_pattern: str) -> dict[str, str]:
+    found = dict(re.findall(r"export const (\w+) = '([^']*)';", source))
+    return {name: value for name, value in found.items() if re.search(name_pattern, name)}
+
+
 def control_choices(source: str, control: str) -> list[str]:
     block = re.search(rf"name:\s*'{control}'.*?choices:\s*\[(.*?)\n\s*\],", source, re.S)
     if not block:
@@ -78,6 +92,7 @@ def main(version: str) -> None:
         "backend": {cls: python_enum(source(file), cls) for file, cls in BACKEND},
         "frontend": {name: typescript_enum(source(file), name) for file, name in FRONTEND},
         "choices": {key: control_choices(source(file), control) for key, file, control in CHOICES},
+        "constants": {key: typescript_constants(source(file), pattern) for key, file, pattern in CONSTANTS},
     }
     json.dump(subset, sys.stdout, ensure_ascii=False, indent=1, sort_keys=True)
     sys.stdout.write("\n")

@@ -61,7 +61,14 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   `client.datasets.find_one(QueryStringFilter)`, `client.charts.find_one(..., full=True)`,
   `client.charts.add(chart)`, `chart.save()`, `Chart.get_class(viz_type, module)`,
   `supersetapiplus.charts.charts.Chart`, `supersetapiplus.query_string.{QueryStringFilter, QueryOperator}`,
-  `supersetapiplus.exceptions.NotFound`, `client.dashboards.attach_charts(dashboard)`.
+  `supersetapiplus.exceptions.NotFound`, `client.dashboards.attach_charts(dashboard)`,
+  `dashboard.reset_layout()`, the `position_json` builder (`add_tabs`, `add_tab`, `add_row`, `add_markdown`,
+  `add_divider`, `add_chart`), `supersetapiplus.dashboards.layout.ChartRef` and the `json_metadata` native
+  filter methods (`clear_native_filters`, `add_filter_divider`, `add_native_filter`).
+- **Dashboard layout** (`dashboards/layout.py`): `position_json` is kept as the flat component map Superset
+  stores, so a read-and-save is lossless. Top-level tabs live inside the grid (`ROOT → GRID → TABS`), as
+  in dashboards exported by Superset. Native filter scopes (`chartsInScope`/`tabsInScope`) are computed
+  only for items created by the library; items loaded from Superset are written back untouched.
 - **Chart ↔ dashboard association** is done with `Charts.add_to_dashboard` / `Dashboards.attach_charts`
   (PUT of `dashboards` on the chart); `chart.save()` does not send `dashboards`.
 

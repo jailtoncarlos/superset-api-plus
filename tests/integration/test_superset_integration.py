@@ -219,3 +219,31 @@ def test_chart_is_associated_with_the_dashboard_through_the_layout(client, datas
     finally:
         client.dashboards.delete(dashboard.id)
         client.charts.delete(chart.id)
+
+
+def test_dashboard_layout_and_native_filters_are_stored_as_built(client, dataset):
+    chart = new_chart("table", dataset)
+    client.charts.add(chart)
+    dashboard = Dashboard(dashboard_title=unique_name("dash-layout"))
+    client.dashboards.add(dashboard)
+    try:
+        pos = dashboard.reset_layout()
+        tab = pos.add_tab("Overview", parent=pos.add_tabs())
+        pos.add_markdown("## Section", parent=pos.add_row(parent=tab), height=None, width=12)
+        pos.add_chart(chart, title="Renamed", parent=pos.add_row(parent=tab), width=6, id="CHART-main")
+        meta = dashboard.json_metadata
+        meta.clear_native_filters()
+        meta.add_filter_divider("Section", "Filters of the section")
+        parent = meta.add_native_filter("Campus", dataset, "campus")
+        meta.add_native_filter("Campus again", dataset, "campus", parent=[parent], inverseSelection=True)
+        dashboard.save()
+        client.dashboards.attach_charts(dashboard)
+
+        stored = client.dashboards.get(dashboard.id)
+        assert stored.position_json.to_dict() == dashboard.position_json.to_dict()
+        assert stored.json_metadata.native_filter_configuration == dashboard.json_metadata.native_filter_configuration
+        assert stored.json_metadata.native_filter_configuration[1]["chartsInScope"] == [chart.id]
+        assert [c.id for c in stored.get_charts()] == [chart.id]
+    finally:
+        client.dashboards.delete(dashboard.id)
+        client.charts.delete(chart.id)

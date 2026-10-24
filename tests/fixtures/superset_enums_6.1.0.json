@@ -80,7 +80,44 @@
    "Count as Fraction of Columns"
   ]
  },
+ "constants": {
+  "dashboard.backgrounds": {
+   "BACKGROUND_TRANSPARENT": "BACKGROUND_TRANSPARENT",
+   "BACKGROUND_WHITE": "BACKGROUND_WHITE"
+  },
+  "dashboard.componentTypes": {
+   "CHART_TYPE": "CHART",
+   "COLUMN_TYPE": "COLUMN",
+   "DASHBOARD_GRID_TYPE": "GRID",
+   "DASHBOARD_HEADER_TYPE": "HEADER",
+   "DASHBOARD_ROOT_TYPE": "ROOT",
+   "DIVIDER_TYPE": "DIVIDER",
+   "DYNAMIC_TYPE": "DYNAMIC",
+   "HEADER_TYPE": "HEADER",
+   "MARKDOWN_TYPE": "MARKDOWN",
+   "NEW_COMPONENT_SOURCE_TYPE": "NEW_COMPONENT_SOURCE",
+   "ROW_TYPE": "ROW",
+   "TABS_TYPE": "TABS",
+   "TAB_TYPE": "TAB"
+  },
+  "dashboard.headerSizes": {
+   "LARGE_HEADER": "LARGE_HEADER",
+   "MEDIUM_HEADER": "MEDIUM_HEADER",
+   "SMALL_HEADER": "SMALL_HEADER"
+  }
+ },
  "frontend": {
+  "FilterPlugins": {
+   "Range": "filter_range",
+   "Select": "filter_select",
+   "Time": "filter_time",
+   "TimeColumn": "filter_timecolumn",
+   "TimeGrain": "filter_timegrain"
+  },
+  "NativeFilterType": {
+   "Divider": "DIVIDER",
+   "NativeFilter": "NATIVE_FILTER"
+  },
   "Operators": {
    "CaseInsensitiveLike": "ILIKE",
    "Equals": "EQUALS",

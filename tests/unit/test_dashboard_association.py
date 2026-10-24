@@ -89,7 +89,7 @@ def test_add_chart_creates_the_chart_places_it_in_the_layout_and_associates(clie
     dashboard.add_chart(chart, "Title on the dashboard")
 
     assert chart.id == 9
-    assert dashboard.position.tree.chart_ids() == [9]
+    assert dashboard.position.chart_ids() == [9]
     assert puts(mock, "/api/v1/chart/9") == [{"dashboards": [5]}]
 
 
