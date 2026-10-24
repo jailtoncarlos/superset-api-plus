@@ -141,7 +141,8 @@ class DashboardCharts:
                     dataset_columns[dataset_id] = self._column_names(dataset_id)
                 if column not in dataset_columns[dataset_id]:
                     problems.append(f"Filter {item.get('name')!r}: column {column!r} is not in dataset {dataset_id} "
-                                    f"of chart {chart_id}.")
+                                    f"of chart {chart_id}; Superset drops the filter for that chart without an "
+                                    f"error (rejected_filters: not_in_datasource), so the chart is not filtered.")
         return problems
 
     def _chart_datasets(self, dashboard_id: int) -> dict[int, int]:

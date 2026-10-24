@@ -206,7 +206,14 @@ def test_native_filter_problems_report_a_column_missing_from_a_chart_dataset(cli
     client.dashboards.attach_charts(dashboard)
 
     assert client.dashboard_charts.native_filter_problems(dashboard) == [
-        f"Filter 'Campus': column 'campus' is not in dataset {other.id} of chart {foreign.id}."]
+        f"Filter 'Campus': column 'campus' is not in dataset {other.id} of chart {foreign.id}; Superset drops the "
+        "filter for that chart without an error (rejected_filters: not_in_datasource), so the chart is not filtered."]
+    # What the message states, observed on the server: the chart data is computed, the filter rejected.
+    form_data = {**client.charts.get(foreign.id).params.to_dict(),
+                 "extra_form_data": {"filters": [{"col": "campus", "op": "IN", "val": ["North"]}]}}
+    (result,) = client.post(client.join_urls(client.charts.base_url, "data"),
+                            json=query_context_for(form_data)).json()["result"]
+    assert result["rejected_filters"] == [{"column": "campus", "reason": "not_in_datasource"}]
 
 
 def test_owners_and_roles_are_saved_as_ids_and_read_as_objects(client, add_dashboard):
