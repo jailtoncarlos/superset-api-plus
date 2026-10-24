@@ -87,6 +87,20 @@ chart.save()  # PUT with the fields the API accepts on update
 `find_all()` walks every page and `count()` returns the total for a filter. The same methods exist on
 `client.dashboards`, `client.datasets`, `client.databases` and `client.saved_queries`.
 
+Datasets:
+
+```python
+dataset = client.datasets.get_or_create("sales", database, schema="public")  # physical table
+dataset.add_metric("revenue", "SUM(price * quantity)", d3format=",.2f")       # same name: updated
+dataset.add_calculated_column("year", "EXTRACT(YEAR FROM sold_at)", type="INTEGER")
+dataset.save()                 # metrics and columns are sent whole: Superset deletes the ones left out
+dataset = dataset.refresh()    # columns synced with the table
+copy = client.datasets.get(virtual_id).duplicate("sales_copy")              # virtual datasets only
+```
+
+`add_metric` and `add_calculated_column` need a dataset read with `client.datasets.get` (or returned by
+the methods above): only it holds the stored metrics and columns.
+
 ## Creating a chart
 
 ```python

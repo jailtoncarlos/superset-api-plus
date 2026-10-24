@@ -19,8 +19,10 @@ reorganized, tested package.
   the charts in scope.
 * Charts: the frontend `buildQuery` ported (`charts/build_query.py`), so charts built in code store the
   `query_context` Explore derives; UI defaults for new charts; `derive_query_context()`.
-* Datasets: saved metrics (`add_metric()`), time column and the other update fields; databases: the
-  Superset 6 connection fields; `delete_many()` on every resource.
+* Datasets: saved metrics (`add_metric()`) and calculated columns (`add_calculated_column()`), merged by name
+  and sent whole (Superset deletes the ones left out), `refresh()`, `duplicate()`,
+  `client.datasets.get_or_create()`, time column and the other update fields; databases: the Superset 6
+  connection fields; `delete_many()` on every resource.
 * Quality gates: complexity ratchet, OpenAPI and source-code conformance, model attribute checks and layer
   contracts as pre-commit hooks; integration tests against a real Superset in CI.
 

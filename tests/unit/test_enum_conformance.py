@@ -169,6 +169,13 @@ def test_dashboard_grid_limits_are_the_editor_ones():
                                        grid["GRID_DEFAULT_CHART_WIDTH"])
 
 
+def test_dataset_metric_and_column_keys_are_those_of_the_update_schemas():
+    from supersetapiplus.resources.datasets import Dataset
+
+    assert set(Dataset.METRIC_FIELDS) == set(OFFICIAL["schemas"]["DatasetMetricsPutSchema"])
+    assert set(Dataset.COLUMN_FIELDS) == set(OFFICIAL["schemas"]["DatasetColumnsPutSchema"])
+
+
 def test_removed_viz_types_are_the_ones_superset_migrated():
     from supersetapiplus.charts.types.viz import REMOVED_VIZ_TYPES
 

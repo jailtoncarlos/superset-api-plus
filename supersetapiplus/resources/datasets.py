@@ -8,7 +8,7 @@ from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.core.types import DatasourceKind, DatasourceType
 from supersetapiplus.core.typing import SerializableOptional
-from supersetapiplus.exceptions import NotFound
+from supersetapiplus.exceptions import NotFound, ValidationError
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 from supersetapiplus.resources.repository import ApiModelFactories
 
@@ -35,6 +35,10 @@ class Dataset(SerializableModel):
     # also returns read-only keys (changed_on, created_on...) that PUT rejects.
     METRIC_FIELDS = ("id", "expression", "description", "extra", "metric_name", "metric_type", "d3format",
                      "currency", "verbose_name", "warning_text", "uuid")
+    # Keys of a column accepted on update (DatasetColumnsPutSchema); columns are sent only after a change.
+    COLUMN_FIELDS = ("id", "column_name", "type", "advanced_data_type", "verbose_name", "description", "expression",
+                     "extra", "filterable", "groupby", "is_active", "is_dttm", "python_date_format",
+                     "datetime_format", "uuid")
 
     id: int | None = field(default=None)
     table_name: str = ""
@@ -62,6 +66,8 @@ class Dataset(SerializableModel):
     offset: SerializableOptional[int] = field(default=None)
     external_url: SerializableOptional[str] = field(default=None)
     is_managed_externally: SerializableOptional[bool] = field(default=None)
+    # Set by add_calculated_column: columns are sent only after a change (not a dataclass field).
+    _columns_changed = False
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> Self:
@@ -74,18 +80,62 @@ class Dataset(SerializableModel):
 
     def add_metric(self, metric_name: str, expression: str, verbose_name: str | None = None,
                    d3format: str | None = None, description: str | None = None) -> dict[str, Any]:
-        """Saved metric of the dataset (sent on the next save); returns the metric dict."""
-        metric = {"metric_name": metric_name, "expression": expression}
-        metric.update({key: value for key, value in (("verbose_name", verbose_name), ("d3format", d3format),
-                                                     ("description", description)) if value is not None})
-        if not isinstance(self.metrics, list):
-            self.metrics = []
-        self.metrics.append(metric)
-        return metric
+        """Saved metric of the dataset, sent on the next save; a metric with the same name is updated (its id
+        is kept). Returns the metric dict. The dataset must be read with ``client.datasets.get`` (see
+        :meth:`_stored_list`)."""
+        values = {"metric_name": metric_name, "expression": expression, "verbose_name": verbose_name,
+                  "d3format": d3format, "description": description}
+        return _merge_by_name(self._stored_list("metrics"), "metric_name", values)
+
+    def add_calculated_column(self, column_name: str, expression: str, verbose_name: str | None = None,
+                              type: str | None = None, is_dttm: bool | None = None,
+                              description: str | None = None) -> dict[str, Any]:
+        """Calculated column (a SQL expression) of the dataset, sent on the next save; a calculated column with
+        the same name is updated (its id is kept). Returns the column dict. The dataset must be read with
+        ``client.datasets.get`` (see :meth:`_stored_list`)."""
+        columns = self._stored_list("columns")
+        physical = next((c for c in columns if c.get("column_name") == column_name and not c.get("expression")), None)
+        if physical is not None:
+            raise ValidationError(f"{column_name!r} is a column of the table, not a calculated column.",
+                                  solution="Choose another name for the calculated column.")
+        values = {"column_name": column_name, "expression": expression, "verbose_name": verbose_name,
+                  "type": type, "is_dttm": is_dttm, "description": description}
+        self._columns_changed = True
+        return _merge_by_name(columns, "column_name", values)
+
+    def _stored_list(self, field_name: str) -> list[dict[str, Any]]:
+        """`metrics` or `columns` as read from Superset, to be changed and sent back whole.
+
+        Superset replaces the whole list on update (DatasetDAO.update_metrics/update_columns delete the items
+        left out) and does not take it when creating a dataset; only a dataset read with
+        ``client.datasets.get`` (the list endpoint does not return them) has the complete list.
+        """
+        current = getattr(self, field_name)
+        if not self.id or not self._read_from_superset or not isinstance(current, list):
+            raise ValidationError(f"Read the dataset with client.datasets.get(id) before changing its {field_name}.",
+                                  solution=f"Superset replaces all the {field_name} of a dataset on save: the ones "
+                                           "not sent are deleted, so the dataset must hold the stored list.")
+        return current
+
+    def refresh(self) -> "Dataset":
+        """Syncs the columns with the table in the database (PUT /dataset/{pk}/refresh); returns the dataset
+        read again."""
+        repository = self._repository()
+        repository.refresh(self.id)
+        refreshed: Dataset = repository.get(self.id)
+        return refreshed
+
+    def duplicate(self, table_name: str) -> "Dataset":
+        """Copy of this virtual dataset named `table_name` (POST /dataset/duplicate); returns the copy."""
+        duplicated: Dataset = self._repository().duplicate(self.id, table_name)
+        return duplicated
 
     def to_json(self, columns: list[str] | None = None) -> dict[str, Any]:
         o = super().to_json(columns)
         o.pop("columns", None)
+        if self._columns_changed and isinstance(self.columns, list):  # sent whole, with the update keys only
+            o["columns"] = [{key: value for key, value in column.items() if key in self.COLUMN_FIELDS}
+                            for column in self.columns]
         if isinstance(o.get("metrics"), list):
             o["metrics"] = [{key: value for key, value in metric.items() if key in self.METRIC_FIELDS}
                             for metric in o["metrics"]]
@@ -113,5 +163,43 @@ class Datasets(ApiModelFactories):
             raise NotFound(f"Dataset '{name}' not found.")
         return DataSource(id=result[0]['id'], type=result[0]['datasource_type'])
 
+    def refresh(self, dataset_id: int) -> None:
+        """Syncs the dataset columns with its table (PUT /dataset/{pk}/refresh)."""
+        self.client.put(self.client.join_urls(self.object_url(dataset_id), "refresh"))
+
+    def duplicate(self, dataset_id: int, table_name: str) -> Dataset:
+        """Copy of a virtual dataset named `table_name` (POST /dataset/duplicate; Superset rejects physical
+        datasets with 422). Returns the copy, read from Superset."""
+        url = self.client.join_urls(self.base_url, "duplicate")
+        new_id = self.client.post(url, json={"base_model_id": dataset_id, "table_name": table_name}).json()["id"]
+        duplicated: Dataset = self.get(new_id)
+        return duplicated
+
+    def get_or_create(self, table_name: str, database: Any, schema: str | None = None,
+                      catalog: str | None = None, **options: Any) -> Dataset:
+        """The dataset of a physical table, created when it does not exist (POST /dataset/get_or_create/).
+
+        `database` is a Database or its id; `options` are the other fields of GetOrCreateDatasetSchema
+        (``template_params``, ``normalize_columns``, ``always_filter_main_dttm``). A table missing from the
+        database raises UnprocessableEntityError.
+        """
+        body = {"table_name": table_name, "database_id": getattr(database, "id", database), "schema": schema,
+                "catalog": catalog, **options}
+        url = self.client.join_urls(self.base_url, "get_or_create/")
+        result = self.client.post(url, json={k: v for k, v in body.items() if v is not None}).json()["result"]
+        dataset: Dataset = self.get(result["table_id"])
+        return dataset
+
     def _default_object_class(self) -> type[SerializableModel]:
         return Dataset
+
+
+def _merge_by_name(items: list[dict[str, Any]], name_key: str, values: dict[str, Any]) -> dict[str, Any]:
+    """Updates the item named like `values` (keeping its id and other keys) or appends a new one."""
+    given = {key: value for key, value in values.items() if value is not None}
+    item = next((existing for existing in items if existing.get(name_key) == given[name_key]), None)
+    if item is None:
+        item = {}
+        items.append(item)
+    item.update(given)
+    return item

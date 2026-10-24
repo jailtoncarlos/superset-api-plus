@@ -37,6 +37,9 @@ BACKEND = [
 # not detail): (file, class).
 SCHEMAS = [
     ("superset/datasets/schemas.py", "DatasetMetricsPutSchema"),
+    ("superset/datasets/schemas.py", "DatasetColumnsPutSchema"),
+    ("superset/datasets/schemas.py", "DatasetDuplicateSchema"),
+    ("superset/datasets/schemas.py", "GetOrCreateDatasetSchema"),
 ]
 
 # Frontend TypeScript enums: (file, enum).

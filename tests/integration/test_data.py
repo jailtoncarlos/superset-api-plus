@@ -2,11 +2,12 @@
 import pytest
 
 from supersetapiplus.databases import Database
-from supersetapiplus.exceptions import BadRequestError, NotFound
+from supersetapiplus.datasets import Dataset
+from supersetapiplus.exceptions import BadRequestError, NotFound, UnprocessableEntityError
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 from supersetapiplus.saved_queries import SavedQuery
 
-from .conftest import unique_name
+from .conftest import SQL_DATASET, unique_name
 
 
 def test_database_created_and_read(client, database):
@@ -91,3 +92,59 @@ def test_listing_operators_select_the_expected_charts(client, add_chart):
     assert found("viz_type", QueryOperator.IN, ["table", "pie"]) == {table.id, pie.id}
     assert found("slice_name", QueryOperator.STARTS_WITH, table.slice_name) == {table.id}
     assert found("slice_name", QueryOperator.CONTAINS, pie.slice_name[-6:]) == {pie.id}
+
+
+def test_metrics_and_calculated_columns_are_merged_and_saved_without_losing_the_existing(client, database, cleanup):
+    dataset = Dataset(table_name=unique_name("ds-merge"), schema="public", sql=SQL_DATASET, database_id=database.id)
+    cleanup.dataset(client.datasets.add(dataset))
+    first = client.datasets.get(dataset.id)
+    first.add_metric("zz_total", "SUM(total)")
+    first.save()
+
+    second = client.datasets.get(dataset.id)
+    total_id = next(m["id"] for m in second.metrics if m["metric_name"] == "zz_total")
+    second.add_metric("zz_rows", "COUNT(*)")
+    second.add_metric("zz_total", "SUM(total) * 1", verbose_name="Total")  # same name: updated
+    second.add_calculated_column("zz_double", "total * 2", type="INTEGER")
+    second.save()
+
+    stored = client.datasets.get(dataset.id)
+    metrics = {m["metric_name"]: m for m in stored.metrics}
+    assert {"count", "zz_total", "zz_rows"} <= set(metrics)  # "count" is created by Superset with the dataset
+    assert metrics["zz_total"]["id"] == total_id
+    assert metrics["zz_total"]["expression"] == "SUM(total) * 1"
+    columns = {c["column_name"]: c for c in stored.columns}
+    assert {"campus", "total", "day", "zz_double"} <= set(columns) and columns["zz_double"]["expression"] == "total * 2"
+
+
+def test_refresh_duplicate_and_get_or_create(client, database, cleanup):
+    dataset = Dataset(table_name=unique_name("ds-ops"), schema="public", sql=SQL_DATASET, database_id=database.id)
+    cleanup.dataset(client.datasets.add(dataset))
+    stored = client.datasets.get(dataset.id)
+
+    assert {c["column_name"] for c in stored.refresh().columns} >= {"campus", "total", "day"}
+    copy = stored.duplicate(unique_name("ds-copy"))
+    cleanup.dataset(copy.id)
+    assert copy.id != stored.id and copy.sql == stored.sql
+
+    table = client.datasets.get_or_create("pg_stat_activity", database, schema="pg_catalog")
+    cleanup.dataset(table.id)
+    assert client.datasets.get_or_create("pg_stat_activity", database.id, schema="pg_catalog").id == table.id
+    with pytest.raises(UnprocessableEntityError):
+        client.datasets.get_or_create(unique_name("missing"), database, schema="public")
+
+
+def test_saving_a_read_dataset_keeps_always_filter_main_dttm_that_a_partial_put_resets(client, database, cleanup):
+    dataset = Dataset(table_name=unique_name("ds-dttm"), schema="public", sql=SQL_DATASET, database_id=database.id)
+    cleanup.dataset(client.datasets.add(dataset))
+    stored = client.datasets.get(dataset.id)
+    stored.main_dttm_col, stored.always_filter_main_dttm = "day", True
+    stored.save()
+
+    read = client.datasets.get(dataset.id)
+    read.description = "saved back as read"
+    read.save()
+    assert client.datasets.get(dataset.id).always_filter_main_dttm is True
+    # What the library avoids: DatasetPutSchema loads a missing always_filter_main_dttm as False.
+    client.put(client.datasets.object_url(dataset.id), json={"description": "partial"})
+    assert client.datasets.get(dataset.id).always_filter_main_dttm is False

@@ -513,6 +513,27 @@
   ]
  },
  "schemas": {
+  "DatasetColumnsPutSchema": [
+   "id",
+   "column_name",
+   "type",
+   "advanced_data_type",
+   "verbose_name",
+   "description",
+   "expression",
+   "extra",
+   "filterable",
+   "groupby",
+   "is_active",
+   "is_dttm",
+   "python_date_format",
+   "datetime_format",
+   "uuid"
+  ],
+  "DatasetDuplicateSchema": [
+   "base_model_id",
+   "table_name"
+  ],
   "DatasetMetricsPutSchema": [
    "id",
    "expression",
@@ -525,6 +546,15 @@
    "verbose_name",
    "warning_text",
    "uuid"
+  ],
+  "GetOrCreateDatasetSchema": [
+   "table_name",
+   "database_id",
+   "catalog",
+   "schema",
+   "template_params",
+   "normalize_columns",
+   "always_filter_main_dttm"
   ]
  },
  "superset_version": "6.1.0",
