@@ -12,6 +12,7 @@ from supersetapiplus.resources.repository import ApiModelFactories
 
 @dataclass
 class Dataset(SerializableModel):
+    """A dataset: a physical table or a virtual one (`sql`), with its saved metrics and time column."""
     JSON_FIELDS = []
     PRESERVE_EXTRA_FIELDS = False
     # Fields accepted by the API (OpenAPI 6.1.0: DatasetRestApi.post / DatasetRestApi.put).
@@ -97,6 +98,7 @@ class Dataset(SerializableModel):
 
 
 class Datasets(ApiModelFactories):
+    """Repository of datasets (`client.datasets`): CRUD and `get_datasource()` by table name."""
     endpoint = "dataset/"
 
     def get_datasource(self, name: str) -> DataSource:

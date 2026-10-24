@@ -9,6 +9,7 @@ from supersetapiplus.resources.repository import ApiModelFactories
 
 @dataclass
 class SavedQuery(SerializableModel):
+    """A query saved in SQL Lab (label, SQL, database and schema)."""
     JSON_FIELDS = []
     PRESERVE_EXTRA_FIELDS = False
     # Fields accepted by the API (OpenAPI 6.1.0: SavedQueryRestApi.post / SavedQueryRestApi.put).
@@ -42,6 +43,7 @@ class SavedQuery(SerializableModel):
 
 
 class SavedQueries(ApiModelFactories):
+    """Repository of saved queries (`client.saved_queries`)."""
     endpoint = "saved_query/"
     base_object = SavedQuery
 

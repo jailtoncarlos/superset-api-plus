@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+Compatibility with Superset 6.1.0, charts and dashboards built in code as the UI builds them, and a
+reorganized, tested package.
+
+### Added
+
+* Superset 6.1.0 support: login-form session mode with CSRF (`enable_session_mode()`), JWT renewal on a
+  rejected token, `POST /api/v1/sqllab/execute/`, multipart import, paginated `find_all()` and `count()`.
+* Dashboards: `DashboardLayout` builder for `position_json` (tabs, rows, markdown, charts, headers,
+  dividers), native filters with dependencies, chart scopes and dataset-less time filters, owners and
+  roles, `Dashboards.copy()`, `client.dashboard_charts`.
+* Charts: the frontend `buildQuery` ported (`charts/build_query.py`), so charts built in code store the
+  `query_context` Explore derives; UI defaults for new charts; `derive_query_context()`.
+* Datasets: saved metrics (`add_metric()`), time column and the other update fields; databases: the
+  Superset 6 connection fields; `delete_many()` on every resource.
+* Quality gates: complexity ratchet, OpenAPI and source-code conformance, model attribute checks and layer
+  contracts as pre-commit hooks; integration tests against a real Superset in CI.
+
+### Fixed
+
+* Superset errors with a SIP-40 body (`{"errors": [...]}`) or a JWT `{"msg": ...}` body are mapped to the
+  status exceptions; rate-limited requests (429) are retried.
+* Objects read from Superset are written back without loss (absent keys stay absent, null JSON stays
+  null), including charts whose stored `query_context` differs from older Superset versions.
+* Enum values aligned with the Superset source (aggregates, operators, title positions, stacking...).
+* Secrets are masked in logs; TLS is verified by default.
+
 ### Changed
 
 * The package is organized in layers checked by `import-linter`: `core` (models, no HTTP), `transport`,
@@ -65,6 +91,10 @@ A model not bound to a client (not created through `client.<resource>.add()` nor
 
 
 ## 1.0.0a1 (2025-04-10)
+
+> Correction (2026): `setup.py`, `setup.cfg`, `requirements.txt` and `pytest.ini`, listed below as removed,
+> are still in the repository; `pyproject.toml` is the source of the metadata and dependencies, and those
+> files are removed by the migration to uv.
 
 ### Refactoring and Packaging Improvements
 

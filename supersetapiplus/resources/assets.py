@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 class Assets:
+    """Export and import of complete bundles (dashboards, charts, datasets, databases) through /api/v1/assets."""
     endpoint = "assets/"
 
     def __init__(self, client):

@@ -7,6 +7,7 @@ from supersetapiplus.exceptions import ChartValidationError, DashboardValidation
 
 
 class DashboardCharts:
+    """Operations on charts and dashboards together (available as `client.dashboard_charts`)."""
     def __init__(self, client):
         self.client = client
 

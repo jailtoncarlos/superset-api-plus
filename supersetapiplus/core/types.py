@@ -2,6 +2,7 @@ from supersetapiplus.core.enums import StringEnum
 
 
 class DatasourceType(StringEnum):
+    """Type of a datasource (`superset/utils/core.py` DatasourceType and the frontend one, Superset 6.1.0)."""
     SLTABLE = "sl_table"
     TABLE = "table"
     DATASET = "dataset"

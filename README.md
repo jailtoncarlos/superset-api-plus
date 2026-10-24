@@ -4,32 +4,43 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/superset-api-plus)](https://pypi.org/project/superset-api-plus/)
 [![pre-commit](https://img.shields.io/badge/code%20style-pre--commit-blue)](https://pre-commit.com/)
 
-> A Python library for automating chart and dashboard creation in Apache Superset via its REST API.
+> A typed Python client for the Apache Superset REST API: search, read and write charts, dashboards,
+> datasets and databases, and build charts and dashboards in code that match what the Superset UI creates.
+
+Target: **Superset 6.1.0** (Flask-AppBuilder 5) · Python **3.10–3.14**.
 
 ---
 
-## Purpose
+## What it does
 
-**`superset-api-plus`** is a high-level client for Apache Superset's REST API.  
-It simplifies the programmatic creation of dashboards and charts by abstracting Superset's low-level API details — allowing full automation and integration with data pipelines.
+- **Charts in code that look like charts made in the UI.** New charts start from the parameters the
+  Superset UI gives a new chart, and their `query_context` is derived from `params` by a port of the
+  frontend `buildQuery`, so `/api/v1/chart/{id}/data`, reports and alerts see the same query as Explore.
+- **Lossless round trip.** Reading an object and saving it back neither loses nor adds data: unmodeled keys
+  are preserved and absent keys stay absent.
+- **Dashboards**: layout builder (tabs, rows, markdown, charts) that writes `position_json` as the editor
+  does, native filters with dependencies and chart scopes, chart association.
+- **Both authentication modes**: JWT, and the login-form session (cookie + CSRF) needed by instances whose
+  `Public` role has permissions.
+- **Conformance checked in CI and pre-commit** against the OpenAPI specification and the Superset source
+  (enums, controlPanel choices, UI defaults), and integration tests against a real Superset.
 
-This library was designed to power analytics systems built on Superset, enabling:
+## Supported chart types
 
-- Declarative creation of dashboards from SQL or metadata
-- Dynamic generation of chart layouts and filters
-- Full customization of visual properties (e.g., labels, legends, dimensions)
-- Export of dashboard layouts to Graphviz (`.svg`, `.gv`)
+| `viz_type` | Class | Notes |
+|---|---|---|
+| `table` | `charts.table.TableChart` | aggregate and raw modes |
+| `pie` | `charts.pie.PieChart` | one metric |
+| `pivot_table_v2` | `charts.pivot_table_v2.PivotTableV2Chart` | dimensions go to rows (`groupbyRows`) |
+| `echarts_timeseries_bar` | `charts.echarts_timeseries_bar.EchartsTimeseriesBarChart` | `set_x_axis()` |
+| `mixed_timeseries` | `charts.mixed_timeseries.MixedTimeseriesChart` | `set_x_axis()`; query B in the `_b` keys |
+| `big_number_total` | `charts.big_number_total.BigNumberTotalChart` | one metric, no dimension |
+| `word_cloud` | `charts.word_cloud.WordCloudChart` | one metric, one dimension (`series`) |
+| `box_plot` | `charts.box_plot.BoxPlotChart` | `add_distribute_across()` |
+| `cal_heatmap` | `charts.cal_heatmap.CalHeatmapChart` | legacy plugin; set `granularity_sqla` |
 
----
-
-## Key Features
-
-- ✅ Simplified chart creation (pie, table, time series, bar, etc.)
-- ✅ Easy API client initialization with credentials or `.env`
-- ✅ Dashboard layout modeling via nested tree structure
-- ✅ Chart positioning using `TabItemPosition`, `MarkdownItemPosition`, `DividerItemPosition`
-- ✅ Graph export: visualize dashboard layout structure in SVG
-- ✅ Integration with SQL-based metadata or ETL processes
+Other viz types are listed as read-only `UnsupportedObject` items, and `get()` on them raises
+`UnsupportedTypeError`.
 
 ---
 
@@ -39,82 +50,119 @@ This library was designed to power analytics systems built on Superset, enabling
 pip install superset-api-plus
 ```
 
-Or install from source:
-
-```bash
-git clone https://github.com/jailtoncarlos/superset-api-plus.git
-cd superset-api-plus
-pip install .
-```
-
----
-
-## Example Use Case
-
-This example demonstrates how an external system can use `superset-api-plus` to generate a Superset dashboard based on metadata from a SQL query:
+## Connecting
 
 ```python
 from supersetapiplus import SupersetClient
-from supersetapiplus.charts.pie import PieChart, PieOption
-from supersetapiplus.charts.types import MetricType, SqlMapType
-from supersetapiplus.charts.queries import AdhocMetricColumn
 
-client = SupersetClient(
-    host="https://your-superset-instance",
-    username="admin",
-    password="admin"
-)
-
-datasource = client.datasets.get_datasource("aai_resposta")
-
-chart = PieChart.instance(
-    slice_name="Respondents by Answer",
-    datasource=datasource,
-    options=PieOption(show_total=True)
-)
-
-chart.add_custom_dimension(label="Answer", sql_expression="resposta_valor")
-chart.add_custom_metric(
-    label="Respondents",
-    aggregate=MetricType.COUNT_DISTINCT,
-    column=AdhocMetricColumn(column_name="respondente_id", type=SqlMapType.INTEGER)
-)
-
-chart.add_simple_filter("avaliacao_id", 21)
-client.charts.add(chart, title="Example Chart")
+client = SupersetClient("https://superset.example.org", "username", "password")  # JWT (Bearer token)
+client.enable_session_mode()  # cookie + X-CSRFToken: required when the Public role has permissions
 ```
 
+TLS certificates are verified by default (`verify=False` only for development). Timeouts and retries come
+from `SUPERSET_API_PLUS_*` environment variables (see [Configuration](#configuration-through-environment-variables)).
+The client never prompts for credentials: without them, login raises `MissingCredentialsError`.
+
+## Searching and reading
+
+```python
+from supersetapiplus import QueryOperator, QueryStringFilter
+from supersetapiplus.exceptions import MultipleFound, NotFound
+
+query = QueryStringFilter()
+query.add("slice_name", QueryOperator.STARTS_WITH, "Sales")
+charts = client.charts.find(query, columns=["id", "slice_name", "viz_type"])  # typed objects, one page
+chart = client.charts.find_one(query, full=True)  # NotFound / MultipleFound; full=True loads params
+chart = client.charts.get(42)                      # TableChart, PieChart... by viz_type
+
+chart.slice_name = "Sales by region"
+chart.save()  # PUT with the fields the API accepts on update
+```
+
+`find_all()` walks every page and `count()` returns the total for a filter. The same methods exist on
+`client.dashboards`, `client.datasets`, `client.databases` and `client.saved_queries`.
+
+## Creating a chart
+
+```python
+from supersetapiplus.charts.pie import PieChart
+from supersetapiplus.charts.table import TableChart
+
+datasource = client.datasets.get_datasource("sales")  # dataset by table name
+
+pie = PieChart.instance(slice_name="Sales by region", datasource=datasource)
+pie.add_simple_metric("count")          # name of a metric saved in the dataset
+pie.add_simple_dimension("region")
+pie.add_simple_filter("product", "A")
+client.charts.add(pie)                  # returns the new id; pie.id is set
+
+table = TableChart.instance(slice_name="Sales table", datasource=datasource)
+table.add_custom_metric("Total sales", sql_expression="SUM(sales)")
+table.add_simple_dimension("region")
+client.charts.add(table)
+
+rows = client.charts.get_chart_data(pie.id)[0]["data"]
+```
+
+A chart read from Superset keeps its stored `query_context`; call `chart.derive_query_context()` after
+changing its `params` to store the one the UI would derive.
+
+## Building a dashboard
+
+```python
+from supersetapiplus import Dashboard
+from supersetapiplus.dashboards.native_filters import FilterType
+
+dashboard = Dashboard(dashboard_title="Sales")
+client.dashboards.add(dashboard)
+
+layout = dashboard.reset_layout()                # root, grid and title header, as the editor creates them
+overview = layout.add_tab("Overview")
+layout.add_markdown("## Sales by region", parent=layout.add_row(parent=overview), width=12, height=None)
+row = layout.add_row(parent=overview)
+layout.add_chart(pie, title="Share by region", parent=row, width=6)   # widths: 1-12 grid columns
+layout.add_chart(table, parent=row, width=6)
+
+filters = dashboard.json_metadata
+filters.clear_native_filters()
+region = filters.add_native_filter("Region", datasource.id, "region")
+filters.add_native_filter("Product", datasource.id, "product", parent=region, charts=[table])
+filters.add_native_filter("Period", filter_type=FilterType.TIME)    # no dataset: time range filter
+
+dashboard.save()
+client.dashboards.attach_charts(dashboard)       # associates the charts of the layout with the dashboard
+```
+
+`client.dashboard_charts.add_chart(dashboard, chart, ...)` places a chart and associates it in one call;
+`client.dashboards.copy()` copies a dashboard; `delete_many()` removes several objects at once. Dashboards
+read from Superset are written back as read: only filters created by the library get recomputed scopes.
+
+## Errors
+
+HTTP errors are mapped by status, whatever the body format: `UnauthorizedError` (401, also a rejected JWT),
+`ForbiddenError` (403), `ResourceNotFoundError` (404) and `UnprocessableEntityError` (422), all subclasses of
+`BadRequestError`, which carries the server `message` and the `errors` list. Logs mask passwords, tokens,
+cookies and connection secrets.
+
 ---
 
-## Real-World Power
+## Project structure
 
-Using `superset-api-plus`, an external application can:
-
-- Fetch dashboard structure and metadata from a SQL query
-- Build a complete dashboard with multiple levels of nesting:
-  ```
-  Dashboard
-  ├── Axis (Tab)
-  │   └── Dimension (Tab)
-  │       └── Macroprocess (Markdown + Charts)
-  ```
-- Dynamically choose the chart type based on metadata (e.g., pie for Likert scale, table for multiple choice)
-- Generate and persist the dashboard layout tree structure
-- Export `.svg` diagram of the layout using Graphviz
-
-This turns Superset into a **programmable dashboard engine**, ideal for automation in public institutions, analytics platforms, and research dashboards.
-
----
-
-## Project Structure
+The package is organized in layers; a layer imports only the layers below it (checked by `import-linter`):
 
 ```
 supersetapiplus/
-├── base/              # Low-level request and API abstractions
-├── charts/            # Chart definitions and options (pie, table, bar, etc.)
-├── dashboards/        # Dashboard layout, positioning, and metadata
-├── client.py          # SupersetClient initialization and route binding
+├── client.py      # SupersetClient: authentication and the resource repositories
+├── services/      # operations across resources (charts and dashboards together)
+├── charts/        # chart models per viz_type, buildQuery port, chart enums (charts/types)
+├── dashboards/    # dashboard model, layout (position_json), native filters, json_metadata
+├── resources/     # repositories (CRUD over HTTP); datasets, databases, saved queries, assets
+├── auth/          # CSRF token and session mode
+├── transport/     # HTTP session, retries, error mapping
+└── core/          # models and serialization, fields, enums, masking of secrets (no HTTP)
 ```
+
+Old module paths keep working with a `DeprecationWarning` (see the [CHANGELOG](CHANGELOG.md)).
 
 ---
 
@@ -147,9 +195,11 @@ On every commit they run, on the staged files:
 - **line endings**: files are normalized to LF (also enforced by `.gitattributes`);
 - **complexity ratchet** (`bin/scripts/complexity_ratchet.py`): a commit is
   rejected when it adds a function with cyclomatic complexity above 10 (ruff C901) or makes an
-  existing one more complex. Legacy functions already above the limit may be edited as long as
-  their complexity does not grow. List them with
-  `ruff check --select C901 --config 'lint.mccabe.max-complexity=10' supersetapiplus`.
+  existing one more complex (no function of the package is above the limit today);
+- **import layers** (`lint-imports`): the layer contracts of `[tool.importlinter]` in `pyproject.toml`;
+- **Superset conformance**: request payloads and routes against the OpenAPI specification;
+- **model attributes**: every enum declares its source in the Superset code, every `str` field is an enum
+  or declared free text, and a new chart gets the params the UI gives it (see below).
 
 `mypy` runs only on demand (`pre-commit run mypy --hook-stage manual`) until the codebase passes
 `mypy --strict`.

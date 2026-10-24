@@ -17,6 +17,7 @@ def _given(value) -> bool:
 
 @dataclass
 class Database(SerializableModel):
+    """A database connection (`sqlalchemy_uri` or dynamic-form `parameters`) and its SQL Lab permissions."""
     JSON_FIELDS = [
         "extra",
     ]
@@ -94,6 +95,7 @@ class Database(SerializableModel):
 
 
 class Databases(ApiModelFactories):
+    """Repository of databases (`client.databases`): CRUD, connection test and SQL execution."""
     endpoint = "database/"
 
     @property

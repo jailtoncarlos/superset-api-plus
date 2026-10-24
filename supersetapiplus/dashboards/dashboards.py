@@ -21,6 +21,8 @@ def default_metadata_position():
 
 @dataclass
 class Dashboard(SerializableModel):
+    """A dashboard: title, layout (`position_json`, see DashboardLayout), `json_metadata` (native filters,
+    colors, cross-filters), owners and roles. Read with `client.dashboards.get()`, create with `add()`."""
     JSON_FIELDS = ['json_metadata', 'position_json']
     PRESERVE_EXTRA_FIELDS = False
     # Fields accepted by the API (OpenAPI 6.1.0: DashboardRestApi.post / DashboardRestApi.put).
