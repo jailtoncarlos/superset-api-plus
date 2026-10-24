@@ -165,6 +165,23 @@ def test_time_filter_without_dataset_and_chart_scoped_filter_are_stored(client, 
     assert campus["chartsInScope"] == [first.id]
 
 
+def test_layout_built_by_the_presets_is_stored_and_read_back_without_loss(client, add_chart, add_dashboard):
+    charts, dashboard = [add_chart() for _ in range(3)], add_dashboard()
+    layout = dashboard.reset_layout()
+    layout.add_chart_tabs({"Overview": charts[:2], "Details": charts[2:]}, columns=2)
+    column = layout.add_column(parent=layout.find_tab("Details"), width=6)
+    layout.add_markdown("## Notes", parent=column, width=6)
+    dashboard.save()
+
+    stored = client.dashboards.get(dashboard.id)
+    assert stored.position_json.to_dict() == dashboard.position_json.to_dict()
+    assert stored.position_json.problems() == []
+
+    stored.position_json.remove_chart(charts[2])
+    stored.save()
+    assert client.dashboards.get(dashboard.id).position_json.chart_ids() == [charts[0].id, charts[1].id]
+
+
 def test_default_value_of_a_select_filter_filters_the_charts_when_the_dashboard_opens(
         client, dataset, add_chart, add_dashboard):
     chart, dashboard = add_chart(), add_dashboard()

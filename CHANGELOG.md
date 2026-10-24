@@ -9,8 +9,8 @@ reorganized, tested package.
 
 * Superset 6.1.0 support: login-form session mode with CSRF (`enable_session_mode()`), JWT renewal on a
   rejected token, `POST /api/v1/sqllab/execute/`, multipart import, paginated `find_all()` and `count()`.
-* Dashboards: `DashboardLayout` builder for `position_json` (tabs, rows, markdown, charts, headers,
-  dividers), native filters with dependencies, chart scopes and dataset-less time filters, owners and
+* Dashboards: `DashboardLayout` builder for `position_json` (tabs, rows, columns, markdown, charts, headers,
+  dividers; `add_chart_grid()` and `add_chart_tabs()` presets, `remove_chart()` pruning empty rows), native filters with dependencies, chart scopes and dataset-less time filters, owners and
   roles, `Dashboards.copy()`, `client.dashboard_charts`. Layouts are checked against the dashboard renderer
   rules before sending (`layout.problems()`, `layout.validate()`, `LayoutWarning` for layouts read from
   Superset). Select filters take a `default_value` (saved as the editor's `defaultDataMask`); the filter

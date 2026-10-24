@@ -266,11 +266,28 @@ class DashboardLayout(SerializableModel):
             meta["height"] = height
         return self._add("MARKDOWN", self._row_for(parent, width), meta, id)
 
+    def add_column(self, parent: Any = None, width: int = DEFAULT_CHART_WIDTH,
+                   background: Background | str = Background.TRANSPARENT, id: str | None = None) -> LayoutComponent:
+        """Column (charts, markdown and rows stacked vertically) of `width` grid columns.
+
+        Like the editor, a column lives in a ROW: inside a grid or tab it goes into the last row with room
+        (``newComponentFactory``: ``{width, background}``). Components placed in it are at most as wide as it.
+        """
+        _check_size(width, None)
+        return self._add("COLUMN", self._row_for(parent, width), {"width": width, "background": str(background)}, id)
+
     def add_chart(self, chart: Any, title: str | None = None, parent: Any = None, height: int = DEFAULT_HEIGHT,
-                  width: int = DEFAULT_CHART_WIDTH, id: str | None = None) -> LayoutComponent:
-        """Place a saved chart (a library Chart or a :class:`ChartRef`); `title` becomes ``sliceNameOverride``."""
+                  width: int = DEFAULT_CHART_WIDTH, id: str | None = None,
+                  skip_existing: bool = False) -> LayoutComponent:
+        """Place a saved chart (a library Chart or a :class:`ChartRef`); `title` becomes ``sliceNameOverride``.
+
+        With ``skip_existing=True`` a chart already in the layout is not placed again: its component is returned.
+        """
         if not getattr(chart, "id", None):
             raise NodePositionValidationError("Save the chart before placing it in a layout (chart.id is empty).")
+        existing = self._chart_components(chart.id) if skip_existing else []
+        if existing:
+            return existing[0]
         _check_size(width, height)
         meta: dict[str, Any] = {"chartId": chart.id, "sliceName": chart.slice_name, "width": width, "height": height}
         uuid = getattr(chart, "uuid", None)
@@ -280,19 +297,78 @@ class DashboardLayout(SerializableModel):
             meta["sliceNameOverride"] = title
         return self._add("CHART", self._row_for(parent, width), meta, id)
 
+    def add_chart_grid(self, charts: list[Any], columns: int = 2, parent: Any = None,
+                       height: int = DEFAULT_HEIGHT) -> list[LayoutComponent]:
+        """Places `charts` in new rows of `columns` charts each, every chart ``12 // columns`` grid columns wide."""
+        if not 1 <= columns <= GRID_COLUMN_COUNT:
+            raise NodePositionValidationError(f"columns must be 1 to {GRID_COLUMN_COUNT}, not {columns}.")
+        width = GRID_COLUMN_COUNT // columns
+        placed: list[LayoutComponent] = []
+        for start in range(0, len(charts), columns):
+            row = self.add_row(parent)
+            placed.extend(self.add_chart(chart, parent=row, height=height, width=width)
+                          for chart in charts[start:start + columns])
+        return placed
+
+    def add_chart_tabs(self, tabs: dict[str, list[Any]], columns: int = 2, parent: Any = None,
+                       height: int = DEFAULT_HEIGHT) -> dict[str, LayoutComponent]:
+        """A TABS container with one tab per title, each holding its charts in a grid (see add_chart_grid)."""
+        container = self.add_tabs(parent)
+        created: dict[str, LayoutComponent] = {}
+        for title, charts in tabs.items():
+            created[title] = self.add_tab(title, parent=container)
+            self.add_chart_grid(charts, columns, parent=created[title], height=height)
+        return created
+
+    def remove_chart(self, chart: Any) -> int:
+        """Removes every placement of `chart` (a chart, a ChartRef or a chart id) and the rows and columns left
+        empty; returns how many placements were removed. The paths (`parents`) of the other components stay."""
+        chart_id = chart if isinstance(chart, int) else chart.id
+        removed = self._chart_components(chart_id)
+        for component in removed:
+            self._remove(component.id)
+        return len(removed)
+
+    def _chart_components(self, chart_id: int) -> list[LayoutComponent]:
+        return [c for c in self.components_of_type(ComponentType.CHART) if c.meta.get("chartId") == chart_id]
+
+    def _remove(self, component_id: str) -> None:
+        """Removes a leaf component, then its ROW or COLUMN ancestors that become empty."""
+        while True:
+            parent_id = next((cid for cid, data in self.components.items()
+                              if component_id in (data.get("children") or [])), None)
+            del self.components[component_id]
+            if parent_id is None:
+                return
+            siblings = self.components[parent_id]["children"]
+            siblings.remove(component_id)
+            if siblings or self.components[parent_id]["type"] not in ("ROW", "COLUMN"):
+                return
+            component_id = parent_id
+
     def _row_for(self, parent: Any, width: int) -> str:
         """Charts and markdown live in a ROW or COLUMN; inside a grid or tab, reuse its last row with room."""
         parent_id = self._resolve(parent or GRID_ID)
         if self.components[parent_id]["type"] in ("ROW", "COLUMN"):
-            if self.components[parent_id]["type"] == "ROW" and self._row_width(parent_id) + width > GRID_COLUMN_COUNT:
-                raise NodePositionValidationError(
-                    f"There is not enough space for this component. Total {self._row_width(parent_id) + width} "
-                    f"exceeds the maximum allowable width of {GRID_COLUMN_COUNT}.")
+            self._check_room(parent_id, width)
             return parent_id
         rows = [c for c in self.components[parent_id].get("children", []) if self.components[c]["type"] == "ROW"]
         if rows and self._row_width(rows[-1]) + width <= GRID_COLUMN_COUNT:
             return str(rows[-1])
         return self.add_row(parent_id).id
+
+    def _check_room(self, container_id: str, width: int) -> None:
+        """A row holds at most 12 grid columns; a component in a column is at most as wide as the column."""
+        container = self.components[container_id]
+        if container["type"] == "COLUMN":
+            column_width = container.get("meta", {}).get("width", GRID_COLUMN_COUNT)
+            if width > column_width:
+                raise NodePositionValidationError(
+                    f"A component of width {width} does not fit in column {container_id} of width {column_width}.")
+        elif self._row_width(container_id) + width > GRID_COLUMN_COUNT:
+            raise NodePositionValidationError(
+                f"There is not enough space for this component. Total {self._row_width(container_id) + width} "
+                f"exceeds the maximum allowable width of {GRID_COLUMN_COUNT}.")
 
     def _row_width(self, row_id: str) -> int:
         return sum(self.components[c].get("meta", {}).get("width", 0) for c in self.components[row_id].get("children", []))

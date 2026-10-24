@@ -139,6 +139,11 @@ dashboard.save()
 client.dashboards.attach_charts(dashboard)       # associates the charts of the layout with the dashboard
 ```
 
+For common shapes, `layout.add_chart_grid(charts, columns=3)` places charts in rows of three and
+`layout.add_chart_tabs({"Overview": [...], "Details": [...]}, columns=2)` creates one tab per title;
+`layout.add_column(parent=row, width=6)` stacks components vertically, `add_chart(..., skip_existing=True)`
+does not place a chart twice, and `layout.remove_chart(chart)` removes it with the rows left empty.
+
 Before a dashboard is sent, its layout is checked against the rules of the dashboard renderer (the parent
 and child types and nesting depths of the editor, cycles, components outside the tree):
 `layout.problems()` lists them and `layout.validate()` raises. A layout built by the library must be valid
