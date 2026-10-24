@@ -5,7 +5,8 @@ import sys
 import pytest
 
 from supersetapiplus.charts import queries, types
-from supersetapiplus.dashboards import dashboards, metadata, metadataposition
+from supersetapiplus.dashboards import dashboards, metadata
+from supersetapiplus.dashboards.layout.legacy import metadata_position as metadataposition
 
 RENAMED_ATTRIBUTES = [
     (types, "StackStylyType", "StackStyleType"),
@@ -40,7 +41,7 @@ def test_renamed_enum_member_is_an_alias_that_warns(enum_cls, old, new):
     assert old not in enum_cls.__members__, "the old name is not listed as a member"
 
 
-@pytest.mark.parametrize("old,new", [("nodeposisition", "nodeposition"), ("treenodeposisition", "treenodeposition")])
+@pytest.mark.parametrize("old,new", [("nodeposisition", "layout.legacy.nodes"), ("treenodeposisition", "layout.legacy.tree")])
 def test_misspelled_modules_still_import_with_a_warning(old, new):
     sys.modules.pop(f"supersetapiplus.dashboards.{old}", None)
     with pytest.warns(DeprecationWarning, match=new):
@@ -61,6 +62,15 @@ MOVED_MODULES = [
     ("supersetapiplus.utils.dict_utils", "supersetapiplus.core.dicts", "detailed_dict_diff"),
     ("supersetapiplus.security.csrf", "supersetapiplus.auth.csrf", "CSRFSupportMixin"),
     ("supersetapiplus.security.session_auth", "supersetapiplus.auth.session", "SessionAuthMixin"),
+    ("supersetapiplus.base.base", "supersetapiplus.core.model", "SerializableModel"),
+    ("supersetapiplus.base.fields", "supersetapiplus.core.fields", "object_field"),
+    ("supersetapiplus.base.sentinels", "supersetapiplus.core.sentinels", "MissingField"),
+    ("supersetapiplus.typing", "supersetapiplus.core.typing", "SerializableOptional"),
+    ("supersetapiplus.dashboards.itemposition", "supersetapiplus.dashboards.layout.legacy.items", "ItemPosition"),
+    ("supersetapiplus.dashboards.nodeposition", "supersetapiplus.dashboards.layout.legacy.nodes", "NodePosition"),
+    ("supersetapiplus.dashboards.treenodeposition", "supersetapiplus.dashboards.layout.legacy.tree", "TreeNodePosition"),
+    ("supersetapiplus.dashboards.metadataposition", "supersetapiplus.dashboards.layout.legacy.metadata_position",
+     "MetadataPosition"),
 ]
 
 

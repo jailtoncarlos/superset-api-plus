@@ -20,7 +20,7 @@ import supersetapiplus
 from supersetapiplus import query_string as Q
 from supersetapiplus.base import types as B
 from supersetapiplus.charts import types as T
-from supersetapiplus.dashboards import itemposition as IP
+from supersetapiplus.dashboards.layout.legacy import items as IP
 from supersetapiplus.dashboards import layout as L
 from supersetapiplus.dashboards import metadata as M
 from supersetapiplus.dashboards import native_filters as NF
@@ -119,7 +119,7 @@ def values(enum_cls) -> set:
 def package_enums() -> set:
     found = set()
     for info in pkgutil.walk_packages(supersetapiplus.__path__, "supersetapiplus."):
-        if info.name.endswith("generate_graphviz"):  # optional dependency (graphviz)
+        if info.name.endswith("graphviz"):  # optional dependency (graphviz)
             continue
         module = _import_quietly(info.name)
         found |= {obj for obj in vars(module).values()

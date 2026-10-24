@@ -8,8 +8,8 @@ import pytest
 from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import OrderBy
-from supersetapiplus.dashboards.itemposition import MarkdownItemPosition
-from supersetapiplus.dashboards.metadataposition import MetadataPosition
+from supersetapiplus.dashboards.layout.legacy.items import MarkdownItemPosition
+from supersetapiplus.dashboards.layout.legacy.metadata_position import MetadataPosition
 from supersetapiplus.exceptions import NodePositionValidationError
 
 VIZ_TYPES = ["table", "pie", "pivot_table_v2", "echarts_timeseries_bar", "big_number_total",

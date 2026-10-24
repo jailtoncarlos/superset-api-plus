@@ -93,9 +93,9 @@ FREE_TEXT = {
     "dashboards.layout.LayoutComponent.id": ID,
     "dashboards.layout.ChartRef.slice_name": TEXT,
     "dashboards.layout.ChartRef.uuid": ID,
-    "dashboards.itemposition.ItemPosition.id": ID,
-    "dashboards.itemposition.ItemPosition.parents": ID,
-    "dashboards.itemposition.ItemPosition.children": ID,
+    "dashboards.layout.legacy.items.ItemPosition.id": ID,
+    "dashboards.layout.legacy.items.ItemPosition.parents": ID,
+    "dashboards.layout.legacy.items.ItemPosition.children": ID,
     "dashboards.metadata.CrossFilters.scope":
         "'global' or a scope object (frontend ChartConfiguration crossFilters.scope)",
     "dashboards.metadata.GlobalChartConfigurationScope.rootPath": ID,
@@ -104,7 +104,7 @@ FREE_TEXT = {
     "dashboards.metadata.Metadata.color_namespace": "label color namespace chosen by the user",
     "dashboards.metadata.Metadata.color_scheme_domain": "colors (hex) of the scheme",
     "dashboards.metadata.Metadata.shared_label_colors": "series labels of the instance's data",
-    "dashboards.metadataposition.MetadataPosition.DASHBOARD_VERSION_KEY": "constant of the layout format",
+    "dashboards.layout.legacy.metadata_position.MetadataPosition.DASHBOARD_VERSION_KEY": "constant of the layout format",
     "dashboards.dashboards.Dashboard.certified_by": TEXT,
     "dashboards.dashboards.Dashboard.certification_details": TEXT,
     "dashboards.dashboards.Dashboard.external_url": "URL of the system that manages the object",
@@ -145,7 +145,7 @@ def str_fields() -> dict[str, str]:
     """`str` fields of the package dataclasses, keyed by the class that declares each field."""
     found = {}
     for info in pkgutil.walk_packages(supersetapiplus.__path__, "supersetapiplus."):
-        if info.name.endswith("generate_graphviz"):  # optional dependency (graphviz)
+        if info.name.endswith("graphviz"):  # optional dependency (graphviz)
             continue
         for obj in vars(_import_quietly(info.name)).values():
             if not (isinstance(obj, type) and dataclasses.is_dataclass(obj)

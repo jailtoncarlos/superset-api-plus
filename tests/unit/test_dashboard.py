@@ -3,7 +3,7 @@ import json
 
 from supersetapiplus.charts.table import TableChart
 from supersetapiplus.dashboards.dashboards import Dashboard
-from supersetapiplus.dashboards.metadataposition import MetadataPosition
+from supersetapiplus.dashboards.layout.legacy.metadata_position import MetadataPosition
 
 POSITION = {
     "DASHBOARD_VERSION_KEY": "v2",

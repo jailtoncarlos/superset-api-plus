@@ -1,8 +1,8 @@
 """Legacy layout placement (MetadataPosition/ItemPosition) and pie validation, without HTTP."""
 import pytest
 
-from supersetapiplus.dashboards.itemposition import ItemPositionType, MarkdownItemPosition
-from supersetapiplus.dashboards.metadataposition import MetadataPosition
+from supersetapiplus.dashboards.layout.legacy.items import ItemPositionType, MarkdownItemPosition
+from supersetapiplus.dashboards.layout.legacy.metadata_position import MetadataPosition
 from supersetapiplus.exceptions import NodePositionValidationError
 
 # --- Layout placement ----------------------------------------------------------------------

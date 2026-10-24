@@ -44,6 +44,8 @@ Loggers follow the module names (e.g. `supersetapiplus.transport.http`).
 | `supersetapiplus.base.base` | `supersetapiplus.core.model` (`SerializableModel`, `ObjectDecoder`) and `supersetapiplus.resources.repository` (`ApiModelFactories`, `UnsupportedObject`) |
 | `supersetapiplus.base.fields`, `base.parse`, `base.sentinels`, `base.enum_str` | `supersetapiplus.core.fields`, `core.parse`, `core.sentinels`, `core.enums` |
 | `supersetapiplus.typing` | `supersetapiplus.core.typing` |
+| `supersetapiplus.dashboards.layout` (module) | `supersetapiplus.dashboards.layout` (package; same names) |
+| `dashboards.itemposition`, `nodeposition`, `treenodeposition`, `metadataposition`, `generate_graphviz` (tree builder, superseded by `DashboardLayout`) | `dashboards.layout.legacy.items`, `.nodes`, `.tree`, `.metadata_position`, `.graphviz` |
 
 A model not bound to a client (not created through `client.<resource>.add()` nor read with `get()`) raises
 `UnboundModelError` on `save()`, `fetch()`, `delete()` and `base_url`, instead of `AttributeError`.
