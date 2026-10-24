@@ -122,6 +122,24 @@ def test_bar_sorted_by_x_axis_uses_the_sort_operator():
     assert {"operation": "sort", "options": {"is_sort_index": True, "ascending": False}} in query["post_processing"]
 
 
+@pytest.mark.parametrize("interval, periods, expected", [
+    ("0.8", "10", (10, 0.8)),
+    ("0.9 ", " 7 days", (7, 0.9)),
+    (None, None, (None, None)),
+    ("abc", "x", (None, None)),
+])
+def test_forecast_options_follow_parse_int_and_parse_float(interval, periods, expected):
+    """prophetOperator: parseInt/parseFloat give NaN for missing values and JSON.stringify writes it as null."""
+    form_data = {**BASE, "viz_type": "echarts_timeseries_line", "x_axis": "ds", "metrics": ["count"],
+                 "forecastEnabled": True, "forecastInterval": interval, "forecastPeriods": periods}
+
+    context = bq.query_context_for(form_data)
+
+    (prophet,) = [rule for rule in context["queries"][0]["post_processing"] if rule["operation"] == "prophet"]
+    assert (prophet["options"]["periods"], prophet["options"]["confidence_interval"]) == expected
+    json.dumps(context, allow_nan=False)
+
+
 def test_box_plot_percentile_whiskers():
     form_data = {**BASE, "viz_type": "box_plot", "columns": ["a"], "groupby": ["b"], "metrics": ["count"],
                  "whiskerOptions": "10/90 percentiles"}

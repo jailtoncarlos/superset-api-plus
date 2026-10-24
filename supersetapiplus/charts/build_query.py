@@ -20,6 +20,7 @@ import copy
 import math
 import re
 from collections.abc import Callable
+from typing import Any
 
 UNSET = type("Unset", (), {"__repr__": lambda self: "UNSET", "__bool__": lambda self: False})()
 
@@ -47,58 +48,60 @@ _RESERVED_EXTRA_FILTER_COLUMNS = {
 
 # --- helpers from @superset-ui/core ----------------------------------------------------------------
 
-def ensure_list(value) -> list:
+def ensure_list(value: Any) -> list[Any]:
     if value is None or value is UNSET:
         return []
     return list(value) if isinstance(value, (list, tuple)) else [value]
 
 
-def defined(value) -> bool:
+def defined(value: Any) -> bool:
     return value is not None and value is not UNSET
 
 
-def is_empty(value) -> bool:
+def is_empty(value: Any) -> bool:
     """lodash ``isEmpty``: empty collections, and anything that is not a non-empty collection or string."""
     if isinstance(value, (str, list, tuple, dict)):
         return len(value) == 0
     return True
 
 
-def is_physical_column(column) -> bool:
+def is_physical_column(column: Any) -> bool:
     return isinstance(column, str)
 
 
-def is_adhoc_column(column) -> bool:
+def is_adhoc_column(column: Any) -> bool:
     return (isinstance(column, dict) and "sqlExpression" in column and "label" in column
             and column.get("expressionType", "SQL") == "SQL")
 
 
-def is_query_form_column(column) -> bool:
+def is_query_form_column(column: Any) -> bool:
     return is_physical_column(column) or is_adhoc_column(column)
 
 
-def is_query_form_metric(metric) -> bool:
+def is_query_form_metric(metric: Any) -> bool:
     return isinstance(metric, str) or (isinstance(metric, dict) and metric.get("expressionType") in ("SIMPLE", "SQL"))
 
 
-def column_label(column) -> str:
-    if is_physical_column(column):
+def column_label(column: Any) -> str | None:
+    if isinstance(column, str):
         return column
-    return column.get("label") or column.get("sqlExpression")
+    label: str | None = column.get("label") or column.get("sqlExpression")
+    return label
 
 
-def metric_label(metric) -> str:
+def metric_label(metric: Any) -> str | None:
     if isinstance(metric, str):
         return metric
     if metric.get("label"):
-        return metric["label"]
+        return str(metric["label"])
     if metric.get("expressionType") == "SIMPLE":
         column = metric.get("column") or {}
         return f"{metric.get('aggregate')}({column.get('columnName') or column.get('column_name')})"
-    return metric.get("sqlExpression")
+    expression: str | None = metric.get("sqlExpression")
+    return expression
 
 
-def remove_duplicates(items: list, key: Callable = lambda item: item) -> list:
+def remove_duplicates(items: list[Any], key: Callable[..., Any] = lambda item: item) -> list[Any]:
     seen, result = set(), []
     for item in items:
         identity = key(item)
@@ -108,27 +111,38 @@ def remove_duplicates(items: list, key: Callable = lambda item: item) -> list:
     return result
 
 
-def js_number(value):
+def js_number(value: Any) -> Any:
     """``Number(value)``; NaN for values that are not numbers."""
     if isinstance(value, bool):
         return int(value)
     if isinstance(value, (int, float)):
         return value
     try:
-        number = float(str(value).strip()) if str(value).strip() else 0
+        number = float(str(value).strip()) if str(value).strip() else 0.0
     except ValueError:
         return math.nan
     return int(number) if number.is_integer() else number
 
 
-def js_int(value, default: int) -> int:
-    """``ensureIsInt``: ``parseInt`` with a default for values that are not integers."""
+def js_int(value: Any, default: float) -> float:
+    """``ensureIsInt``: ``parseInt`` with a default for values that are not integers (NaN for plain parseInt)."""
     match = re.match(r"\s*([+-]?\d+)", str(value)) if defined(value) else None
     return int(match.group(1)) if match else default
 
 
-def drop_unset(value):
-    """Removes ``UNSET`` keys recursively, as ``JSON.stringify`` drops ``undefined``."""
+_JS_FLOAT = re.compile(r"\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)")
+
+
+def js_float(value: Any) -> float:
+    """``parseFloat``: the leading number of the text; NaN when there is none."""
+    match = _JS_FLOAT.match(str(value)) if defined(value) else None
+    return float(match.group(1)) if match else math.nan
+
+
+def drop_unset(value: Any) -> Any:
+    """Removes ``UNSET`` keys recursively, as ``JSON.stringify`` drops ``undefined`` (and writes NaN as null)."""
+    if isinstance(value, float) and math.isnan(value):
+        return None
     if isinstance(value, dict):
         return {key: drop_unset(item) for key, item in value.items() if item is not UNSET}
     if isinstance(value, list):
@@ -138,22 +152,22 @@ def drop_unset(value):
 
 # --- x axis -----------------------------------------------------------------------------------------
 
-def is_x_axis_set(form_data: dict) -> bool:
+def is_x_axis_set(form_data: dict[str, Any]) -> bool:
     return is_query_form_column(form_data.get("x_axis"))
 
 
-def x_axis_column(form_data: dict):
+def x_axis_column(form_data: dict[str, Any]) -> Any:
     if not (form_data.get("granularity_sqla") or form_data.get("x_axis")):
         return UNSET
     return form_data["x_axis"] if is_x_axis_set(form_data) else DTTM_ALIAS
 
 
-def x_axis_label(form_data: dict):
+def x_axis_label(form_data: dict[str, Any]) -> Any:
     column = x_axis_column(form_data)
     return column_label(column) if column is not UNSET else UNSET
 
 
-def normalize_time_column(form_data: dict, query: dict) -> dict:
+def normalize_time_column(form_data: dict[str, Any], query: dict[str, Any]) -> dict[str, Any]:
     x_axis = form_data.get("x_axis")
     columns = query.get("columns")
     if not isinstance(columns, list):
@@ -173,17 +187,18 @@ def normalize_time_column(form_data: dict, query: dict) -> dict:
     return result
 
 
-def _is_x_axis(column, x_axis) -> bool:
+def _is_x_axis(column: Any, x_axis: Any) -> bool:
     if is_physical_column(column) and is_physical_column(x_axis):
-        return column == x_axis
-    return is_adhoc_column(column) and is_adhoc_column(x_axis) and column["sqlExpression"] == x_axis["sqlExpression"]
+        return bool(column == x_axis)
+    return (is_adhoc_column(column) and is_adhoc_column(x_axis)
+            and bool(column["sqlExpression"] == x_axis["sqlExpression"]))
 
 
 # --- buildQueryObject -------------------------------------------------------------------------------
 
-def extract_query_fields(residual: dict) -> dict:
+def extract_query_fields(residual: dict[str, Any]) -> dict[str, Any]:
     query_mode = residual.get("query_mode")
-    collected: dict[str, list] = {"columns": [], "metrics": [], "orderby": []}
+    collected: dict[str, list[Any]] = {"columns": [], "metrics": [], "orderby": []}
     for key, value in residual.items():
         if key == "query_mode" or value is None or value is UNSET:
             continue
@@ -202,25 +217,25 @@ def extract_query_fields(residual: dict) -> dict:
     }
 
 
-def _ignored_in_mode(query_mode, name: str) -> bool:
+def _ignored_in_mode(query_mode: Any, name: str) -> bool:
     if query_mode == QUERY_MODE_AGGREGATE:
         return name == "columns"
     return query_mode == QUERY_MODE_RAW and name in ("groupby", "metrics")
 
 
-def _parse_orderby(item):
+def _parse_orderby(item: Any) -> Any:
     if isinstance(item, str):
         import json
         return json.loads(item)
     return item
 
 
-def _hashable(label: Callable) -> Callable:
+def _hashable(label: Callable[..., Any]) -> Callable[..., Any]:
     return lambda item: label(item) if label(item) is not None else id(item)
 
 
-def extract_extras(form_data: dict) -> dict:
-    extract: dict = {"filters": [], "extras": {}, "applied_time_extras": {}}
+def extract_extras(form_data: dict[str, Any]) -> dict[str, Any]:
+    extract: dict[str, Any] = {"filters": [], "extras": {}, "applied_time_extras": {}}
     for extra_filter in form_data.get("extra_filters") or []:
         query_field = _RESERVED_EXTRA_FILTER_COLUMNS.get(extra_filter.get("col"))
         if query_field:
@@ -236,14 +251,14 @@ def extract_extras(form_data: dict) -> dict:
     return extract
 
 
-def convert_filter(adhoc_filter: dict) -> dict:
+def convert_filter(adhoc_filter: dict[str, Any]) -> dict[str, Any]:
     clause = {"col": adhoc_filter.get("subject"), "op": adhoc_filter.get("operator")}
     if "comparator" in adhoc_filter:
         clause["val"] = adhoc_filter["comparator"]
     return clause
 
 
-def process_filters(form_data: dict) -> dict:
+def process_filters(form_data: dict[str, Any]) -> dict[str, Any]:
     simple_where = form_data.get("filters") or []
     freeform_where = [form_data["where"]] if form_data.get("where") else []
     freeform_having = []
@@ -266,7 +281,7 @@ def _sanitize_clause(clause: str) -> str:
     return f"({clause}\n)" if "--" in clause else f"({clause})"
 
 
-def build_query_object(form_data: dict) -> dict:
+def build_query_object(form_data: dict[str, Any]) -> dict[str, Any]:
     residual = {key: value for key, value in form_data.items() if key not in _BASE_KEYS}
     extra_form_data = form_data.get("extra_form_data") or {}
     fields = extract_query_fields(residual)
@@ -295,31 +310,31 @@ def build_query_object(form_data: dict) -> dict:
     return {**query, "custom_form_data": extra_form_data.get("custom_form_data", {})}
 
 
-def _coalesce(value, default):
+def _coalesce(value: Any, default: Any) -> Any:
     return value if defined(value) else default
 
 
-def _optional_number(value):
+def _optional_number(value: Any) -> Any:
     if not defined(value):
         return UNSET
     number = js_number(value)
     return UNSET if isinstance(number, float) and math.isnan(number) else number
 
 
-def _series_limit(form_data: dict):
+def _series_limit(form_data: dict[str, Any]) -> Any:
     if defined(form_data.get("series_limit")):
         return form_data["series_limit"]
     return js_number(form_data["limit"]) if defined(form_data.get("limit")) else 0
 
 
-def _series_limit_metric(form_data: dict):
+def _series_limit_metric(form_data: dict[str, Any]) -> Any:
     metric = form_data.get("series_limit_metric")
     if is_query_form_metric(metric):
         return metric
     return _coalesce(form_data.get("timeseries_limit_metric"), UNSET)
 
 
-def normalize_orderby(query: dict) -> dict:
+def normalize_orderby(query: dict[str, Any]) -> dict[str, Any]:
     orderby = query.get("orderby")
     if isinstance(orderby, list) and orderby:
         clause = orderby[0]
@@ -338,7 +353,8 @@ def normalize_orderby(query: dict) -> dict:
     return clone
 
 
-def build_query_context(form_data: dict, build: Callable[[dict], list] | None = None) -> dict:
+def build_query_context(form_data: dict[str, Any],
+                        build: Callable[[dict[str, Any]], list[Any]] | None = None) -> dict[str, Any]:
     """``buildQueryContext``: the query context for `form_data`, with `build` as the plugin hook."""
     form_data = copy.deepcopy(form_data)
     queries = (build or (lambda base: [base]))(build_query_object(form_data))
@@ -347,7 +363,7 @@ def build_query_context(form_data: dict, build: Callable[[dict], list] | None = 
             query["post_processing"] = [rule for rule in query["post_processing"] if rule]
     if is_x_axis_set(form_data):
         queries = [normalize_time_column(form_data, query) for query in queries]
-    return drop_unset({
+    context: dict[str, Any] = drop_unset({
         "datasource": _datasource(form_data.get("datasource")),
         "force": form_data.get("force") or False,
         "queries": queries,
@@ -355,9 +371,10 @@ def build_query_context(form_data: dict, build: Callable[[dict], list] | None = 
         "result_format": form_data.get("result_format") or "json",
         "result_type": form_data.get("result_type") or "full",
     })
+    return context
 
 
-def _datasource(key) -> dict:
+def _datasource(key: Any) -> dict[str, Any]:
     """``DatasourceKey("12__table").toObject()``."""
     if isinstance(key, dict):
         return {"id": key.get("id"), "type": key.get("type")}
@@ -369,17 +386,17 @@ def _datasource(key) -> dict:
 
 # --- post-processing operators (superset-ui-chart-controls) -----------------------------------------
 
-def metric_offsets(form_data: dict, query: dict) -> dict[str, str]:
+def metric_offsets(form_data: dict[str, Any], query: dict[str, Any]) -> dict[str, str | None]:
     labels = [metric_label(m) for m in ensure_list(query.get("metrics"))]
     return {f"{label}{TIME_COMPARISON_SEPARATOR}{offset}": label
             for label in labels for offset in ensure_list(form_data.get("time_compare"))}
 
 
-def is_time_comparison(form_data: dict, query: dict) -> bool:
+def is_time_comparison(form_data: dict[str, Any], query: dict[str, Any]) -> bool:
     return form_data.get("comparison_type") in COMPARISON_TYPES and bool(metric_offsets(form_data, query))
 
 
-def extra_metrics(form_data: dict) -> list:
+def extra_metrics(form_data: dict[str, Any]) -> list[Any]:
     limit_metric = next(iter(ensure_list(form_data.get("timeseries_limit_metric"))), None)
     sort = form_data.get("x_axis_sort")
     if (not ensure_list(form_data.get("groupby")) and limit_metric and metric_label(limit_metric) == sort
@@ -388,19 +405,19 @@ def extra_metrics(form_data: dict) -> list:
     return []
 
 
-def js_truthy(value) -> bool:
+def js_truthy(value: Any) -> bool:
     """JavaScript truthiness: empty lists and dicts are truthy."""
     if isinstance(value, (list, dict)):
         return True
     return defined(value) and bool(value) and not (isinstance(value, float) and math.isnan(value))
 
 
-def _series_columns(query: dict) -> list:
+def _series_columns(query: dict[str, Any]) -> list[Any]:
     series = query.get("series_columns")
     return ensure_list(series if js_truthy(series) else query.get("columns"))
 
 
-def pivot_operator(form_data: dict, query: dict):
+def pivot_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     labels = [metric_label(m) for m in [*ensure_list(query.get("metrics")), *extra_metrics(form_data)]]
     x_label = x_axis_label(form_data)
     if not x_label or not labels:
@@ -413,7 +430,7 @@ def pivot_operator(form_data: dict, query: dict):
     }}
 
 
-def time_compare_pivot_operator(form_data: dict, query: dict):
+def time_compare_pivot_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     x_label = x_axis_label(form_data)
     if not (is_time_comparison(form_data, query) and x_label):
         return UNSET
@@ -426,7 +443,7 @@ def time_compare_pivot_operator(form_data: dict, query: dict):
     }}
 
 
-def resample_operator(form_data: dict, query: dict):
+def resample_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     zero_fill = form_data.get("resample_method") == "zerofill"
     method = "asfreq" if zero_fill else form_data.get("resample_method")
     rule = form_data.get("resample_rule")
@@ -435,7 +452,7 @@ def resample_operator(form_data: dict, query: dict):
     return {"operation": "resample", "options": {"method": method, "rule": rule, "fill_value": 0 if zero_fill else None}}
 
 
-def rolling_window_operator(form_data: dict, query: dict):
+def rolling_window_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     if is_time_comparison(form_data, query):
         offsets = metric_offsets(form_data, query)
         columns = [*offsets.values(), *offsets]
@@ -452,7 +469,7 @@ def rolling_window_operator(form_data: dict, query: dict):
     return UNSET
 
 
-def time_compare_operator(form_data: dict, query: dict):
+def time_compare_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     comparison = form_data.get("comparison_type")
     if not is_time_comparison(form_data, query) or comparison == "values":
         return UNSET
@@ -462,7 +479,7 @@ def time_compare_operator(form_data: dict, query: dict):
         "compare_type": comparison, "drop_original_columns": True}}
 
 
-def rename_operator(form_data: dict, query: dict):
+def rename_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     metrics = ensure_list(query.get("metrics"))
     offsets = ensure_list(form_data.get("time_compare"))
     comparing = is_time_comparison(form_data, query)
@@ -479,25 +496,25 @@ def rename_operator(form_data: dict, query: dict):
     return {"operation": "rename", "options": {"columns": dict(pairs), "level": 0, "inplace": True}}
 
 
-def _time_comparison_renames(form_data: dict, query: dict, metric_count: int) -> list:
+def _time_comparison_renames(form_data: dict[str, Any], query: dict[str, Any], metric_count: int) -> list[Any]:
     pairs = []
     comparison = form_data.get("comparison_type")
     for with_offset, metric in metric_offsets(form_data, query).items():
         offset = next((o for o in ensure_list(form_data.get("time_compare")) if o in with_offset), UNSET)
         source = with_offset if comparison == "values" else TIME_COMPARISON_SEPARATOR.join(
-            [comparison, metric, with_offset])
+            [str(comparison), metric or "", with_offset])
         pairs.append((source, f"{metric}, {offset}" if metric_count > 1 else offset))
     return pairs
 
 
-def contribution_operator(form_data: dict, query: dict, time_shifts: list):
+def contribution_operator(form_data: dict[str, Any], query: dict[str, Any], time_shifts: list[Any]) -> Any:
     if not form_data.get("contributionMode"):
         return UNSET
     return {"operation": "contribution", "options": {"orientation": form_data["contributionMode"],
                                                      "time_shifts": time_shifts}}
 
 
-def sort_operator(form_data: dict, query: dict):
+def sort_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     x_label = x_axis_label(form_data)
     labels = [label for label in [x_label, *(metric_label(m) for m in ensure_list(form_data.get("metrics"))),
                                   *(metric_label(m) for m in extra_metrics(form_data))] if label]
@@ -509,18 +526,18 @@ def sort_operator(form_data: dict, query: dict):
     return {"operation": "sort", "options": {"by": sort, "ascending": ascending}}
 
 
-def flatten_operator(form_data: dict, query: dict):
+def flatten_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     return {"operation": "flatten"}
 
 
-def prophet_operator(form_data: dict, query: dict):
+def prophet_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     x_label = x_axis_label(form_data)
     if not (form_data.get("forecastEnabled") and x_label):
         return UNSET
     return {"operation": "prophet", "options": {
         "time_grain": form_data.get("time_grain_sqla", UNSET),
         "periods": js_int(form_data.get("forecastPeriods"), math.nan),
-        "confidence_interval": float(form_data.get("forecastInterval")),
+        "confidence_interval": js_float(form_data.get("forecastInterval")),
         "yearly_seasonality": form_data.get("forecastSeasonalityYearly", UNSET),
         "weekly_seasonality": form_data.get("forecastSeasonalityWeekly", UNSET),
         "daily_seasonality": form_data.get("forecastSeasonalityDaily", UNSET),
@@ -531,7 +548,7 @@ def prophet_operator(form_data: dict, query: dict):
 _PERCENTILES = re.compile(r"(\d+)/(\d+) percentiles")
 
 
-def boxplot_operator(form_data: dict, query: dict):
+def boxplot_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     whiskers = form_data.get("whiskerOptions")
     if not whiskers:
         return UNSET
@@ -553,18 +570,18 @@ def boxplot_operator(form_data: dict, query: dict):
 
 # --- plugins ----------------------------------------------------------------------------------------
 
-def _temporal_base_axis(column, form_data: dict, time_grain):
+def _temporal_base_axis(column: Any, form_data: dict[str, Any], time_grain: Any) -> Any:
     if is_physical_column(column) and time_grain and (form_data.get("temporal_columns_lookup") or {}).get(column):
         return {"timeGrain": time_grain, "columnType": "BASE_AXIS", "sqlExpression": column, "label": column,
                 "expressionType": "SQL"}
     return column
 
 
-def build_pie(form_data: dict) -> dict:
+def build_pie(form_data: dict[str, Any]) -> dict[str, Any]:
     metric = form_data.get("metric")
     label = metric_label(metric)
 
-    def build(base: dict) -> list:
+    def build(base: dict[str, Any]) -> list[Any]:
         query = {**base, "post_processing": [{"operation": "contribution", "options": {
             "columns": [label], "rename_columns": [f"{label}__contribution"]}}]}
         if form_data.get("sort_by_metric"):
@@ -574,7 +591,7 @@ def build_pie(form_data: dict) -> dict:
     return build_query_context(form_data, build)
 
 
-def build_word_cloud(form_data: dict) -> dict:
+def build_word_cloud(form_data: dict[str, Any]) -> dict[str, Any]:
     metric, series, row_limit = form_data.get("metric"), form_data.get("series"), form_data.get("row_limit")
     orderby = []
     if form_data.get("sort_by_metric") and metric:
@@ -585,7 +602,7 @@ def build_word_cloud(form_data: dict) -> dict:
     return build_query_context(form_data, lambda base: [{**base, "orderby": orderby} if apply else base])
 
 
-def build_pivot_table_v2(form_data: dict) -> dict:
+def build_pivot_table_v2(form_data: dict[str, Any]) -> dict[str, Any]:
     grain = (form_data.get("extra_form_data") or {}).get("time_grain_sqla") or form_data.get("time_grain_sqla")
     raw = [*ensure_list(form_data.get("groupbyColumns")), *ensure_list(form_data.get("groupbyRows"))]
     unique = [c for i, c in enumerate(raw) if not isinstance(c, str) or c not in raw[:i]]
@@ -594,7 +611,7 @@ def build_pivot_table_v2(form_data: dict) -> dict:
         lookup[form_data["granularity_sqla"]] = True
     columns = [_temporal_base_axis(c, {"temporal_columns_lookup": lookup}, grain) for c in unique]
 
-    def build(base: dict) -> list:
+    def build(base: dict[str, Any]) -> list[Any]:
         limit_metric, metrics = base.get("series_limit_metric"), base.get("metrics")
         orderby = UNSET
         if limit_metric:
@@ -606,13 +623,13 @@ def build_pivot_table_v2(form_data: dict) -> dict:
     return build_query_context(form_data, build)
 
 
-def build_box_plot(form_data: dict) -> dict:
+def build_box_plot(form_data: dict[str, Any]) -> dict[str, Any]:
     columns = ensure_list(form_data.get("columns"))
     if not columns and form_data.get("granularity_sqla"):
         columns = [form_data["granularity_sqla"]]
     grain = form_data.get("time_grain_sqla")
 
-    def build(base: dict) -> list:
+    def build(base: dict[str, Any]) -> list[Any]:
         return [{**base,
                  "columns": [*(_temporal_base_axis(c, form_data, grain) for c in columns),
                              *ensure_list(form_data.get("groupby"))],
@@ -622,21 +639,21 @@ def build_box_plot(form_data: dict) -> dict:
     return build_query_context(form_data, build)
 
 
-def _x_axis_and_groupby(form_data: dict, groupby) -> list:
+def _x_axis_and_groupby(form_data: dict[str, Any], groupby: Any) -> list[Any]:
     axis = ensure_list(x_axis_column(form_data)) if is_x_axis_set(form_data) else []
     return [*axis, *ensure_list(groupby)]
 
 
-def _timeseries_pivot(form_data: dict, query: dict):
+def _timeseries_pivot(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     if is_time_comparison(form_data, query):
         return time_compare_pivot_operator(form_data, query)
     return pivot_operator(form_data, query)
 
 
-def build_timeseries(form_data: dict) -> dict:
+def build_timeseries(form_data: dict[str, Any]) -> dict[str, Any]:
     groupby = form_data.get("groupby", UNSET)
 
-    def build(base: dict) -> list:
+    def build(base: dict[str, Any]) -> list[Any]:
         offsets = form_data.get("time_compare", UNSET) if is_time_comparison(form_data, base) else []
         query = {**base,
                  "metrics": [*(base.get("metrics") or []), *extra_metrics(form_data)],
@@ -656,8 +673,8 @@ def build_timeseries(form_data: dict) -> dict:
     return build_query_context(form_data, build)
 
 
-def retain_form_data_suffix(form_data: dict, suffix: str) -> dict:
-    result: dict = {}
+def retain_form_data_suffix(form_data: dict[str, Any], suffix: str) -> dict[str, Any]:
+    result: dict[str, Any] = {}
     for key, value in sorted(form_data.items(), key=lambda item: 0 if item[0].endswith(suffix) else 1):
         if key.endswith(suffix):
             result[key[:-len(suffix)]] = value
@@ -666,13 +683,13 @@ def retain_form_data_suffix(form_data: dict, suffix: str) -> dict:
     return result
 
 
-def remove_form_data_suffix(form_data: dict, suffix: str) -> dict:
+def remove_form_data_suffix(form_data: dict[str, Any], suffix: str) -> dict[str, Any]:
     return {key: value for key, value in form_data.items() if not key.endswith(suffix)}
 
 
-def build_mixed_timeseries(form_data: dict) -> dict:
-    def builder(fd: dict) -> Callable[[dict], list]:
-        def build(base: dict) -> list:
+def build_mixed_timeseries(form_data: dict[str, Any]) -> dict[str, Any]:
+    def builder(fd: dict[str, Any]) -> Callable[[dict[str, Any]], list[Any]]:
+        def build(base: dict[str, Any]) -> list[Any]:
             query = {**base, "columns": _x_axis_and_groupby(form_data, fd.get("groupby")),
                      "series_columns": fd.get("groupby", UNSET)}
             if not is_x_axis_set(form_data):
@@ -689,16 +706,16 @@ def build_mixed_timeseries(form_data: dict) -> dict:
     return {**contexts[0], "queries": [*contexts[0]["queries"], *contexts[1]["queries"]]}
 
 
-def table_query_mode(form_data: dict) -> str:
+def table_query_mode(form_data: dict[str, Any]) -> str:
     mode = form_data.get("query_mode")
     if mode in (QUERY_MODE_AGGREGATE, QUERY_MODE_RAW):
-        return mode
+        return str(mode)
     return QUERY_MODE_RAW if ensure_list(form_data.get("all_columns")) else QUERY_MODE_AGGREGATE
 
 
-def _table_time_offsets(form_data: dict, base: dict) -> list:
+def _table_time_offsets(form_data: dict[str, Any], base: dict[str, Any]) -> list[Any]:
     shifts = ensure_list(form_data.get("time_compare"))
-    offsets: list = []
+    offsets: list[Any] = []
     if is_time_comparison(form_data, base):
         offsets = [s for s in shifts if s not in ("custom", "inherit")]
         if "custom" in shifts:
@@ -709,7 +726,7 @@ def _table_time_offsets(form_data: dict, base: dict) -> list:
     return [extra_compare] if extra_compare and extra_compare not in offsets else offsets
 
 
-def _table_aggregate(form_data: dict, base: dict, offsets: list) -> dict:
+def _table_aggregate(form_data: dict[str, Any], base: dict[str, Any], offsets: list[Any]) -> dict[str, Any]:
     metrics = base.get("metrics") or []
     sort_metric = next(iter(ensure_list(form_data.get("timeseries_limit_metric"))), None)
     orderby = base.get("orderby") or []
@@ -733,7 +750,7 @@ def _table_aggregate(form_data: dict, base: dict, offsets: list) -> dict:
             "columns": _table_columns(form_data, base.get("columns") or [])}
 
 
-def _table_columns(form_data: dict, columns: list) -> list:
+def _table_columns(form_data: dict[str, Any], columns: list[Any]) -> list[Any]:
     grain = (form_data.get("extra_form_data") or {}).get("time_grain_sqla") or form_data.get("time_grain_sqla")
     for index, column in enumerate(columns):
         temporal = _temporal_base_axis(column, form_data, grain)
@@ -742,7 +759,7 @@ def _table_columns(form_data: dict, columns: list) -> list:
     return columns
 
 
-def _table_extra_queries(form_data: dict, query: dict, mode: str) -> list:
+def _table_extra_queries(form_data: dict[str, Any], query: dict[str, Any], mode: str) -> list[Any]:
     extra = []
     percent_metrics = ensure_list(form_data.get("percent_metrics"))
     if form_data.get("percent_metric_calculation") == "all_records" and percent_metrics:
@@ -754,12 +771,12 @@ def _table_extra_queries(form_data: dict, query: dict, mode: str) -> list:
     return extra
 
 
-def _is_download(form_data: dict) -> bool:
+def _is_download(form_data: dict[str, Any]) -> bool:
     result_format = form_data.get("result_format") or ""
     return result_format in ("csv", "xlsx") or (result_format == "json" and form_data.get("result_type") == "results")
 
 
-def _table_paging(form_data: dict) -> dict:
+def _table_paging(form_data: dict[str, Any]) -> dict[str, Any]:
     """Row window of the main query (no ownState: first page, as when the chart is saved)."""
     if _is_download(form_data):
         return {"row_limit": js_number(form_data.get("row_limit") or 0) or 0, "row_offset": 0}
@@ -768,11 +785,11 @@ def _table_paging(form_data: dict) -> dict:
     return {}
 
 
-def build_table(form_data: dict) -> dict:
+def build_table(form_data: dict[str, Any]) -> dict[str, Any]:
     mode = table_query_mode(form_data)
     query_form_data = {**form_data, "include_time": False} if mode == QUERY_MODE_RAW else form_data
 
-    def build(base: dict) -> list:
+    def build(base: dict[str, Any]) -> list[Any]:
         offsets = _table_time_offsets(form_data, base)
         parts = {"metrics": base.get("metrics", UNSET), "orderby": base.get("orderby") or [],
                  "post_processing": [], "columns": base.get("columns") or []}
@@ -793,12 +810,12 @@ def build_table(form_data: dict) -> dict:
     return build_query_context(query_form_data, build)
 
 
-def build_default(form_data: dict) -> dict:
+def build_default(form_data: dict[str, Any]) -> dict[str, Any]:
     """Plugins without a buildQuery (e.g. big_number_total) and legacy charts saved from Explore."""
     return build_query_context(form_data)
 
 
-BUILD_QUERY: dict[str, Callable[[dict], dict]] = {
+BUILD_QUERY: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "big_number_total": build_default,
     "box_plot": build_box_plot,
     "echarts_timeseries_bar": build_timeseries,
@@ -812,6 +829,6 @@ BUILD_QUERY: dict[str, Callable[[dict], dict]] = {
 }
 
 
-def query_context_for(form_data: dict) -> dict:
+def query_context_for(form_data: dict[str, Any]) -> dict[str, Any]:
     """Query context the Superset UI derives from `form_data`, dispatching on ``viz_type``."""
-    return BUILD_QUERY.get(form_data.get("viz_type"), build_default)(form_data)
+    return BUILD_QUERY.get(str(form_data.get("viz_type")), build_default)(form_data)

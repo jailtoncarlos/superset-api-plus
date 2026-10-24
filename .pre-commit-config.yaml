@@ -31,19 +31,11 @@ repos:
     rev: v2.4.0
     hooks:
       - id: mypy
+        name: mypy --strict
+        # Whole package under mypy --strict ([tool.mypy] in pyproject.toml); the legacy and compatibility
+        # modules marked ignore_errors there are not part of the typed public API.
         args: ["--explicit-package-bases"]
         files: ^supersetapiplus/
-        additional_dependencies: ["types-requests", "types-PyYAML"]
-        # Whole package, manual until mypy --strict (configured in pyproject) reaches zero (T13): run with
-        # pre-commit run mypy --hook-stage manual
-        stages: [manual]
-      - id: mypy
-        alias: mypy-typed
-        name: mypy --strict (typed layers)
-        # Ratchet: the modules already clean under mypy --strict stay clean. Add a package here once it reaches
-        # zero errors; errors of the modules they import are not reported (--follow-imports=silent).
-        args: ["--explicit-package-bases", "--follow-imports=silent"]
-        files: ^supersetapiplus/(client\.py|core/|transport/|auth/|services/|resources/|dashboards/(dashboards|metadata|native_filters)\.py|dashboards/layout/__init__\.py|charts/(?!build_query)[a-z_0-9]+\.py|charts/types/|exceptions\.py|deprecation\.py|query_string\.py)
         additional_dependencies: ["types-requests", "types-PyYAML", "beautifulsoup4>=4.11", "urllib3>=2", "shortuuid>=1.0.1"]
 
   - repo: local

@@ -209,10 +209,9 @@ On every commit they run, on the staged files:
 - **import layers** (`lint-imports`): the layer contracts of `[tool.importlinter]` in `pyproject.toml`;
 - **Superset conformance**: request payloads and routes against the OpenAPI specification;
 - **model attributes**: every enum declares its source in the Superset code, every `str` field is an enum
-  or declared free text, and a new chart gets the params the UI gives it (see below).
-
-`mypy` runs only on demand (`pre-commit run mypy --hook-stage manual`) until the codebase passes
-`mypy --strict`.
+  or declared free text, and a new chart gets the params the UI gives it (see below);
+- **mypy**: `mypy --strict` on the whole package (the legacy and compatibility modules listed in
+  `[tool.mypy]` of `pyproject.toml` are exempt).
 
 ### Integration tests (test stack)
 

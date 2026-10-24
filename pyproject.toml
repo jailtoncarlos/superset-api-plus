@@ -31,6 +31,9 @@ dependencies = [
 [tool.setuptools.packages.find]
 include = ["supersetapiplus*"]
 
+[tool.setuptools.package-data]
+supersetapiplus = ["py.typed"]
+
 [project.optional-dependencies]
 dev = [
   "ipdb>=0.13.13",

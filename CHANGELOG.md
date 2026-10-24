@@ -27,6 +27,10 @@ reorganized, tested package.
   null), including charts whose stored `query_context` differs from older Superset versions.
 * Enum values aligned with the Superset source (aggregates, operators, title positions, stacking...).
 * Secrets are masked in logs; TLS is verified by default.
+* Chart builders: a pie with a SQL-expression metric validates; `add_simple_filter` works on a chart read
+  without `adhoc_filters`; a chart whose stored `query_context` is null is edited through its params.
+* Forecast options of the derived query context follow `parseInt`/`parseFloat`: a missing or non-numeric
+  `forecastInterval` no longer raises, and NaN is written as `null` (it produced invalid JSON).
 
 ### Changed
 
@@ -53,6 +57,8 @@ reorganized, tested package.
   `beautifulsoup4>=4.11`...), and `urllib3`, imported directly, is now declared. Installing under the
   Airflow 3.3.2 constraints changes none of their pinned versions.
 * Tests no longer hide `DeprecationWarning` (pytest configuration in `pyproject.toml`).
+* The package is typed (`py.typed`, PEP 561) and passes `mypy --strict`, checked by a pre-commit hook; only
+  the legacy and compatibility modules are exempt.
 
 ### Deprecated
 

@@ -95,8 +95,8 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   rejected; legacy functions may be edited without increasing their complexity), `superset-conformance`
   (request payloads and routes vs. the OpenAPI specification), `model-attributes` (enums and `str`
   fields vs. the Superset source) and `import-layers` (the layer contracts of `[tool.importlinter]` in
-  `pyproject.toml`, run by `lint-imports`). `mypy` runs on demand
-  (`pre-commit run mypy --hook-stage manual`) until the code passes `mypy --strict`.
+  `pyproject.toml`, run by `lint-imports`) and `mypy` (`mypy --strict` on the whole package; only the legacy
+  and compatibility modules listed in `[tool.mypy]` are exempt).
 - CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on push/PR; pre-commit on
   the PR diff. CI/CD changes require explicit authorization from the maintainer.
 - Every bug fix comes with a test that fails before the fix. Prefer tests of the public contract
