@@ -5,7 +5,7 @@ import json
 import pytest
 
 from supersetapiplus.core.model import ObjectDecoder
-from supersetapiplus.base.datasource import DataSource
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.exceptions import ValidationError
 

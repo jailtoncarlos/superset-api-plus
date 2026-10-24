@@ -22,8 +22,8 @@ import requests.exceptions
 from supersetapiplus.assets import Assets
 from supersetapiplus.auth.csrf import CSRFSupportMixin
 from supersetapiplus.auth.session import SessionAuthMixin
-from supersetapiplus.base.types import LimitingFactor
 from supersetapiplus.charts.charts import Charts
+from supersetapiplus.core.types import LimitingFactor
 from supersetapiplus.dashboards.dashboards import Dashboards
 from supersetapiplus.databases import Databases
 from supersetapiplus.datasets import Datasets

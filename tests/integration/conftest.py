@@ -19,7 +19,7 @@ import uuid
 
 import pytest
 
-from supersetapiplus.base.datasource import DataSource
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.client import SupersetClient
 from supersetapiplus.databases import Database

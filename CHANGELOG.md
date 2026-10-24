@@ -44,6 +44,8 @@ Loggers follow the module names (e.g. `supersetapiplus.transport.http`).
 | `supersetapiplus.base.base` | `supersetapiplus.core.model` (`SerializableModel`, `ObjectDecoder`) and `supersetapiplus.resources.repository` (`ApiModelFactories`, `UnsupportedObject`) |
 | `supersetapiplus.base.fields`, `base.parse`, `base.sentinels`, `base.enum_str` | `supersetapiplus.core.fields`, `core.parse`, `core.sentinels`, `core.enums` |
 | `supersetapiplus.typing` | `supersetapiplus.core.typing` |
+| `supersetapiplus.base.types`, `base.datasource` | `supersetapiplus.core.types`, `core.datasource` |
+| `supersetapiplus.charts.types` (module) | `supersetapiplus.charts.types` (package split by subject: `formats`, `time`, `filters`, `query`, `viz`; every name still importable from `charts.types`) |
 | `supersetapiplus.dashboards.layout` (module) | `supersetapiplus.dashboards.layout` (package; same names) |
 | `dashboards.itemposition`, `nodeposition`, `treenodeposition`, `metadataposition`, `generate_graphviz` (tree builder, superseded by `DashboardLayout`) | `dashboards.layout.legacy.items`, `.nodes`, `.tree`, `.metadata_position`, `.graphviz` |
 

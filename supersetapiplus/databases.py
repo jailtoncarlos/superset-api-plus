@@ -2,10 +2,10 @@
 import warnings
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.types import ConfigurationMethod
 from supersetapiplus.core.fields import default_string, json_field
 from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.core.sentinels import MissingField
+from supersetapiplus.core.types import ConfigurationMethod
 from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.resources.repository import ApiModelFactories
 

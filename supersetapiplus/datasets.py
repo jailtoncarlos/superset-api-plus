@@ -1,9 +1,9 @@
 """Datasets."""
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.datasource import DataSource
-from supersetapiplus.base.types import DatasourceKind, DatasourceType
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.types import DatasourceKind, DatasourceType
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import NotFound
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter

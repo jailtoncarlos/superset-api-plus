@@ -32,7 +32,7 @@ def test_item_goes_to_sibling_row_with_room():
 
 
 def test_pie_validate_accepts_chart_created_in_code_and_rejects_non_pair_orderby():
-    from supersetapiplus.base.datasource import DataSource
+    from supersetapiplus.core.datasource import DataSource
     from supersetapiplus.charts.pie import PieChart
     from supersetapiplus.exceptions import ValidationError
 

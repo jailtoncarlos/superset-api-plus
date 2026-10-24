@@ -3,7 +3,7 @@ import importlib
 
 import pytest
 
-from supersetapiplus.base.datasource import DataSource
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
 
 VIZ_TYPES = ["table", "pie", "pivot_table_v2", "echarts_timeseries_bar", "big_number_total",

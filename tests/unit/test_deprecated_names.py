@@ -66,6 +66,8 @@ MOVED_MODULES = [
     ("supersetapiplus.base.fields", "supersetapiplus.core.fields", "object_field"),
     ("supersetapiplus.base.sentinels", "supersetapiplus.core.sentinels", "MissingField"),
     ("supersetapiplus.typing", "supersetapiplus.core.typing", "SerializableOptional"),
+    ("supersetapiplus.base.types", "supersetapiplus.core.types", "DatasourceType"),
+    ("supersetapiplus.base.datasource", "supersetapiplus.core.datasource", "DataSource"),
     ("supersetapiplus.dashboards.itemposition", "supersetapiplus.dashboards.layout.legacy.items", "ItemPosition"),
     ("supersetapiplus.dashboards.nodeposition", "supersetapiplus.dashboards.layout.legacy.nodes", "NodePosition"),
     ("supersetapiplus.dashboards.treenodeposition", "supersetapiplus.dashboards.layout.legacy.tree", "TreeNodePosition"),

@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from supersetapiplus.base.datasource import DataSource
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.dashboards.layout.legacy.items import MarkdownItemPosition

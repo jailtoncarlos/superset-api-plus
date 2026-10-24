@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 
 from typing_extensions import Self
 
-from supersetapiplus.base.types import DatasourceType
 from supersetapiplus.charts.build_query import query_context_for
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
@@ -17,6 +16,7 @@ from supersetapiplus.charts.types import ChartType, FilterClausesType, FilterExp
 from supersetapiplus.core.dicts import detailed_dict_diff
 from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.types import DatasourceType
 from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.exceptions import ChartValidationError, NotFound, ValidationError

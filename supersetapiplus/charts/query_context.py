@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import AdhocMetricColumn, Query
@@ -13,6 +12,7 @@ from supersetapiplus.charts.types import (
     ResultFormat,
     ResultType,
 )
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.core.typing import SerializableOptional

@@ -18,7 +18,7 @@ import pytest
 
 import supersetapiplus
 from supersetapiplus import query_string as Q
-from supersetapiplus.base import types as B
+from supersetapiplus.core import types as B
 from supersetapiplus.charts import types as T
 from supersetapiplus.dashboards.layout.legacy import items as IP
 from supersetapiplus.dashboards import layout as L
