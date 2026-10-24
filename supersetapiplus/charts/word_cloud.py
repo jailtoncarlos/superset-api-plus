@@ -1,6 +1,7 @@
 # supersetapiplus/charts/word_cloud.py
 
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
@@ -10,7 +11,7 @@ from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType
 from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.sentinels import MissingField
-from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
 
@@ -21,7 +22,7 @@ class WordCloudOption(SingleMetricMixin, Option):
     series: SerializableOptional[QueryFormColumn] = object_field(default=None)
     # The plugin has no groupby control: the dimension is `series`.
     groupby: SerializableOptional[list] = field(default_factory=MissingField)
-    _require_groupby: SerializableNotToJson[bool] = False
+    _require_groupby: ClassVar[bool] = False
     row_limit: SerializableOptional[int] = 100
     size_from: int = 10
     size_to: int = 70
@@ -76,6 +77,7 @@ class WordCloudChart(Chart):
       - params: WordCloudOption
       - query_context: WordCloudQueryContext
     """
+    VIZ_TYPE: ClassVar[ChartType] = ChartType.WORD_CLOUD
     viz_type: ChartType = field(default_factory=lambda: ChartType.WORD_CLOUD)
     params: WordCloudOption = object_field(
         cls=WordCloudOption, default_factory=WordCloudOption

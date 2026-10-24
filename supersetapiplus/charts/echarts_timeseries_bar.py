@@ -1,7 +1,7 @@
 """Charts."""
 import warnings
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
@@ -28,6 +28,7 @@ from supersetapiplus.core.typing import SerializableOptional
 class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
     """Bar chart params; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0)."""
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
+    _require_groupby: ClassVar[bool] = False  # groupby (series breakdown) is optional
 
     # X axis: a column name or an AdhocColumn; absent until set (the UI proposes the dataset's time column).
     x_axis: SerializableOptional[QueryFormColumn] = object_field(default=None)
@@ -83,11 +84,6 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
     xAxisForceCategorical: SerializableOptional[bool] = field(default=None)
     tooltipSortByMetric: SerializableOptional[bool] = field(default=None)
 
-    def validate(self):
-        # groupby is not required
-        self._require_groupby: bool = False
-        super().validate()
-
     def __post_init__(self):
         super().__post_init__()
 
@@ -134,6 +130,7 @@ class TimeSeriesBarQueryContext(QueryContext):
 
 @dataclass
 class EchartsTimeseriesBarChart(Chart):
+    VIZ_TYPE: ClassVar[ChartType] = ChartType.TIMESERIES_BAR
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
     params: TimeSeriesBarOption = object_field(
         cls=TimeSeriesBarOption, default_factory=TimeSeriesBarOption)

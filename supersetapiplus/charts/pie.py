@@ -1,5 +1,6 @@
 """Charts."""
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
@@ -86,6 +87,7 @@ class PieQueryContext(QueryContext):
 
 @dataclass
 class PieChart(Chart):
+    VIZ_TYPE: ClassVar[ChartType] = ChartType.PIE
     viz_type: ChartType = field(default_factory=lambda: ChartType.PIE)
     params: PieOption = object_field(cls=PieOption, default_factory=PieOption)
     query_context: PieQueryContext = object_field(cls=PieQueryContext, default_factory=PieQueryContext)

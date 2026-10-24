@@ -1,6 +1,7 @@
 # supersetapiplus/charts/box_plot.py
 
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
@@ -8,7 +9,7 @@ from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, TimeGrain, WhiskerOptions
 from supersetapiplus.core.fields import object_field
-from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.core.typing import SerializableOptional
 
 
 @dataclass
@@ -20,7 +21,7 @@ class BoxPlotOption(Option):
     """
     viz_type: ChartType = field(default_factory=lambda: ChartType.BOX_PLOT)
     # Dimensions are optional in the UI (one box when empty).
-    _require_groupby: SerializableNotToJson[bool] = False
+    _require_groupby: ClassVar[bool] = False
     columns: SerializableOptional[list[QueryFormColumn]] = object_field(default=None)
     whiskerOptions: SerializableOptional[WhiskerOptions] = field(default_factory=lambda: WhiskerOptions.TUKEY)
     row_limit: SerializableOptional[int] = 10000
@@ -69,6 +70,7 @@ class BoxPlotChart(Chart):
       - params: BoxPlotOption
       - query_context: BoxPlotQueryContext
     """
+    VIZ_TYPE: ClassVar[ChartType] = ChartType.BOX_PLOT
     viz_type: ChartType = field(default_factory=lambda: ChartType.BOX_PLOT)
     params: BoxPlotOption = object_field(
         cls=BoxPlotOption, default_factory=BoxPlotOption

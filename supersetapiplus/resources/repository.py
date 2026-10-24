@@ -1,5 +1,4 @@
 """Repositories: CRUD of each REST resource over the HTTP client (search, read, write, export/import)."""
-import importlib
 import json
 import logging
 import os.path
@@ -87,29 +86,9 @@ class ApiModelFactories(ABC):
             data = {}
 
         type_ = data.get('viz_type')
-        if type_:
-            m = self._default_object_class().__module__.split('.')
-            # Remove the last segment, which is the parent class name
-            m.pop(-1)
-
-            m.append(type_)
-
-            module_name = '.'.join(m)
-
-            # Import the type's module on demand; previously it only worked if the module
-            # had already been imported some other way (sys.modules).
-            try:
-                importlib.import_module(module_name)
-            except ModuleNotFoundError as e:
-                if e.name != module_name:
-                    raise
-                raise UnsupportedTypeError(
-                    f"viz_type '{type_}' is not supported by superset-api-plus "
-                    f"(module '{module_name}' not found)."
-                ) from e
-
-            return self._default_object_class().get_class(type_, module_name)
-
+        base = self._default_object_class()
+        if type_ and hasattr(base, 'for_viz_type'):
+            return base.for_viz_type(type_)  # registry of the model classes (e.g. Chart subclasses)
         return self._default_object_class()
 
     @cached_property
@@ -396,7 +375,7 @@ class ApiModelFactories(ABC):
         return response.ok
 
     def import_file(self, file_path, overwrite=False, passwords=None, ssh_tunnel_passwords=None,
-                    ssh_tunnel_private_keys=None, ssh_tunnel_private_key_passwords=None) -> dict:
+                    ssh_tunnel_private_keys=None, ssh_tunnel_private_key_passwords=None) -> bool:
         """
         Import a file (JSON or ZIP) into Superset.
 
@@ -408,7 +387,7 @@ class ApiModelFactories(ABC):
                 secrets of the databases, by database name (form fields of the import endpoints, 6.1.0).
 
         Returns:
-            dict: import result with status.
+            bool: True when Superset answers "OK".
         """
         data = {"overwrite": json.dumps(overwrite)}
         for name, secrets in (("ssh_tunnel_passwords", ssh_tunnel_passwords),

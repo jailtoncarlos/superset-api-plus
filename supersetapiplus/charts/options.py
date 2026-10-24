@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from supersetapiplus.charts.filters import AdhocFilterClause
 from supersetapiplus.charts.metric import (
@@ -25,7 +26,7 @@ from supersetapiplus.charts.types import (
 from supersetapiplus.core.fields import default_string, object_field
 from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.core.sentinels import MissingField
-from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -46,12 +47,12 @@ class OptionListGroupByMixin:
     groupby: list[OrderByTyping] = object_field(cls=AdhocMetric, default_factory=list)
 
     # by default, every chart requires groupby
-    _require_groupby: SerializableNotToJson[bool] = True
+    _require_groupby: ClassVar[bool] = True
 
     def validate(self):
         super().validate()
-        # only validate if the subclass did not disable it
-        if self._require_groupby \
+        # Only for charts built in code whose plugin requires a dimension (see _read_from_superset).
+        if self._require_groupby and not getattr(self, "_read_from_superset", False) \
                 and not isinstance(self.groupby, MissingField) \
                 and not self.groupby:
             raise ValidationError(

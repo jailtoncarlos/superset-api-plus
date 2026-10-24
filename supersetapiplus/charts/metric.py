@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from supersetapiplus.charts.types import (
     ColumnType,
@@ -10,7 +11,7 @@ from supersetapiplus.charts.types import (
 )
 from supersetapiplus.core.fields import default_string, object_field
 from supersetapiplus.core.model import SerializableModel
-from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -170,7 +171,7 @@ class SingleMetricMixin:
     # Absent unless the plugin has the control (pie: default true; word_cloud: set by automatic ordering).
     sort_by_metric: SerializableOptional[bool] = None
     # Whether the automatic ordering of add_*_metric maps to sort_by_metric (False for big numbers).
-    _sorts_by_metric: SerializableNotToJson[bool] = True
+    _sorts_by_metric: ClassVar[bool] = True
 
     def _sort_by_metric(self, automatic_order: OrderBy) -> None:
         if self._sorts_by_metric and automatic_order and automatic_order.automate:

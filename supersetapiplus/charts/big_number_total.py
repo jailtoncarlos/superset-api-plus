@@ -1,6 +1,7 @@
 # supersetapiplus/charts/big_number_total.py
 
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
@@ -10,7 +11,7 @@ from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, DateFormatType, NumberFormatType
 from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.sentinels import MissingField
-from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
 
@@ -20,8 +21,8 @@ class BigNumberTotalOption(SingleMetricMixin, Option):
     viz_type: ChartType = field(default_factory=lambda: ChartType.BIG_NUMBER_TOTAL)
     # The plugin has no dimension control: groupby is absent.
     groupby: SerializableOptional[list] = field(default_factory=MissingField)
-    _require_groupby: SerializableNotToJson[bool] = False
-    _sorts_by_metric: SerializableNotToJson[bool] = False
+    _require_groupby: ClassVar[bool] = False
+    _sorts_by_metric: ClassVar[bool] = False
 
     header_font_size: float = 0.4
     subtitle_font_size: float = 0.15
@@ -76,6 +77,7 @@ class BigNumberTotalChart(Chart):
       - params: BigNumberTotalOption
       - query_context: BigNumberTotalQueryContext
     """
+    VIZ_TYPE: ClassVar[ChartType] = ChartType.BIG_NUMBER_TOTAL
     viz_type: ChartType = field(default_factory=lambda: ChartType.BIG_NUMBER_TOTAL)
     params: BigNumberTotalOption = object_field(
         cls=BigNumberTotalOption, default_factory=BigNumberTotalOption

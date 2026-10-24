@@ -1,6 +1,7 @@
 # supersetapiplus/charts/cal_heatmap.py
 
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
@@ -15,7 +16,7 @@ from supersetapiplus.charts.types import (
 )
 from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.sentinels import MissingField
-from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.core.typing import SerializableOptional
 
 
 @dataclass
@@ -28,7 +29,7 @@ class CalHeatmapOption(Option):
     viz_type: ChartType = field(default_factory=lambda: ChartType.CAL_HEATMAP)
     # The plugin has no dimension control: groupby is absent.
     groupby: SerializableOptional[list] = field(default_factory=MissingField)
-    _require_groupby: SerializableNotToJson[bool] = False
+    _require_groupby: ClassVar[bool] = False
     granularity_sqla: SerializableOptional[str] = None
     time_range: SerializableOptional[str] = 'No filter'
     domain_granularity: CalendarDomain = field(default_factory=lambda: CalendarDomain.MONTH)
@@ -83,6 +84,7 @@ class CalHeatmapChart(Chart):
       - params: CalHeatmapOption
       - query_context: CalHeatmapQueryContext
     """
+    VIZ_TYPE: ClassVar[ChartType] = ChartType.CAL_HEATMAP
     viz_type: ChartType = field(default_factory=lambda: ChartType.CAL_HEATMAP)
     params: CalHeatmapOption = object_field(
         cls=CalHeatmapOption, default_factory=CalHeatmapOption

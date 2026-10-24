@@ -10,7 +10,6 @@ Features:
 - Simplified access to Superset objects and query execution.
 """
 
-import getpass
 import json
 import logging
 from urllib.parse import urlparse
@@ -24,7 +23,7 @@ from supersetapiplus.auth.session import SessionAuthMixin
 from supersetapiplus.charts.charts import Charts
 from supersetapiplus.core.types import LimitingFactor
 from supersetapiplus.dashboards.dashboards import Dashboards
-from supersetapiplus.exceptions import QueryLimitReached, UnauthorizedError
+from supersetapiplus.exceptions import MissingCredentialsError, QueryLimitReached, UnauthorizedError
 from supersetapiplus.query_string import QueryStringFilter
 from supersetapiplus.resources.assets import Assets
 from supersetapiplus.resources.databases import Databases
@@ -165,10 +164,9 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         """
         Authenticates via JWT (POST /security/login) and stores the access and refresh tokens.
         """
-        if self.username is None:
-            self.username = getpass.getuser()
-        if self._password is None:
-            self._password = getpass.getpass()
+        # A library must not prompt on a terminal (it would hang a DAG or a service): credentials are required.
+        if not self.username or self._password is None:
+            raise MissingCredentialsError("SupersetClient needs a username and a password to log in.")
 
         login_resp = RequestHandler.request_with_retry(
             url=self.login_endpoint,

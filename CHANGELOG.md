@@ -16,6 +16,11 @@
 * Model equality is the field-by-field equality of each `@dataclass` (the base class methods were never
   used); unmodeled keys read from Superset (`extra_fields`) belong to each instance and do not take part.
 
+* The client never prompts for credentials: without a username or password, login raises
+  `MissingCredentialsError` (it used to call `getpass`, which hangs a DAG or a service).
+* `Chart.get_class(viz_type, module)` resolves through an explicit registry (`Chart.for_viz_type`), importing
+  `supersetapiplus.charts.<viz_type>` on demand; the module no longer needs to be imported first.
+
 ### Deprecated
 
 Misspelled public names were renamed. The old names keep working as aliases and emit `DeprecationWarning`;

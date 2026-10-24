@@ -147,24 +147,13 @@ class SerializableModel(ParseMixin, ABC):
         """
         Return the set of fields defined in the dataclass.
 
-        Combines the fields declared in `__dataclass_fields__` with those returned by
-        `dataclasses.fields`. Used to retrieve every attribute declaration of a class
-        inheriting from `Object`.
+        Inherited fields included; class-level settings (ClassVar) are not fields.
 
         Returns:
             set: `dataclasses.Field` objects representing the class fields.
         """
-        _fields = set()
-
-        # Add fields declared directly on the class
-        for f in cls.__dataclass_fields__.values():
-            if isinstance(f, dataclasses.Field):
-                _fields.add(f)
-
-        # Also add the fields found by dataclasses.fields (may include inherited ones)
-        _fields.update(dataclasses.fields(cls))
-
-        return _fields
+        # dataclasses.fields() leaves out ClassVar and InitVar pseudo-fields (__dataclass_fields__ includes them).
+        return set(dataclasses.fields(cls))
 
     @classmethod
     def get_field(cls, name) -> dataclasses.Field:

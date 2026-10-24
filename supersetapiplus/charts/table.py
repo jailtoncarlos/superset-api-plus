@@ -1,6 +1,6 @@
 """Charts."""
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import Any, ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import AdhocMetricColumn, Metric, OrderBy
@@ -27,6 +27,8 @@ from supersetapiplus.exceptions import ValidationError
 
 @dataclass
 class TableOptionBase(Option):
+    # Dimensions are optional in the UI (a table in raw mode or with metrics only, mixed series, pivot rows).
+    _require_groupby: ClassVar[bool] = False
     conditional_formatting: SerializableOptional[list] = field(default=None)
     temporal_columns_lookup: SerializableOptional[dict] = field(default=None)
     annotation_layers: SerializableOptional[list] = field(default=None)
@@ -160,6 +162,7 @@ class TableQueryContext(QueryContext):
 
 @dataclass
 class TableChart(Chart):
+    VIZ_TYPE: ClassVar[ChartType] = ChartType.TABLE
     viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
     params: TableOption = object_field(cls=TableOption, default_factory=TableOption)
     query_context: TableQueryContext = object_field(cls=TableQueryContext, default_factory=TableQueryContext)

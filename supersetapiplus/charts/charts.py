@@ -1,9 +1,11 @@
 """Charts."""
 import copy
+import importlib
 import json
 import logging
 from abc import abstractmethod
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from typing_extensions import Self
 
@@ -19,7 +21,7 @@ from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.core.types import DatasourceType
 from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.dashboards.dashboards import Dashboard
-from supersetapiplus.exceptions import ChartValidationError, NotFound, ValidationError
+from supersetapiplus.exceptions import ChartValidationError, NotFound, UnsupportedTypeError, ValidationError
 from supersetapiplus.resources.repository import ApiModelFactories
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,11 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Chart(SerializableModel):
+    """A chart; each modeled viz_type is a subclass that declares VIZ_TYPE and registers itself."""
+    # viz_type -> model class, filled by __init_subclass__ (see for_viz_type).
+    _REGISTRY: ClassVar[dict[str, type["Chart"]]] = {}
+    VIZ_TYPE: ClassVar[ChartType | None] = None
+
     JSON_FIELDS = ['params', 'query_context']
     PRESERVE_EXTRA_FIELDS = False
     # Fields accepted by the API (OpenAPI 6.1.0: ChartRestApi.post / ChartRestApi.put).
@@ -145,6 +152,36 @@ class Chart(SerializableModel):
             raise ValidationError(message=f'self.params is not the same as self.query_context.form_data. '
                                           f'Diff: modified={modified}, added={added}, removed={removed}',
                                   solution="We recommend using the public methods of the chart class.")
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls.__dict__.get('VIZ_TYPE') is not None:
+            Chart._REGISTRY[str(cls.VIZ_TYPE)] = cls
+
+    @classmethod
+    def for_viz_type(cls, viz_type: str) -> type["Chart"]:
+        """Model class of a viz_type, importing its module (supersetapiplus.charts.<viz_type>) on demand.
+
+        Raises:
+            UnsupportedTypeError: the library has no model for the viz_type.
+        """
+        viz_type = str(viz_type)
+        if viz_type not in Chart._REGISTRY:
+            module_name = f"{__package__}.{viz_type}"
+            try:
+                importlib.import_module(module_name)
+            except ModuleNotFoundError as error:
+                if error.name != module_name:
+                    raise
+        try:
+            return Chart._REGISTRY[viz_type]
+        except KeyError:
+            raise UnsupportedTypeError(f"viz_type '{viz_type}' is not supported by superset-api-plus.") from None
+
+    @classmethod
+    def get_class(cls, type_: str, module_name: str = None) -> type["Chart"]:
+        """Model class of a viz_type (kept for compatibility; `module_name` is no longer needed)."""
+        return cls.for_viz_type(type_)
 
     @classmethod
     def instance(cls,

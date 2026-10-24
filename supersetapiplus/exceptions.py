@@ -156,3 +156,7 @@ class UnsupportedTypeError(NotImplementedError):
 
 class UnboundModelError(RuntimeError):
     """A model not bound to a Superset client was asked to reach the server (save, fetch, delete...)."""
+
+
+class MissingCredentialsError(ValueError):
+    """The client has no username or password to log in (the library never prompts for them)."""

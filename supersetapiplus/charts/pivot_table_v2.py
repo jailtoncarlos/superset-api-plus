@@ -1,5 +1,6 @@
 """Charts."""
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import OrderByTyping
@@ -22,6 +23,8 @@ from supersetapiplus.core.typing import SerializableOptional
 
 @dataclass
 class PivotTableV2Option(TableOptionBase):
+    # The pivot has no groupby control: its dimensions are groupbyRows/groupbyColumns, both optional.
+    _require_groupby: ClassVar[bool] = False
     viz_type: ChartType = field(default_factory=lambda: ChartType.PIVOT_TABLE_V2)
 
     groupby: SerializableOptional[list[OrderByTyping]] = None
@@ -67,8 +70,6 @@ class PivotTableV2Option(TableOptionBase):
     def __post_init__(self):
         super().__post_init__()
         self.groupby = None
-        # The pivot has no groupby control: its dimensions are groupbyRows/groupbyColumns, both optional.
-        self._require_groupby = False
 
     def _editable_groupby(self) -> list:
         # The pivot buildQuery reads only groupbyColumns/groupbyRows: dimensions added in code are rows,
@@ -99,6 +100,7 @@ class PivotTableV2QueryContext(QueryContext):
 
 @dataclass
 class PivotTableV2Chart(Chart):
+    VIZ_TYPE: ClassVar[ChartType] = ChartType.PIVOT_TABLE_V2
     viz_type: ChartType = field(default_factory=lambda: ChartType.PIVOT_TABLE_V2)
     params: PivotTableV2Option = object_field(cls=PivotTableV2Option, default_factory=PivotTableV2Option)
     query_context: PivotTableV2QueryContext = object_field(cls=PivotTableV2QueryContext,

@@ -1,6 +1,7 @@
 # supersetapiplus/charts/mixed_timeseries.py
 
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
@@ -18,6 +19,8 @@ class MixedTimeseriesOption(Option):
     Defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0) for the keys read by
     buildQuery; the other keys of the plugin are kept as read (lossless round trip).
     """
+    # Dimensions are optional in the UI (a table in raw mode or with metrics only, mixed series, pivot rows).
+    _require_groupby: ClassVar[bool] = False
     viz_type: ChartType = field(default_factory=lambda: ChartType.MIXED_TIMESERIES)
     # X axis shared by both queries: a column name or an AdhocColumn; absent until set (the UI proposes the
     # dataset's time column, and the backend requires a datetime column when it is absent).
@@ -75,6 +78,7 @@ class MixedTimeseriesChart(Chart):
       - params: MixedTimeseriesOption
       - query_context: MixedTimeseriesQueryContext
     """
+    VIZ_TYPE: ClassVar[ChartType] = ChartType.MIXED_TIMESERIES
     # Superset may store query_context.form_data without the query B keys (metrics_b, groupby_b...).
     PARAMS_ONLY_FIELD_SUFFIXES = ('_b',)
 

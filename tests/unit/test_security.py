@@ -118,3 +118,11 @@ def test_import_sends_ssh_tunnel_secrets_by_database_file(tmp_path, monkeypatch)
 
     assert json.loads(sent["ssh_tunnel_passwords"]) == {"databases/examples.yaml": "tunnel-secret"}
     assert "ssh_tunnel_private_keys" not in sent
+
+
+def test_login_without_credentials_raises_instead_of_prompting():
+    from supersetapiplus.exceptions import MissingCredentialsError
+
+    client = SupersetClient(HOST, username="robot", password=None)
+    with pytest.raises(MissingCredentialsError):
+        client.authenticate(requests.Session())
