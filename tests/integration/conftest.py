@@ -111,10 +111,11 @@ def new_chart(viz_type: str, dataset: Dataset, slice_name: str | None = None) ->
 
 
 class Cleanup:
-    """Removes, at the end of the test, the charts and dashboards it created (ignores those already removed)."""
+    """Removes, at the end of the test, the dashboards, charts and datasets it created, in this order (a dataset
+    with charts cannot be removed); ignores those already removed."""
 
     def __init__(self, client: SupersetClient):
-        self.client, self.charts, self.dashboards = client, [], []
+        self.client, self.charts, self.dashboards, self.datasets = client, [], [], []
 
     def chart(self, chart_id: int) -> int:
         self.charts.append(chart_id)
@@ -124,8 +125,13 @@ class Cleanup:
         self.dashboards.append(dashboard_id)
         return dashboard_id
 
+    def dataset(self, dataset_id: int) -> int:
+        self.datasets.append(dataset_id)
+        return dataset_id
+
     def run(self) -> None:
-        for factory, ids in ((self.client.dashboards, self.dashboards), (self.client.charts, self.charts)):
+        for factory, ids in ((self.client.dashboards, self.dashboards), (self.client.charts, self.charts),
+                             (self.client.datasets, self.datasets)):
             for pk in ids:
                 try:
                     factory.delete(pk)

@@ -1,7 +1,11 @@
 """Dashboards against the real Superset: writing, chart association, layout and native filters."""
 import pytest
 
+from supersetapiplus.charts.build_query import query_context_for
+from supersetapiplus.charts.charts import Chart
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.dashboards.dashboards import Dashboard
+from supersetapiplus.datasets import Dataset
 from supersetapiplus.dashboards.native_filters import FilterType
 from supersetapiplus.exceptions import DashboardValidationError, NotFound, ResourceNotFoundError
 from supersetapiplus.query_string import QueryOperator
@@ -159,6 +163,50 @@ def test_time_filter_without_dataset_and_chart_scoped_filter_are_stored(client, 
     assert period["targets"] == [{}] and period["filterType"] == "filter_time"
     assert campus["scope"] == {"rootPath": ["ROOT_ID"], "excluded": [second.id]}
     assert campus["chartsInScope"] == [first.id]
+
+
+def test_default_value_of_a_select_filter_filters_the_charts_when_the_dashboard_opens(
+        client, dataset, add_chart, add_dashboard):
+    chart, dashboard = add_chart(), add_dashboard()
+    dashboard.reset_layout().add_chart(chart, width=12)
+    meta = dashboard.json_metadata
+    meta.clear_native_filters()
+    meta.add_native_filter("Campus", client.datasets.get(dataset.id), "campus", default_value=["North"])
+    dashboard.save()
+    client.dashboards.attach_charts(dashboard)
+
+    (stored,) = client.dashboards.get(dashboard.id).json_metadata.native_filter_configuration
+    assert stored["defaultDataMask"]["filterState"] == {"value": ["North"], "label": "North",
+                                                        "excludeFilterValues": True}
+    # The dashboard applies the data mask to each chart in scope as extra_form_data of its form data.
+    form_data = {**client.charts.get(chart.id).params.to_dict(), "dashboardId": dashboard.id,
+                 "extra_form_data": stored["defaultDataMask"]["extraFormData"]}
+    (result,) = client.post(client.join_urls(client.charts.base_url, "data"),
+                            json=query_context_for(form_data)).json()["result"]
+    assert [row["campus"] for row in result["data"]] == ["North"]
+    assert {"column": "campus"} in result["applied_filters"] and result["rejected_filters"] == []
+
+
+def test_native_filter_problems_report_a_column_missing_from_a_chart_dataset(client, database, dataset, add_chart,
+                                                                            add_dashboard, cleanup):
+    other = Dataset(table_name=unique_name("ds-no-campus"), schema="public", sql="select 5 as total",
+                    database_id=database.id)
+    cleanup.dataset(client.datasets.add(other))
+    foreign = Chart.get_class("table", "supersetapiplus.charts.table").instance(
+        slice_name=unique_name("table"), datasource=DataSource(id=other.id, type="table"))
+    foreign.add_simple_metric("count")
+    cleanup.chart(client.charts.add(foreign))
+    chart, dashboard = add_chart(), add_dashboard()
+    row = dashboard.reset_layout().add_row()
+    for placed in (chart, foreign):
+        dashboard.position.add_chart(placed, parent=row, width=6)
+    dashboard.json_metadata.clear_native_filters()
+    dashboard.json_metadata.add_native_filter("Campus", dataset, "campus")
+    dashboard.save()
+    client.dashboards.attach_charts(dashboard)
+
+    assert client.dashboard_charts.native_filter_problems(dashboard) == [
+        f"Filter 'Campus': column 'campus' is not in dataset {other.id} of chart {foreign.id}."]
 
 
 def test_owners_and_roles_are_saved_as_ids_and_read_as_objects(client, add_dashboard):

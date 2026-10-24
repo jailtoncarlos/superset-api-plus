@@ -102,8 +102,11 @@ class Metadata(SerializableModel):
         `parent` is a filter (or a list of filters) returned by this method: the new filter depends on them
         (``cascadeParentIds``). The filter applies to every chart of the dashboard, or only to `charts`, or
         to all but `excluded_charts` (charts or chart ids). Other options are those of
-        :func:`native_filters.filter_config`, for example ``adhoc_filters=[...]``, ``multiSelect=True`` or
-        ``inverseSelection=True``.
+        :func:`native_filters.filter_config`, for example ``adhoc_filters=[...]``, ``multiSelect=True``,
+        ``inverseSelection=True`` or ``default_value=["North"]`` (the selection when the dashboard opens).
+        A `dataset` read from Superset (with its columns) has the column checked: it must exist, and be
+        numeric for a range filter. ``client.dashboard_charts.native_filter_problems(dashboard)`` checks the
+        datasets of the charts in scope.
         """
         if charts is not None and excluded_charts is not None:
             raise ValueError("pass either charts or excluded_charts, not both.")

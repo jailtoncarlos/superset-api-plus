@@ -9,13 +9,19 @@ import requests
 
 from supersetapiplus.charts.charts import Chart, Charts
 from supersetapiplus.dashboards.dashboards import Dashboard, Dashboards
+from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.exceptions import ChartValidationError, DashboardValidationError
+from supersetapiplus.resources.datasets import Datasets
 
 
 class _Client(Protocol):
     """What the service needs from SupersetClient (a protocol: services must not import the client layer)."""
     charts: Charts
     dashboards: Dashboards
+    datasets: Datasets
+
+    def get(self, url: str, **kwargs: Any) -> requests.Response:
+        ...
 
     def put(self, url: str, **kwargs: Any) -> requests.Response:
         ...
@@ -104,3 +110,59 @@ class DashboardCharts:
         self.add_chart(dashboard, chart, title, parent)
         dashboard.save()
         return new_id
+
+    def native_filter_problems(self, dashboard: Dashboard) -> list[str]:
+        """
+        Native filters whose column is missing from the dataset of a chart in their scope.
+
+        Superset does not apply such a filter to that chart (it reports it among the ``rejected_filters`` of
+        the chart data: not in the datasource), so the chart is shown unfiltered. The charts and datasets
+        are read from Superset (the dashboard must be saved); the scopes are those of `dashboard`, computed
+        from its layout for the filters built by the library.
+        """
+        if not dashboard.id:
+            raise DashboardValidationError("Save the dashboard before checking its filters (dashboard.id is empty).")
+        metadata = dashboard.json_metadata
+        if not isinstance(metadata, Metadata):
+            return []
+        metadata.update_native_filter_scopes(dashboard.position)
+        chart_datasets = self._chart_datasets(dashboard.id)
+        dataset_columns: dict[int, set[str]] = {}
+        problems: list[str] = []
+        for item in metadata.native_filter_configuration or []:
+            column = _target_column(item)
+            if not column:
+                continue
+            for chart_id in item.get("chartsInScope") or []:
+                dataset_id = chart_datasets.get(chart_id)
+                if dataset_id is None:
+                    continue
+                if dataset_id not in dataset_columns:
+                    dataset_columns[dataset_id] = self._column_names(dataset_id)
+                if column not in dataset_columns[dataset_id]:
+                    problems.append(f"Filter {item.get('name')!r}: column {column!r} is not in dataset {dataset_id} "
+                                    f"of chart {chart_id}.")
+        return problems
+
+    def _chart_datasets(self, dashboard_id: int) -> dict[int, int]:
+        """Chart id -> dataset id of the charts of a saved dashboard (GET /dashboard/{id}/charts)."""
+        dashboards = self.client.dashboards
+        url = dashboards.client.join_urls(dashboards.base_url, dashboard_id, "charts")
+        datasets: dict[int, int] = {}
+        for item in self.client.get(url).json()["result"]:
+            datasource = str((item.get("form_data") or {}).get("datasource") or "")
+            pk, _, kind = datasource.partition("__")
+            if kind == "table" and pk.isdigit():
+                datasets[int(item["id"])] = int(pk)
+        return datasets
+
+    def _column_names(self, dataset_id: int) -> set[str]:
+        columns = self.client.datasets.get(dataset_id).columns or []
+        return {str(column.get("column_name")) for column in columns if isinstance(column, dict)}
+
+
+def _target_column(item: dict[str, Any]) -> str | None:
+    """Column of the first target of a native filter item (None for dividers and filters without a column)."""
+    targets = item.get("targets") or [{}]
+    column = (targets[0].get("column") or {}).get("name") if isinstance(targets[0], dict) else None
+    return str(column) if column else None

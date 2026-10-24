@@ -1,3 +1,5 @@
+from enum import IntEnum
+
 from supersetapiplus.core.enums import StringEnum
 
 
@@ -30,3 +32,16 @@ class LimitingFactor(StringEnum):
     QUERY_AND_DROPDOWN = "QUERY_AND_DROPDOWN"
     NOT_LIMITED = "NOT_LIMITED"
     UNKNOWN = "UNKNOWN"
+
+
+class GenericDataType(IntEnum):
+    """Generic type of a column (`superset/utils/core.py` GenericDataType, Superset 6.1.0): `type_generic` of
+    dataset columns and of query results."""
+    NUMERIC = 0
+    STRING = 1
+    TEMPORAL = 2
+    BOOLEAN = 3
+    # ARRAY = 4     # Mapping all the complex data types to STRING for now
+    # JSON = 5      # and leaving these as a reminder.
+    # MAP = 6
+    # ROW = 7

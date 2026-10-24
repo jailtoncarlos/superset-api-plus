@@ -13,7 +13,10 @@ reorganized, tested package.
   dividers), native filters with dependencies, chart scopes and dataset-less time filters, owners and
   roles, `Dashboards.copy()`, `client.dashboard_charts`. Layouts are checked against the dashboard renderer
   rules before sending (`layout.problems()`, `layout.validate()`, `LayoutWarning` for layouts read from
-  Superset).
+  Superset). Select filters take a `default_value` (saved as the editor's `defaultDataMask`); the filter
+  column is checked against a dataset read from Superset (numeric for range filters), and
+  `client.dashboard_charts.native_filter_problems()` reports filter columns missing from the datasets of
+  the charts in scope.
 * Charts: the frontend `buildQuery` ported (`charts/build_query.py`), so charts built in code store the
   `query_context` Explore derives; UI defaults for new charts; `derive_query_context()`.
 * Datasets: saved metrics (`add_metric()`), time column and the other update fields; databases: the

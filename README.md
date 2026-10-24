@@ -126,7 +126,8 @@ layout.add_chart(table, parent=row, width=6)
 filters = dashboard.json_metadata
 filters.clear_native_filters()
 region = filters.add_native_filter("Region", datasource.id, "region")
-filters.add_native_filter("Product", datasource.id, "product", parent=region, charts=[table])
+filters.add_native_filter("Product", datasource.id, "product", parent=region, charts=[table],
+                          default_value=["A"])          # selected when the dashboard opens
 filters.add_native_filter("Period", filter_type=FilterType.TIME)    # no dataset: time range filter
 
 dashboard.save()

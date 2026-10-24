@@ -1,7 +1,6 @@
 """Query building: query mode, aggregates, columns, result format and type, comparison and contribution."""
-from enum import IntEnum
-
 from supersetapiplus.core.enums import StringEnum
+from supersetapiplus.core.types import GenericDataType  # noqa: F401 (defined in core; public path kept)
 
 
 class QueryModeType(StringEnum):
@@ -23,16 +22,6 @@ class MetricType(StringEnum):
 class ColumnType(StringEnum):
     BASE_AXIS = 'BASE_AXIS'
     SERIES = 'SERIES'
-
-class GenericDataType(IntEnum):
-    NUMERIC = 0
-    STRING = 1
-    TEMPORAL = 2
-    BOOLEAN = 3
-    # ARRAY = 4     # Mapping all the complex data types to STRING for now
-    # JSON = 5      # and leaving these as a reminder.
-    # MAP = 6
-    # ROW = 7
 
 class SqlMapType(StringEnum):
     """Deprecated: not a Superset enum. A column `type` is the native database type (free text, e.g.

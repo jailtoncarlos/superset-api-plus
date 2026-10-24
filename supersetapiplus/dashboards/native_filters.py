@@ -13,6 +13,7 @@ from typing import Any
 import shortuuid
 
 from supersetapiplus.core.enums import StringEnum
+from supersetapiplus.core.types import GenericDataType
 
 NATIVE_FILTER_PREFIX = "NATIVE_FILTER-"
 NATIVE_FILTER_DIVIDER_PREFIX = "NATIVE_FILTER_DIVIDER-"
@@ -26,6 +27,13 @@ SELECT_CONTROL_VALUES = {
     "searchAllOptions": False,
     "inverseSelection": False,
 }
+# Labels of the select filter (src/utils/common.ts) and the condition of a required filter left empty
+# (src/filters/utils.ts getSelectExtraFormData), Superset 6.1.0.
+NULL_LABEL = "<NULL>"
+TRUE_LABEL = "TRUE"
+FALSE_LABEL = "FALSE"
+EXCLUDED_LABEL_SUFFIX = " (excluded)"
+EMPTY_FILTER_SQL = "1 = 0"
 
 
 class NativeFilterType(StringEnum):
@@ -95,6 +103,66 @@ def dataset_target(dataset: Any, column: str | None) -> dict[str, Any]:
     return target
 
 
+def check_target_column(dataset: Any, column: str | None, filter_type: FilterType | str) -> None:
+    """Checks the column against the dataset columns, when `dataset` carries them (a Dataset read from Superset).
+
+    The column must exist, and a range filter needs a numeric column (``type_generic`` NUMERIC, the
+    ``is_numeric`` of Superset). With a dataset id or uuid there is nothing to check without the server.
+    """
+    columns = getattr(dataset, "columns", None)
+    if not column or not isinstance(columns, list) or not columns:
+        return
+    by_name = {item.get("column_name"): item for item in columns if isinstance(item, dict)}
+    if column not in by_name:
+        raise ValueError(f"column {column!r} is not in the dataset; available: {', '.join(sorted(map(str, by_name)))}.")
+    if str(filter_type) == str(FilterType.RANGE) and by_name[column].get("type_generic") != GenericDataType.NUMERIC:
+        raise ValueError(f"a range filter needs a numeric column; {column!r} is {by_name[column].get('type')}.")
+
+
+def select_extra_form_data(column: str, values: list[Any], empty_filter: bool = False,
+                           exclude: bool = False) -> dict[str, Any]:
+    """``getSelectExtraFormData``: the query filter a select filter applies for `values`."""
+    if empty_filter:
+        return {"adhoc_filters": [{"expressionType": "SQL", "clause": "WHERE", "sqlExpression": EMPTY_FILTER_SQL}]}
+    if values:
+        return {"filters": [{"col": column, "op": "NOT IN" if exclude else "IN", "val": list(values)}]}
+    return {}
+
+
+def value_label(value: Any) -> str:
+    """Label of a selected value (``getDataRecordFormatter`` for values that are not dates)."""
+    if value is None:
+        return NULL_LABEL
+    if isinstance(value, bool):
+        return TRUE_LABEL if value else FALSE_LABEL
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))  # JavaScript String(2.0) is "2"
+    return str(value)
+
+
+def select_default_data_mask(column: str | None, values: list[Any], controls: dict[str, Any]) -> dict[str, Any]:
+    """`defaultDataMask` the filter editor saves for a select filter whose default is `values`.
+
+    Same data mask as ``SelectFilterPlugin.updateDataMask`` (Superset 6.1.0): the filter applied to the
+    dashboard charts (``extraFormData``) and the state shown in the filter bar (``filterState``).
+    """
+    if not column:
+        raise ValueError("a default value needs the filter column.")
+    if controls.get("defaultToFirstItem"):
+        raise ValueError("default_value and defaultToFirstItem are exclusive: the first item is the default.")
+    if controls.get("multiSelect") is False and len(values) > 1:
+        raise ValueError(f"a single-select filter takes one default value; {len(values)} were given.")
+    inverse = bool(controls.get("inverseSelection"))
+    empty_filter = bool(controls.get("enableEmptyFilter")) and not inverse and not values
+    # excludeFilterValues starts true in the plugin; it only matters with inverseSelection.
+    filter_state: dict[str, Any] = {"value": list(values), "excludeFilterValues": True}
+    if values:
+        suffix = EXCLUDED_LABEL_SUFFIX if inverse else ""
+        filter_state["label"] = ", ".join(value_label(value) for value in values) + suffix
+    return {"extraFormData": select_extra_form_data(column, values, empty_filter, inverse),
+            "filterState": filter_state, "ownState": {}}
+
+
 def chart_scope(charts_in_scope: Iterable[int], layout_chart_ids: Iterable[int]) -> dict[str, Any]:
     """Scope covering only `charts_in_scope`: the dashboard root minus every other chart of the layout."""
     return {"rootPath": [DASHBOARD_ROOT_ID],
@@ -103,15 +171,23 @@ def chart_scope(charts_in_scope: Iterable[int], layout_chart_ids: Iterable[int])
 
 def filter_config(name: str, dataset: Any, column: str | None, parents: list[NativeFilterItem | str] | None = None,
                   filter_type: FilterType | str = FilterType.SELECT, adhoc_filters: list[Any] | None = None,
-                  description: str = "", id: str | None = None, **control_values: Any) -> dict[str, Any]:
+                  description: str = "", id: str | None = None, default_value: Any = None,
+                  **control_values: Any) -> dict[str, Any]:
     """Native filter as saved by the editor. Extra keyword arguments go to ``controlValues``, except the
-    optional top-level keys ``time_range``, ``granularity_sqla``, ``sortMetric`` and ``defaultDataMask``."""
+    optional top-level keys ``time_range``, ``granularity_sqla``, ``sortMetric`` and ``defaultDataMask``.
+
+    `default_value` (a value or a list of values) is the selection of a select filter when the dashboard
+    opens; it becomes the ``defaultDataMask`` the editor saves (see :func:`select_default_data_mask`).
+    """
     top_level: dict[str, Any] = {key: control_values.pop(key) for key in ("time_range", "granularity_sqla", "sortMetric")
                  if key in control_values}
-    default_data_mask = control_values.pop("defaultDataMask", None) or {
-        "extraFormData": {}, "filterState": {}, "ownState": {}}
+    default_data_mask = control_values.pop("defaultDataMask", None)
     controls: dict[str, Any] = dict(SELECT_CONTROL_VALUES) if str(filter_type) == str(FilterType.SELECT) else {}
     controls.update(control_values)
+    check_target_column(dataset, column, filter_type)
+    if default_value is not None:
+        default_data_mask = _default_value_mask(default_value, default_data_mask, column, filter_type, controls)
+    default_data_mask = default_data_mask or {"extraFormData": {}, "filterState": {}, "ownState": {}}
     config: dict[str, Any] = {
         "id": id or new_id(NATIVE_FILTER_PREFIX),
         "adhoc_filters": list(adhoc_filters or []),
@@ -127,3 +203,13 @@ def filter_config(name: str, dataset: Any, column: str | None, parents: list[Nat
     }
     config.update(top_level)
     return config
+
+
+def _default_value_mask(default_value: Any, data_mask: Any, column: str | None, filter_type: FilterType | str,
+                        controls: dict[str, Any]) -> dict[str, Any]:
+    if data_mask:
+        raise ValueError("pass either default_value or defaultDataMask, not both.")
+    if str(filter_type) != str(FilterType.SELECT):
+        raise ValueError("default_value is supported for select filters; pass defaultDataMask for the others.")
+    values = list(default_value) if isinstance(default_value, (list, tuple)) else [default_value]
+    return select_default_data_mask(column, values, controls)
