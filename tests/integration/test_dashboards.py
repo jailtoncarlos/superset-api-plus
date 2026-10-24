@@ -69,11 +69,13 @@ def test_add_chart_requires_a_saved_dashboard_before_creating_anything(client, d
 
 def test_add_chart_creates_places_and_associates(client, dataset, add_dashboard, cleanup):
     dashboard = add_dashboard()
-    dashboard._factory = client.dashboards
     chart = new_chart("table", dataset)
 
-    dashboard.add_chart(chart, "Title on the dashboard")
-    cleanup.chart(chart.id)
+    try:
+        dashboard.add_chart(chart, "Title on the dashboard")
+    finally:
+        if chart.id:  # created even if a later step failed
+            cleanup.chart(chart.id)
     dashboard.save()
 
     stored = client.dashboards.get(dashboard.id)

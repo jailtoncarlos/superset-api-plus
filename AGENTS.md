@@ -89,7 +89,7 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 - Every bug fix comes with a test that fails before the fix. Prefer tests of the public contract
   (results observed on the server) over implementation details.
 - **Server behavior is tested against the real Superset**, in `tests/integration` (one module per area:
-  auth, errors, charts, dashboards, data). HTTP mocks are a guess about the server: a mocked test passed
+  auth, errors, charts, dashboards, data, sql, assets). HTTP mocks are a guess about the server: a mocked test passed
   while the real 6.1.0 rejected the request. `tests/unit` mocks HTTP only when the real server cannot
   produce the condition deterministically (5xx and retry, asynchronous SQL Lab, TLS on the plain-HTTP
   stack) or to run offline in a hook (OpenAPI conformance), and the module docstring says why. Pure

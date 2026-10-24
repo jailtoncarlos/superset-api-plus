@@ -13,9 +13,13 @@ from .conftest import SECRET_KEY, new_client, unique_name
 def write_and_delete_a_dashboard(client) -> None:
     dashboard = Dashboard(dashboard_title=unique_name("auth"))
     client.dashboards.add(dashboard)
-    assert client.dashboards.delete(dashboard.id) is True
-    with pytest.raises(ResourceNotFoundError):
-        client.dashboards.get(dashboard.id)
+    try:
+        assert client.dashboards.delete(dashboard.id) is True
+        with pytest.raises(ResourceNotFoundError):
+            client.dashboards.get(dashboard.id)
+    except AssertionError:
+        client.dashboards.delete(dashboard.id)
+        raise
 
 
 def test_jwt_client_reads_and_writes_with_bearer():
@@ -51,13 +55,16 @@ def test_expired_access_token_is_renewed_with_the_refresh_token():
     assert client._access_token != expired
 
 
-def test_session_without_cookie_is_unauthorized_and_does_not_try_to_refresh():
+def test_session_without_cookie_is_unauthorized_and_does_not_try_to_refresh(monkeypatch):
     client = new_client()
     client.session.cookies.clear()
+    # Spy (not an HTTP mock): a renewal attempt would raise the same UnauthorizedError, so count the calls.
+    attempts = []
+    monkeypatch.setattr(client, "refresh_access_token", lambda: attempts.append(1))
 
     with pytest.raises(UnauthorizedError):
         client.charts.count()
-    assert client._refresh_token is None
+    assert attempts == []
 
 
 def test_enable_session_mode_wins_after_the_jwt_session_was_used():

@@ -1,19 +1,13 @@
-"""Databases, datasets, saved queries, SQL Lab, listing operators, assets and log masking, on the real Superset."""
-import logging
-import os
-import zipfile
-
+"""Databases, datasets, saved queries and listing operators on the real Superset."""
 import pytest
 
 from supersetapiplus.databases import Database
-from supersetapiplus.exceptions import BadRequestError, NotFound, QueryLimitReached, UnauthorizedError
+from supersetapiplus.exceptions import BadRequestError, NotFound
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 from supersetapiplus.saved_queries import SavedQuery
 
-from .conftest import PASSWORD, new_client, only_test_stack, unique_name
+from .conftest import unique_name
 
-
-# --- Database, dataset and saved query ------------------------------------------------------
 
 def test_database_created_and_read(client, database):
     assert client.databases.get(database.id).database_name == database.database_name
@@ -50,27 +44,7 @@ def test_saved_query_created_and_deleted(client, database):
         assert client.saved_queries.delete(saved_query.id)
 
 
-# --- SQL Lab -------------------------------------------------------------------------------
-
-def test_runs_sql_through_the_database(client, database):
-    columns, data = client.databases.get(database.id).run("select 1 as one")
-
-    assert data == [{"one": 1}] and [c["name"] for c in columns] == ["one"]
-
-
-def test_client_run_sends_schema_and_limit(client, database):
-    columns, data = client.run(database_id=database.id, query="select 1 as one union all select 2", query_limit=5,
-                               schema="public")
-
-    assert sorted(row["one"] for row in data) == [1, 2]
-
-
-def test_result_beyond_the_query_limit_is_reported(client, database):
-    with pytest.raises(QueryLimitReached):
-        client.run(database_id=database.id, query="select generate_series(1, 10) as n", query_limit=3)
-
-
-# --- Listing filters ------------------------------------------------------------------------
+# --- Listing operators ----------------------------------------------------------------------
 
 def test_library_operators_are_accepted_by_the_server(client):
     filters = client.get(client.join_urls(client.charts.base_url, "_info"), params={"q": "(keys:!(filters))"}).json()
@@ -79,47 +53,18 @@ def test_library_operators_are_accepted_by_the_server(client):
     assert {op.value for op in QueryOperator} <= accepted
 
 
-@pytest.mark.parametrize("operator,value", [(QueryOperator.NOT_EQUAL, "x"), (QueryOperator.CONTAINS, "zz"),
-                                            (QueryOperator.STARTS_WITH, "zz"), (QueryOperator.IN, ["table"])])
-def test_listing_with_operators_responds_without_error(client, operator, value):
-    query_filter = QueryStringFilter()
-    column = "viz_type" if operator in (QueryOperator.IN, QueryOperator.NOT_EQUAL) else "slice_name"
-    query_filter.add(column, operator, value)
+def test_listing_operators_select_the_expected_charts(client, add_chart):
+    table, pie = add_chart("table"), add_chart("pie")
+    ids = [table.id, pie.id]
 
-    assert client.charts.count(query_filter) >= 0
+    def found(column: str, operator: QueryOperator, value) -> set[int]:
+        query_filter = QueryStringFilter()
+        query_filter.add("id", QueryOperator.IN, ids)
+        query_filter.add(column, operator, value)
+        return {c.id for c in client.charts.find(query_filter, columns=["id"])}
 
-
-# --- Assets --------------------------------------------------------------------------------
-
-@only_test_stack
-def test_assets_export_and_import_from_the_given_path(client, database, add_chart, tmp_path):
-    add_chart()
-    archive = tmp_path / "subdir" / "assets.zip"
-    archive.parent.mkdir()
-
-    client.assets.export(archive)
-    with zipfile.ZipFile(archive) as content:
-        databases = [n.split("/", 1)[1] for n in content.namelist() if "/databases/" in n]
-
-    # Exported database URIs have the password masked; the import asks for it per database file.
-    passwords = {name: os.environ["POSTGRES_PASSWORD"] for name in databases} if databases else None
-    assert client.assets.import_file(archive, passwords=passwords) is True
-
-
-# --- Log masking ---------------------------------------------------------------------------
-
-def test_http_error_logs_do_not_expose_password_token_or_cookie(client, caplog):
-    session_client, jwt_client = new_client(), new_client(session_mode=False)
-    jwt_client.charts.count()
-    cookie, csrf = session_client.session.cookies.get("session"), session_client.session.headers["X-CSRFToken"]
-    caplog.set_level(logging.DEBUG, logger="supersetapiplus")
-
-    with pytest.raises(UnauthorizedError):
-        new_client(session_mode=False, password=f"{PASSWORD}-wrong").charts.count()
-    for logged_client in (session_client, jwt_client):
-        with pytest.raises(BadRequestError):
-            logged_client.charts.get(2_000_000_000)
-
-    assert caplog.records, "the errors should have been logged"
-    for secret in (f"{PASSWORD}-wrong", cookie, csrf, jwt_client._access_token, jwt_client._refresh_token):
-        assert secret not in caplog.text
+    assert found("viz_type", QueryOperator.EQUAL, "pie") == {pie.id}
+    assert found("viz_type", QueryOperator.NOT_EQUAL, "pie") == {table.id}
+    assert found("viz_type", QueryOperator.IN, ["table", "pie"]) == {table.id, pie.id}
+    assert found("slice_name", QueryOperator.STARTS_WITH, table.slice_name) == {table.id}
+    assert found("slice_name", QueryOperator.CONTAINS, pie.slice_name[-6:]) == {pie.id}

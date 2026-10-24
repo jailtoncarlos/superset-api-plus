@@ -29,6 +29,7 @@ def test_find_filters_paginates_and_returns_typed_charts(client, three_tables):
     first = client.charts.find(query_filter, page_size=2, page=0, order_column="slice_name", order_direction="asc")
     second = client.charts.find(query_filter, page_size=2, page=1, order_column="slice_name", order_direction="asc")
 
+    assert (len(first), len(second)) == (2, 1)
     assert [c.slice_name for c in first + second] == [c.slice_name for c in charts]
     assert all(type(c).__name__ == "TableChart" and isinstance(c, Chart) for c in first + second)
 
@@ -55,9 +56,23 @@ def test_count_and_find_all_follow_the_filter(client, three_tables):
     prefix, charts = three_tables
     query_filter = name_filter("slice_name", prefix, QueryOperator.STARTS_WITH)
 
+    pages = []
+    original_find = client.charts.find
+
+    def recording_find(*args, **kwargs):
+        result = original_find(*args, **kwargs)
+        pages.append(len(result))
+        return result
+
+    client.charts.find = recording_find
+    try:
+        found = client.charts.find_all(query_filter, columns=["id", "viz_type"], page_size=2)
+    finally:
+        del client.charts.find
+
     assert client.charts.count(query_filter) == 3
-    assert sorted(c.id for c in client.charts.find_all(query_filter, columns=["id", "viz_type"], page_size=2)) == \
-        sorted(c.id for c in charts)
+    assert pages == [2, 1], "find_all walks the pages the server returns"
+    assert sorted(c.id for c in found) == sorted(c.id for c in charts)
 
 
 def test_find_one_not_found_multiple_and_full(client, three_tables):
@@ -134,7 +149,7 @@ def test_chart_created_in_code_returns_data_from_its_query_context(client, add_c
 
 # --- Export and import -----------------------------------------------------------------------
 
-def test_export_and_import_a_chart(client, add_chart, tmp_path):
+def test_export_and_import_a_chart(client, add_chart, cleanup, tmp_path):
     chart = add_chart()
     archive = tmp_path / "chart.zip"
 
@@ -144,4 +159,6 @@ def test_export_and_import_a_chart(client, add_chart, tmp_path):
     client.charts.delete(chart.id)
 
     assert client.charts.import_file(archive, overwrite=True)
-    assert client.charts.find_one(name_filter("slice_name", chart.slice_name)).slice_name == chart.slice_name
+    imported = client.charts.find_one(name_filter("slice_name", chart.slice_name))
+    cleanup.chart(imported.id)  # the import may assign a new id
+    assert imported.slice_name == chart.slice_name

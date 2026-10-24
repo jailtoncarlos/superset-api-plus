@@ -1,4 +1,5 @@
-"""HTTP errors produced by the real Superset become the library exceptions by status."""
+"""HTTP errors produced by the real Superset: exceptions by status and secrets kept out of the error logs."""
+import logging
 import uuid
 
 import pytest
@@ -13,7 +14,7 @@ from supersetapiplus.exceptions import (
     UnprocessableEntityError,
 )
 
-from .conftest import URL, new_client, only_test_stack, unique_name
+from .conftest import PASSWORD, URL, new_client, only_test_stack, unique_name
 
 
 @pytest.fixture(scope="module")
@@ -69,3 +70,23 @@ def test_unknown_datasource_is_422_with_the_server_message(client):
 def test_error_list_becomes_complex_bad_request(client):
     with pytest.raises(ComplexBadRequestError):
         client.run(database_id=2_000_000_000, query="select 1")
+
+
+def test_http_error_logs_do_not_expose_password_token_or_cookie(client, caplog):
+    session_client, jwt_client = new_client(), new_client(session_mode=False)
+    jwt_client.charts.count()
+    cookie, csrf = session_client.session.cookies.get("session"), session_client.session.headers["X-CSRFToken"]
+    caplog.set_level(logging.DEBUG, logger="supersetapiplus")
+
+    with pytest.raises(UnauthorizedError):
+        new_client(session_mode=False, password=f"{PASSWORD}-wrong").charts.count()
+    for logged_client in (session_client, jwt_client):
+        with pytest.raises(BadRequestError):
+            logged_client.charts.get(2_000_000_000)
+
+    errors = [r for r in caplog.records if r.levelno >= logging.ERROR]
+    assert len(errors) >= 3, "the three HTTP errors should have been logged"
+    logged = caplog.text
+    assert "Authorization" in logged and "Cookie" in logged, "headers are logged (masked), so the check is meaningful"
+    for secret in (f"{PASSWORD}-wrong", cookie, csrf, jwt_client._access_token, jwt_client._refresh_token):
+        assert secret not in logged
