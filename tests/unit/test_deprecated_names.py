@@ -53,3 +53,20 @@ def test_unknown_attribute_still_raises_attribute_error():
         types.DoesNotExist  # noqa: B018
     with pytest.raises(AttributeError):
         types.ChartType.DOES_NOT_EXIST  # noqa: B018
+
+
+MOVED_MODULES = [
+    ("supersetapiplus.utils.request_handler", "supersetapiplus.transport.http", "RequestHandler"),
+    ("supersetapiplus.utils.sensitive", "supersetapiplus.core.masking", "mask_data"),
+    ("supersetapiplus.utils.dict_utils", "supersetapiplus.core.dicts", "detailed_dict_diff"),
+    ("supersetapiplus.security.csrf", "supersetapiplus.auth.csrf", "CSRFSupportMixin"),
+    ("supersetapiplus.security.session_auth", "supersetapiplus.auth.session", "SessionAuthMixin"),
+]
+
+
+@pytest.mark.parametrize("old,new,name", MOVED_MODULES, ids=[old for old, _, _ in MOVED_MODULES])
+def test_moved_modules_still_import_with_a_warning(old, new, name):
+    sys.modules.pop(old, None)
+    with pytest.warns(DeprecationWarning, match=new):
+        legacy = importlib.import_module(old)
+    assert getattr(legacy, name) is getattr(importlib.import_module(new), name)

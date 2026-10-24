@@ -8,9 +8,9 @@ from enum import Enum
 from typing_extensions import Self
 
 from supersetapiplus.base.sentinels import MissingField
+from supersetapiplus.core.dicts import dicts_equal_and_all_values_none
+from supersetapiplus.core.masking import mask_data
 from supersetapiplus.query_string import QueryStringFilter
-from supersetapiplus.utils.dict_utils import dicts_equal_and_all_values_none
-from supersetapiplus.utils.sensitive import mask_data
 
 try:
     from functools import cached_property

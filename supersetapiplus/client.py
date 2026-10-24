@@ -20,6 +20,8 @@ import requests.adapters
 import requests.exceptions
 
 from supersetapiplus.assets import Assets
+from supersetapiplus.auth.csrf import CSRFSupportMixin
+from supersetapiplus.auth.session import SessionAuthMixin
 from supersetapiplus.base.types import LimitingFactor
 from supersetapiplus.charts.charts import Charts
 from supersetapiplus.dashboards.dashboards import Dashboards
@@ -28,9 +30,7 @@ from supersetapiplus.datasets import Datasets
 from supersetapiplus.exceptions import QueryLimitReached, UnauthorizedError
 from supersetapiplus.query_string import QueryStringFilter
 from supersetapiplus.saved_queries import SavedQueries
-from supersetapiplus.security.csrf import CSRFSupportMixin
-from supersetapiplus.security.session_auth import SessionAuthMixin
-from supersetapiplus.utils.request_handler import RequestHandler
+from supersetapiplus.transport.http import RequestHandler
 
 logger = logging.getLogger(__name__)
 

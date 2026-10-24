@@ -14,8 +14,8 @@ import requests_mock
 import yaml
 
 from supersetapiplus.client import SupersetClient
-from supersetapiplus.utils.request_handler import RequestHandler
-from supersetapiplus.utils.sensitive import MASK, mask_body, mask_data, mask_headers
+from supersetapiplus.transport.http import RequestHandler
+from supersetapiplus.core.masking import MASK, mask_body, mask_data, mask_headers
 
 HOST = "https://superset.example"
 PASSWORD = "s3cr3t-top-secret"
@@ -78,7 +78,7 @@ def test_masks_json_body_form_body_and_connection_uri():
 
 
 def test_network_parameters_come_from_the_environment():
-    code = ("from supersetapiplus.utils import request_handler as r; "
+    code = ("from supersetapiplus.transport import http as r; "
               "print(r.TIMEOUT_CONNECT, r.TIMEOUT_READ, r.DEFAULT_RETRIES, r.DEFAULT_BACKOFF_FACTOR)")
     env = {**os.environ, "SUPERSET_API_PLUS_TIMEOUT_READ": "60", "SUPERSET_API_PLUS_RETRIES": "5",
                 "SUPERSET_API_PLUS_BACKOFF_FACTOR": "1.5"}

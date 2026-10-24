@@ -1,10 +1,14 @@
+"""Deprecated: generic helpers no longer used by the library (kept for old imports)."""
 import logging
 import re
 import unicodedata
+import warnings
 
 import shortuuid
 
 logger = logging.getLogger(__name__)
+
+warnings.warn("supersetapiplus.utils.helpers is deprecated and will be removed.", DeprecationWarning, stacklevel=2)
 
 
 def normalize_str(text: str) -> str:

@@ -65,7 +65,7 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   status to `UnauthorizedError`/`ForbiddenError`/`ResourceNotFoundError`/`UnprocessableEntityError`
   whatever the body format (`message`, or the SIP-40 list in `errors`); other statuses with an error list
   raise `ComplexBadRequestError`; all are subclasses of `BadRequestError`. TLS is verified by default.
-- **Security**: never log secrets (use `supersetapiplus.utils.sensitive` masking); never commit
+- **Security**: never log secrets (use `supersetapiplus.core.masking`); never commit
   credentials (`.pypirc` and `.env` are ignored); never put institutional data in the repository —
   tests use synthetic payloads or Superset public examples only.
 - **No hardcoded configuration**: network parameters come from `SUPERSET_API_PLUS_*` environment

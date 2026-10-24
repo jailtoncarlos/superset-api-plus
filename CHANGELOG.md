@@ -31,6 +31,17 @@ they will be removed in a future major version.
 | `Database.encrypted_extra`, `allow_multi_schema_metadata_fetch` (gone in Superset 6) | `masked_encrypted_extra` / none |
 | `charts.types.SqlMapType` (a column type is free text) | `str` |
 
+Modules moved into layers (package reorganization); the old paths keep working with `DeprecationWarning`.
+Loggers follow the module names (e.g. `supersetapiplus.transport.http`).
+
+| Old module | New module |
+|---|---|
+| `supersetapiplus.utils.request_handler` | `supersetapiplus.transport.http` |
+| `supersetapiplus.utils.sensitive` | `supersetapiplus.core.masking` |
+| `supersetapiplus.utils.dict_utils` | `supersetapiplus.core.dicts` |
+| `supersetapiplus.security.csrf`, `security.session_auth` | `supersetapiplus.auth.csrf`, `auth.session` |
+| `supersetapiplus.utils.helpers` (unused by the library) | removed in a future major version |
+
 
 ## 1.0.0a1 (2025-04-10)
 

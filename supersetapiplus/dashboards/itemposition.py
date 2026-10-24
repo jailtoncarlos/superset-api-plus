@@ -4,10 +4,11 @@ import json
 from dataclasses import asdict, dataclass, field, make_dataclass
 from enum import Enum
 
+import shortuuid
+
 from supersetapiplus.base.enum_str import StringEnum
 from supersetapiplus.base.parse import ParseMixin
 from supersetapiplus.exceptions import ItemPositionValidationError, NodePositionValidationError
-from supersetapiplus.utils.helpers import generate_uuid
 
 
 def _asdict(data):
@@ -92,7 +93,7 @@ class ItemPosition(ParseMixin):
         return json.dumps(self.to_json())
 
     def get_new_uuid(self):
-        return generate_uuid(f'{self.type_}-')
+        return f"{self.type_}--{shortuuid.ShortUUID().random(length=10)}"
 
 
 class Position:

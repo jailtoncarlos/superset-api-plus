@@ -23,7 +23,7 @@ from supersetapiplus.exceptions import (
     UnauthorizedError,
     UnprocessableEntityError,
 )
-from supersetapiplus.utils.request_handler import IDEMPOTENT_METHODS, RequestHandler
+from supersetapiplus.transport.http import IDEMPOTENT_METHODS, RequestHandler
 
 HOST = "https://superset.example"
 API = f"{HOST}/api/v1"
