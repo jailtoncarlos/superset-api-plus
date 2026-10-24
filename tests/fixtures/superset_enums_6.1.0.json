@@ -34,6 +34,13 @@
    "NOT_LIKE": "NOT LIKE",
    "TEMPORAL_RANGE": "TEMPORAL_RANGE"
   },
+  "LimitingFactor": {
+   "DROPDOWN": "DROPDOWN",
+   "NOT_LIMITED": "NOT_LIMITED",
+   "QUERY": "QUERY",
+   "QUERY_AND_DROPDOWN": "QUERY_AND_DROPDOWN",
+   "UNKNOWN": "UNKNOWN"
+  },
   "TimeGrain": {
    "DAY": "P1D",
    "FIFTEEN_MINUTES": "PT15M",

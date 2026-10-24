@@ -21,6 +21,7 @@ BACKEND = [
     ("superset/common/chart_data.py", "ChartDataResultFormat"),
     ("superset/common/chart_data.py", "ChartDataResultType"),
     ("superset/constants.py", "TimeGrain"),
+    ("superset/sqllab/limiting_factor.py", "LimitingFactor"),
 ]
 
 # Frontend TypeScript enums: (file, enum).

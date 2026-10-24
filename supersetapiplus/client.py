@@ -20,6 +20,7 @@ import requests.adapters
 import requests.exceptions
 
 from supersetapiplus.assets import Assets
+from supersetapiplus.base.types import LimitingFactor
 from supersetapiplus.charts.charts import Charts
 from supersetapiplus.dashboards.dashboards import Dashboards
 from supersetapiplus.databases import Databases
@@ -227,7 +228,11 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             raise NotImplementedError("Superset ran the query asynchronously (202); "
                                       "use a database without asynchronous execution.")
         result = response.json()
-        if result.get("displayLimitReached"):
+        # Superset 6.x reports truncation in query.limitingFactor (DROPDOWN: cut by queryLimit);
+        # displayLimitReached is the key of older versions.
+        limiting_factor = (result.get("query") or {}).get("limitingFactor")
+        if result.get("displayLimitReached") or limiting_factor in (
+                LimitingFactor.DROPDOWN.value, LimitingFactor.QUERY_AND_DROPDOWN.value):
             raise QueryLimitReached("Display limit reached")
         return result["columns"], result["data"]
 

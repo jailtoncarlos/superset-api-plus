@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from supersetapiplus.base.types import LimitingFactor
 from supersetapiplus.charts import types as T
 from supersetapiplus.dashboards import layout as L
 from supersetapiplus.dashboards import native_filters as NF
@@ -28,6 +29,7 @@ CASES = [
     (T.ResultFormat, set(OFFICIAL["backend"]["ChartDataResultFormat"].values()), set()),
     (T.ResultType, set(OFFICIAL["backend"]["ChartDataResultType"].values()), set()),
     (T.PivotAggregateFunction, set(OFFICIAL["choices"]["pivot_table_v2.aggregateFunction"]), set()),
+    (LimitingFactor, set(OFFICIAL["backend"]["LimitingFactor"].values()), set()),
     (NF.FilterType, set(OFFICIAL["frontend"]["FilterPlugins"].values()), set()),
     (NF.NativeFilterType, set(OFFICIAL["frontend"]["NativeFilterType"].values()), set()),
     (L.Background, set(OFFICIAL["constants"]["dashboard.backgrounds"].values()), set()),
