@@ -33,10 +33,10 @@ class WordCloudOption(SingleMetricMixin, Option):
                                   solution='Call add_simple_dimension or add_custom_dimension once.')
         self.series = column
 
-    def _add_simple_groupby(self, column_name: str):
+    def _add_simple_groupby(self, column_name: str) -> None:
         self._set_series(column_name)
 
-    def _add_custom_groupby(self, label: str, column=None, sql_expression: str = None, aggregate=None):
+    def _add_custom_groupby(self, label: str, column=None, sql_expression: str | None = None, aggregate=None) -> None:
         self._set_series(custom_column(label, column, sql_expression))
 
 

@@ -63,8 +63,8 @@ class AdhocColumn(SerializableModel):
 QueryFormColumn = AdhocColumn | str
 
 
-def custom_column(label: str, column: AdhocMetricColumn = None, sql_expression: str = None,
-                  aggregate: MetricType = None) -> AdhocColumn:
+def custom_column(label: str, column: AdhocMetricColumn | None = None, sql_expression: str | None = None,
+                  aggregate: MetricType | None = None) -> AdhocColumn:
     """Custom dimension as the UI stores it: an AdhocColumn with a SQL expression (a column has no aggregate)."""
     if aggregate is not None:
         warnings.warn("A dimension has no aggregate: the aggregate argument is ignored (use a metric instead).",
@@ -84,13 +84,13 @@ class QueryFilterClause(SerializableModel):
 class ColumnsMixin:
     columns: SerializableOptional[list[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
 
-    def _add_simple_columns(self, column_name:str):
+    def _add_simple_columns(self, column_name:str) -> None:
         self.columns.append(column_name)
 
     def _add_custom_columns(self, label: str,
-                            column: AdhocMetricColumn = None,
-                            sql_expression: str = None,
-                            aggregate: MetricType = None):
+                            column: AdhocMetricColumn | None = None,
+                            sql_expression: str | None = None,
+                            aggregate: MetricType | None = None) -> None:
         self.columns.append(custom_column(label, column, sql_expression, aggregate))
 
 
@@ -99,18 +99,18 @@ class OrderByMixin:
     orderby: SerializableOptional[list[OrderByTyping]] = object_field(default_factory=list)
 
     def _add_simple_orderby(self, column_name: str,
-                            sort_ascending: bool):
+                            sort_ascending: bool) -> None:
         self.orderby.append((column_name, sort_ascending))
 
     def _add_custom_orderby(self, label: str,
                             sort_ascending: bool,
                             column: AdhocMetricColumn,
-                            sql_expression: str = None,
-                            aggregate: MetricType = None):
+                            sql_expression: str | None = None,
+                            aggregate: MetricType | None = None) -> None:
         metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
         self.orderby.append((metric, sort_ascending))
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         if getattr(self, "_read_from_superset", False):  # e.g. tables saved without ordering
             return
@@ -140,10 +140,10 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
     row_offset: SerializableOptional[int] = None
     order_desc: SerializableOptional[bool] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         if not self.metrics and not getattr(self, "_read_from_superset", False):
             raise ValidationError(message='Field metrics cannot be empty.',
@@ -155,12 +155,12 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
         query_filter_clause = QueryFilterClause(col=column_name, val=value, op=operator)
         self.filters.append(query_filter_clause)
 
-    def _add_extra_where(self, sql: str):
+    def _add_extra_where(self, sql: str) -> None:
         if self.extras.where:
             self.extras.where = f'{self.extras.where} AND '
         self.extras.where = self.extras.where + f'({sql})'
 
-    def _add_extra_having(self, sql: str):
+    def _add_extra_having(self, sql: str) -> None:
         raise NotImplementedError
 
 

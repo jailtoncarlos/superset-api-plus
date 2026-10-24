@@ -77,7 +77,7 @@ class TableOption(TableOptionBase):
     result_format: SerializableOptional[ResultFormat] = field(default=None)
     result_type: SerializableOptional[ResultType] = field(default=None)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         # None becomes an empty list; MissingField (absent key, e.g. a table in raw mode) is kept.
         if self.metrics is None:
@@ -85,7 +85,7 @@ class TableOption(TableOptionBase):
         if self.server_page_length == 0:
             self.server_page_length = 10
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         # In raw mode the table lists columns (all_columns) and does not use metrics.
         if str(self.query_mode) == str(QueryModeType.RAW):
@@ -99,7 +99,7 @@ class TableOption(TableOptionBase):
                                   solution='Use one of the add_simple_metric, add_custom_metric or '
                                            'add_simple_dimension methods.')
 
-    def _add_column_config(self, label:str, column_config:ColumnConfig):
+    def _add_column_config(self, label:str, column_config:ColumnConfig) -> None:
         if not isinstance(self.column_config, dict):
             self.column_config = {}
         self.column_config[label] = column_config
@@ -131,17 +131,17 @@ class TableQueryContext(QueryContext):
             return automatic_order
         return replace(automatic_order, sort_ascending=not automatic_order.sort_ascending)
 
-    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
+    def _add_simple_metric(self, metric: str, automatic_order: OrderBy) -> None:
         super()._add_simple_metric(metric, self._table_order(automatic_order))
 
     def _add_custom_metric(self, label: str,
                            automatic_order: OrderBy,
-                           column: AdhocMetricColumn = None,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
+                           column: AdhocMetricColumn | None = None,
+                           sql_expression: str | None = None,
+                           aggregate: MetricType | None = None) -> None:
         super()._add_custom_metric(label, self._table_order(automatic_order), column, sql_expression, aggregate)
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         # gather all query metrics into one list
         query_metrics = [qm for q in self.queries if isinstance(q.metrics, list) for qm in q.metrics]
@@ -169,7 +169,7 @@ class TableChart(Chart):
 
     def add_simple_metric(self, metric: MetricType,
                           automatic_order: OrderBy = OrderBy(),
-                          column_config: ColumnConfig = None):
+                          column_config: ColumnConfig | None = None) -> None:
         super().add_simple_metric(metric, automatic_order)
         if column_config:
             self.params._add_column_config(str(metric), column_config)
@@ -178,10 +178,10 @@ class TableChart(Chart):
 
     def add_custom_metric(self, label: str,
                             automatic_order: OrderBy = OrderBy(),
-                            column: AdhocMetricColumn = None,
-                            sql_expression: str = None,
-                            aggregate: MetricType = None,
-                            column_config: ColumnConfig = None):
+                            column: AdhocMetricColumn | None = None,
+                            sql_expression: str | None = None,
+                            aggregate: MetricType | None = None,
+                            column_config: ColumnConfig | None = None) -> None:
         super().add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
         if column_config:
             self.params._add_column_config(label, column_config)

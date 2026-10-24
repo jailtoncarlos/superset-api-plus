@@ -67,7 +67,7 @@ class PivotTableV2Option(TableOptionBase):
     # onContextMenu,
     # timeGrainSqla,
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.groupby = None
 

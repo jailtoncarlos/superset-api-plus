@@ -32,11 +32,11 @@ class BigNumberTotalOption(SingleMetricMixin, Option):
     y_axis_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
     force_timestamp_formatting: bool = False
 
-    def _add_simple_groupby(self, column_name: str):
+    def _add_simple_groupby(self, column_name: str) -> None:
         raise ValidationError(message='A Big Number has no dimensions.',
                               solution='Filter the data with add_simple_filter, or use another chart type.')
 
-    def _add_custom_groupby(self, label: str, column=None, sql_expression: str = None, aggregate=None):
+    def _add_custom_groupby(self, label: str, column=None, sql_expression: str | None = None, aggregate=None) -> None:
         self._add_simple_groupby(label)
 
 

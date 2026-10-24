@@ -49,7 +49,7 @@ class OptionListGroupByMixin:
     # by default, every chart requires groupby
     _require_groupby: ClassVar[bool] = True
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         # Only for charts built in code whose plugin requires a dimension (see _read_from_superset).
         if self._require_groupby and not getattr(self, "_read_from_superset", False) \
@@ -65,22 +65,22 @@ class OptionListGroupByMixin:
             self.groupby = []
         return self.groupby
 
-    def _add_simple_groupby(self, column_name: str):
+    def _add_simple_groupby(self, column_name: str) -> None:
         self._editable_groupby().append(column_name)
 
     def _add_custom_groupby(self, label: str,
-                            column: AdhocMetricColumn = None,
-                            sql_expression: str = None,
-                            aggregate: MetricType = None):
+                            column: AdhocMetricColumn | None = None,
+                            sql_expression: str | None = None,
+                            aggregate: MetricType | None = None) -> None:
         self._editable_groupby().append(custom_column(label, column, sql_expression, aggregate))
 
 
 @dataclass
 class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
-    viz_type: ChartType = field(default=None)
+    viz_type: ChartType | None = field(default=None)
     slice_id: SerializableOptional[int] = field(default=None)
 
-    datasource: str = field(default=None)
+    datasource: str | None = field(default=None)
 
     extra_form_data: dict = field(default_factory=dict)
     # Absent unless the plugin has a row limit control (each chart class sets the UI default).
@@ -99,17 +99,17 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
 
     comparison_type: SerializableOptional[ComparisonType] = field(default=None)
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         # None becomes an empty list; MissingField (key absent from the JSON read) is kept so that
         # re-reading does not add "groupby": [] to charts that did not have it.
         if self.groupby is None:
             self.groupby: list[OrderByTyping] = []
 
-    def add_dashboard(self, dashboard_id):
+    def add_dashboard(self, dashboard_id) -> None:
         dashboards = set(self.dashboards)
         dashboards.add(dashboard_id)
         self.dashboards = list(dashboards)
@@ -117,10 +117,10 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
     def _adhoc_filters(self,
                        expression_type: FilterExpressionType,
                        clause: FilterClausesType,
-                       subject: str = None,
-                       comparator: str = None,
+                       subject: str | None = None,
+                       comparator: str | None = None,
                        sql_expression=None,
-                       operator: FilterOperatorType = None) -> None:
+                       operator: FilterOperatorType | None = None) -> None:
         operator_id = None
         if operator:
             operator_id = operator.name

@@ -39,7 +39,7 @@ class QueryContext(SerializableModel):
     def _default_query_object_class(self) -> type[Query]:
         raise NotImplementedError()
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self._automatic_order: OrderBy = None
 
@@ -49,7 +49,7 @@ class QueryContext(SerializableModel):
             self._automatic_order: OrderBy = None
         return self._automatic_order
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         if not self.queries:
             raise ValidationError(message='Field queries cannot be empty.',
@@ -58,7 +58,7 @@ class QueryContext(SerializableModel):
         for query in self.queries:
             query.validate()
 
-    def add_dashboard(self, dashboard_id):
+    def add_dashboard(self, dashboard_id) -> None:
         self.form_data.add_dashboard(dashboard_id)
 
     @property
@@ -74,7 +74,7 @@ class QueryContext(SerializableModel):
             self.queries.append(QueryObjectClass())
         return self.queries[-1]
 
-    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
+    def _add_simple_metric(self, metric: str, automatic_order: OrderBy) -> None:
         self._automatic_order = automatic_order
         self.form_data._add_simple_metric(metric, automatic_order)
         self.first_queries._add_simple_metric(metric, automatic_order)
@@ -83,9 +83,9 @@ class QueryContext(SerializableModel):
 
     def _add_custom_metric(self, label: str,
                            automatic_order: OrderBy,
-                           column: AdhocMetricColumn = None,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
+                           column: AdhocMetricColumn | None = None,
+                           sql_expression: str | None = None,
+                           aggregate: MetricType | None = None) -> None:
         self._automatic_order = automatic_order
         self.form_data._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
         self.first_queries._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
@@ -93,24 +93,24 @@ class QueryContext(SerializableModel):
             self._add_custom_orderby(label, automatic_order.sort_ascending, column, sql_expression, aggregate)
 
     def _add_simple_orderby(self, column_name: str,
-                            sort_ascending: bool = True):
+                            sort_ascending: bool = True) -> None:
         self.first_queries._add_simple_orderby(column_name, sort_ascending)
 
     def _add_custom_orderby(self, label: str,
                             sort_ascending: bool,
-                            column: AdhocMetricColumn = None,
-                            sql_expression: str = None,
-                            aggregate: MetricType = None):
+                            column: AdhocMetricColumn | None = None,
+                            sql_expression: str | None = None,
+                            aggregate: MetricType | None = None) -> None:
         self.first_queries._add_custom_orderby(label, sort_ascending, column, sql_expression, aggregate)
 
-    def _add_simple_groupby(self, column_name: str):
+    def _add_simple_groupby(self, column_name: str) -> None:
         self.form_data._add_simple_groupby(column_name)
         self.first_queries._add_simple_columns(column_name)
 
     def _add_custom_groupby(self, label: str,
-                            column: AdhocMetricColumn = None,
-                            sql_expression: str = None,
-                            aggregate: MetricType = None):
+                            column: AdhocMetricColumn | None = None,
+                            sql_expression: str | None = None,
+                            aggregate: MetricType | None = None) -> None:
         self.form_data._add_custom_groupby(label, column, sql_expression, aggregate)
         self.first_queries._add_custom_columns(label, column, sql_expression, aggregate)
 
@@ -125,11 +125,11 @@ class QueryContext(SerializableModel):
         self.first_queries._add_simple_filter(column_name, value, operator)
 
 
-    def _add_extra_where(self, sql: str):
+    def _add_extra_where(self, sql: str) -> None:
         self.form_data._adhoc_filters(expression_type=FilterExpressionType.CUSTOM_SQL,
                                    clause=FilterClausesType.WHERE,
                                    sql_expression=sql)
         self.first_queries._add_extra_where(sql)
 
-    def _add_extra_having(self, sql: str):
+    def _add_extra_having(self, sql: str) -> None:
         self.first_queries._add_extra_having(sql)

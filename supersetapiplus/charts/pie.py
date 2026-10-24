@@ -35,7 +35,7 @@ class PieOption(SingleMetricMixin, ChartVisualOptionsMixin, Option):
     outerRadius: int = 70
     show_labels_threshold: int = 5
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         if not self.metric:
             raise ValidationError(message='Field metric cannot be empty.',
@@ -60,20 +60,20 @@ class PieQueryContext(QueryContext):
     form_data: PieFormData = object_field(cls=PieFormData, default_factory=PieFormData)
     queries: list[PieQueryObject] = object_field(cls=Query, default_factory=list)
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         if self.form_data.metric or self.queries:
             self._validate_metric_in_queries()
             if self.automatic_order and self.automatic_order.automate:
                 self._validate_metric_orderby()
 
-    def _validate_metric_in_queries(self):
+    def _validate_metric_in_queries(self) -> None:
         metrics = (metric for query in self.queries for metric in query.metrics)
         if not any(self.form_data.metric == metric for metric in metrics):
             raise ValidationError(message='The metric definition in formdata is not included in queries.metrics.',
                                   solution=_SOLUTION_USE_ADD_METRIC)
 
-    def _validate_metric_orderby(self):
+    def _validate_metric_orderby(self) -> None:
         orders = [order for query in self.queries for order in query.orderby]
         if any(not isinstance(order, tuple) for order in orders):
             raise ValidationError('Order by must be a tuple.', solution=_SOLUTION_USE_ADD_METRIC)
@@ -92,7 +92,7 @@ class PieChart(Chart):
     params: PieOption = object_field(cls=PieOption, default_factory=PieOption)
     query_context: PieQueryContext = object_field(cls=PieQueryContext, default_factory=PieQueryContext)
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
         if self.query_context is None or not isinstance(self.query_context.form_data, SerializableModel):
             return

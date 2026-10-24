@@ -84,11 +84,11 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
     xAxisForceCategorical: SerializableOptional[bool] = field(default=None)
     tooltipSortByMetric: SerializableOptional[bool] = field(default=None)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
 
     def set_x_axis(self, column: QueryFormColumn, sort_series_by: SortSeriesType | None = None,
-                   sort_ascending: bool = True):
+                   sort_ascending: bool = True) -> None:
         """X axis column (a column name or an AdhocColumn); optionally sorts the axis by a series aggregate."""
         self.x_axis = column
         if sort_series_by is not None:
@@ -96,9 +96,9 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
             self.x_axis_sort_series_ascending = sort_ascending
 
     def y_axis(self, label: str,
-               sql_expression: str = None,
+               sql_expression: str | None = None,
                sort_ascending: bool = True,
-               sort_series_by: SortSeriesType = SortSeriesType.NAME):
+               sort_series_by: SortSeriesType = SortSeriesType.NAME) -> None:
         """Deprecated: it sets the X axis (the bar categories); use set_x_axis."""
         warnings.warn("TimeSeriesBarOption.y_axis sets the X axis and is deprecated; use set_x_axis.",
                       DeprecationWarning, stacklevel=2)
@@ -138,14 +138,14 @@ class EchartsTimeseriesBarChart(Chart):
         cls=TimeSeriesBarQueryContext,  default_factory=TimeSeriesBarQueryContext)
 
     def set_x_axis(self, column: QueryFormColumn, sort_series_by: SortSeriesType | None = None,
-                   sort_ascending: bool = True):
+                   sort_ascending: bool = True) -> None:
         self.params.set_x_axis(column, sort_series_by, sort_ascending)
         self.query_context.form_data.set_x_axis(column, sort_series_by, sort_ascending)
 
     def y_axis(self, label: str,
-               sql_expression: str = None,
+               sql_expression: str | None = None,
                sort_ascending: bool = True,
-               sort_series_by: SortSeriesType = SortSeriesType.NAME):
+               sort_series_by: SortSeriesType = SortSeriesType.NAME) -> None:
         """Deprecated: it sets the X axis (the bar categories); use set_x_axis."""
         warnings.warn("EchartsTimeseriesBarChart.y_axis sets the X axis and is deprecated; use set_x_axis.",
                       DeprecationWarning, stacklevel=2)
