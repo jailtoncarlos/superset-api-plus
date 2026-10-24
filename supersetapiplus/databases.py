@@ -1,8 +1,11 @@
 """Databases."""
+import warnings
 from dataclasses import dataclass, field
 
 from supersetapiplus.base.base import ApiModelFactories, SerializableModel
 from supersetapiplus.base.fields import default_string, json_field
+from supersetapiplus.base.types import ConfigurationMethod
+from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 
 @dataclass
@@ -32,15 +35,39 @@ class Database(SerializableModel):
     allow_ctas: bool = False
     allow_cvas: bool = False
     allow_dml: bool = False
-    allow_multi_schema_metadata_fetch: bool = True
     allow_run_async: bool = False
     expose_in_sqllab: bool = True
-    encrypted_extra: str = default_string()
     engine: str = default_string()
     extra: dict = json_field()
     force_ctas_schema: str = default_string()
     server_cert: str = default_string()
     sqlalchemy_uri: str = default_string()
+    allow_file_upload: SerializableOptional[bool] = field(default=None)
+    cache_timeout: SerializableOptional[int] = field(default=None)
+    configuration_method: SerializableOptional[ConfigurationMethod] = field(default=None)
+    driver: SerializableOptional[str] = field(default=None)
+    impersonate_user: SerializableOptional[bool] = field(default=None)
+    # Secrets of the connection as JSON text (GET returns them masked; send only to change them).
+    masked_encrypted_extra: SerializableOptional[str] = field(default=None)
+    parameters: SerializableOptional[dict] = field(default=None)  # dynamic_form connection parameters
+    ssh_tunnel: SerializableOptional[dict] = field(default=None)
+    uuid: SerializableOptional[str] = field(default=None)
+    external_url: SerializableOptional[str] = field(default=None)
+    is_managed_externally: SerializableOptional[bool] = field(default=None)
+    # Deprecated: not accepted by Superset 6.1.0 (DatabaseRestApi.post/put); never sent.
+    encrypted_extra: SerializableNotToJson[str] = field(default=None)
+    allow_multi_schema_metadata_fetch: SerializableNotToJson[bool] = field(default=None)
+
+    def __post_init__(self):
+        super().__post_init__()
+        if self.encrypted_extra is not None:
+            warnings.warn("Database.encrypted_extra is deprecated: Superset 6 takes masked_encrypted_extra.",
+                          DeprecationWarning, stacklevel=3)
+            if self.masked_encrypted_extra is None:
+                self.masked_encrypted_extra = self.encrypted_extra
+        if self.allow_multi_schema_metadata_fetch is not None:
+            warnings.warn("Database.allow_multi_schema_metadata_fetch no longer exists in Superset 6 and is "
+                          "ignored.", DeprecationWarning, stacklevel=3)
 
     def to_json(self, columns: list = None) -> dict:
         if not self.extra:

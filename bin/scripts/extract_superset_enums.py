@@ -28,6 +28,13 @@ BACKEND = [
     ("superset/utils/core.py", "DatasourceType"),
     ("superset/utils/core.py", "GenericDataType"),
     ("superset/connectors/sqla/models.py", "DatasourceKind"),
+    ("superset/models/core.py", "ConfigurationMethod"),
+]
+
+# Backend marshmallow schemas whose field names the library uses (nested items the OpenAPI excerpt does
+# not detail): (file, class).
+SCHEMAS = [
+    ("superset/datasets/schemas.py", "DatasetMetricsPutSchema"),
 ]
 
 # Frontend TypeScript enums: (file, enum).
@@ -50,6 +57,7 @@ FRONTEND = [
     ("superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/types.ts", "OrientationType"),
     ("superset-frontend/plugins/plugin-chart-pivot-table/src/types.ts", "MetricsLayoutEnum"),
     ("superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts", "VizType"),
+    ("superset-frontend/src/dashboard/types.ts", "FilterBarOrientation"),
 ]
 
 # String literal unions of TypeScript properties (`name?: 'a' | 'b'`): (key, file, property).
@@ -134,6 +142,15 @@ def python_enum(source: str, class_name: str) -> dict[str, str]:
                 for item in node.body if isinstance(item, ast.Assign) and isinstance(item.value, ast.Constant)
                 for target in item.targets if isinstance(target, ast.Name)
             }
+    raise ValueError(f"class {class_name} not found")
+
+
+def schema_fields(source: str, class_name: str) -> list[str]:
+    """Field names of a marshmallow Schema class (class attributes assigned to a field)."""
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.ClassDef) and node.name == class_name:
+            return [target.id for item in node.body if isinstance(item, ast.Assign) and isinstance(item.value, ast.Call)
+                    for target in item.targets if isinstance(target, ast.Name)]
     raise ValueError(f"class {class_name} not found")
 
 
@@ -238,6 +255,7 @@ def main(version: str) -> None:
     subset = {
         "superset_version": version,
         "backend": {cls: python_enum(source(file), cls) for file, cls in BACKEND},
+        "schemas": {cls: schema_fields(source(file), cls) for file, cls in SCHEMAS},
         "frontend": {name: typescript_enum(source(file), name) for file, name in FRONTEND},
         "choices": {**{key: control_choices(source(file), control) for key, file, control in CHOICES},
                     **{key: const_choices(source(file), name) for key, file, name in CONST_CHOICES}},

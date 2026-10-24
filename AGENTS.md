@@ -53,6 +53,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   data. Unmodeled keys are preserved (`PRESERVE_EXTRA_FIELDS`); keys absent in the input stay absent
   (`MissingField`), e.g. no `"groupby": []` or `"metrics": []` added on re-serialization; JSON fields
   that are null are written as `null`, not as the text `"null"`.
+  Objects read from Superset skip the checks meant for objects built in code (non-empty `orderby` or
+  `metrics` in a query, `params` keys present in `query_context.form_data`): what Superset stored is
+  written back as read. Diverging values between `params` and `form_data` are still rejected.
 - **Authentication**: instances where the `Public` role has permissions ignore JWT on public endpoints
   (FAB 5). Use `client.enable_session_mode()` (login form cookie + `X-CSRFToken`/`Referer`). In JWT mode
   a rejected token renews it once with the refresh token: a 401, or the 422 `{"msg": ...}` that

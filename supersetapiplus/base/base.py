@@ -98,6 +98,10 @@ class SerializableModel(ParseMixin, ABC):
     POST_FIELDS: tuple[str, ...] | None = None
     PUT_FIELDS: tuple[str, ...] | None = None
 
+    # Relations that GET returns as objects ({"id": 1, "first_name": ...}) and POST/PUT take as ids
+    # (owners, roles): kept as read, so the round trip is lossless, and sent as ids by to_json.
+    ID_REFERENCE_FIELDS: tuple[str, ...] = ()
+
     def validate(self):
         ...
 
@@ -491,6 +495,9 @@ class SerializableModel(ParseMixin, ABC):
                     setattr(obj, field_name, data_value)
 
             obj._extra_fields = extra_fields
+            # Built from data stored by Superset: checks meant for objects built in code are skipped, so
+            # what Superset saved can be written back as read (lossless round trip).
+            obj._read_from_superset = True
 
         except Exception as err:
             msg = f"""Error deserializing list item
@@ -698,6 +705,9 @@ class SerializableModel(ParseMixin, ABC):
         # to serialize nested objects, so without this filter the argument had no effect).
         if columns:
             data = {k: v for k, v in data.items() if k in columns}
+        for name in self.ID_REFERENCE_FIELDS:
+            if isinstance(data.get(name), list):
+                data[name] = [item["id"] if isinstance(item, dict) else item for item in data[name]]
 
         # Log the final structure before returning it
         logger.debug('return data %s', mask_data(data))
@@ -1137,19 +1147,35 @@ class ApiModelFactories(ABC):
         logger.debug('response: %s', mask_data(response.json()))
         return response.json().get("message") == "OK"
 
-    def import_file(self, file_path, overwrite=False, passwords=None) -> dict:
+    def delete_many(self, ids: list[int]) -> bool:
+        """Remove several objects in one request (``DELETE /{resource}/?q=!(ids)``)."""
+        if not ids:
+            return True
+        response = self.client.delete(self.base_url, params={"q": f"!({','.join(str(int(i)) for i in ids)})"})
+        logger.debug('response: %s', mask_data(response.json()))
+        return response.ok
+
+    def import_file(self, file_path, overwrite=False, passwords=None, ssh_tunnel_passwords=None,
+                    ssh_tunnel_private_keys=None, ssh_tunnel_private_key_passwords=None) -> dict:
         """
         Import a file (JSON or ZIP) into Superset.
 
         Args:
             file_path (str | Path): path of the file to import.
             overwrite (bool): if True, overwrite existing objects.
-            passwords (dict): passwords for database connections.
+            passwords (dict): passwords for database connections, by database name.
+            ssh_tunnel_passwords, ssh_tunnel_private_keys, ssh_tunnel_private_key_passwords (dict): SSH tunnel
+                secrets of the databases, by database name (form fields of the import endpoints, 6.1.0).
 
         Returns:
             dict: import result with status.
         """
         data = {"overwrite": json.dumps(overwrite)}
+        for name, secrets in (("ssh_tunnel_passwords", ssh_tunnel_passwords),
+                              ("ssh_tunnel_private_keys", ssh_tunnel_private_keys),
+                              ("ssh_tunnel_private_key_passwords", ssh_tunnel_private_key_passwords)):
+            if secrets:
+                data[name] = json.dumps({f"databases/{db}.yaml": value for db, value in secrets.items()})
         passwords = {f"databases/{db}.yaml": pwd for db, pwd in (passwords or {}).items()}
         file_name = os.path.split(file_path)[-1]
         file_ext = os.path.splitext(file_name)[-1].lstrip(".").lower()

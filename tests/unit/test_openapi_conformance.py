@@ -152,6 +152,10 @@ ROUTES = [
     ("get", lambda c: c.saved_queries.base_url), ("post", lambda c: c.saved_queries.base_url),
     ("get", lambda c: c.assets.export_url), ("post", lambda c: c.login_endpoint),
     ("post", lambda c: c.refresh_endpoint), ("get", lambda c: c.join_urls(c.base_url, "security/csrf_token/")),
+    # delete_many and Dashboards.copy
+    ("delete", lambda c: c.charts.base_url), ("delete", lambda c: c.dashboards.base_url),
+    ("delete", lambda c: c.datasets.base_url), ("delete", lambda c: c.saved_queries.base_url),
+    ("post", lambda c: c.join_urls(c.dashboards.base_url, 9, "copy/")),
 ]
 
 

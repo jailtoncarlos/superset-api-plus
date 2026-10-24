@@ -26,6 +26,29 @@ def test_dataset_created_updated_and_read(client, dataset):
     assert client.datasets.get(dataset.id).description == "changed by the tests"
 
 
+def test_dataset_metric_and_time_column_are_saved_and_a_read_dataset_saves_back(client, dataset):
+    fetched = client.datasets.get(dataset.id)
+    fetched.add_metric("zz_total_sum", "SUM(total)", verbose_name="Total", d3format=",d")
+    fetched.main_dttm_col = "day"
+    fetched.save()
+
+    stored = client.datasets.get(dataset.id)
+    metric = next(m for m in stored.metrics if m["metric_name"] == "zz_total_sum")
+    assert (metric["expression"], metric["verbose_name"], metric["d3format"]) == ("SUM(total)", "Total", ",d")
+    assert stored.main_dttm_col == "day"
+    # Metrics as read carry keys PUT rejects (changed_on, created_on...): saving them back must work.
+    stored.description = "saved back as read"
+    stored.save()
+    assert len(client.datasets.get(dataset.id).metrics) == len(stored.metrics)
+
+
+def test_database_read_is_saved_back_unchanged(client, database):
+    fetched = client.databases.get(database.id)
+    fetched.save()
+
+    assert client.databases.get(database.id).database_name == database.database_name
+
+
 def test_get_datasource_by_table_name(client, dataset):
     datasource = client.datasets.get_datasource(dataset.table_name)
 

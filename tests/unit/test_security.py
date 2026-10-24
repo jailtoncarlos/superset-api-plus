@@ -99,3 +99,22 @@ def test_yaml_export_is_parsed_with_safe_load(tmp_path, monkeypatch):
 
     with pytest.raises(yaml.constructor.ConstructorError):
         client.charts.export([1], tmp_path / "export.yaml")
+
+
+def test_import_sends_ssh_tunnel_secrets_by_database_file(tmp_path, monkeypatch):
+    client = SupersetClient(HOST, username="robot", password=PASSWORD)
+    archive = tmp_path / "bundle.zip"
+    archive.write_bytes(b"zip")
+    sent = {}
+
+    def capture(url, **kwargs):
+        sent.update(kwargs["data"])
+        reply = requests.Response()
+        reply.status_code, reply._content = 200, b'{"message": "OK"}'
+        return reply
+
+    monkeypatch.setattr(client, "post", capture)
+    client.dashboards.import_file(archive, ssh_tunnel_passwords={"examples": "tunnel-secret"})
+
+    assert json.loads(sent["ssh_tunnel_passwords"]) == {"databases/examples.yaml": "tunnel-secret"}
+    assert "ssh_tunnel_private_keys" not in sent

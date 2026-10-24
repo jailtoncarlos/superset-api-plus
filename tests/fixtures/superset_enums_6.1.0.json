@@ -15,6 +15,10 @@
    "SAMPLES": "samples",
    "TIMEGRAINS": "timegrains"
   },
+  "ConfigurationMethod": {
+   "DYNAMIC_FORM": "dynamic_form",
+   "SQLALCHEMY_FORM": "sqlalchemy_form"
+  },
   "DatasourceKind": {
    "PHYSICAL": "physical",
    "VIRTUAL": "virtual"
@@ -240,6 +244,10 @@
    "Simple": "SIMPLE",
    "Sql": "SQL"
   },
+  "FilterBarOrientation": {
+   "Horizontal": "HORIZONTAL",
+   "Vertical": "VERTICAL"
+  },
   "FilterPlugins": {
    "Range": "filter_range",
    "Select": "filter_select",
@@ -414,6 +422,21 @@
   "TITLE_POSITION_OPTIONS": [
    "Left",
    "Top"
+  ]
+ },
+ "schemas": {
+  "DatasetMetricsPutSchema": [
+   "id",
+   "expression",
+   "description",
+   "extra",
+   "metric_name",
+   "metric_type",
+   "d3format",
+   "currency",
+   "verbose_name",
+   "warning_text",
+   "uuid"
   ]
  },
  "superset_version": "6.1.0",

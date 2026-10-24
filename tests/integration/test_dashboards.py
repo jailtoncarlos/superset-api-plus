@@ -6,7 +6,7 @@ from supersetapiplus.dashboards.native_filters import FilterType
 from supersetapiplus.exceptions import DashboardValidationError, NotFound, ResourceNotFoundError
 from supersetapiplus.query_string import QueryOperator
 
-from .conftest import name_filter, new_chart, unique_name
+from .conftest import URL, name_filter, new_chart, unique_name
 
 
 @pytest.fixture
@@ -159,3 +159,35 @@ def test_time_filter_without_dataset_and_chart_scoped_filter_are_stored(client, 
     assert period["targets"] == [{}] and period["filterType"] == "filter_time"
     assert campus["scope"] == {"rootPath": ["ROOT_ID"], "excluded": [second.id]}
     assert campus["chartsInScope"] == [first.id]
+
+
+def test_owners_and_roles_are_saved_as_ids_and_read_as_objects(client, add_dashboard):
+    me = client.get(client.join_urls(URL, "api/v1/me/")).json()["result"]["id"]
+    roles = client.get(client.join_urls(URL, "api/v1/security/roles/"), params={"q": "(page_size:100)"}).json()
+    gamma = next(role["id"] for role in roles["result"] if role["name"] == "Gamma")
+    dashboard = add_dashboard()
+    dashboard.owners, dashboard.roles = [me], [gamma]
+    dashboard.certified_by = "Data team"
+    dashboard.save()
+
+    stored = client.dashboards.get(dashboard.id)
+    assert [o["id"] for o in stored.owners] == [me] and [r["id"] for r in stored.roles] == [gamma]
+    assert stored.certified_by == "Data team"
+    stored.dashboard_title += "-saved-back"
+    stored.save()  # owners/roles read as objects are sent back as ids
+    assert [r["id"] for r in client.dashboards.get(dashboard.id).roles] == [gamma]
+
+
+def test_copy_and_delete_many(client, add_chart, add_dashboard, cleanup):
+    chart, dashboard = add_chart(), add_dashboard()
+    client.charts.add_to_dashboard(chart, dashboard.id)
+
+    copy_id = cleanup.dashboard(client.dashboards.copy(dashboard, dashboard_title=f"{dashboard.dashboard_title}-copy"))
+    copy = client.dashboards.get(copy_id)
+    assert copy.dashboard_title.endswith("-copy") and copy_id != dashboard.id
+    assert [c.id for c in copy.get_charts()] == [chart.id], "without duplicate_slices the copy shows the same charts"
+
+    assert client.dashboards.delete_many([dashboard.id, copy_id]) is True
+    for pk in (dashboard.id, copy_id):
+        with pytest.raises(ResourceNotFoundError):
+            client.dashboards.get(pk)

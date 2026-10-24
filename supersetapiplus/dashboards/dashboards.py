@@ -32,12 +32,22 @@ class Dashboard(SerializableModel):
         "tags",
     )
 
+    ID_REFERENCE_FIELDS = ("owners", "roles")
+
     dashboard_title: str = ''
 
     published: SerializableOptional[bool] = field(default=None)
     id: int | None = field(default=None)
     css: SerializableOptional[str] = field(default=None)
     slug: SerializableOptional[str] = field(default=None)
+    # Users (owners) and roles (dashboard RBAC) as read from Superset, or their ids; sent as ids.
+    # Absent on create unless set: Superset then makes the current user the owner.
+    owners: SerializableOptional[list] = field(default=None)
+    roles: SerializableOptional[list] = field(default=None)
+    certified_by: SerializableOptional[str] = field(default=None)
+    certification_details: SerializableOptional[str] = field(default=None)
+    external_url: SerializableOptional[str] = field(default=None)
+    is_managed_externally: SerializableOptional[bool] = field(default=None)
 
     json_metadata: Metadata = object_field(cls=Metadata, default_factory=Metadata)
     position_json: SerializableOptional[DashboardLayout] = object_field(cls=DashboardLayout,
@@ -138,6 +148,22 @@ class Dashboard(SerializableModel):
 
 class Dashboards(ApiModelFactories):
     endpoint = "dashboard/"
+
+    def copy(self, dashboard: Dashboard | int | str, dashboard_title: str | None = None,
+             duplicate_slices: bool = False, css: str | None = None) -> int:
+        """Copy a dashboard (an object, its id or its slug); returns the id of the copy.
+
+        `duplicate_slices` also copies its charts (otherwise the copy shows the same charts). The copy keeps
+        the json_metadata of the original (required by DashboardCopySchema).
+        """
+        source = dashboard if isinstance(dashboard, Dashboard) and dashboard.id else self.get(
+            dashboard.id if isinstance(dashboard, Dashboard) else dashboard)
+        payload = {"json_metadata": source.to_json()["json_metadata"], "duplicate_slices": duplicate_slices,
+                   "dashboard_title": dashboard_title or f"{source.dashboard_title} (copy)"}
+        if css is not None:
+            payload["css"] = css
+        response = self.client.post(self.client.join_urls(self.base_url, source.id, "copy/"), json=payload)
+        return response.json()["result"]["id"]
 
     def attach_charts(self, dashboard: Dashboard) -> list[int]:
         """

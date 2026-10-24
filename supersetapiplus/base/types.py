@@ -16,6 +16,12 @@ class DatasourceKind(StringEnum):
     PHYSICAL = "physical"
 
 
+class ConfigurationMethod(StringEnum):
+    """How a database connection was configured (`superset/models/core.py` ConfigurationMethod, 6.1.0)."""
+    SQLALCHEMY_FORM = "sqlalchemy_form"
+    DYNAMIC_FORM = "dynamic_form"
+
+
 class LimitingFactor(StringEnum):
     """What limited a SQL Lab result (`superset/sqllab/limiting_factor.py`, Superset 6.1.0)."""
     QUERY = "QUERY"

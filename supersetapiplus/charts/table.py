@@ -142,9 +142,11 @@ class TableQueryContext(QueryContext):
     def validate(self):
         super().validate()
         # gather all query metrics into one list
-        query_metrics = [qm for q in self.queries for qm in q.metrics]
-        # keep the form_data metrics that do not appear in query_metrics
+        query_metrics = [qm for q in self.queries if isinstance(q.metrics, list) for qm in q.metrics]
+        # keep the form_data metrics that do not appear in query_metrics (absent in raw mode)
         form_data_metrics = self.form_data.metrics if isinstance(self.form_data, SerializableModel) else []
+        if not isinstance(form_data_metrics, list):
+            form_data_metrics = []
         missing = [fm for fm in form_data_metrics if fm not in query_metrics]
         if missing:
             raise ValidationError(

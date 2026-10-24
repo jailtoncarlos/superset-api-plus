@@ -1,9 +1,16 @@
 from dataclasses import dataclass, field
 
 from supersetapiplus.base.base import SerializableModel
+from supersetapiplus.base.enum_str import StringEnum
 from supersetapiplus.base.fields import default_string, object_field
 from supersetapiplus.dashboards import native_filters
 from supersetapiplus.typing import SerializableOptional
+
+
+class FilterBarOrientation(StringEnum):
+    """Position of the native filter bar (superset-frontend/src/dashboard/types.ts, Superset 6.1.0)."""
+    VERTICAL = "VERTICAL"
+    HORIZONTAL = "HORIZONTAL"
 
 
 @dataclass
@@ -54,6 +61,16 @@ class Metadata(SerializableModel):
 
     # List of native filters and dividers, kept as the dicts Superset stores (see native_filters).
     native_filter_configuration: SerializableOptional[list] = field(default=None)
+
+    # Other keys of DashboardJSONMetadataSchema (6.1.0); absent unless read or set.
+    color_namespace: SerializableOptional[str] = field(default=None)
+    map_label_colors: SerializableOptional[dict] = field(default=None)
+    positions: SerializableOptional[dict] = field(default=None)
+    filter_bar_orientation: SerializableOptional[FilterBarOrientation] = field(default=None)
+    show_chart_timestamps: SerializableOptional[bool] = field(default=None)
+    chart_customization_config: SerializableOptional[list] = field(default=None)
+    stagger_refresh: SerializableOptional[bool] = field(default=None)
+    stagger_time: SerializableOptional[int] = field(default=None)
 
     def __post_init__(self):
         super().__post_init__()

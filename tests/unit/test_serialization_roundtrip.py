@@ -243,3 +243,25 @@ def test_new_chart_created_by_from_json_receives_the_datasource(viz_type, params
     assert chart.params.datasource == "29__table"
     assert chart.query_context is None
     assert json.loads(chart.to_json()["params"])["datasource"] == "29__table"
+
+
+def test_chart_whose_stored_form_data_lacks_a_params_key_is_written_back():
+    # Older Superset versions stored query_context.form_data without some params keys (annotation_layers).
+    params = {"datasource": DATASOURCE, "viz_type": "big_number_total", "metric": "count", "annotation_layers": []}
+    query_context = {"datasource": {"id": 1, "type": "table"}, "queries": [{"metrics": ["count"]}],
+                     "form_data": {k: v for k, v in params.items() if k != "annotation_layers"}}
+
+    chart = load_chart("big_number_total", params, query_context)
+
+    assert dumped(chart, "params") == params
+    assert dumped(chart, "query_context") == query_context
+
+
+def test_table_query_saved_without_ordering_or_metrics_is_written_back():
+    params = {"datasource": DATASOURCE, "viz_type": "table", "query_mode": "raw", "all_columns": ["name"]}
+    query_context = {"datasource": {"id": 1, "type": "table"},
+                     "queries": [{"columns": ["name"], "metrics": [], "orderby": []}], "form_data": params}
+
+    chart = load_chart("table", params, query_context)
+
+    assert dumped(chart, "query_context")["queries"] == query_context["queries"]

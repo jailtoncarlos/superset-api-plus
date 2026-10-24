@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 from supersetapiplus.base.base import ApiModelFactories, SerializableModel
 from supersetapiplus.base.fields import default_string
+from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass
@@ -23,6 +24,9 @@ class SavedQuery(SerializableModel):
     sql: str = default_string()
     db_id: int = None
     schema: str = default_string()
+    catalog: SerializableOptional[str] = field(default=None)
+    template_parameters: SerializableOptional[str] = field(default=None)  # JSON text
+    extra_json: SerializableOptional[str] = field(default=None)  # JSON text
 
     @classmethod
     def from_json(cls, json: dict):

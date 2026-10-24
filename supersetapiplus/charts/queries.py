@@ -111,6 +111,8 @@ class OrderByMixin:
 
     def validate(self):
         super().validate()
+        if getattr(self, "_read_from_superset", False):  # e.g. tables saved without ordering
+            return
         if not isinstance(self.orderby, MissingField) and not self.orderby:
             raise ValidationError(message='Field orderby cannot be empty.',
                                   solution='Set the "automatic_order=OrderBy(automate=True)" argument in the '
@@ -142,7 +144,7 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
 
     def validate(self):
         super().validate()
-        if not self.metrics:
+        if not self.metrics and not getattr(self, "_read_from_superset", False):
             raise ValidationError(message='Field metrics cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')
 

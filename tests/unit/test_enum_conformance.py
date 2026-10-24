@@ -21,6 +21,7 @@ from supersetapiplus.base import types as B
 from supersetapiplus.charts import types as T
 from supersetapiplus.dashboards import itemposition as IP
 from supersetapiplus.dashboards import layout as L
+from supersetapiplus.dashboards import metadata as M
 from supersetapiplus.dashboards import native_filters as NF
 
 OFFICIAL = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_enums_6.1.0.json").read_text())
@@ -35,6 +36,7 @@ def official(group: dict, name: str) -> set:
 SOURCES = {
     B.DatasourceKind: official(BACKEND, "DatasourceKind"),
     B.LimitingFactor: official(BACKEND, "LimitingFactor"),
+    B.ConfigurationMethod: official(BACKEND, "ConfigurationMethod"),
     T.FilterOperatorType: official(BACKEND, "FilterOperator"),
     T.TimeGrain: official(BACKEND, "TimeGrain"),
     T.ResultFormat: official(BACKEND, "ChartDataResultFormat"),
@@ -66,6 +68,7 @@ SOURCES = {
     T.CalendarDomain: set(CHOICES["cal_heatmap.domain_granularity"]),
     T.CalendarSubdomain: set(CHOICES["cal_heatmap.subdomain_granularity"]),
     NF.FilterType: official(FRONTEND, "FilterPlugins"),
+    M.FilterBarOrientation: official(FRONTEND, "FilterBarOrientation"),
     NF.NativeFilterType: official(FRONTEND, "NativeFilterType"),
     L.Background: set(OFFICIAL["constants"]["dashboard.backgrounds"].values()),
     L.HeaderSize: set(OFFICIAL["constants"]["dashboard.headerSizes"].values()),
