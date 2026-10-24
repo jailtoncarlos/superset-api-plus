@@ -512,6 +512,63 @@
    "Top"
   ]
  },
+ "provenance": {
+  "flask_appbuilder": {
+   "paths": [
+    "flask_appbuilder/models/sqla/filters.py"
+   ],
+   "repository": "dpgaspar/Flask-AppBuilder",
+   "sha": "f4a8cfd9f31f7eb36fb7891ccf9747b7506a41d3",
+   "tag": "v5.0.2"
+  },
+  "superset": {
+   "paths": [
+    "requirements/base.txt",
+    "superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx",
+    "superset-frontend/packages/superset-ui-chart-controls/src/types.ts",
+    "superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts",
+    "superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts",
+    "superset-frontend/packages/superset-ui-core/src/currency-format/CurrencyFormats.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/AdvancedAnalytics.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/Column.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/Dashboard.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/Datasource.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/Query.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/QueryFormData.ts",
+    "superset-frontend/packages/superset-ui-core/src/time-format/formatters/smartDate.ts",
+    "superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Pie/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/constants.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx",
+    "superset-frontend/plugins/plugin-chart-echarts/src/types.ts",
+    "superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx",
+    "superset-frontend/plugins/plugin-chart-pivot-table/src/types.ts",
+    "superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx",
+    "superset-frontend/src/constants.ts",
+    "superset-frontend/src/dashboard/types.ts",
+    "superset-frontend/src/dashboard/util/componentTypes.ts",
+    "superset-frontend/src/dashboard/util/constants.ts",
+    "superset-frontend/src/explore/components/controls/CurrencyControl/CurrencyControl.tsx",
+    "superset-frontend/src/explore/components/controls/FilterControl/types.ts",
+    "superset-frontend/src/explore/constants.ts",
+    "superset/common/chart_data.py",
+    "superset/config.py",
+    "superset/connectors/sqla/models.py",
+    "superset/constants.py",
+    "superset/datasets/schemas.py",
+    "superset/errors.py",
+    "superset/migrations/shared/migrate_viz/processors.py",
+    "superset/models/core.py",
+    "superset/sqllab/limiting_factor.py",
+    "superset/utils/core.py"
+   ],
+   "repository": "apache/superset",
+   "sha": "c83fb2bb1dcfac41ac51bcebd82471f4a7180d18",
+   "tag": "6.1.0"
+  }
+ },
  "schemas": {
   "DatasetColumnsPutSchema": [
    "id",

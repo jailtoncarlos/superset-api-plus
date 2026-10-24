@@ -3106,6 +3106,22 @@
       }
     }
   },
+  "provenance": {
+    "paths": [
+      "superset/examples/deckgl_demo/dashboard.yaml",
+      "superset/examples/fcc_new_coder_survey/dashboard.yaml",
+      "superset/examples/featured_charts/dashboard.yaml",
+      "superset/examples/misc_charts/dashboard.yaml",
+      "superset/examples/sales_dashboard/dashboard.yaml",
+      "superset/examples/slack_dashboard/dashboard.yaml",
+      "superset/examples/usa_births_names/dashboard.yaml",
+      "superset/examples/video_game_sales/dashboard.yaml",
+      "superset/examples/world_health/dashboard.yaml"
+    ],
+    "repository": "apache/superset",
+    "sha": "c83fb2bb1dcfac41ac51bcebd82471f4a7180d18",
+    "tag": "6.1.0"
+  },
   "source": "superset/examples/*/dashboard.yaml",
   "version": "6.1.0"
 }

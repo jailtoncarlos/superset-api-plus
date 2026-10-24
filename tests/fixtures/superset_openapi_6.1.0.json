@@ -597,6 +597,14 @@
    "get"
   ]
  },
+ "provenance": {
+  "paths": [
+   "docs/static/resources/openapi.json"
+  ],
+  "repository": "apache/superset",
+  "sha": "c83fb2bb1dcfac41ac51bcebd82471f4a7180d18",
+  "tag": "6.1.0"
+ },
  "schemas": {
   "ChartRestApi.post": {
    "properties": {

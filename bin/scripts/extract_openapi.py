@@ -12,7 +12,9 @@ import json
 import sys
 import urllib.request
 
-SPEC_URL = "https://raw.githubusercontent.com/apache/superset/{version}/docs/static/resources/openapi.json"
+SPEC_PATH = "docs/static/resources/openapi.json"
+SPEC_URL = "https://raw.githubusercontent.com/apache/superset/{version}/" + SPEC_PATH
+COMMIT_URL = "https://api.github.com/repos/apache/superset/commits/{ref}"
 
 RESOURCES = ["ChartRestApi", "DashboardRestApi", "DatasetRestApi", "DatabaseRestApi", "SavedQueryRestApi",
              "CssTemplateRestApi"]
@@ -24,6 +26,11 @@ def schema_subset(schema: dict) -> dict:
         for name, prop in schema.get("properties", {}).items()
     }
     return {"properties": properties, "required": sorted(schema.get("required", []))}
+
+
+def commit_sha(ref: str) -> str:
+    with urllib.request.urlopen(COMMIT_URL.format(ref=ref), timeout=60) as response:
+        return str(json.load(response)["sha"])
 
 
 def load_spec(version: str, path: str | None) -> dict:
@@ -44,6 +51,9 @@ def main(version: str, path: str | None = None) -> None:
         "schemas": {f"{r}.{op}": schema_subset(schemas[f"{r}.{op}"])
                     for r in RESOURCES for op in ("post", "put") if f"{r}.{op}" in schemas},
     }
+    if not path:  # downloaded from the tag: record where the excerpt comes from
+        subset["provenance"] = {"repository": "apache/superset", "tag": version, "sha": commit_sha(version),
+                                "paths": [SPEC_PATH]}
     json.dump(subset, sys.stdout, ensure_ascii=False, indent=1, sort_keys=True)
     sys.stdout.write("\n")
 

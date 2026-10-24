@@ -28,7 +28,8 @@ reorganized, tested package.
   `client.datasets.get_or_create()`, time column and the other update fields; databases: the Superset 6
   connection fields; `delete_many()` on every resource.
 * Quality gates: complexity ratchet, OpenAPI and source-code conformance, model attribute checks and layer
-  contracts as pre-commit hooks; integration tests against a real Superset in CI.
+  contracts as pre-commit hooks; integration tests against a real Superset in CI. The excerpts of the
+  Superset sources record their provenance (tag, commit, paths) and their extractors fail on a missing symbol.
 
 ### Fixed
 

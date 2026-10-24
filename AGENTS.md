@@ -47,6 +47,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
     same params (`tests/unit/test_ui_defaults.py`, in the `model-attributes` hook)
   - `bin/scripts/extract_example_layouts.py <version>` → `example_layouts_<version>.json`: the layouts of
     the example dashboards shipped with Superset, which the layout validation must accept
+  The excerpts downloaded from the tag record their provenance (tag, commit SHA, source paths); an
+  extractor that finds nothing for a symbol fails instead of writing an empty set (`tests/unit/test_extractors.py`),
+  and every key of the enum excerpt must be named by some test or module (`test_enum_conformance.py`).
   To support a new Superset version: regenerate the excerpts, run the tests, fix the divergences; the full
   checklist is in `docs/superset-version-bump.md`.
 

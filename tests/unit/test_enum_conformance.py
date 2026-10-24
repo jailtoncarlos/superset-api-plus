@@ -9,21 +9,22 @@ point OFFICIAL to it; the divergences show up as failures here.
 """
 import enum
 import importlib
-import warnings
 import json
 import pkgutil
+import re
+import warnings
 from pathlib import Path
 
 import pytest
 
 import supersetapiplus
 from supersetapiplus import query_string as Q
-from supersetapiplus.core import types as B
 from supersetapiplus.charts import types as T
-from supersetapiplus.dashboards.layout.legacy import items as IP
+from supersetapiplus.core import types as B
 from supersetapiplus.dashboards import layout as L
 from supersetapiplus.dashboards import metadata as M
 from supersetapiplus.dashboards import native_filters as NF
+from supersetapiplus.dashboards.layout.legacy import items as IP
 
 OFFICIAL = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_enums_6.1.0.json").read_text())
 BACKEND, FRONTEND, CHOICES = OFFICIAL["backend"], OFFICIAL["frontend"], OFFICIAL["choices"]
@@ -170,10 +171,24 @@ def test_dashboard_grid_limits_are_the_editor_ones():
 
 
 def test_dataset_metric_and_column_keys_are_those_of_the_update_schemas():
-    from supersetapiplus.resources.datasets import Dataset
+    from supersetapiplus.resources.datasets import Dataset, Datasets
 
     assert set(Dataset.METRIC_FIELDS) == set(OFFICIAL["schemas"]["DatasetMetricsPutSchema"])
     assert set(Dataset.COLUMN_FIELDS) == set(OFFICIAL["schemas"]["DatasetColumnsPutSchema"])
+    assert set(Datasets.DUPLICATE_FIELDS) == set(OFFICIAL["schemas"]["DatasetDuplicateSchema"])
+    assert set(Datasets.GET_OR_CREATE_FIELDS) == set(OFFICIAL["schemas"]["GetOrCreateDatasetSchema"])
+
+
+def test_every_key_of_the_excerpt_is_checked_somewhere():
+    """A key of the excerpt that no test or module names is checked by nothing: either a conformance test
+    lost it or the extraction keeps a symbol the library no longer uses (remove it from the script)."""
+    root = Path(__file__).parents[2]
+    sources = [*Path(__file__).parent.glob("*.py"), *(root / "supersetapiplus").rglob("*.py")]
+    literals = {m for p in sources for m in re.findall(r"""["']([^"'\n]+)["']""", p.read_text(encoding="utf-8"))}
+    sections = ("backend", "frontend", "choices", "constants", "objects", "numbers", "options", "unions",
+                "value_options", "schemas", "config", "operator_groups")
+    orphans = [f"{section}.{key}" for section in sections for key in OFFICIAL[section] if key not in literals]
+    assert orphans == []
 
 
 def test_removed_viz_types_are_the_ones_superset_migrated():

@@ -8,6 +8,7 @@ Usage:
     python bin/scripts/extract_superset_enums.py 6.1.0 > tests/fixtures/superset_enums_6.1.0.json
 """
 import ast
+import functools
 import json
 import re
 import sys
@@ -134,11 +135,33 @@ CONST_CHOICES = [
 ]
 
 
+COMMIT_URL = "https://api.github.com/repos/{repository}/commits/{ref}"
+
+
+def non_empty(extract):
+    """An extraction that finds nothing fails: a symbol renamed or reformatted in a new Superset version must
+    stop the regeneration, not produce an empty set that the conformance tests would compare against."""
+    @functools.wraps(extract)
+    def checked(source, *args):
+        result = extract(source, *args)
+        if not result:
+            raise ValueError(f"{extract.__name__}: nothing found for {args[0] if args else 'the source'!r}")
+        return result
+    return checked
+
+
+def commit_sha(repository: str, ref: str) -> str:
+    """Commit of a tag, recorded in the fixture with the paths it was extracted from."""
+    with urllib.request.urlopen(COMMIT_URL.format(repository=repository, ref=ref), timeout=60) as response:
+        return str(json.load(response)["sha"])
+
+
 def download(version: str, path: str, root: str = RAW_ROOT) -> str:
     with urllib.request.urlopen(root.format(version=version, path=path), timeout=60) as response:
         return response.read().decode("utf-8")
 
 
+@non_empty
 def python_enum(source: str, class_name: str) -> dict[str, str]:
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.ClassDef) and node.name == class_name:
@@ -150,6 +173,7 @@ def python_enum(source: str, class_name: str) -> dict[str, str]:
     raise ValueError(f"class {class_name} not found")
 
 
+@non_empty
 def schema_fields(source: str, class_name: str) -> list[str]:
     """Field names of a marshmallow Schema class (class attributes assigned to a field)."""
     for node in ast.walk(ast.parse(source)):
@@ -159,6 +183,7 @@ def schema_fields(source: str, class_name: str) -> list[str]:
     raise ValueError(f"class {class_name} not found")
 
 
+@non_empty
 def typescript_enum(source: str, name: str) -> dict[str, str]:
     body = re.search(rf"export enum {name} \{{(.*?)\}}", source, re.S)
     if not body:
@@ -166,16 +191,19 @@ def typescript_enum(source: str, name: str) -> dict[str, str]:
     return dict(re.findall(r"(\w+)\s*=\s*'([^']*)'", body.group(1)))
 
 
+@non_empty
 def typescript_numbers(source: str, name_pattern: str) -> dict[str, int]:
     found = dict(re.findall(r"export const (\w+) = (\d+);", source))
     return {name: int(value) for name, value in found.items() if re.search(name_pattern, name)}
 
 
+@non_empty
 def typescript_constants(source: str, name_pattern: str) -> dict[str, str]:
     found = dict(re.findall(r"export const (\w+) = '([^']*)';", source))
     return {name: value for name, value in found.items() if re.search(name_pattern, name)}
 
 
+@non_empty
 def control_choices(source: str, control: str) -> list:
     block = re.search(rf"name:\s*'{control}'.*?choices:\s*\[(.*?)\n\s*\],", source, re.S)
     if not block:
@@ -184,6 +212,7 @@ def control_choices(source: str, control: str) -> list:
             for text, number in re.findall(r"\[\s*(?:'([^']+)'|(\d+))\s*,", block.group(1))]
 
 
+@non_empty
 def const_choices(source: str, name: str) -> list[str]:
     block = re.search(rf"const {name}\b[^=]*= \{{.*?choices:\s*\[(.*?)\n\s*\],", source, re.S)
     if not block:
@@ -191,6 +220,7 @@ def const_choices(source: str, name: str) -> list[str]:
     return re.findall(r"\[\s*'([^']+)'\s*,", block.group(1))
 
 
+@non_empty
 def typescript_object(source: str, name: str) -> dict[str, str]:
     body = re.search(rf"export const {name} = \{{(.*?)\}};", source, re.S)
     if not body:
@@ -198,6 +228,7 @@ def typescript_object(source: str, name: str) -> dict[str, str]:
     return dict(re.findall(r"(\w+):\s*'([^']*)'", body.group(1)))
 
 
+@non_empty
 def option_values(source: str, name: str, identifiers: dict[str, str]) -> list[str]:
     body = re.search(rf"export const {name}\b[^=]*= \[(.*?)\n\];", source, re.S)
     if not body:
@@ -206,6 +237,7 @@ def option_values(source: str, name: str, identifiers: dict[str, str]) -> list[s
             for text, identifier in re.findall(r"^\s*\[\s*(?:'([^']*)'|(\w+)),", body.group(1), re.M)]
 
 
+@non_empty
 def typescript_union(source: str, prop: str) -> list[str]:
     union = re.search(rf"\b{prop}\??:\s*((?:'[^']*'\s*\|?\s*)+);", source)
     if not union:
@@ -213,6 +245,7 @@ def typescript_union(source: str, prop: str) -> list[str]:
     return re.findall(r"'([^']*)'", union.group(1))
 
 
+@non_empty
 def value_options(source: str, name: str) -> list[str]:
     body = re.search(rf"export const {name}\b[^=]*= \[(.*?)\n\];", source, re.S)
     if not body:
@@ -220,6 +253,7 @@ def value_options(source: str, name: str) -> list[str]:
     return re.findall(r"value:\s*'([^']*)'", body.group(1))
 
 
+@non_empty
 def config_list(source: str, name: str) -> list:
     for node in ast.parse(source).body:
         if isinstance(node, ast.Assign) and any(getattr(t, "id", None) == name for t in node.targets):
@@ -228,12 +262,18 @@ def config_list(source: str, name: str) -> list:
 
 
 def fab_version(requirements: str) -> str:
-    return re.search(r"^flask-appbuilder==([\w.]+)$", requirements, re.M).group(1)
+    match = re.search(r"^flask-appbuilder==([\w.]+)$", requirements, re.M)
+    if not match:
+        raise ValueError("flask-appbuilder pin not found in requirements/base.txt")
+    return match.group(1)
 
 
 def fab_operators(source: str) -> list[str]:
     """Rison filter operators (`arg_name`) of the Flask-AppBuilder SQLAlchemy filters."""
-    return sorted(set(re.findall(r'arg_name = "([^"]+)"', source)))
+    operators = sorted(set(re.findall(r'arg_name = "([^"]+)"', source)))
+    if not operators:
+        raise ValueError("Flask-AppBuilder filter operators not found")
+    return operators
 
 
 def number_formats(source: str) -> list[str]:
@@ -251,6 +291,7 @@ def number_formats(source: str) -> list[str]:
 MIGRATE_VIZ = "superset/migrations/shared/migrate_viz/processors.py"
 
 
+@non_empty
 def migrated_viz_types(source: str) -> dict[str, str]:
     """`source_viz_type` -> `target_viz_type` of the MigrateViz processors (class-level constants)."""
     pairs = {}
@@ -271,6 +312,7 @@ OPERATOR_GROUPS = [
 ]
 
 
+@non_empty
 def operator_group(source: str, name: str) -> list[str]:
     """Members of the `Operators` enum listed in `export const <name> = new Set([...])` or `= [...]`."""
     match = re.search(rf"export const {name}\s*=\s*(?:new Set\()?\[(.*?)\]", source, re.S)
@@ -308,6 +350,13 @@ def main(version: str) -> None:
         "fab": {"version": fab, "filter_operators": fab_operators(download(fab, FAB_FILTERS, FAB_ROOT))},
         "migrated_viz_types": migrated_viz_types(source(MIGRATE_VIZ)),
         "operator_groups": {name: operator_group(source(file), name) for file, name in OPERATOR_GROUPS},
+    }
+    # Where the excerpt comes from: the commits of the tags and the files read.
+    subset["provenance"] = {
+        "superset": {"repository": "apache/superset", "tag": version, "sha": commit_sha("apache/superset", version),
+                     "paths": sorted(cache)},
+        "flask_appbuilder": {"repository": "dpgaspar/Flask-AppBuilder", "tag": f"v{fab}",
+                             "sha": commit_sha("dpgaspar/Flask-AppBuilder", f"v{fab}"), "paths": [FAB_FILTERS]},
     }
     json.dump(subset, sys.stdout, ensure_ascii=False, indent=1, sort_keys=True)
     sys.stdout.write("\n")

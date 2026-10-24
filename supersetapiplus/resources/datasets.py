@@ -153,6 +153,11 @@ class Dataset(SerializableModel):
 class Datasets(ApiModelFactories):
     """Repository of datasets (`client.datasets`): CRUD and `get_datasource()` by table name."""
     endpoint = "dataset/"
+    # Body fields of POST /dataset/duplicate and /dataset/get_or_create/ (DatasetDuplicateSchema and
+    # GetOrCreateDatasetSchema, superset/datasets/schemas.py 6.1.0; checked in test_enum_conformance.py).
+    DUPLICATE_FIELDS = ("base_model_id", "table_name")
+    GET_OR_CREATE_FIELDS = ("table_name", "database_id", "catalog", "schema", "template_params",
+                            "normalize_columns", "always_filter_main_dttm")
 
     def get_datasource(self, name: str) -> DataSource:
         """DataSource (id and type) of the dataset with the given `table_name`."""
@@ -171,7 +176,8 @@ class Datasets(ApiModelFactories):
         """Copy of a virtual dataset named `table_name` (POST /dataset/duplicate; Superset rejects physical
         datasets with 422). Returns the copy, read from Superset."""
         url = self.client.join_urls(self.base_url, "duplicate")
-        new_id = self.client.post(url, json={"base_model_id": dataset_id, "table_name": table_name}).json()["id"]
+        body = dict(zip(self.DUPLICATE_FIELDS, (dataset_id, table_name), strict=True))
+        new_id = self.client.post(url, json=body).json()["id"]
         duplicated: Dataset = self.get(new_id)
         return duplicated
 
@@ -185,6 +191,9 @@ class Datasets(ApiModelFactories):
         """
         body = {"table_name": table_name, "database_id": getattr(database, "id", database), "schema": schema,
                 "catalog": catalog, **options}
+        unknown = set(body) - set(self.GET_OR_CREATE_FIELDS)
+        if unknown:
+            raise ValueError(f"get_or_create does not take {sorted(unknown)}; it takes {self.GET_OR_CREATE_FIELDS}.")
         url = self.client.join_urls(self.base_url, "get_or_create/")
         result = self.client.post(url, json={k: v for k, v in body.items() if v is not None}).json()["result"]
         dataset: Dataset = self.get(result["table_id"])

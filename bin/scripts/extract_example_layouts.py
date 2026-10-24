@@ -16,6 +16,7 @@ import urllib.request
 import yaml
 
 TREE_URL = "https://api.github.com/repos/apache/superset/git/trees/{version}?recursive=1"
+COMMIT_URL = "https://api.github.com/repos/apache/superset/commits/{ref}"
 RAW_ROOT = "https://raw.githubusercontent.com/apache/superset/{version}/{path}"
 DASHBOARD_FILE = re.compile(r"^superset/examples/([^/]+)/dashboard\.yaml$")
 
@@ -23,6 +24,10 @@ DASHBOARD_FILE = re.compile(r"^superset/examples/([^/]+)/dashboard\.yaml$")
 def download(url: str) -> str:
     with urllib.request.urlopen(url, timeout=60) as response:  # noqa: S310 (fixed https URLs)
         return str(response.read().decode("utf-8"))
+
+
+def commit_sha(ref: str) -> str:
+    return str(json.loads(download(COMMIT_URL.format(ref=ref)))["sha"])
 
 
 def dashboard_files(version: str) -> dict[str, str]:
@@ -39,11 +44,14 @@ def dashboard_files(version: str) -> dict[str, str]:
 
 
 def main(version: str) -> None:
+    files = dashboard_files(version)
     layouts = {}
-    for name, path in sorted(dashboard_files(version).items()):
+    for name, path in sorted(files.items()):
         dashboard = yaml.safe_load(download(RAW_ROOT.format(version=version, path=path)))
         layouts[name] = {"dashboard_title": dashboard.get("dashboard_title"), "position": dashboard["position"]}
-    output = {"version": version, "source": "superset/examples/*/dashboard.yaml", "layouts": layouts}
+    output = {"version": version, "source": "superset/examples/*/dashboard.yaml", "layouts": layouts,
+              "provenance": {"repository": "apache/superset", "tag": version, "sha": commit_sha(version),
+                             "paths": sorted(files.values())}}
     json.dump(output, sys.stdout, indent=2, sort_keys=True, ensure_ascii=False)
     sys.stdout.write("\n")
 

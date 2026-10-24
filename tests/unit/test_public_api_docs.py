@@ -1,6 +1,8 @@
 """Every class and function exported in an `__all__` of the package has a docstring (issue: documentation)."""
 import importlib
 import inspect
+import subprocess
+import sys
 
 import pytest
 
@@ -23,3 +25,14 @@ def test_exported_object_has_a_docstring(name, obj):
     # Its own docstring: not inherited, and not the signature @dataclass generates ("Name(field: type, ...)").
     doc = (obj.__dict__.get("__doc__") if inspect.isclass(obj) else obj.__doc__) or ""
     assert doc.strip() and not doc.startswith(f"{obj.__name__}("), f"{name} has no docstring"
+
+
+def test_importing_the_package_does_not_load_superset_or_its_server_stack():
+    """The library talks to Superset over HTTP and keeps checked excerpts of its sources instead of importing
+    it (docs/studies/analysis/2026-10-24-superset-as-dependency.md): no server package is loaded."""
+    code = ("import sys, supersetapiplus, supersetapiplus.client; "
+            "print(sorted(m for m in sys.modules if m.split('.')[0] in "
+            "('superset', 'flask', 'flask_appbuilder', 'sqlalchemy', 'marshmallow', 'pandas')))")
+    loaded = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout
+
+    assert loaded.strip() == "[]"
