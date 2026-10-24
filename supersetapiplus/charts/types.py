@@ -1,6 +1,7 @@
 from enum import IntEnum
 
-from supersetapiplus.base.enum_str import StringEnum
+from supersetapiplus.base.enum_str import StringEnum, deprecate_members
+from supersetapiplus.deprecation import module_aliases
 
 
 class ChartType(StringEnum):
@@ -8,7 +9,6 @@ class ChartType(StringEnum):
     TABLE = 'table'
     TIMESERIES_BAR = 'echarts_timeseries_bar'
     PIVOT_TABLE_V2 = 'pivot_table_v2'
-    PIVOT_TALBE_V2 = 'pivot_table_v2'  # alias for the old, misspelled name
     BIG_NUMBER_TOTAL = 'big_number_total'
     BOX_PLOT = 'box_plot'
     CAL_HEATMAP = 'cal_heatmap'
@@ -130,7 +130,6 @@ class LabelType(StringEnum):
     CATEGORY_AND_VALUE = 'key_value'
     CATEGORY_AND_PERCENTAGE = 'key_percent'
     CATEGORY_VALUE_AND_PERCENTAGE = 'key_value_percent'
-    CATEGORI_VALUE_AND_PERCENTAG = 'key_value_percent'  # alias for the old, misspelled name
     VALUE_AND_PERCENTAGE = 'value_percent'
     TEMPLATE = 'template'
 
@@ -159,7 +158,6 @@ class FilterOperatorType(StringEnum):
     IS_TRUE = 'IS TRUE'
     IS_FALSE = 'IS FALSE'
     TEMPORAL_RANGE = 'TEMPORAL_RANGE'
-    NOT_EQUAL = '!='  # alias for the old name
 
 
 class FilterExpressionType(StringEnum):
@@ -387,7 +385,7 @@ class CurrencyCodeType(StringEnum):
     ZWL = 'ZWL'
 
 
-class CurrentPositionType(StringEnum):
+class CurrencyPositionType(StringEnum):
     PREFIX = 'prefix'
     SUFFIX = 'suffix'
 
@@ -416,14 +414,14 @@ class SortSeriesType(StringEnum):
     AVG = 'avg'
 
 
-class StackStylyType(StringEnum):
+class StackStyleType(StringEnum):
     """Stack style (plugin-chart-echarts StackControlsValue). "No stack" is `null`, not a value of the enum."""
     STACK = 'Stack'
     STREAM = 'Stream'
     EXPAND = 'Expand'  # area charts only (AreaChartStackControlOptions)
 
 
-class TitlepositionType(StringEnum):
+class TitlePositionType(StringEnum):
     """Axis title position (superset-ui-chart-controls TITLE_POSITION_OPTIONS)."""
     LEFT = 'Left'
     TOP = 'Top'
@@ -534,3 +532,12 @@ class CalendarSubdomain(StringEnum):
     DAY = 'day'
     WEEK = 'week'
     MONTH = 'month'
+
+
+# Old names, kept as aliases that emit DeprecationWarning.
+deprecate_members(ChartType, {"PIVOT_TALBE_V2": "PIVOT_TABLE_V2"})
+deprecate_members(LabelType, {"CATEGORI_VALUE_AND_PERCENTAG": "CATEGORY_VALUE_AND_PERCENTAGE"})
+deprecate_members(FilterOperatorType, {"NOT_EQUAL": "NOT_EQUALS"})
+__getattr__ = module_aliases(__name__, globals(), {
+    "StackStylyType": "StackStyleType", "TitlepositionType": "TitlePositionType",
+    "CurrentPositionType": "CurrencyPositionType"})

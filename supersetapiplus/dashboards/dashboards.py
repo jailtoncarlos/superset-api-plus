@@ -5,15 +5,16 @@ from supersetapiplus.base.base import ApiModelFactories, SerializableModel, Unsu
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.dashboards.layout import DashboardLayout
 from supersetapiplus.dashboards.metadata import Metadata
+from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.exceptions import DashboardValidationError, UnsupportedTypeError
 from supersetapiplus.typing import SerializableOptional
 
 
-def defult_metadata():
+def default_metadata():
     return Metadata()
 
 
-def defult_metadata_position():
+def default_metadata_position():
     return DashboardLayout.empty()
 
 
@@ -180,3 +181,8 @@ class Dashboards(ApiModelFactories):
 
     def _default_object_class(self) -> type[SerializableModel]:
         return Dashboard
+
+
+# Old names, kept as aliases that emit DeprecationWarning.
+__getattr__ = module_aliases(__name__, globals(), {"defult_metadata": "default_metadata",
+    "defult_metadata_position": "default_metadata_position"})

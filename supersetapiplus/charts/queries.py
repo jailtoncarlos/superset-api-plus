@@ -9,7 +9,7 @@ from supersetapiplus.charts.metric import AdhocMetric, AdhocMetricColumn, Metric
 from supersetapiplus.charts.types import (
     ColumnType,
     CurrencyCodeType,
-    CurrentPositionType,
+    CurrencyPositionType,
     FilterExpressionType,
     FilterOperatorType,
     HorizontalAlignType,
@@ -17,6 +17,7 @@ from supersetapiplus.charts.types import (
     NumberFormatType,
     TimeGrain,
 )
+from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import FilterValues, SerializableOptional
 
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CurrencyFormat(SerializableModel):
-    symbolPosition: SerializableOptional[CurrentPositionType] = field(default=None)
+    symbolPosition: SerializableOptional[CurrencyPositionType] = field(default=None)
     symbol: SerializableOptional[CurrencyCodeType] = field(default=None)
 
 
@@ -42,7 +43,7 @@ class ColumnConfig(SerializableModel):
 
 
 @dataclass
-class QuerieExtra(SerializableModel):
+class QueryExtra(SerializableModel):
     time_grain_sqla: SerializableOptional[TimeGrain] = None
     having: str = ''
     where: str = ''
@@ -127,7 +128,7 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
     series_limit_metric: SerializableOptional[Metric] = object_field(default=None)
 
     filters: list[QueryFilterClause] = object_field(cls=QueryFilterClause, default_factory=list)
-    extras: QuerieExtra = object_field(cls=QuerieExtra, default_factory=QuerieExtra)
+    extras: QueryExtra = object_field(cls=QueryExtra, default_factory=QueryExtra)
 
     applied_time_extras: dict = field(default_factory=dict)
     url_params: dict = field(default_factory=dict)
@@ -161,3 +162,7 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
 
     def _add_extra_having(self, sql: str):
         raise NotImplementedError
+
+
+# Old names, kept as aliases that emit DeprecationWarning.
+__getattr__ = module_aliases(__name__, globals(), {"QuerieExtra": "QueryExtra"})

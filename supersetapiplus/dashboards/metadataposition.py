@@ -8,12 +8,13 @@ from supersetapiplus.dashboards.itemposition import (
     MarkdownItemPosition,
     TabItemPosition,
 )
-from supersetapiplus.dashboards.nodeposisition import ChartNodePosition, MarkdownNodePosition, NodePosition, TabNodePosition
-from supersetapiplus.dashboards.treenodeposisition import TreeNodePosition
+from supersetapiplus.dashboards.nodeposition import ChartNodePosition, MarkdownNodePosition, NodePosition, TabNodePosition
+from supersetapiplus.dashboards.treenodeposition import TreeNodePosition
+from supersetapiplus.deprecation import module_aliases
 
 
 @dataclass
-class Metadataposition(SerializableModel):
+class MetadataPosition(SerializableModel):
     DASHBOARD_VERSION_KEY: str = 'v2'
 
     def __init__(self, tree:TreeNodePosition = None, **kwargs):
@@ -68,3 +69,7 @@ class Metadataposition(SerializableModel):
                                                   height=height,
                                                   width=width,
                                                   relocate=relocate), parent)
+
+
+# Old names, kept as aliases that emit DeprecationWarning.
+__getattr__ = module_aliases(__name__, globals(), {"Metadataposition": "MetadataPosition"})

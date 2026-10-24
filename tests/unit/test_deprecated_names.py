@@ -1,0 +1,55 @@
+"""Renamed public names keep working as aliases and emit DeprecationWarning (AGENTS.md: public API stability)."""
+import importlib
+import sys
+
+import pytest
+
+from supersetapiplus.charts import queries, types
+from supersetapiplus.dashboards import dashboards, metadata, metadataposition
+
+RENAMED_ATTRIBUTES = [
+    (types, "StackStylyType", "StackStyleType"),
+    (types, "TitlepositionType", "TitlePositionType"),
+    (types, "CurrentPositionType", "CurrencyPositionType"),
+    (queries, "QuerieExtra", "QueryExtra"),
+    (metadata, "GlobalChartconfiguration", "GlobalChartConfiguration"),
+    (metadata, "GlobalChartconfigurationScope", "GlobalChartConfigurationScope"),
+    (metadataposition, "Metadataposition", "MetadataPosition"),
+    (dashboards, "defult_metadata", "default_metadata"),
+    (dashboards, "defult_metadata_position", "default_metadata_position"),
+]
+RENAMED_MEMBERS = [
+    (types.ChartType, "PIVOT_TALBE_V2", "PIVOT_TABLE_V2"),
+    (types.LabelType, "CATEGORI_VALUE_AND_PERCENTAG", "CATEGORY_VALUE_AND_PERCENTAGE"),
+    (types.FilterOperatorType, "NOT_EQUAL", "NOT_EQUALS"),
+]
+
+
+@pytest.mark.parametrize("module,old,new", RENAMED_ATTRIBUTES, ids=[old for _, old, _ in RENAMED_ATTRIBUTES])
+def test_renamed_attribute_is_an_alias_that_warns(module, old, new):
+    with pytest.warns(DeprecationWarning, match=new):
+        alias = getattr(module, old)
+    assert alias is getattr(module, new)
+
+
+@pytest.mark.parametrize("enum_cls,old,new", RENAMED_MEMBERS, ids=[old for _, old, _ in RENAMED_MEMBERS])
+def test_renamed_enum_member_is_an_alias_that_warns(enum_cls, old, new):
+    with pytest.warns(DeprecationWarning, match=new):
+        alias = getattr(enum_cls, old)
+    assert alias is enum_cls[new]
+    assert old not in enum_cls.__members__, "the old name is not listed as a member"
+
+
+@pytest.mark.parametrize("old,new", [("nodeposisition", "nodeposition"), ("treenodeposisition", "treenodeposition")])
+def test_misspelled_modules_still_import_with_a_warning(old, new):
+    sys.modules.pop(f"supersetapiplus.dashboards.{old}", None)
+    with pytest.warns(DeprecationWarning, match=new):
+        legacy = importlib.import_module(f"supersetapiplus.dashboards.{old}")
+    assert legacy.NodePosition is importlib.import_module(f"supersetapiplus.dashboards.{new}").NodePosition
+
+
+def test_unknown_attribute_still_raises_attribute_error():
+    with pytest.raises(AttributeError):
+        types.DoesNotExist  # noqa: B018
+    with pytest.raises(AttributeError):
+        types.ChartType.DOES_NOT_EXIST  # noqa: B018

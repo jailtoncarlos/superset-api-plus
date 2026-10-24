@@ -3,8 +3,8 @@ import os
 import graphviz
 
 from supersetapiplus.dashboards.itemposition import ItemPositionType
-from supersetapiplus.dashboards.nodeposisition import NodePosition
-from supersetapiplus.dashboards.treenodeposisition import TreeNodePosition
+from supersetapiplus.dashboards.nodeposition import NodePosition
+from supersetapiplus.dashboards.treenodeposition import TreeNodePosition
 
 
 class GenerateGraphMixin:

@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## Unreleased
+
+### Deprecated
+
+Misspelled public names were renamed. The old names keep working as aliases and emit `DeprecationWarning`;
+they will be removed in a future major version.
+
+| Old name | New name |
+|---|---|
+| `supersetapiplus.dashboards.nodeposisition` (module) | `supersetapiplus.dashboards.nodeposition` |
+| `supersetapiplus.dashboards.treenodeposisition` (module) | `supersetapiplus.dashboards.treenodeposition` |
+| `dashboards.metadataposition.Metadataposition` | `MetadataPosition` |
+| `dashboards.dashboards.defult_metadata`, `defult_metadata_position` | `default_metadata`, `default_metadata_position` |
+| `dashboards.metadata.GlobalChartconfiguration`, `GlobalChartconfigurationScope` | `GlobalChartConfiguration`, `GlobalChartConfigurationScope` |
+| `charts.queries.QuerieExtra` | `QueryExtra` |
+| `charts.types.StackStylyType`, `TitlepositionType`, `CurrentPositionType` | `StackStyleType`, `TitlePositionType`, `CurrencyPositionType` |
+| `ChartType.PIVOT_TALBE_V2` | `ChartType.PIVOT_TABLE_V2` |
+| `LabelType.CATEGORI_VALUE_AND_PERCENTAG` | `LabelType.CATEGORY_VALUE_AND_PERCENTAGE` |
+| `FilterOperatorType.NOT_EQUAL` | `FilterOperatorType.NOT_EQUALS` |
+| `TimeSeriesBarOption.y_axis()`, `EchartsTimeseriesBarChart.y_axis()` (set the X axis) | `set_x_axis()` |
+| `Database.encrypted_extra`, `allow_multi_schema_metadata_fetch` (gone in Superset 6) | `masked_encrypted_extra` / none |
+| `charts.types.SqlMapType` (a column type is free text) | `str` |
+
+
 ## 1.0.0a1 (2025-04-10)
 
 ### Refactoring and Packaging Improvements

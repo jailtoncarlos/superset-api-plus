@@ -154,7 +154,7 @@ class DashboardLayout(SerializableModel):
 
     @property
     def tree(self) -> DashboardLayout:
-        """Deprecated: the layout used to be a `Metadataposition` wrapping a tree; use the layout itself."""
+        """Deprecated: the layout used to be a `MetadataPosition` wrapping a tree; use the layout itself."""
         warnings.warn("position_json.tree is deprecated; call the methods on position_json directly.",
                       DeprecationWarning, stacklevel=2)
         return self

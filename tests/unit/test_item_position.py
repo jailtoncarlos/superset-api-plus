@@ -1,14 +1,14 @@
-"""Legacy layout placement (Metadataposition/ItemPosition) and pie validation, without HTTP."""
+"""Legacy layout placement (MetadataPosition/ItemPosition) and pie validation, without HTTP."""
 import pytest
 
 from supersetapiplus.dashboards.itemposition import ItemPositionType, MarkdownItemPosition
-from supersetapiplus.dashboards.metadataposition import Metadataposition
+from supersetapiplus.dashboards.metadataposition import MetadataPosition
 from supersetapiplus.exceptions import NodePositionValidationError
 
 # --- Layout placement ----------------------------------------------------------------------
 
 def test_full_row_raises_without_relocate_and_opens_new_row_with_relocate():
-    pos = Metadataposition()
+    pos = MetadataPosition()
     tab = pos.add_tab("Tab")
     first = pos.add_markdown("a", parent=tab, width=8)
     row = first.parent
@@ -21,7 +21,7 @@ def test_full_row_raises_without_relocate_and_opens_new_row_with_relocate():
 
 
 def test_item_goes_to_sibling_row_with_room():
-    pos = Metadataposition()
+    pos = MetadataPosition()
     tab = pos.add_tab("Tab")
     full_row = pos.add_markdown("a", parent=tab, width=12).parent
     free_row = pos.add_markdown("b", parent=tab, width=4).parent

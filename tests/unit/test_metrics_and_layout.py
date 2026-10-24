@@ -9,7 +9,7 @@ from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.dashboards.itemposition import MarkdownItemPosition
-from supersetapiplus.dashboards.metadataposition import Metadataposition
+from supersetapiplus.dashboards.metadataposition import MetadataPosition
 from supersetapiplus.exceptions import NodePositionValidationError
 
 VIZ_TYPES = ["table", "pie", "pivot_table_v2", "echarts_timeseries_bar", "big_number_total",
@@ -64,7 +64,7 @@ def test_pie_created_in_code_serializes_orderby_without_extra_nesting():
 
 
 def test_layout_validate_rejects_component_without_relocate_that_overflows_the_row():
-    pos = Metadataposition()
+    pos = MetadataPosition()
     tab = pos.add_tab("Tab")
     first = pos.add_markdown("a", parent=tab, width=6)
     second = pos.add_markdown("b", parent=tab, width=4)

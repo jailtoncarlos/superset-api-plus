@@ -4,6 +4,7 @@ from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.enum_str import StringEnum
 from supersetapiplus.base.fields import default_string, object_field
 from supersetapiplus.dashboards import native_filters
+from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.typing import SerializableOptional
 
 
@@ -26,16 +27,16 @@ class ChartConfiguration(SerializableModel):
 
 
 @dataclass
-class GlobalChartconfigurationScope(SerializableModel):
+class GlobalChartConfigurationScope(SerializableModel):
     # Default cross-filter scope in the frontend (DEFAULT_CROSS_FILTER_SCOPING): the whole dashboard.
     rootPath: list[str] = field(default_factory=lambda: ['ROOT_ID'])
     excluded: list[int] = field(default_factory=list)  # chart ids (NativeFilterScope.excluded: number[])
 
 
 @dataclass
-class GlobalChartconfiguration(SerializableModel):
-    scope: GlobalChartconfigurationScope = object_field(cls=GlobalChartconfigurationScope,
-                                                        default_factory=GlobalChartconfigurationScope)
+class GlobalChartConfiguration(SerializableModel):
+    scope: GlobalChartConfigurationScope = object_field(cls=GlobalChartConfigurationScope,
+                                                        default_factory=GlobalChartConfigurationScope)
     chartsInScope: list[int] = field(default_factory=list)  # chart ids
 
 
@@ -55,8 +56,8 @@ class Metadata(SerializableModel):
     filter_scopes: SerializableOptional[dict] = field(default_factory=dict)
     chart_configuration: dict[str, ChartConfiguration] = object_field(cls=ChartConfiguration, dict_right=True,
                                                                       default_factory=dict)
-    global_chart_configuration: GlobalChartconfiguration = object_field(cls=GlobalChartconfiguration,
-                                                                        default_factory=GlobalChartconfiguration)
+    global_chart_configuration: GlobalChartConfiguration = object_field(cls=GlobalChartConfiguration,
+                                                                        default_factory=GlobalChartConfiguration)
     default_filters: SerializableOptional[dict] = field(default=None)
 
     # List of native filters and dividers, kept as the dicts Superset stores (see native_filters).
@@ -140,3 +141,8 @@ class Metadata(SerializableModel):
 
 def _chart_id(chart) -> int:
     return chart if isinstance(chart, int) else chart.id
+
+
+# Old names, kept as aliases that emit DeprecationWarning.
+__getattr__ = module_aliases(__name__, globals(), {"GlobalChartconfiguration": "GlobalChartConfiguration",
+    "GlobalChartconfigurationScope": "GlobalChartConfigurationScope"})

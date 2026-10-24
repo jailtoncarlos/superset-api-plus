@@ -3,7 +3,7 @@ Module typing.py
 
 Defines generic helper types used to serialize and deserialize objects in `supersetapiplus`.
 These types control selective export of attributes and the handling of optional fields
-in models that inherit from the base class `Object`.
+in models that inherit from the base class `SerializableModel`.
 
 Classes:
     NotToJson[T]: generic type wrapping values that must not be serialized

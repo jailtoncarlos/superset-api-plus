@@ -51,15 +51,15 @@ SOURCES = {
     T.FilterClausesType: official(FRONTEND, "Clauses"),
     T.LegendOrientationType: official(FRONTEND, "LegendOrientation"),
     T.LegendType: official(FRONTEND, "LegendType"),
-    T.StackStylyType: official(FRONTEND, "StackControlsValue"),
+    T.StackStyleType: official(FRONTEND, "StackControlsValue"),
     T.LabelType: official(FRONTEND, "EchartsPieLabelType"),
     T.Orientation: official(FRONTEND, "OrientationType"),
     T.MetricsLayoutEnum: official(FRONTEND, "MetricsLayoutEnum"),
     T.MetricType: set(OFFICIAL["objects"]["AGGREGATES"].values()),
-    T.TitlepositionType: set(OFFICIAL["options"]["TITLE_POSITION_OPTIONS"]),
+    T.TitlePositionType: set(OFFICIAL["options"]["TITLE_POSITION_OPTIONS"]),
     T.ColumnType: set(OFFICIAL["unions"]["Column.columnType"]),
     T.HorizontalAlignType: set(OFFICIAL["unions"]["ColumnConfig.horizontalAlign"]),
-    T.CurrentPositionType: set(OFFICIAL["value_options"]["CURRENCY_SYMBOL_POSITION_OPTIONS"]),
+    T.CurrencyPositionType: set(OFFICIAL["value_options"]["CURRENCY_SYMBOL_POSITION_OPTIONS"]),
     T.PivotAggregateFunction: set(CHOICES["pivot_table_v2.aggregateFunction"]),
     T.OrderType: set(CHOICES["pivot_table_v2.rowOrder"]),
     T.LabelRotation: set(CHOICES["echarts.xAxisLabelRotation"]),
@@ -154,7 +154,7 @@ def test_operator_names_are_the_frontend_operator_ids():
     names = {m.name for m in T.FilterOperatorType}
     # NOT_LIKE/NOT_ILIKE exist in the backend but not in the frontend Operators enum.
     assert names - {"NOT_LIKE", "NOT_ILIKE"} == set(FRONTEND["Operators"].values())
-    assert T.FilterOperatorType.NOT_EQUAL is T.FilterOperatorType.NOT_EQUALS
+
 
 
 def test_dashboard_grid_limits_are_the_editor_ones():

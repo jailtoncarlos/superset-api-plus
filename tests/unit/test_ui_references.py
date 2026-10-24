@@ -12,7 +12,7 @@ import pytest
 
 from supersetapiplus.charts import types as T
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.dashboards.metadata import GlobalChartconfigurationScope, Metadata
+from supersetapiplus.dashboards.metadata import GlobalChartConfigurationScope, Metadata
 
 REFERENCES = Path(__file__).parent.parent / "fixtures" / "ui_references_6.1.0"
 VIZ_TYPES = sorted(p.stem for p in REFERENCES.glob("*.json") if p.stem != "INDEX")
@@ -64,6 +64,6 @@ def test_new_pivot_has_ui_defaults_and_serializes():
 def test_json_metadata_defaults_follow_superset_6():
     metadata = Metadata()
 
-    assert GlobalChartconfigurationScope().rootPath == ["ROOT_ID"]
+    assert GlobalChartConfigurationScope().rootPath == ["ROOT_ID"]
     assert metadata.shared_label_colors == []
     assert metadata.timed_refresh_immune_slices == []

@@ -7,13 +7,13 @@ def object_field(*, cls=None, default=dataclasses.MISSING, default_factory=datac
                  dict_left=False, dict_right=False):
     """
     Create a custom dataclass field carrying the extra metadata used by supersetapiplus,
-    such as custom serialization of dictionaries whose keys or values are `Object` instances.
+    such as custom serialization of dictionaries whose keys or values are `SerializableModel` instances.
 
     Wraps `dataclasses.field`, adding metadata used to automatically deserialize
     nested JSON structures.
 
     Parameters:
-        cls (type, optional): `Object` subclass associated with the field. Used to
+        cls (type, optional): `SerializableModel` subclass associated with the field. Used to
             instantiate nested objects during `from_json`.
         default: default value of the field. Cannot be combined with `default_factory`.
         default_factory: callable returning the field's default value. Cannot be combined with `default`.
@@ -23,8 +23,8 @@ def object_field(*, cls=None, default=dataclasses.MISSING, default_factory=datac
         compare (bool): whether the field is used in comparisons. Defaults to True.
         metadata (dict, optional): additional metadata, available to external logic.
         kw_only (bool): whether the field is keyword-only in `__init__`. Introduced in Python 3.10.
-        dict_left (bool): if True, the field is a dictionary whose keys are `Object` instances.
-        dict_right (bool): if True, the field is a dictionary whose values are `Object` instances.
+        dict_left (bool): if True, the field is a dictionary whose keys are `SerializableModel` instances.
+        dict_right (bool): if True, the field is a dictionary whose values are `SerializableModel` instances.
 
     Returns:
         dataclasses.Field: field configured for use in a dataclass.
@@ -74,7 +74,7 @@ def json_field(**kwargs):
         dataclasses.Field: field configured for use in a dataclass.
 
     Example:
-        class Example(Object):
+        class Example(SerializableModel):
             payload: dict = json_field()
     """
     if not kwargs.get('default'):
@@ -100,7 +100,7 @@ def default_string(**kwargs):
         dataclasses.Field: field configured with `default=''` and `repr=False`.
 
     Example:
-        class Example(Object):
+        class Example(SerializableModel):
             name: str = default_string()
     """
     if not kwargs.get('default'):
@@ -126,7 +126,7 @@ def default_bool(**kwargs):
         dataclasses.Field: boolean field configured with `default=False` and `repr=False`.
 
     Example:
-        class Example(Object):
+        class Example(SerializableModel):
             active: bool = default_bool()
     """
     # Default to False when no default is given explicitly

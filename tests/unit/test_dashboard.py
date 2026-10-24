@@ -3,7 +3,7 @@ import json
 
 from supersetapiplus.charts.table import TableChart
 from supersetapiplus.dashboards.dashboards import Dashboard
-from supersetapiplus.dashboards.metadataposition import Metadataposition
+from supersetapiplus.dashboards.metadataposition import MetadataPosition
 
 POSITION = {
     "DASHBOARD_VERSION_KEY": "v2",
@@ -54,7 +54,7 @@ def test_position_json_round_trips_without_loss():
 
 
 def test_layout_built_in_code_is_consistent():
-    pos = Metadataposition()
+    pos = MetadataPosition()
     tab = pos.add_tab("Indicators")
     for chart_id in (1, 2, 3):
         pos.add_chart(TableChart(slice_name=f"G{chart_id}", id=chart_id), f"G{chart_id}", parent=tab, width=6)

@@ -84,7 +84,6 @@ class Chart(SerializableModel):
 
     def __post_init__(self):
         super().__post_init__()
-        from supersetapiplus.dashboards.dashboards import Dashboard
         self._dashboards = [Dashboard(dashboard_title='')]
 
         if not hasattr(self, "params") or self.params is None:
@@ -142,7 +141,7 @@ class Chart(SerializableModel):
         if params != form_data:
             added, removed, modified, same = detailed_dict_diff(params, form_data)
 
-            raise ValidationError(message=f'self.params is not the same as self.query_conext.form_data. '
+            raise ValidationError(message=f'self.params is not the same as self.query_context.form_data. '
                                           f'Diff: modified={modified}, added={added}, removed={removed}',
                                   solution="We recommend using the public methods of the chart class.")
 

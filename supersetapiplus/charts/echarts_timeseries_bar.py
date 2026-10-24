@@ -17,9 +17,9 @@ from supersetapiplus.charts.types import (
     NumberFormatType,
     Orientation,
     SortSeriesType,
-    StackStylyType,
+    StackStyleType,
     TimeGrain,
-    TitlepositionType,
+    TitlePositionType,
 )
 from supersetapiplus.typing import SerializableOptional
 
@@ -54,14 +54,14 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
     x_axis_title_margin: int = 0
     y_axis_title: SerializableOptional[str] = field(default=None)
     y_axis_title_margin: int = 15
-    y_axis_title_position: TitlepositionType = field(default_factory=lambda: TitlepositionType.LEFT)
+    y_axis_title_position: TitlePositionType = field(default_factory=lambda: TitlePositionType.LEFT)
     x_axis_time_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
     xAxisLabelRotation: SerializableOptional[LabelRotation] = field(default=None)
 
     sort_series_type: SortSeriesType = field(default_factory=lambda: SortSeriesType.SUM)
     sort_series_ascending: SerializableOptional[bool] = field(default=None)
     show_value: SerializableOptional[bool] = field(default=None)
-    stack: SerializableOptional[StackStylyType] = field(default=None)
+    stack: SerializableOptional[StackStyleType] = field(default=None)
     only_total: bool = True
     percentage_threshold: SerializableOptional[int] = field(default=None)
 
