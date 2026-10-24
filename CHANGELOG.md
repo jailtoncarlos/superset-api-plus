@@ -11,7 +11,9 @@ reorganized, tested package.
   rejected token, `POST /api/v1/sqllab/execute/`, multipart import, paginated `find_all()` and `count()`.
 * Dashboards: `DashboardLayout` builder for `position_json` (tabs, rows, markdown, charts, headers,
   dividers), native filters with dependencies, chart scopes and dataset-less time filters, owners and
-  roles, `Dashboards.copy()`, `client.dashboard_charts`.
+  roles, `Dashboards.copy()`, `client.dashboard_charts`. Layouts are checked against the dashboard renderer
+  rules before sending (`layout.problems()`, `layout.validate()`, `LayoutWarning` for layouts read from
+  Superset).
 * Charts: the frontend `buildQuery` ported (`charts/build_query.py`), so charts built in code store the
   `query_context` Explore derives; UI defaults for new charts; `derive_query_context()`.
 * Datasets: saved metrics (`add_metric()`), time column and the other update fields; databases: the

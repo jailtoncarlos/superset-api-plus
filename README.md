@@ -133,6 +133,11 @@ dashboard.save()
 client.dashboards.attach_charts(dashboard)       # associates the charts of the layout with the dashboard
 ```
 
+Before a dashboard is sent, its layout is checked against the rules of the dashboard renderer (the parent
+and child types and nesting depths of the editor, cycles, components outside the tree):
+`layout.problems()` lists them and `layout.validate()` raises. A layout built by the library must be valid
+to be saved; a layout read from Superset is saved as read, with a `LayoutWarning` when it breaks a rule.
+
 `client.dashboard_charts.add_chart(dashboard, chart, ...)` places a chart and associates it in one call;
 `client.dashboards.copy()` copies a dashboard; `delete_many()` removes several objects at once. Dashboards
 read from Superset are written back as read: only filters created by the library get recomputed scopes.

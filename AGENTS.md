@@ -45,6 +45,8 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   - `bin/scripts/extract_ui_defaults.py <version>` → `ui_defaults_<version>/`: the form_data Explore posts
     for a new chart of each supported viz_type (controlPanel defaults); a chart created in code gets the
     same params (`tests/unit/test_ui_defaults.py`, in the `model-attributes` hook)
+  - `bin/scripts/extract_example_layouts.py <version>` → `example_layouts_<version>.json`: the layouts of
+    the example dashboards shipped with Superset, which the layout validation must accept
   To support a new Superset version: regenerate the excerpts, run the tests, fix the divergences.
 
 ## Behavioral rules of the library
@@ -85,6 +87,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   stores, so a read-and-save is lossless. Top-level tabs live inside the grid (`ROOT → GRID → TABS`), as
   in dashboards exported by Superset. Native filter scopes (`chartsInScope`/`tabsInScope`) are computed
   only for items created by the library; items loaded from Superset are written back untouched.
+  Before sending, the layout is checked against the renderer rules (`dashboards/layout/validation.py`, port of
+  `isValidChild.ts`): a layout built by the library must be valid (and its `parents` match the tree); a
+  layout read from Superset is sent as read, with a `LayoutWarning` (Superset itself saves stale `parents`).
 - **Chart ↔ dashboard association** is done with `Charts.add_to_dashboard` / `Dashboards.attach_charts`
   (PUT of `dashboards` on the chart); `chart.save()` does not send `dashboards`.
 

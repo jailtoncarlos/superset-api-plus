@@ -122,8 +122,8 @@ def test_title_header_follows_the_dashboard_title_only_for_layouts_built_by_the_
     dashboard.dashboard_title = "New"
     assert layout_of(dashboard)["HEADER_ID"]["meta"]["text"] == "New"
 
-    loaded = Dashboard.from_json({"id": 1, "dashboard_title": "New", "position_json": json.dumps(
-        {"HEADER_ID": {"id": "HEADER_ID", "type": "HEADER", "meta": {"text": "Kept"}}})})
+    stored = DashboardLayout.empty("Kept").to_dict()
+    loaded = Dashboard.from_json({"id": 1, "dashboard_title": "New", "position_json": json.dumps(stored)})
     assert layout_of(loaded)["HEADER_ID"]["meta"]["text"] == "Kept"
 
 

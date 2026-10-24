@@ -133,6 +133,10 @@ class NodePositionValidationError(ValidationError):
         super().__init__(message, solution)
 
 
+class LayoutWarning(UserWarning):
+    """A dashboard layout read from Superset breaks a rule of the dashboard renderer; it is sent as read."""
+
+
 class DashboardValidationError(ValidationError):
     """
     Validation error for dashboard configuration issues.

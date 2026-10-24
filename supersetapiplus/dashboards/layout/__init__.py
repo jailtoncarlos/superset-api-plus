@@ -16,7 +16,8 @@ import shortuuid
 
 from supersetapiplus.core.enums import StringEnum
 from supersetapiplus.core.model import SerializableModel
-from supersetapiplus.exceptions import NodePositionValidationError
+from supersetapiplus.dashboards.layout.validation import layout_problems
+from supersetapiplus.exceptions import LayoutWarning, NodePositionValidationError
 
 ROOT_ID = "ROOT_ID"
 GRID_ID = "GRID_ID"
@@ -139,13 +140,33 @@ class DashboardLayout(SerializableModel):
             data[VERSION_KEY] = self.version
         data.update(copy.deepcopy(self.components))
         data.update(self._extra_fields)
+        if convert_to_json:
+            self._check_before_sending()
         return data
 
+    def problems(self) -> list[str]:
+        """Rules of the dashboard renderer the layout breaks (types, nesting depth, cycles, reachability).
+
+        For layouts built by the library, stored ``parents`` must also match the real path (they define the
+        native filter scopes); layouts read from Superset may carry stale ones, as the editor saves them.
+        """
+        return layout_problems(self.components, check_parents=self.created_by_library)
+
     def validate(self) -> None:
-        for component in self.components.values():
-            for child in component.get("children", []):
-                if child not in self.components:
-                    raise NodePositionValidationError(f"{component['id']} has unknown child {child}.")
+        """Raises NodePositionValidationError listing every problem (see :meth:`problems`)."""
+        problems = self.problems()
+        if problems:
+            raise NodePositionValidationError("Invalid dashboard layout: " + " ".join(problems))
+
+    def _check_before_sending(self) -> None:
+        """A layout built by the library must be valid; one read from Superset is sent as read, with a warning."""
+        if self.created_by_library:
+            self.validate()
+            return
+        problems = self.problems()
+        if problems:
+            warnings.warn("Dashboard layout read from Superset breaks renderer rules: " + " ".join(problems),
+                          LayoutWarning, stacklevel=2)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, DashboardLayout):
