@@ -22,7 +22,7 @@ def _is_sensitive_key(key: Any) -> bool:
     return isinstance(key, str) and key.lower() in SENSITIVE_KEYS
 
 
-def mask_headers(headers: Mapping[str, Any] | None) -> dict:
+def mask_headers(headers: Mapping[str, Any] | None) -> dict[str, Any]:
     """Copy of the headers with authentication values replaced by `***`."""
     return {k: (MASK if k.lower() in SENSITIVE_HEADERS else v) for k, v in (headers or {}).items()}
 
@@ -59,7 +59,7 @@ def mask_body(body: Any) -> Any:
     return mask_data(body)
 
 
-def mask_request_kwargs(kwargs: Mapping[str, Any]) -> dict:
+def mask_request_kwargs(kwargs: Mapping[str, Any]) -> dict[str, Any]:
     """Copy of the `requests` kwargs with headers and bodies masked, for logging."""
     masked = dict(kwargs)
     if "headers" in masked:

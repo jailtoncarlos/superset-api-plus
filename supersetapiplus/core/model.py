@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from enum import Enum
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, get_origin
+from typing import Any, cast, get_origin
 
 from typing_extensions import Self
 
@@ -43,7 +43,7 @@ class ObjectDecoder(json.JSONEncoder):
                       otherwise delegates to the default behavior.
     """
 
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         # Convert Enum instances to their value as a string
         if isinstance(obj, Enum):
             return str(obj.value)
@@ -71,13 +71,17 @@ class SerializableModel(ParseMixin, ABC):
         JSON_FIELDS (List[str]): fields that must be serialized as JSON strings.
         _extra_fields (Dict): fields not mapped directly to class attributes.
     """
-    _factory = None
+    _factory: Any = None  # repository the object was read or created through (see _repository)
 
-    JSON_FIELDS = []
+    JSON_FIELDS: list[str] = []
+
+    # True on objects built from data stored by Superset (from_json): the checks meant for objects built in
+    # code are skipped, so what Superset saved can be written back as read.
+    _read_from_superset: bool = False
 
     # Unmodeled keys read by from_json, per instance (set in __post_init__/from_json). The class default is
     # read-only, so it can never be shared and mutated across instances.
-    _extra_fields: Mapping = MappingProxyType({})
+    _extra_fields: Mapping[str, Any] = MappingProxyType({})
 
     # Re-emit in to_dict the unmodeled fields received in from_json. Needed for Superset's
     # free-form structures (params, query_context, json_metadata), where the library models
@@ -96,10 +100,10 @@ class SerializableModel(ParseMixin, ABC):
     # (owners, roles): kept as read, so the round trip is lossless, and sent as ids by to_json.
     ID_REFERENCE_FIELDS: tuple[str, ...] = ()
 
-    def validate(self):
+    def validate(self) -> None:
         ...
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """
         Run post-initialization steps for Object instances.
 
@@ -137,13 +141,13 @@ class SerializableModel(ParseMixin, ABC):
                 setattr(self, field.name, field.default)
 
     @property
-    def extra_fields(self) -> dict:
+    def extra_fields(self) -> dict[str, Any]:
         if not isinstance(self._extra_fields, dict):
             self._extra_fields = {}
         return self._extra_fields
 
     @classmethod
-    def fields(cls) -> set:
+    def fields(cls) -> set[dataclasses.Field[Any]]:
         """
         Return the set of fields defined in the dataclass.
 
@@ -153,10 +157,10 @@ class SerializableModel(ParseMixin, ABC):
             set: `dataclasses.Field` objects representing the class fields.
         """
         # dataclasses.fields() leaves out ClassVar and InitVar pseudo-fields (__dataclass_fields__ includes them).
-        return set(dataclasses.fields(cls))
+        return set(dataclasses.fields(cast(Any, cls)))
 
     @classmethod
-    def get_field(cls, name) -> dataclasses.Field:
+    def get_field(cls, name: str) -> dataclasses.Field[Any] | None:
         """
         Return the dataclass field with the given name.
 
@@ -172,9 +176,10 @@ class SerializableModel(ParseMixin, ABC):
         for f in cls.fields():
             if f.name == name:
                 return f
+        return None
 
     @classmethod
-    def field_names(cls) -> list:
+    def field_names(cls) -> list[str]:
         """
         Return the names of all fields defined in the dataclass.
 
@@ -192,7 +197,7 @@ class SerializableModel(ParseMixin, ABC):
         return fields
 
     @classmethod
-    def required_fields(cls, data) -> dict:
+    def required_fields(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Extract the dataclass's required fields from the given data.
 
@@ -212,7 +217,7 @@ class SerializableModel(ParseMixin, ABC):
         return rdata
 
     @classmethod
-    def __get_extra_fields(cls, data: dict) -> dict:
+    def __get_extra_fields(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Extract the extra fields not defined as class attributes.
 
@@ -245,7 +250,7 @@ class SerializableModel(ParseMixin, ABC):
         return extra_fields
 
     @classmethod
-    def _subclass_object(cls, field: dataclasses.Field):
+    def _subclass_object(cls, field: dataclasses.Field[Any] | None) -> Any:
         """
         Retrieve the `Object` subclass associated with a dataclass field.
 
@@ -286,16 +291,7 @@ class SerializableModel(ParseMixin, ABC):
         return None
 
     @classmethod
-    def replace_none_with_custom(cls, obj):
-        if isinstance(obj, dict):
-            return {k: cls.replace_none_with_custom(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [cls.replace_none_with_custom(v) for v in obj]
-        else:
-            return obj
-
-    @classmethod
-    def instantiate_with_missing_check(cls, **data: Any):
+    def instantiate_with_missing_check(cls, **data: Any) -> Self:
         """
         Instantiate `cls` from keyword arguments, but:
 
@@ -308,7 +304,7 @@ class SerializableModel(ParseMixin, ABC):
             An instance of `cls`.
         """
         # 1) Determine all dataclass field names
-        all_fields = {f.name for f in dataclasses.fields(cls)}
+        all_fields = {f.name for f in cls.fields()}
         provided = set(data.keys())
 
         # 2) Find missing and extra
@@ -335,7 +331,7 @@ class SerializableModel(ParseMixin, ABC):
         return cls(**filtered)
 
     @classmethod
-    def from_json(cls, data: dict) -> Self:
+    def from_json(cls, data: dict[str, Any]) -> Self:
         """
         Build an instance of the class from a JSON dictionary.
 
@@ -378,7 +374,7 @@ class SerializableModel(ParseMixin, ABC):
         return obj
 
     @classmethod
-    def _load_json_field(cls, field_name: str, text: str):
+    def _load_json_field(cls, field_name: str, text: str) -> Any:
         """A field stored as JSON text; 'null' (e.g. the query_context of an imported chart) becomes None."""
         value = json.loads(text)
         serializable_object_class = cls._subclass_object(cls.get_field(field_name))
@@ -387,13 +383,13 @@ class SerializableModel(ParseMixin, ABC):
         return value
 
     @classmethod
-    def _load_value(cls, field_name: str, value):
+    def _load_value(cls, field_name: str, value: Any) -> Any:
         """A field value with its nested models (a model, a list of models or a `dict_right` dictionary)."""
         if not isinstance(value, (dict, list)):
             return value
         field = cls.get_field(field_name)
         serializable_object_class = cls._subclass_object(field)
-        if not serializable_object_class:
+        if field is None or not serializable_object_class:
             return value
         if isinstance(value, list):
             return [serializable_object_class.from_json(item) if isinstance(item, dict) else item for item in value]
@@ -402,7 +398,7 @@ class SerializableModel(ParseMixin, ABC):
         return serializable_object_class.from_json(value)
 
     @classmethod
-    def _is_exclude(cls, value: FieldValue, field_name: str, convert_to_json: bool = False):
+    def _is_exclude(cls, value: FieldValue, field_name: str, convert_to_json: bool = False) -> bool:
         """Whether the field is left out of the dictionary: absent (MissingField), never serialized
         (SerializableNotToJson) or an optional field still unset (SerializableOptional)."""
         if isinstance(value, MissingField):
@@ -415,7 +411,7 @@ class SerializableModel(ParseMixin, ABC):
             return True
         return origin is SerializableOptional and _is_unset_optional(field, value)
 
-    def to_dict(self, columns: list = None, convert_to_json: bool = False) -> dict:
+    def to_dict(self, columns: list[str] | None = None, convert_to_json: bool = False) -> dict[str, Any]:
         """
         Serialize the object into a Python dictionary, converting every relevant field.
 
@@ -450,7 +446,7 @@ class SerializableModel(ParseMixin, ABC):
             self.validate()
         return data
 
-    def _serialize_value(self, field_name: str, value, convert_to_json: bool):
+    def _serialize_value(self, field_name: str, value: Any, convert_to_json: bool) -> Any:
         """Serialized form of a field value (models, enums, lists, pairs and dictionaries of models)."""
         if isinstance(value, Enum):
             return str(value)
@@ -467,7 +463,7 @@ class SerializableModel(ParseMixin, ABC):
         return value
 
     @staticmethod
-    def _serialize_item(field_name: str, item, convert_to_json: bool):
+    def _serialize_item(field_name: str, item: Any, convert_to_json: bool) -> Any:
         if isinstance(item, SerializableModel):
             return item.to_dict(None, convert_to_json)
         if isinstance(item, tuple):
@@ -476,10 +472,10 @@ class SerializableModel(ParseMixin, ABC):
             return str(item)
         return item
 
-    def _serialize_dict(self, field_name: str, value: dict, convert_to_json: bool) -> dict:
+    def _serialize_dict(self, field_name: str, value: dict[Any, Any], convert_to_json: bool) -> dict[Any, Any]:
         """Dictionaries whose keys (`dict_left`) or values (`dict_right`) are models, per the field metadata."""
         field = self.get_field(field_name)
-        if not self._subclass_object(field):
+        if field is None or not self._subclass_object(field):
             return value
         if field.metadata.get('dict_left'):
             return {obj.to_dict(None, convert_to_json): item for obj, item in value.items()}
@@ -487,7 +483,7 @@ class SerializableModel(ParseMixin, ABC):
             return {key: obj.to_dict(None, convert_to_json) for key, obj in value.items()}
         return {}
 
-    def to_json(self, columns: list = None) -> dict:
+    def to_json(self, columns: list[str] | None = None) -> dict[str, Any]:
         """
         Serialize the object into a JSON-ready dictionary, with support for nested fields.
 
@@ -524,7 +520,7 @@ class SerializableModel(ParseMixin, ABC):
 
     # --- persistence: facade over the repository the object was read or created through ---------------
 
-    def _repository(self):
+    def _repository(self) -> Any:
         """Repository (``client.charts``, ``client.dashboards``...) the object is bound to."""
         if self._factory is None:
             raise UnboundModelError(
@@ -535,11 +531,12 @@ class SerializableModel(ParseMixin, ABC):
     @property
     def base_url(self) -> str:
         """URL of this object on the REST API."""
-        return self._repository().object_url(self.id)
+        url: str = self._repository().object_url(getattr(self, "id", None))
+        return url
 
     def export(self, path: Path | str) -> None:
         """Export this object to a file (ZIP, JSON or YAML)."""
-        self._repository().export(ids=[self.id], path=path)
+        self._repository().export(ids=[getattr(self, "id", None)], path=path)
 
     def fetch(self) -> None:
         """Reload the fields of this object from Superset."""
@@ -551,10 +548,11 @@ class SerializableModel(ParseMixin, ABC):
 
     def delete(self) -> bool:
         """Delete this object from Superset."""
-        return self._repository().delete(id=self.id)
+        deleted: bool = self._repository().delete(id=getattr(self, "id", None))
+        return deleted
 
 
-def _field_default(field: dataclasses.Field):
+def _field_default(field: dataclasses.Field[Any]) -> Any:
     if field.default is not dataclasses.MISSING:
         return field.default
     if field.default_factory is not dataclasses.MISSING:
@@ -562,7 +560,7 @@ def _field_default(field: dataclasses.Field):
     return None
 
 
-def _is_unset_optional(field: dataclasses.Field, value) -> bool:
+def _is_unset_optional(field: dataclasses.Field[Any], value: Any) -> bool:
     """An optional field is left out while it holds None (default None) or an empty copy of its model default."""
     default = _field_default(field)
     if value is None:
@@ -571,7 +569,7 @@ def _is_unset_optional(field: dataclasses.Field, value) -> bool:
             and dicts_equal_and_all_values_none(value, default.to_dict()))
 
 
-def _serialize_pair(field_name: str, value: tuple, convert_to_json: bool) -> tuple:
+def _serialize_pair(field_name: str, value: tuple[Any, ...], convert_to_json: bool) -> tuple[Any, ...]:
     """A (value, key) pair, e.g. an orderby item, with each element converted."""
     # A pair is always expected; a tuple of any other length is usually a stray comma in the field
     # declaration of the @dataclass.

@@ -1,6 +1,7 @@
 import logging
 import re
 import sys
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +12,7 @@ class ParseMixin:
     """
 
     @classmethod
-    def get_instance(cls, **kwargs):
+    def get_instance(cls, **kwargs: Any) -> Any:
         """
         Instantiate a class determined by the 'type' or 'type_' keyword.
 
@@ -33,7 +34,7 @@ class ParseMixin:
         return ParseClass(**kwargs)
 
     @classmethod
-    def get_class(cls, type_: str, module_name: str = None):
+    def get_class(cls, type_: str, module_name: str | None = None) -> Any:
         """
         Resolve and return the class corresponding to the given viz_type.
 

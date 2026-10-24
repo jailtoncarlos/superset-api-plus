@@ -1,10 +1,11 @@
 import dataclasses
+from typing import Any
 
 
-def object_field(*, cls=None, default=dataclasses.MISSING, default_factory=dataclasses.MISSING,
-                 init=True, repr=True, hash=None, compare=True,
-                 metadata=None, kw_only=dataclasses.MISSING,
-                 dict_left=False, dict_right=False):
+def object_field(*, cls: type | None = None, default: Any = dataclasses.MISSING,
+                 default_factory: Any = dataclasses.MISSING, init: bool = True, repr: bool = True,
+                 hash: bool | None = None, compare: bool = True, metadata: dict[str, Any] | None = None,
+                 kw_only: Any = dataclasses.MISSING, dict_left: bool = False, dict_right: bool = False) -> Any:
     """
     Create a custom dataclass field carrying the extra metadata used by supersetapiplus,
     such as custom serialization of dictionaries whose keys or values are `SerializableModel` instances.
@@ -57,7 +58,7 @@ def object_field(*, cls=None, default=dataclasses.MISSING, default_factory=datac
     )
 
 
-def json_field(**kwargs):
+def json_field(**kwargs: Any) -> Any:
     """
     Create a dataclass field meant to hold JSON structures.
 
@@ -85,7 +86,7 @@ def json_field(**kwargs):
     return dataclasses.field(repr=False, **kwargs)
 
 
-def default_string(**kwargs):
+def default_string(**kwargs: Any) -> Any:
     """
     Create a dataclass field defaulting to the empty string ('') and hidden
     from the object's text representation (`repr=False`).
@@ -111,7 +112,7 @@ def default_string(**kwargs):
     return dataclasses.field(repr=False, **kwargs)
 
 
-def default_bool(**kwargs):
+def default_bool(**kwargs: Any) -> Any:
     """
     Create a boolean dataclass field defaulting to `False` and hidden
     from the object's text representation (`repr=False`).

@@ -1,8 +1,10 @@
 from types import NoneType
 from typing import Any
 
+DictDiff = tuple[set[str], set[str], dict[str, tuple[Any, Any]], set[str]]
 
-def detailed_dict_diff(d1, d2):
+
+def detailed_dict_diff(d1: dict[str, Any], d2: dict[str, Any]) -> DictDiff:
     """
     Compare two dictionaries and identify differences in keys and values.
 
@@ -34,14 +36,8 @@ def dicts_equal_and_all_values_none(dict1: dict[str, Any], dict2: dict[str, Any]
     Returns:
         bool: True if the dictionaries are equal and all values are null; False otherwise.
     """
-    def all_values_null(d: dict) -> bool:
+    def all_values_null(d: dict[str, Any]) -> bool:
         # Check that every value is None or CustomNoneType
         return all(v is None or isinstance(v, NoneType) for v in d.values())
 
     return dict1 == dict2 and all_values_null(dict1) and all_values_null(dict2)
-
-
-def dict_hash(my_dict):
-    sorted_items = sorted(my_dict.items())
-    hashed_items = [hash(item) for item in sorted_items]
-    return hash(tuple(hashed_items))

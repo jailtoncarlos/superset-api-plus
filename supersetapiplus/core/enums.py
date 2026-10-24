@@ -1,4 +1,5 @@
 from enum import Enum, EnumMeta
+from typing import Any
 
 from supersetapiplus.deprecation import warn_renamed
 
@@ -7,7 +8,7 @@ _RENAMED_MEMBERS: dict[type, dict[str, str]] = {}
 
 
 class _StringEnumMeta(EnumMeta):
-    def __getattr__(cls, name):
+    def __getattr__(cls, name: str) -> Any:
         renamed = _RENAMED_MEMBERS.get(cls, {})
         if name in renamed:
             warn_renamed(f"{cls.__name__}.{name}", f"{cls.__name__}.{renamed[name]}")
@@ -27,5 +28,5 @@ class StringEnum(str, Enum, metaclass=_StringEnumMeta):
     """Enum of Superset string values: members are `str` (equal to and hashed as their value, serialized
     as the value by `json`), so `ChartType.PIE == "pie"`."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.value)
