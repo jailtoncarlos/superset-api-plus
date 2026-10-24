@@ -34,9 +34,17 @@ repos:
         args: ["--explicit-package-bases"]
         files: ^supersetapiplus/
         additional_dependencies: ["types-requests", "types-PyYAML"]
-        # Manual until mypy --strict (configured in pyproject) reaches zero in T13: it currently reports ~855
-        # errors and would block every commit. Run with: pre-commit run mypy --hook-stage manual
+        # Whole package, manual until mypy --strict (configured in pyproject) reaches zero (T13): run with
+        # pre-commit run mypy --hook-stage manual
         stages: [manual]
+      - id: mypy
+        alias: mypy-typed
+        name: mypy --strict (typed layers)
+        # Ratchet: the modules already clean under mypy --strict stay clean. Add a package here once it reaches
+        # zero errors; errors of the modules they import are not reported (--follow-imports=silent).
+        args: ["--explicit-package-bases", "--follow-imports=silent"]
+        files: ^supersetapiplus/(transport/|auth/|services/|exceptions\.py|deprecation\.py|query_string\.py)
+        additional_dependencies: ["types-requests", "types-PyYAML", "beautifulsoup4>=4.11", "urllib3>=2"]
 
   - repo: local
     hooks:

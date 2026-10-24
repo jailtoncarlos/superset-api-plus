@@ -15,6 +15,9 @@ class SessionAuthMixin:
     This approach is required to access endpoints such as `/api/v1/me/` that require session-based authentication
     and do not work with JWT alone.
     """
+    # Provided by the client class the mixin is mixed into.
+    host: str
+    _verify: bool
 
     def enable_session_auth(self, session: requests.Session, username: str, password: str) -> None:
         """

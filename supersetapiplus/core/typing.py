@@ -17,58 +17,66 @@ Aliases:
 """
 
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 T = TypeVar('T')
 
 
-class SerializableNotToJson(Generic[T]):
-    """
-    Generic wrapper for a value that **must not be included in JSON serialization**.
+if TYPE_CHECKING:
+    # For type checkers the markers are transparent: SerializableOptional[X] is X | None and
+    # SerializableNotToJson[X] is X. At runtime they are the classes below, read by the serialization.
+    from typing import Optional as SerializableOptional
+    from typing import Union as SerializableNotToJson
+else:
+    class SerializableNotToJson(Generic[T]):
+        """
+        Generic wrapper for a value that **must not be included in JSON serialization**.
 
-    Used in models that inherit from `Object`, together with the logic of
-    `remove_exclude_keys`, to automatically drop fields from the output JSON.
+        Used in models that inherit from `Object`, together with the logic of
+        `remove_exclude_keys`, to automatically drop fields from the output JSON.
 
-    Parameters:
-        value (T): wrapped value, used internally but never exported.
+        Parameters:
+            value (T): wrapped value, used internally but never exported.
 
-    Methods:
-        get() -> T:
-            Returns the wrapped value.
-    """
+        Methods:
+            get() -> T:
+                Returns the wrapped value.
+        """
 
-    def __init__(self, value: T):
-        self.value = value
+        def __init__(self, value: T):
+            self.value = value
 
-    def get(self) -> T:
-        """Return the wrapped value."""
-        return self.value
+        def get(self) -> T:
+            """Return the wrapped value."""
+            return self.value
 
 
-class SerializableOptional(Generic[T]):
-    """
-    Generic wrapper for an **optional** value, conditionally excluded during JSON serialization.
+    class SerializableOptional(Generic[T]):
+        """
+        Generic wrapper for an **optional** value, conditionally excluded during JSON serialization.
 
-    Unlike `typing.Optional`, this class lets `remove_exclude_keys` drop the field
-    from the JSON output when:
-      - the value is `None` and the field has no default; or
-      - the value equals the default defined in the dataclass.
+        Unlike `typing.Optional`, this class lets `remove_exclude_keys` drop the field
+        from the JSON output when:
+          - the value is `None` and the field has no default; or
+          - the value equals the default defined in the dataclass.
 
-    Parameters:
-        value (T): wrapped value, possibly optional.
+        Parameters:
+            value (T): wrapped value, possibly optional.
 
-    Methods:
-        get() -> T:
-            Returns the wrapped value.
-    """
+        Methods:
+            get() -> T:
+                Returns the wrapped value.
+        """
 
-    def __init__(self, value: T):
-        self.value = value
+        def __init__(self, value: T):
+            self.value = value
 
-    def get(self) -> T:
-        """Return the wrapped value."""
-        return self.value
+        def get(self) -> T:
+            """Return the wrapped value."""
+            return self.value
 
+
+__all__ = ["FilterValue", "FilterValues", "SerializableNotToJson", "SerializableOptional"]
 
 #: Helper type for the simple values accepted in filters.
 FilterValue = bool | datetime | float | int | str

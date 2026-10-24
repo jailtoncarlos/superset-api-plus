@@ -6,6 +6,7 @@ including HTTP errors, validation errors, and domain-specific exceptions.
 """
 
 import json
+from typing import Any
 
 from requests import HTTPError
 
@@ -46,12 +47,12 @@ class BadRequestError(HTTPError):
     Superset errors (SIP-40 body `{"errors": [...]}`), when present; `str()` renders them as JSON.
     """
 
-    def __init__(self, *args, **kwargs):
-        self.message = kwargs.pop("message", None)
-        self.errors = kwargs.pop("errors", None)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.message: Any = kwargs.pop("message", None)
+        self.errors: list[dict[str, Any]] | None = kwargs.pop("errors", None)
         super().__init__(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return json.dumps(self.message if self.message is not None else self.errors, indent=4)
 
 
@@ -78,7 +79,7 @@ class ComplexBadRequestError(BadRequestError):
     401/403/404/422 bodies with `errors` raise the status class instead (with the same `errors`).
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         return json.dumps(self.errors, indent=4)
 
 
@@ -117,7 +118,7 @@ class ValidationError(Exception):
     an optional `solution` suggesting how to correct the issue.
     """
 
-    def __init__(self, message: str, solution: str = 'No solution provided.'):
+    def __init__(self, message: str, solution: str | None = 'No solution provided.'):
         super().__init__(message, solution)
         self.message = message
         self.solution = solution
@@ -128,7 +129,7 @@ class NodePositionValidationError(ValidationError):
     Validation error specific to node position constraints in trees or graphs.
     """
 
-    def __init__(self, message: str, solution: str = None):
+    def __init__(self, message: str, solution: str | None = None):
         super().__init__(message, solution)
 
 
@@ -137,7 +138,7 @@ class DashboardValidationError(ValidationError):
     Validation error for dashboard configuration issues.
     """
 
-    def __init__(self, message: str, solution: str = None):
+    def __init__(self, message: str, solution: str | None = None):
         super().__init__(message, solution)
 
 
@@ -146,7 +147,7 @@ class ChartValidationError(ValidationError):
     Validation error for chart configuration or usage issues.
     """
 
-    def __init__(self, message: str, solution: str = None):
+    def __init__(self, message: str, solution: str | None = None):
         super().__init__(message, solution)
 
 

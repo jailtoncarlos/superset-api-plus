@@ -44,7 +44,7 @@ class QueryStringFilter:
             Returns the list of filters as a list of dictionaries.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._filters: list[dict[str, Any]] = []
 
     def add(self, column: str, operator: QueryOperator | str, value: Any) -> None:

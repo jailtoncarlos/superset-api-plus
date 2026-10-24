@@ -1,6 +1,8 @@
 """HTTP transport for the client: retries, timeouts, error mapping and masked logs."""
 import logging
 import os
+from collections.abc import Iterable
+from typing import Any
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -73,9 +75,9 @@ class RequestHandler:
     """Runs the library's HTTP requests on top of a `requests.Session`."""
 
     @staticmethod
-    def configure_retries(session: requests.Session, retries: int = DEFAULT_RETRIES,
+    def configure_retries(session: requests.Session, retries: float = DEFAULT_RETRIES,
                           backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
-                          status_forcelist=DEFAULT_STATUS_FORCELIST) -> None:
+                          status_forcelist: Iterable[int] = DEFAULT_STATUS_FORCELIST) -> None:
         """Mount the retrying adapter on the session, once per configuration (reuses the connection pool)."""
         config = (int(retries), float(backoff_factor), tuple(status_forcelist))
         if getattr(session, "_supersetapiplus_retry", None) == config:
@@ -93,11 +95,11 @@ class RequestHandler:
         adapter = HTTPAdapter(max_retries=retry)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
-        session._supersetapiplus_retry = config
+        session._supersetapiplus_retry = config  # type: ignore[attr-defined]  # marker of the mounted config
 
     @classmethod
     def request_with_retry(cls, url: str, method: str = "GET", session: requests.Session | None = None,
-                           **kwargs) -> requests.Response:
+                           **kwargs: Any) -> requests.Response:
         """
         Perform an HTTP request, retrying transient failures and converting API errors.
 
@@ -185,7 +187,7 @@ class RequestHandler:
             raise
 
     @staticmethod
-    def _log_error(request, response) -> None:
+    def _log_error(request: requests.PreparedRequest, response: requests.Response) -> None:
         # Headers and bodies are masked: they include Authorization, cookies, the CSRF token and,
         # on a rejected login, the password.
         request_headers = "\n".join(f"{k}: {v}" for k, v in mask_headers(request.headers).items())

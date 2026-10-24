@@ -157,7 +157,7 @@ class ApiModelFactories(ABC):
         response = self.client.put(self.object_url(obj.id), json=payload)
         logger.debug('response: %s', mask_data(response.json()))
 
-    def get(self, id: str):
+    def get(self, id: int | str):
         """
         Fetch and instantiate an object through an HTTP request for the given ID.
 

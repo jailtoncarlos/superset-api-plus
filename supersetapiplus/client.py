@@ -108,7 +108,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             headers.setdefault("Content-Type", "application/json")
         return headers
 
-    def _init_session(self):
+    def _init_session(self) -> None:
         if self._session is not None:
             logger.debug('Reusing authenticated session.')
             return

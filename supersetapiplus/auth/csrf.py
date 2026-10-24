@@ -10,11 +10,12 @@ logger = logging.getLogger(__name__)
 
 @runtime_checkable
 class SupportsCSRFToken(Protocol):
-    base_url: str  # Assuming base_url is also required
+    """What CSRFSupportMixin needs from the client class it is mixed into."""
+    base_url: str
     host: str
-    _csrf_token: str
+    _csrf_token: str | None
 
-    def _init_session(self):
+    def _init_session(self) -> None:
         ...
 
     def get_domain(self) -> str:
@@ -33,14 +34,14 @@ class CSRFSupportMixin:
     """
 
     @property
-    def csrf_token(self):
+    def csrf_token(self: SupportsCSRFToken) -> str | None:
         """CSRF token of the authenticated session (fetched from /security/csrf_token/ on first use)."""
         if self._csrf_token is None:
             self._init_session()
         return self._csrf_token
 
     def enable_csrf(self: SupportsCSRFToken,
-                    session: requests.Session, access_token: str | None = None, verify: bool = True):
+                    session: requests.Session, access_token: str | None = None, verify: bool = True) -> None:
         """
         Adds CSRF and Referer headers to the authenticated session.
 
