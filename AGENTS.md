@@ -47,7 +47,8 @@ institutional GitLab and is written in Portuguese; that does not change the lang
     same params (`tests/unit/test_ui_defaults.py`, in the `model-attributes` hook)
   - `bin/scripts/extract_example_layouts.py <version>` → `example_layouts_<version>.json`: the layouts of
     the example dashboards shipped with Superset, which the layout validation must accept
-  To support a new Superset version: regenerate the excerpts, run the tests, fix the divergences.
+  To support a new Superset version: regenerate the excerpts, run the tests, fix the divergences; the full
+  checklist is in `docs/superset-version-bump.md`.
 
 ## Behavioral rules of the library
 

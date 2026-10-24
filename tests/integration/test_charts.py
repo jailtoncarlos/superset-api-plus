@@ -8,10 +8,16 @@ import pytest
 from supersetapiplus.resources.repository import UnsupportedObject
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.exceptions import MultipleFound, NotFound, ResourceNotFoundError, UnsupportedTypeError
+from supersetapiplus.exceptions import (
+    BadRequestError,
+    MultipleFound,
+    NotFound,
+    ResourceNotFoundError,
+    UnsupportedTypeError,
+)
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 
-from .conftest import name_filter, unique_name
+from .conftest import name_filter, new_chart, unique_name
 
 
 @pytest.fixture
@@ -187,6 +193,23 @@ def test_every_modeled_viz_type_built_on_ui_defaults_returns_data(client, datase
 
 
 # --- Export and import -----------------------------------------------------------------------
+
+def test_chart_saved_without_query_context_has_no_data_endpoint_in_6_1(client, dataset, cleanup):
+    """Why charts built in code send a query_context (derive_query_context): Superset 6.1.0 answers the chart
+    data of a chart saved without one with an error. The dashboard still renders it (the frontend builds the
+    query from the params), but reports, alerts and cache warm-up use this endpoint. Newer Superset versions
+    rebuild the query on the server (superset.common.form_data_query_context): when this test fails after a
+    version bump, query_context may become optional (docs/superset-version-bump.md)."""
+    params = new_chart("table", dataset).to_json()["params"]
+    created = client.post(client.charts.base_url, json={
+        "slice_name": unique_name("no-query-context"), "viz_type": "table", "datasource_id": dataset.id,
+        "datasource_type": "table", "params": params}).json()["id"]
+    cleanup.chart(created)
+
+    assert client.get(client.charts.object_url(created)).json()["result"]["query_context"] is None
+    with pytest.raises(BadRequestError, match="Chart has no query context saved"):
+        client.charts.get_chart_data(created)
+
 
 def test_export_and_import_a_chart(client, add_chart, cleanup, tmp_path):
     chart = add_chart()
