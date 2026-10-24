@@ -99,7 +99,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     @staticmethod
     def get_headers(headers: dict | None = None, json_body: bool = True) -> dict:
-        """Request headers; JSON Content-Type only when the body is JSON (not for multipart)."""
+        """Request headers; JSON Content-Type only when the body is JSON (not for multipart or no body)."""
         headers = dict(headers or {})
         if json_body:
             headers.setdefault("Content-Type", "application/json")
@@ -133,7 +133,9 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     def _request(self, method: str, url: str, **kwargs) -> requests.Response:
         """Authenticated request; in JWT mode, a 401 renews the token and retries the call once."""
-        kwargs["headers"] = self.get_headers(kwargs.pop("headers", None), json_body="files" not in kwargs)
+        # No JSON Content-Type without a JSON body: Superset reads request.is_json (e.g. GET /chart/{pk}/data/)
+        # and rejects an empty body declared as JSON.
+        kwargs["headers"] = self.get_headers(kwargs.pop("headers", None), json_body=kwargs.get("json") is not None)
         kwargs.setdefault("verify", self._verify)
         try:
             return RequestHandler.request_with_retry(url=url, method=method, session=self.session, **kwargs)

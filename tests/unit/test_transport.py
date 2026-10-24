@@ -145,6 +145,19 @@ def test_import_sends_multipart_without_json_content_type(client, mock, tmp_path
     assert b'name="overwrite"' in sent.body
 
 
+def test_request_without_body_sends_no_json_content_type(client, mock):
+    # Superset reads request.is_json on GET /chart/{pk}/data/: a JSON Content-Type with an empty body
+    # makes it fail with 400 "Failed to decode JSON object".
+    mock.get(f"{API}/chart/1/data/", json={"result": []})
+    mock.put(f"{API}/chart/1", json={"result": {}})
+
+    client.get(f"{API}/chart/1/data/")
+    assert "Content-Type" not in mock.last_request.headers
+
+    client.put(f"{API}/chart/1", json={"dashboards": [2]})
+    assert mock.last_request.headers["Content-Type"] == "application/json"
+
+
 def test_assets_import_opens_the_given_path(client, mock, tmp_path):
     archive = tmp_path / "subdir" / "assets.zip"
     archive.parent.mkdir()
