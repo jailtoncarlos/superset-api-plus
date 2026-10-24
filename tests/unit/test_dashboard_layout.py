@@ -6,6 +6,7 @@ import pytest
 
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.layout import ChartRef, DashboardLayout
+from supersetapiplus.dashboards.native_filters import FilterType
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.exceptions import NodePositionValidationError
 
@@ -181,3 +182,29 @@ def test_native_filters_loaded_from_superset_are_not_rewritten():
 def test_dataset_without_id_is_rejected():
     with pytest.raises(TypeError):
         Dashboard().json_metadata.add_native_filter("Year", Dataset(table_name="t"), "year")
+
+
+def test_filter_without_dataset_has_an_empty_target():
+    dashboard = build_panel()
+    dashboard.json_metadata.add_native_filter("Period", filter_type=FilterType.TIME)
+
+    (saved,) = filters_of(dashboard)
+
+    assert saved["targets"] == [{}] and saved["filterType"] == "filter_time" and saved["controlValues"] == {}
+    with pytest.raises(ValueError):
+        dashboard.json_metadata.add_native_filter("Year", column="year")
+
+
+def test_filter_restricted_to_some_charts_excludes_the_others_of_the_layout():
+    dashboard = build_panel()
+    meta = dashboard.json_metadata
+    only = meta.add_native_filter("Year", 7, "year", charts=[ChartRef(1, "A"), 3])
+    meta.add_native_filter("Course", 7, "course", excluded_charts=[2])
+
+    year, course = filters_of(dashboard)
+
+    assert year["id"] == only.id
+    assert year["scope"] == {"rootPath": ["ROOT_ID"], "excluded": [2]} and year["chartsInScope"] == [1, 3]
+    assert course["scope"] == {"rootPath": ["ROOT_ID"], "excluded": [2]} and course["chartsInScope"] == [1, 3]
+    with pytest.raises(ValueError):
+        meta.add_native_filter("Both", 7, "x", charts=[1], excluded_charts=[2])

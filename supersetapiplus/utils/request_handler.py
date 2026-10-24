@@ -153,9 +153,9 @@ class RequestHandler:
         """
         Convert error responses into library exceptions, logging them masked.
 
-        - body with `errors` (list of Superset errors): ComplexBadRequestError;
-        - 401/403/404/422: specific exception (BadRequestError subclasses), with `message`
-          (for 422, the dict of errors per field);
+        - 401/403/404/422: specific exception (BadRequestError subclasses), with `message` (for 422, the
+          dict of errors per field) and `errors` (SIP-40 list), whatever the body format;
+        - other statuses with `errors` (list of Superset errors): ComplexBadRequestError;
         - other statuses with `message`: BadRequestError; no recognizable body: requests.HTTPError.
         """
         try:
@@ -171,12 +171,12 @@ class RequestHandler:
             errors = body.get("errors") if isinstance(body, dict) else None
             message = body.get("message") if isinstance(body, dict) else None
 
-            if errors:
-                raise ComplexBadRequestError(*e.args, request=request, response=response, errors=errors) from None
             exception_class = STATUS_EXCEPTIONS.get(response.status_code)
+            if not exception_class and errors:
+                exception_class = ComplexBadRequestError
             if exception_class or message:
                 raise (exception_class or BadRequestError)(*e.args, request=request, response=response,
-                                                           message=message) from None
+                                                           message=message, errors=errors) from None
             raise
 
     @staticmethod

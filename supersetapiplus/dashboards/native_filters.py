@@ -71,8 +71,15 @@ def divider_config(title: str, description: str = "", id: str | None = None) -> 
 
 def dataset_target(dataset, column: str | None) -> dict:
     """Filter target. Through the REST API Superset expects ``datasetId``; a ``str`` is taken as the
-    dataset uuid (``datasetUuid``), which is the form used by dashboard import/export bundles."""
+    dataset uuid (``datasetUuid``), which is the form used by dashboard import/export bundles.
+
+    Without a dataset (e.g. a time range filter) the target is ``{}``, and a column needs a dataset, as in
+    the filter editor (FiltersConfigModal createHandleSave, Superset 6.1.0)."""
     target: dict = {}
+    if dataset is None:
+        if column:
+            raise ValueError("a filter column needs the dataset it belongs to.")
+        return target
     if isinstance(dataset, str):
         target["datasetUuid"] = dataset
     elif isinstance(dataset, int):
@@ -84,6 +91,12 @@ def dataset_target(dataset, column: str | None) -> dict:
     if column:
         target["column"] = {"name": column}
     return target
+
+
+def chart_scope(charts_in_scope, layout_chart_ids) -> dict:
+    """Scope covering only `charts_in_scope`: the dashboard root minus every other chart of the layout."""
+    return {"rootPath": [DASHBOARD_ROOT_ID],
+            "excluded": [chart_id for chart_id in layout_chart_ids if chart_id not in set(charts_in_scope)]}
 
 
 def filter_config(name: str, dataset, column: str | None, parents: list[NativeFilterItem | str] | None = None,

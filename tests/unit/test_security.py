@@ -11,6 +11,7 @@ import sys
 import pytest
 import requests
 import requests_mock
+import yaml
 
 from supersetapiplus.client import SupersetClient
 from supersetapiplus.utils.request_handler import RequestHandler
@@ -86,3 +87,15 @@ def test_network_parameters_come_from_the_environment():
     output = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True, env=env)
 
     assert output.stdout.split() == ["10", "60", "5", "1.5"]
+
+
+def test_yaml_export_is_parsed_with_safe_load(tmp_path, monkeypatch):
+    # An export body with a Python tag must not be resolved: FullLoader returns os.system for this one.
+    client = SupersetClient(HOST, username="robot", password=PASSWORD)
+    body = requests.Response()
+    body.status_code, body._content = 200, b"payload: !!python/name:os.system\n"
+    body.headers["content-type"] = "application/text"
+    monkeypatch.setattr(client, "get", lambda *args, **kwargs: body)
+
+    with pytest.raises(yaml.constructor.ConstructorError):
+        client.charts.export([1], tmp_path / "export.yaml")

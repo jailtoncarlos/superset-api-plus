@@ -1107,7 +1107,7 @@ class ApiModelFactories(ABC):
         content_type = response.headers["content-type"].strip()
 
         if content_type.startswith("application/text"):
-            data = yaml.load(response.text, Loader=yaml.FullLoader)
+            data = yaml.safe_load(response.text)
             with open(path, "w", encoding="utf-8") as f:
                 yaml.dump(data, f, default_flow_style=False)
         elif content_type.startswith("application/json"):

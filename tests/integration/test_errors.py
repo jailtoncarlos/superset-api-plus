@@ -53,6 +53,17 @@ def test_role_without_permission_is_403(gamma_user):
         gamma.databases.add(Database(database_name=unique_name("forbidden"), sqlalchemy_uri="sqlite://"))
 
 
+@only_test_stack
+def test_error_list_body_is_mapped_by_status(gamma_user, add_chart):
+    """403 with a SIP-40 body ({"errors": [...]}) becomes ForbiddenError, keeping the error list."""
+    chart = add_chart()
+    gamma = new_client(username=gamma_user[0], password=gamma_user[1])
+
+    with pytest.raises(ForbiddenError) as info:  # the Gamma role has no access to the dataset
+        gamma.post(gamma.join_urls(gamma.charts.base_url, "data"), json=chart.ui_query_context())
+    assert info.value.response.status_code == 403 and info.value.errors, "the SIP-40 error list is kept"
+
+
 def test_missing_object_is_404(client):
     with pytest.raises(ResourceNotFoundError):
         client.charts.get(2_000_000_000)

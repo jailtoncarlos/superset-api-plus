@@ -2,6 +2,7 @@
 import pytest
 
 from supersetapiplus.dashboards.dashboards import Dashboard
+from supersetapiplus.dashboards.native_filters import FilterType
 from supersetapiplus.exceptions import DashboardValidationError, NotFound, ResourceNotFoundError
 from supersetapiplus.query_string import QueryOperator
 
@@ -140,3 +141,21 @@ def test_dashboard_layout_and_native_filters_are_stored_as_built(client, dataset
     assert stored.json_metadata.native_filter_configuration == dashboard.json_metadata.native_filter_configuration
     assert stored.json_metadata.native_filter_configuration[1]["chartsInScope"] == [chart.id]
     assert [c.id for c in stored.get_charts()] == [chart.id]
+
+
+def test_time_filter_without_dataset_and_chart_scoped_filter_are_stored(client, dataset, add_chart, add_dashboard):
+    first, second, dashboard = add_chart(), add_chart("pie"), add_dashboard()
+    pos = dashboard.reset_layout()
+    row = pos.add_row()
+    for chart in (first, second):
+        pos.add_chart(chart, parent=row, width=6)
+    meta = dashboard.json_metadata
+    meta.clear_native_filters()
+    meta.add_native_filter("Period", filter_type=FilterType.TIME)
+    meta.add_native_filter("Campus", dataset, "campus", charts=[first])
+    dashboard.save()
+
+    period, campus = client.dashboards.get(dashboard.id).json_metadata.native_filter_configuration
+    assert period["targets"] == [{}] and period["filterType"] == "filter_time"
+    assert campus["scope"] == {"rootPath": ["ROOT_ID"], "excluded": [second.id]}
+    assert campus["chartsInScope"] == [first.id]

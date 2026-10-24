@@ -5,8 +5,11 @@ the real Superset in tests/integration. What stays here, and why:
 - retry policy and adapter mounting: the server does not produce 5xx/429 on demand (429 comes from the
   rate limit of a production-mode Superset, reached by bursts; the policy is checked without HTTP);
 - exception hierarchy: no server involved;
-- asynchronous SQL Lab (202): the test stack has no Celery workers to run queries asynchronously.
+- asynchronous SQL Lab (202): the test stack has no Celery workers to run queries asynchronously;
+- status mapping of error bodies: built responses, no HTTP (the real 403 is in tests/integration/test_errors.py).
 """
+import json
+
 import pytest
 import requests
 import requests_mock as rm
@@ -14,6 +17,7 @@ import requests_mock as rm
 from supersetapiplus.client import SupersetClient
 from supersetapiplus.exceptions import (
     BadRequestError,
+    ComplexBadRequestError,
     ForbiddenError,
     ResourceNotFoundError,
     UnauthorizedError,
@@ -70,3 +74,30 @@ def test_async_sql_lab_run_is_reported_as_not_supported():
 
         with pytest.raises(NotImplementedError):
             SupersetClient(HOST, "robot", "password").run(database_id=3, query="select 1")
+
+
+def response(status: int, body: dict) -> requests.Response:
+    """A Superset error response as received (no HTTP involved: raise_for_status only reads it)."""
+    built = requests.Response()
+    built.status_code, built._content = status, json.dumps(body).encode()
+    built.headers["Content-Type"] = "application/json"
+    built.request = requests.Request("GET", f"{API}/chart/1").prepare()
+    built.url = built.request.url
+    return built
+
+
+SIP40 = {"errors": [{"message": "Denied", "error_type": "DATASOURCE_SECURITY_ACCESS_ERROR", "level": "error"}]}
+
+
+@pytest.mark.parametrize("status,exception", [(401, UnauthorizedError), (403, ForbiddenError),
+                                              (404, ResourceNotFoundError), (422, UnprocessableEntityError)])
+def test_error_list_body_is_mapped_by_status(status, exception):
+    with pytest.raises(exception) as info:
+        RequestHandler.raise_for_status(response(status, SIP40))
+    assert info.value.errors == SIP40["errors"]
+
+
+def test_error_list_with_another_status_is_a_complex_bad_request_error():
+    with pytest.raises(ComplexBadRequestError) as info:
+        RequestHandler.raise_for_status(response(500, SIP40))
+    assert isinstance(info.value, BadRequestError) and info.value.errors == SIP40["errors"]

@@ -59,29 +59,46 @@ class Metadata(SerializableModel):
         super().__post_init__()
         # Ids of the native filter items created by the library: only their scopes are recomputed.
         self._library_filter_ids = set()
+        # Filter id -> chart ids in scope, for filters restricted to some charts (excluded = the others).
+        self._filter_charts = {}
 
     def clear_native_filters(self) -> None:
         self.native_filter_configuration = []
         self._library_filter_ids = set()
+        self._filter_charts = {}
 
     def add_filter_divider(self, title: str, description: str = "", id: str | None = None):
         """Section divider in the native filter bar."""
         return self._add_native_item(native_filters.divider_config(title, description, id))
 
-    def add_native_filter(self, name: str, dataset, column: str | None = None, parent=None, **options):
+    def add_native_filter(self, name: str, dataset=None, column: str | None = None, parent=None,
+                          charts=None, excluded_charts=None, **options):
         """Native filter on `column` of `dataset` (a saved Dataset, its id or its uuid).
 
+        Without `dataset` the filter has no target (``targets: [{}]``), e.g.
+        ``add_native_filter("Period", filter_type=FilterType.TIME)``.
         `parent` is a filter (or a list of filters) returned by this method: the new filter depends on them
-        (``cascadeParentIds``). Other options are those of :func:`native_filters.filter_config`, for example
-        ``adhoc_filters=[...]``, ``multiSelect=True`` or ``inverseSelection=True``.
+        (``cascadeParentIds``). The filter applies to every chart of the dashboard, or only to `charts`, or
+        to all but `excluded_charts` (charts or chart ids). Other options are those of
+        :func:`native_filters.filter_config`, for example ``adhoc_filters=[...]``, ``multiSelect=True`` or
+        ``inverseSelection=True``.
         """
+        if charts is not None and excluded_charts is not None:
+            raise ValueError("pass either charts or excluded_charts, not both.")
         parents = parent if isinstance(parent, (list, tuple)) else [parent] if parent else []
-        return self._add_native_item(native_filters.filter_config(name, dataset, column, parents, **options))
+        item = self._add_native_item(native_filters.filter_config(name, dataset, column, parents, **options))
+        if charts is not None:
+            self._filter_charts[item.id] = [_chart_id(chart) for chart in charts]
+        elif excluded_charts is not None:
+            item.config["scope"]["excluded"] = [_chart_id(chart) for chart in excluded_charts]
+        return item
 
     def update_native_filter_scopes(self, layout) -> None:
         """Sets chartsInScope/tabsInScope of the items created by the library from the dashboard layout."""
         for item in self.native_filter_configuration or []:
             if item.get("id") in self._library_filter_ids:
+                if item["id"] in self._filter_charts:  # excluded depends on the charts of the layout
+                    item["scope"] = native_filters.chart_scope(self._filter_charts[item["id"]], layout.chart_ids())
                 scope = item.get("scope") or native_filters.root_scope()
                 item["chartsInScope"], item["tabsInScope"] = layout.charts_and_tabs_in_scope(
                     scope.get("rootPath", []), scope.get("excluded", []))
@@ -102,3 +119,7 @@ class Metadata(SerializableModel):
         self.chart_configuration[str(chart.id)] = chart_configuration
 
         self.global_chart_configuration.chartsInScope.append(chart.id)
+
+
+def _chart_id(chart) -> int:
+    return chart if isinstance(chart, int) else chart.id

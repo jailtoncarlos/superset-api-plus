@@ -40,18 +40,19 @@ class QueryLimitReached(Exception):
 
 class BadRequestError(HTTPError):
     """
-    Represents an HTTP 400 (Bad Request) error response.
+    Represents an HTTP error response from Superset (the base of the status-specific errors).
 
-    Accepts an optional `message` parameter containing details of the error,
-    which will be rendered as formatted JSON when converted to string.
+    `message` holds the `message` of the body (for 422, the errors per field) and `errors` the list of
+    Superset errors (SIP-40 body `{"errors": [...]}`), when present; `str()` renders them as JSON.
     """
 
     def __init__(self, *args, **kwargs):
         self.message = kwargs.pop("message", None)
+        self.errors = kwargs.pop("errors", None)
         super().__init__(*args, **kwargs)
 
     def __str__(self):
-        return json.dumps(self.message, indent=4)
+        return json.dumps(self.message if self.message is not None else self.errors, indent=4)
 
 
 class UnauthorizedError(BadRequestError):
@@ -70,17 +71,12 @@ class UnprocessableEntityError(BadRequestError):
     """HTTP 422: body rejected by schema validation; `message` holds the errors per field."""
 
 
-class ComplexBadRequestError(HTTPError):
+class ComplexBadRequestError(BadRequestError):
     """
-    Represents an HTTP 400 error with multiple validation issues.
+    Error response with a list of Superset errors (SIP-40 body) and a status without a specific class.
 
-    Accepts an `errors` dictionary detailing each field or validation failure,
-    which will be rendered as formatted JSON when converted to string.
+    401/403/404/422 bodies with `errors` raise the status class instead (with the same `errors`).
     """
-
-    def __init__(self, *args, **kwargs):
-        self.errors = kwargs.pop("errors", None)
-        super().__init__(*args, **kwargs)
 
     def __str__(self):
         return json.dumps(self.errors, indent=4)
