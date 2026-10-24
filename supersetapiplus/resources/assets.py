@@ -1,27 +1,31 @@
 """Assets."""
 import json
 from pathlib import Path
+from typing import Any
 
 
 class Assets:
     """Export and import of complete bundles (dashboards, charts, datasets, databases) through /api/v1/assets."""
     endpoint = "assets/"
 
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         self.client = client
 
     @property
-    def base_url(self):
+    def base_url(self) -> str:
         """Base url for these objects."""
-        return self.client.join_urls(self.client.base_url, self.endpoint)
+        url: str = self.client.join_urls(self.client.base_url, self.endpoint)
+        return url
 
     @property
-    def import_url(self):
-        return self.client.join_urls(self.base_url, "import/")
+    def import_url(self) -> str:
+        url: str = self.client.join_urls(self.base_url, "import/")
+        return url
 
     @property
-    def export_url(self):
-        return self.client.join_urls(self.base_url, "export/")
+    def export_url(self) -> str:
+        url: str = self.client.join_urls(self.base_url, "export/")
+        return url
 
     def export(self, path: Path | str) -> None:
         """Export object into an importable file"""
@@ -35,7 +39,7 @@ class Assets:
             return
         raise ValueError(f"Unknown content type {content_type}")
 
-    def import_file(self, file_path, passwords=None) -> bool:
+    def import_file(self, file_path: str | Path, passwords: dict[str, str] | None = None) -> bool:
         """Import a file on remote.
 
         :param file_path: Path to a JSON or ZIP file containing the import data
@@ -58,4 +62,4 @@ class Assets:
             response = self.client.post(self.import_url, files=files)
 
         # If import is successful, the following is returned: {'message': 'OK'}
-        return response.json().get("message") == "OK"
+        return bool(response.json().get("message") == "OK")

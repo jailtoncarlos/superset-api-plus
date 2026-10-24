@@ -38,6 +38,8 @@ dev = [
   "pre-commit>=4.6.2",
   "import-linter>=2.1",
   "mypy==2.4.0",
+  "types-PyYAML>=6.0",
+  "types-requests>=2.31",
   "ruff>=0.17.2",
   "tabulate>=0.10.0",
   "twine>=7.0.0"

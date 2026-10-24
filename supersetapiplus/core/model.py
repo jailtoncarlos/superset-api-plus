@@ -72,6 +72,7 @@ class SerializableModel(ParseMixin, ABC):
         _extra_fields (Dict): fields not mapped directly to class attributes.
     """
     _factory: Any = None  # repository the object was read or created through (see _repository)
+    _request_response: Any = None  # HTTP response the object was read from, if any
 
     JSON_FIELDS: list[str] = []
 

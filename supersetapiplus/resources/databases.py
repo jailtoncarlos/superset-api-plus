@@ -1,6 +1,7 @@
 """Databases."""
 import warnings
 from dataclasses import dataclass, field
+from typing import Any
 
 from supersetapiplus.core.fields import default_string, json_field
 from supersetapiplus.core.model import SerializableModel
@@ -10,7 +11,7 @@ from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptio
 from supersetapiplus.resources.repository import ApiModelFactories
 
 
-def _given(value) -> bool:
+def _given(value: Any) -> bool:
     """Set by the caller: neither the default (None) nor absent from the JSON read (MissingField)."""
     return value is not None and not isinstance(value, MissingField)
 
@@ -46,7 +47,7 @@ class Database(SerializableModel):
     allow_run_async: bool = False
     expose_in_sqllab: bool = True
     engine: str = default_string()
-    extra: dict = json_field()
+    extra: dict[str, Any] = json_field()
     force_ctas_schema: str = default_string()
     server_cert: str = default_string()
     sqlalchemy_uri: str = default_string()
@@ -57,16 +58,16 @@ class Database(SerializableModel):
     impersonate_user: SerializableOptional[bool] = field(default=None)
     # Secrets of the connection as JSON text (GET returns them masked; send only to change them).
     masked_encrypted_extra: SerializableOptional[str] = field(default=None)
-    parameters: SerializableOptional[dict] = field(default=None)  # dynamic_form connection parameters
-    ssh_tunnel: SerializableOptional[dict] = field(default=None)
+    parameters: SerializableOptional[dict[str, Any]] = field(default=None)  # dynamic_form connection parameters
+    ssh_tunnel: SerializableOptional[dict[str, Any]] = field(default=None)
     uuid: SerializableOptional[str] = field(default=None)
     external_url: SerializableOptional[str] = field(default=None)
     is_managed_externally: SerializableOptional[bool] = field(default=None)
     # Deprecated: not accepted by Superset 6.1.0 (DatabaseRestApi.post/put); never sent.
-    encrypted_extra: SerializableNotToJson[str] = field(default=None)
-    allow_multi_schema_metadata_fetch: SerializableNotToJson[bool] = field(default=None)
+    encrypted_extra: SerializableNotToJson[str | None] = field(default=None)
+    allow_multi_schema_metadata_fetch: SerializableNotToJson[bool | None] = field(default=None)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         if _given(self.encrypted_extra):
             warnings.warn("Database.encrypted_extra is deprecated: Superset 6 takes masked_encrypted_extra.",
@@ -77,7 +78,7 @@ class Database(SerializableModel):
             warnings.warn("Database.allow_multi_schema_metadata_fetch no longer exists in Superset 6 and is "
                           "ignored.", DeprecationWarning, stacklevel=3)
 
-    def to_json(self, columns: list = None) -> dict:
+    def to_json(self, columns: list[str] | None = None) -> dict[str, Any]:
         if not self.extra:
             self.extra = {
                 "metadata_params": {},
@@ -87,11 +88,11 @@ class Database(SerializableModel):
             }
         return super().to_json(columns)
 
-    def run(self, query, query_limit=None):
+    def run(self, query: str, query_limit: int | None = None) -> Any:
         return self._repository().client.run(database_id=self.id, query=query, query_limit=query_limit)
 
-    def test_connection(self):
-        return self._repository().test_connection(self)
+    def test_connection(self) -> bool:
+        return bool(self._repository().test_connection(self))
 
 
 class Databases(ApiModelFactories):
@@ -99,17 +100,18 @@ class Databases(ApiModelFactories):
     endpoint = "database/"
 
     @property
-    def test_connection_url(self):
+    def test_connection_url(self) -> str:
         """Base url for these objects."""
-        return self.client.join_urls(self.client.base_url, self.endpoint, "test_connection/")
+        url: str = self.client.join_urls(self.client.base_url, self.endpoint, "test_connection/")
+        return url
 
-    def test_connection(self, obj):
+    def test_connection(self, obj: Database) -> bool:
         """Test connection to a database"""
         url = self.test_connection_url
         connection_columns = ["database_name", "sqlalchemy_uri"]
         o = {c: getattr(obj, c) for c in connection_columns}
         response = self.client.post(url, json=o)
-        return response.json().get("message") == "OK"
+        return bool(response.json().get("message") == "OK")
 
     def _default_object_class(self) -> type[SerializableModel]:
         return Database

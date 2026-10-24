@@ -1,5 +1,8 @@
 """Datasets."""
 from dataclasses import dataclass, field
+from typing import Any
+
+from typing_extensions import Self
 
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.core.model import SerializableModel
@@ -36,16 +39,16 @@ class Dataset(SerializableModel):
     id: int | None = field(default=None)
     table_name: str = ""
     schema: str = ""
-    columns: list = field(default_factory=list)
+    columns: list[Any] = field(default_factory=list)
     description: str = ""
     kind: DatasourceKind | None = None  # read-only: virtual when the dataset has sql
     database_id: int | None = None
     datasource_type: DatasourceType | None = None  # read-only
     sql: str = ""
     # Saved metrics: dicts as Superset returns them (see add_metric); sent with METRIC_FIELDS only.
-    metrics: SerializableOptional[list] = field(default=None)
+    metrics: SerializableOptional[list[dict[str, Any]]] = field(default=None)
     main_dttm_col: SerializableOptional[str] = field(default=None)
-    owners: SerializableOptional[list] = field(default=None)
+    owners: SerializableOptional[list[Any]] = field(default=None)
     catalog: SerializableOptional[str] = field(default=None)
     cache_timeout: SerializableOptional[int] = field(default=None)
     default_endpoint: SerializableOptional[str] = field(default=None)
@@ -61,7 +64,7 @@ class Dataset(SerializableModel):
     is_managed_externally: SerializableOptional[bool] = field(default=None)
 
     @classmethod
-    def from_json(cls, data: dict):
+    def from_json(cls, data: dict[str, Any]) -> Self:
         # Read before super(): from_json removes from `data` the keys that are not model fields.
         database = data.get("database")
         res = super().from_json(data)
@@ -70,7 +73,7 @@ class Dataset(SerializableModel):
         return res
 
     def add_metric(self, metric_name: str, expression: str, verbose_name: str | None = None,
-                   d3format: str | None = None, description: str | None = None) -> dict:
+                   d3format: str | None = None, description: str | None = None) -> dict[str, Any]:
         """Saved metric of the dataset (sent on the next save); returns the metric dict."""
         metric = {"metric_name": metric_name, "expression": expression}
         metric.update({key: value for key, value in (("verbose_name", verbose_name), ("d3format", d3format),
@@ -80,7 +83,7 @@ class Dataset(SerializableModel):
         self.metrics.append(metric)
         return metric
 
-    def to_json(self, columns: list = None) -> dict:
+    def to_json(self, columns: list[str] | None = None) -> dict[str, Any]:
         o = super().to_json(columns)
         o.pop("columns", None)
         if isinstance(o.get("metrics"), list):
@@ -91,7 +94,7 @@ class Dataset(SerializableModel):
             o["database_id" if self.id else "database"] = self.database_id
         return o
 
-    def run(self, query_limit=None):
+    def run(self, query_limit: int | None = None) -> Any:
         if not self.sql:
             raise ValueError("Cannot run a dataset with no SQL")
         return self._repository().client.run(database_id=self.database_id, query=self.sql, query_limit=query_limit)

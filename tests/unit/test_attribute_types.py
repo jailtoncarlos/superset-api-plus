@@ -53,7 +53,6 @@ FREE_TEXT = {
         "free-form time shifts ('1 week ago', custom dates) of the time_compare control",
     "charts.table.TableQueryObject.time_offsets": "free-form time shifts of the time_compare control",
     "charts.table.TableOption.granularity_sqla": NAME,
-    "charts.table.TableOption.column_config": "keys are column names of the instance",
     "charts.table.TableOption.timeseries_limit_metric": NAME,
     "charts.table.TableQueryObject.granularity": NAME,
     "charts.filters.AdhocFilterClause.subject": NAME,
@@ -99,7 +98,6 @@ FREE_TEXT = {
     "dashboards.metadata.CrossFilters.scope":
         "'global' or a scope object (frontend ChartConfiguration crossFilters.scope)",
     "dashboards.metadata.GlobalChartConfigurationScope.rootPath": ID,
-    "dashboards.metadata.Metadata.chart_configuration": "keys are chart ids as text (JSON object keys)",
     "dashboards.metadata.Metadata.color_scheme": "color scheme id from an extensible registry",
     "dashboards.metadata.Metadata.color_namespace": "label color namespace chosen by the user",
     "dashboards.metadata.Metadata.color_scheme_domain": "colors (hex) of the scheme",
@@ -155,6 +153,7 @@ def str_fields() -> dict[str, str]:
             for cls in obj.__mro__:
                 for name, annotation in inspect.get_annotations(cls).items():
                     text = annotation if isinstance(annotation, str) else repr(annotation)
+                    text = re.sub(r"dict\[str,", "dict[<key>,", text)  # dictionary keys are not str attributes
                     if name in names and re.search(r"\bstr\b", text):
                         module = cls.__module__.removeprefix("supersetapiplus.")
                         found[f"{module}.{cls.__qualname__}.{name}"] = text
