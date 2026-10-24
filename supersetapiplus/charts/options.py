@@ -8,11 +8,10 @@ from supersetapiplus.charts.filters import AdhocFilterClause
 from supersetapiplus.charts.metric import (
     AdhocMetric,
     AdhocMetricColumn,
-    MetricHelper,
     MetricsListMixin,
     OrderByTyping,
 )
-from supersetapiplus.charts.queries import CurrencyFormat
+from supersetapiplus.charts.queries import CurrencyFormat, custom_column
 from supersetapiplus.charts.types import (
     ChartType,
     ComparisonType,
@@ -72,11 +71,7 @@ class OptionListGroupByMixin:
                             column: AdhocMetricColumn = None,
                             sql_expression: str = None,
                             aggregate: MetricType = None):
-        metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
-        if column:
-            metric.expressionType = FilterExpressionType.CUSTOM_SQL
-            column.expressionType = FilterExpressionType.CUSTOM_SQL
-        self._editable_groupby().append(metric)
+        self._editable_groupby().append(custom_column(label, column, sql_expression, aggregate))
 
 
 @dataclass
@@ -87,7 +82,8 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
     datasource: str = field(default=None)
 
     extra_form_data: dict = field(default_factory=dict)
-    row_limit: int = 100
+    # Absent unless the plugin has a row limit control (each chart class sets the UI default).
+    row_limit: SerializableOptional[int] = None
 
     adhoc_filters: list[AdhocFilterClause] = object_field(cls=AdhocFilterClause, default_factory=list)
     dashboards: list[int] = field(default_factory=list)

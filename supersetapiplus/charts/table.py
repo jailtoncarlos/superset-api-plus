@@ -12,11 +12,14 @@ from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import (
     ChartType,
     ComparisonColorScheme,
+    ComparisonType,
     DateFormatType,
     MetricType,
+    PercentMetricCalculation,
     QueryModeType,
     ResultFormat,
     ResultType,
+    TimeGrain,
 )
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.typing import SerializableOptional
@@ -24,25 +27,30 @@ from supersetapiplus.typing import SerializableOptional
 
 @dataclass
 class TableOptionBase(Option):
-    conditional_formatting: SerializableOptional[list] = field(default_factory=list)
+    conditional_formatting: SerializableOptional[list] = field(default=None)
     temporal_columns_lookup: SerializableOptional[dict] = field(default=None)
     annotation_layers: SerializableOptional[list] = field(default=None)
 
 
 @dataclass
 class TableOption(TableOptionBase):
-    row_limit: int = 1000
+    row_limit: SerializableOptional[int] = 10000
     viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
+    order_desc: SerializableOptional[bool] = True
+    time_grain_sqla: SerializableOptional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
+    comparison_type: SerializableOptional[ComparisonType] = field(default_factory=lambda: ComparisonType.VALUES)
+    percent_metric_calculation: SerializableOptional[PercentMetricCalculation] = field(
+        default_factory=lambda: PercentMetricCalculation.ROW_LIMIT)
     query_mode: QueryModeType = field(default_factory=lambda: QueryModeType.AGGREGATE)
 
     order_by_cols: list = field(default_factory=list)
 
-    server_pagination: SerializableOptional[bool] = field(default=None)
-    server_page_length: SerializableOptional[int] = field(default=None)
-    show_totals: SerializableOptional[bool] = field(default=None)
+    server_pagination: SerializableOptional[bool] = False
+    server_page_length: SerializableOptional[int] = 10
+    show_totals: SerializableOptional[bool] = False
 
     table_timestamp_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
-    page_length: int = field(default=None)
+    page_length: SerializableOptional[int] = field(default=None)
     include_search: SerializableOptional[bool] = field(default=None)
     show_cell_bars: bool = True
 
@@ -54,14 +62,14 @@ class TableOption(TableOptionBase):
     granularity_sqla: SerializableOptional[str] = field(default=None)
 
     column_config: SerializableOptional[dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True,
-                                                                               default_factory=dict)
+                                                                               default=None)
 
     all_columns: SerializableOptional[list] = field(default_factory=list)
     percent_metrics: SerializableOptional[list] = field(default_factory=list)
     allow_render_html: SerializableOptional[bool] = True
     comparison_color_scheme: SerializableOptional[ComparisonColorScheme] = field(default=None)
 
-    timeseries_limit_metric: Metric | None = object_field(default=None)
+    timeseries_limit_metric: SerializableOptional[Metric] = object_field(default=None)
 
     force: SerializableOptional[bool] = field(default=None)
     result_format: SerializableOptional[ResultFormat] = field(default=None)
@@ -90,6 +98,8 @@ class TableOption(TableOptionBase):
                                            'add_simple_dimension methods.')
 
     def _add_column_config(self, label:str, column_config:ColumnConfig):
+        if not isinstance(self.column_config, dict):
+            self.column_config = {}
         self.column_config[label] = column_config
 
 

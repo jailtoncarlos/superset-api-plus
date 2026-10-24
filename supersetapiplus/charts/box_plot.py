@@ -5,21 +5,31 @@ from dataclasses import dataclass, field
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import Query
+from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType
+from supersetapiplus.charts.types import ChartType, TimeGrain, WhiskerOptions
+from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 
 @dataclass
 class BoxPlotOption(Option):
-    """
-    Configuration options for a Box Plot chart.
+    """Box Plot params; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0).
 
-    Only fields expected to remain after the diff:
-      - datasource_id: the numeric ID of the data source
-      - datasource_type: the type of the data source (e.g. "table")
+    `groupby` holds the dimensions (one box per value) and `columns` the "Distribute across" columns, whose
+    values are the points of each box (the UI proposes the dataset's time column).
     """
     viz_type: ChartType = field(default_factory=lambda: ChartType.BOX_PLOT)
+    # Dimensions are optional in the UI (one box when empty).
+    _require_groupby: SerializableNotToJson[bool] = False
+    columns: SerializableOptional[list[QueryFormColumn]] = object_field(default=None)
+    whiskerOptions: SerializableOptional[WhiskerOptions] = field(default_factory=lambda: WhiskerOptions.TUKEY)
+    row_limit: SerializableOptional[int] = 10000
+    time_grain_sqla: SerializableOptional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
+
+    def _add_distribute_across(self, column: QueryFormColumn) -> None:
+        if not isinstance(self.columns, list):
+            self.columns = []
+        self.columns.append(column)
 
 
 @dataclass
@@ -66,6 +76,11 @@ class BoxPlotChart(Chart):
     query_context: BoxPlotQueryContext = object_field(
         cls=BoxPlotQueryContext, default_factory=BoxPlotQueryContext
     )
+
+    def add_distribute_across(self, column: QueryFormColumn) -> None:
+        """Adds a "Distribute across" column: its values are the points summarized by each box."""
+        self.params._add_distribute_across(column)
+        self.query_context.form_data._add_distribute_across(column)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

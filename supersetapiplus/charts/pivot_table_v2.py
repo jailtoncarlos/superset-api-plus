@@ -15,6 +15,7 @@ from supersetapiplus.charts.types import (
     NumberFormatType,
     OrderType,
     PivotAggregateFunction,
+    TimeGrain,
 )
 from supersetapiplus.typing import SerializableOptional
 
@@ -35,7 +36,10 @@ class PivotTableV2Option(TableOptionBase):
     valueFormat: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
     date_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
 
-    series_limit: SerializableOptional[int] = 0
+    series_limit: SerializableOptional[int] = None
+    row_limit: SerializableOptional[int] = 10000
+    order_desc: SerializableOptional[bool] = True
+    time_grain_sqla: SerializableOptional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
     colOrder:  OrderType = field(default_factory=lambda: OrderType.KEY_A_TO_Z)
     rowOrder: OrderType = field(default_factory=lambda: OrderType.KEY_A_TO_Z)
     aggregateFunction: PivotAggregateFunction = field(default_factory=lambda: PivotAggregateFunction.SUM)

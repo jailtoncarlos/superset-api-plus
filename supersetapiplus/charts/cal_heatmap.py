@@ -3,25 +3,47 @@
 from dataclasses import dataclass, field
 
 from supersetapiplus.base.fields import object_field
+from supersetapiplus.base.sentinels import MissingField
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType
+from supersetapiplus.charts.types import (
+    CalendarDomain,
+    CalendarSubdomain,
+    ChartType,
+    DateFormatType,
+    NumberFormatType,
+)
+from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 
 @dataclass
 class CalHeatmapOption(Option):
-    """
-    Configuration options for CalHeatmap (calendar heatmap).
+    """Calendar heatmap params; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0).
 
-    Fields kept or added:
-      - datasource_id: numeric ID of the data source
-      - datasource_type: type of the data source (e.g., "table")
-      - groupby: list of fields to group by
+    Legacy plugin: the backend (superset/viz.py CalHeatmapViz) reads domain_granularity and
+    subdomain_granularity. The time column is granularity_sqla (the UI proposes the dataset's main one).
     """
     viz_type: ChartType = field(default_factory=lambda: ChartType.CAL_HEATMAP)
-    groupby: list[str] = field(default_factory=list)
+    # The plugin has no dimension control: groupby is absent.
+    groupby: SerializableOptional[list] = field(default_factory=MissingField)
+    _require_groupby: SerializableNotToJson[bool] = False
+    granularity_sqla: SerializableOptional[str] = None
+    time_range: SerializableOptional[str] = 'No filter'
+    domain_granularity: CalendarDomain = field(default_factory=lambda: CalendarDomain.MONTH)
+    subdomain_granularity: CalendarSubdomain = field(default_factory=lambda: CalendarSubdomain.DAY)
+    # Sequential color scheme id from an extensible registry.
+    linear_color_scheme: str = 'superset_seq_1'
+    cell_size: int = 10
+    cell_padding: int = 2
+    cell_radius: int = 0
+    steps: int = 10
+    y_axis_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
+    x_axis_time_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
+    show_legend: bool = True
+    show_metric_name: bool = True
+    show_values: bool = False
 
 
 @dataclass

@@ -1,22 +1,24 @@
 """Charts."""
+import warnings
 from dataclasses import dataclass, field
 from typing import Any
 
 from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
-from supersetapiplus.charts.queries import AdhocMetric, Query
+from supersetapiplus.charts.queries import AdhocColumn, Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import (
     ChartType,
+    ComparisonType,
     ContributionType,
     DateFormatType,
-    FilterExpressionType,
     LabelRotation,
     NumberFormatType,
     Orientation,
     SortSeriesType,
     StackStylyType,
+    TimeGrain,
     TitlepositionType,
 )
 from supersetapiplus.typing import SerializableOptional
@@ -24,32 +26,39 @@ from supersetapiplus.typing import SerializableOptional
 
 @dataclass
 class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
+    """Bar chart params; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0)."""
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
 
-    x_axis: AdhocMetric = object_field(cls=AdhocMetric, default_factory=AdhocMetric)
+    # X axis: a column name or an AdhocColumn; absent until set (the UI proposes the dataset's time column).
+    x_axis: SerializableOptional[QueryFormColumn] = object_field(default=None)
 
     x_axis_sort: SerializableOptional[bool] = field(default=None)
-    x_axis_sort_asc: SerializableOptional[bool] = field(default=None)
+    x_axis_sort_asc: SerializableOptional[bool] = True
     x_axis_sort_series: SerializableOptional[SortSeriesType] = field(default=None)
     x_axis_sort_series_ascending: SerializableOptional[bool] = field(default=None)
 
     contributionMode: SerializableOptional[ContributionType] = field(default=None)
-    row_limit: int = 1000
+    row_limit: SerializableOptional[int] = 10000
+    order_desc: SerializableOptional[bool] = True
+    time_grain_sqla: SerializableOptional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
+    comparison_type: SerializableOptional[ComparisonType] = field(default_factory=lambda: ComparisonType.VALUES)
+    group_others_when_limit_reached: SerializableOptional[bool] = False
     truncate_metric: bool = True
     annotation_layers: list = field(default_factory=list)
-    forecastPeriods: SerializableOptional[int] = field(default=None)
-    forecastInterval: SerializableOptional[float] = field(default=None)
-    orientation: Orientation = field(default_factory=lambda: Orientation.HORIZONTAL)
+    forecastEnabled: SerializableOptional[bool] = False
+    forecastPeriods: SerializableOptional[int] = 10
+    forecastInterval: SerializableOptional[float] = 0.8
+    orientation: Orientation = field(default_factory=lambda: Orientation.VERTICAL)
 
     x_axis_title: SerializableOptional[str] = field(default=None)
-    x_axis_title_margin: int = 30
+    x_axis_title_margin: int = 0
     y_axis_title: SerializableOptional[str] = field(default=None)
-    y_axis_title_margin: int = 30
+    y_axis_title_margin: int = 15
     y_axis_title_position: TitlepositionType = field(default_factory=lambda: TitlepositionType.LEFT)
     x_axis_time_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
     xAxisLabelRotation: SerializableOptional[LabelRotation] = field(default=None)
 
-    sort_series_type: SortSeriesType = field(default_factory=lambda: SortSeriesType.NAME)
+    sort_series_type: SortSeriesType = field(default_factory=lambda: SortSeriesType.SUM)
     sort_series_ascending: SerializableOptional[bool] = field(default=None)
     show_value: SerializableOptional[bool] = field(default=None)
     stack: SerializableOptional[StackStylyType] = field(default=None)
@@ -62,7 +71,7 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
     truncateYAxis: SerializableOptional[bool] = field(default=None)
 
     y_axis_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
-    y_axis_bounds: tuple[int, int] = field(default_factory=dict)
+    y_axis_bounds: list[float | None] = field(default_factory=lambda: [None, None])
     rich_tooltip: bool = True
     tooltipTimeFormat: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
 
@@ -82,23 +91,23 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
     def __post_init__(self):
         super().__post_init__()
 
+    def set_x_axis(self, column: QueryFormColumn, sort_series_by: SortSeriesType | None = None,
+                   sort_ascending: bool = True):
+        """X axis column (a column name or an AdhocColumn); optionally sorts the axis by a series aggregate."""
+        self.x_axis = column
+        if sort_series_by is not None:
+            self.x_axis_sort_series = sort_series_by
+            self.x_axis_sort_series_ascending = sort_ascending
+
     def y_axis(self, label: str,
                sql_expression: str = None,
                sort_ascending: bool = True,
                sort_series_by: SortSeriesType = SortSeriesType.NAME):
-
-        expression_type = FilterExpressionType.SIMPLE
-        if sql_expression:
-            expression_type = FilterExpressionType.CUSTOM_SQL
-
-        _metric = {
-            "label": label,
-            "sqlExpression": sql_expression,
-            'expressionType': expression_type,
-        }
-        self.x_axis = AdhocMetric(**_metric)
-        self.x_axis_sort_series = sort_series_by
-        self.x_axis_sort_series_ascending = sort_ascending
+        """Deprecated: it sets the X axis (the bar categories); use set_x_axis."""
+        warnings.warn("TimeSeriesBarOption.y_axis sets the X axis and is deprecated; use set_x_axis.",
+                      DeprecationWarning, stacklevel=2)
+        column = AdhocColumn(label=label, sqlExpression=sql_expression or label, hasCustomLabel=True)
+        self.set_x_axis(column, sort_series_by, sort_ascending)
 
 
 @dataclass()
@@ -131,11 +140,20 @@ class EchartsTimeseriesBarChart(Chart):
     query_context: TimeSeriesBarQueryContext = object_field(
         cls=TimeSeriesBarQueryContext,  default_factory=TimeSeriesBarQueryContext)
 
+    def set_x_axis(self, column: QueryFormColumn, sort_series_by: SortSeriesType | None = None,
+                   sort_ascending: bool = True):
+        self.params.set_x_axis(column, sort_series_by, sort_ascending)
+        self.query_context.form_data.set_x_axis(column, sort_series_by, sort_ascending)
+
     def y_axis(self, label: str,
                sql_expression: str = None,
                sort_ascending: bool = True,
                sort_series_by: SortSeriesType = SortSeriesType.NAME):
-        self.params.y_axis(label, sql_expression, sort_ascending, sort_series_by)
+        """Deprecated: it sets the X axis (the bar categories); use set_x_axis."""
+        warnings.warn("EchartsTimeseriesBarChart.y_axis sets the X axis and is deprecated; use set_x_axis.",
+                      DeprecationWarning, stacklevel=2)
+        column = AdhocColumn(label=label, sqlExpression=sql_expression or label, hasCustomLabel=True)
+        self.set_x_axis(column, sort_series_by, sort_ascending)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

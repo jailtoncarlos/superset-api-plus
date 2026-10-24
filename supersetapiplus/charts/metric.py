@@ -11,7 +11,7 @@ from supersetapiplus.charts.types import (
     TimeGrain,
 )
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableOptional
+from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 logger = logging.getLogger(__name__)
 
@@ -167,13 +167,19 @@ class MetricsListMixin:
 @dataclass
 class SingleMetricMixin:
     metric: Metric = object_field(cls=AdhocMetric, default=None)
-    sort_by_metric: bool = False
+    # Absent unless the plugin has the control (pie: default true; word_cloud: set by automatic ordering).
+    sort_by_metric: SerializableOptional[bool] = None
+    # Whether the automatic ordering of add_*_metric maps to sort_by_metric (False for big numbers).
+    _sorts_by_metric: SerializableNotToJson[bool] = True
+
+    def _sort_by_metric(self, automatic_order: OrderBy) -> None:
+        if self._sorts_by_metric and automatic_order and automatic_order.automate:
+            self.sort_by_metric = True
 
     def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
         MetricHelper.check_metric(metric)
         self.metric = metric
-        if automatic_order and automatic_order.automate:
-            self.sort_by_metric = True
+        self._sort_by_metric(automatic_order)
 
     def _add_custom_metric(self, label: str,
                            automatic_order: OrderBy,
@@ -182,6 +188,5 @@ class SingleMetricMixin:
                            aggregate: MetricType = None):
         if not aggregate:
             raise ValidationError(message='Argument aggregate cannot be empty.')
-        if automatic_order and automatic_order.automate:
-            self.sort_by_metric = True
+        self._sort_by_metric(automatic_order)
         self.metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)

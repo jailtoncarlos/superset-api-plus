@@ -19,6 +19,8 @@ _SOLUTION_USE_ADD_METRIC = ("We recommend using one of the Chart class's add_sim
 @dataclass
 class PieOption(SingleMetricMixin, ChartVisualOptionsMixin, Option):
     viz_type: ChartType = field(default_factory=lambda: ChartType.PIE)
+    row_limit: SerializableOptional[int] = 100
+    sort_by_metric: bool = True
     label_type: LabelType = field(default_factory=lambda: LabelType.CATEGORY_NAME)
     show_labels: bool = True
 

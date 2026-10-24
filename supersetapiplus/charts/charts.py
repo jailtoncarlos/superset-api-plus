@@ -191,8 +191,6 @@ class Chart(SerializableModel):
                           column: AdhocMetricColumn = None,
                           sql_expression: str = None,
                           aggregate: MetricType = None):
-        if column:
-            column.id = self.id
         self.params._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
         self.query_context._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
 

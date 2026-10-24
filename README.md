@@ -212,6 +212,8 @@ python bin/scripts/extract_openapi.py <version> > tests/fixtures/superset_openap
 python bin/scripts/extract_superset_enums.py <version> > tests/fixtures/superset_enums_<version>.json
 # UI references (needs the test stack with SUPERSET_LOAD_EXAMPLES=1 and SUPERSET_VERSION=<version>):
 SUPERSET_URL=... SUPERSET_USERNAME=... SUPERSET_PASSWORD=... python bin/scripts/extract_ui_references.py <version>
+# UI defaults of a new chart (same stack, plus Playwright): checked by tests/unit/test_ui_defaults.py
+SUPERSET_URL=... SUPERSET_USERNAME=... SUPERSET_PASSWORD=... python bin/scripts/extract_ui_defaults.py <version>
 # point the fixture paths in tests/unit/test_*_conformance.py to the new files, run the tests and
 # fix the reported divergences (POST_FIELDS/PUT_FIELDS, payloads, routes, enum values)
 ```

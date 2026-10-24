@@ -1,4 +1,5 @@
 import logging
+import warnings
 from dataclasses import dataclass, field
 
 from supersetapiplus.base.base import SerializableModel
@@ -49,14 +50,26 @@ class QuerieExtra(SerializableModel):
 
 @dataclass
 class AdhocColumn(SerializableModel):
+    """Custom SQL column (superset-ui-core AdhocColumn): a dimension defined by an expression."""
     hasCustomLabel: SerializableOptional[bool] = field(default=None)
     label: str = default_string()
     sqlExpression: str = default_string()
+    expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
     timeGrain: SerializableOptional[TimeGrain] = field(default=None)
     columnType: SerializableOptional[ColumnType] = field(default=None)
 
 
 QueryFormColumn = AdhocColumn | str
+
+
+def custom_column(label: str, column: AdhocMetricColumn = None, sql_expression: str = None,
+                  aggregate: MetricType = None) -> AdhocColumn:
+    """Custom dimension as the UI stores it: an AdhocColumn with a SQL expression (a column has no aggregate)."""
+    if aggregate is not None:
+        warnings.warn("A dimension has no aggregate: the aggregate argument is ignored (use a metric instead).",
+                      DeprecationWarning, stacklevel=3)
+    expression = sql_expression or (column.column_name if column else None) or label
+    return AdhocColumn(label=label, sqlExpression=expression, hasCustomLabel=True)
 
 
 @dataclass
@@ -77,10 +90,7 @@ class ColumnsMixin:
                             column: AdhocMetricColumn = None,
                             sql_expression: str = None,
                             aggregate: MetricType = None):
-        metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
-        self.columns.append(metric)
-        if column:
-            column.expressionType = FilterExpressionType.CUSTOM_SQL
+        self.columns.append(custom_column(label, column, sql_expression, aggregate))
 
 
 @dataclass

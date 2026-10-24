@@ -34,7 +34,15 @@ FREE_TEXT = {
     "charts.options.ChartVisualOptionsMixin.color_scheme":
         "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",
     "charts.options.OptionListGroupByMixin.groupby": NAME,
-    "charts.cal_heatmap.CalHeatmapOption.groupby": NAME,
+    "charts.cal_heatmap.CalHeatmapOption.granularity_sqla": NAME,
+    "charts.cal_heatmap.CalHeatmapOption.time_range":
+        "free-form time range ('No filter', 'Last week', '<since> : <until>') of the time_range control",
+    "charts.cal_heatmap.CalHeatmapOption.linear_color_scheme":
+        "sequential color scheme id from a registry that instances extend",
+    "charts.box_plot.BoxPlotOption.columns": NAME,
+    "charts.word_cloud.WordCloudOption.series": NAME,
+    "charts.echarts_timeseries_bar.TimeSeriesBarOption.x_axis": NAME,
+    "charts.mixed_timeseries.MixedTimeseriesOption.x_axis": NAME,
     "charts.pivot_table_v2.PivotTableV2Option.groupby": NAME,
     "charts.pivot_table_v2.PivotTableV2Option.groupbyColumns": NAME,
     "charts.pivot_table_v2.PivotTableV2Option.groupbyRows": NAME,

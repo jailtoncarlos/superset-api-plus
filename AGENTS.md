@@ -42,6 +42,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   - `bin/scripts/extract_query_contexts.py <version>` → `ui_query_contexts_<version>/`: the `form_data`
     and `queries` the frontend sends to `/api/v1/chart/data` when each reference chart opens in Explore
     (same stack, plus Playwright with Chromium; `CHROME_PATH` selects the browser)
+  - `bin/scripts/extract_ui_defaults.py <version>` → `ui_defaults_<version>/`: the form_data Explore posts
+    for a new chart of each supported viz_type (controlPanel defaults); a chart created in code gets the
+    same params (`tests/unit/test_ui_defaults.py`, in the `model-attributes` hook)
   To support a new Superset version: regenerate the excerpts, run the tests, fix the divergences.
 
 ## Behavioral rules of the library

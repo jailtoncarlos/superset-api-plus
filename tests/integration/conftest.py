@@ -48,7 +48,8 @@ only_test_stack = pytest.mark.skipif(bool(os.getenv("SUPERSET_URL")),
                                      reason="creates users: local test stack only")
 
 PREFIX = "zz-superset-api-plus-test"
-SQL_DATASET = "select 'North' as campus, 10 as total union all select 'South', 7"
+SQL_DATASET = ("select 'North' as campus, 10 as total, date '2026-01-01' as day "
+               "union all select 'South', 7, date '2026-01-02'")
 
 
 def pytest_collection_modifyitems(config, items):

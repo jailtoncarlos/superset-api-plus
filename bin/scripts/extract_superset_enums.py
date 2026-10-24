@@ -101,6 +101,18 @@ CHOICES = [
      "superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx", "rowOrder"),
     ("echarts.xAxisLabelRotation", "superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx",
      "xAxisLabelRotation"),
+    ("box_plot.whiskerOptions", "superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts",
+     "whiskerOptions"),
+    ("cal_heatmap.domain_granularity", "superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts",
+     "domain_granularity"),
+    ("cal_heatmap.subdomain_granularity",
+     "superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts", "subdomain_granularity"),
+]
+
+# Controls whose config is a named constant (`const NAME: ControlConfig = { ..., choices: [...] }`).
+CONST_CHOICES = [
+    ("table.percent_metric_calculation", "superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx",
+     "percentMetricCalculationControl"),
 ]
 
 
@@ -138,6 +150,13 @@ def control_choices(source: str, control: str) -> list:
         raise ValueError(f"choices of {control} not found")
     return [int(number) if number else text
             for text, number in re.findall(r"\[\s*(?:'([^']+)'|(\d+))\s*,", block.group(1))]
+
+
+def const_choices(source: str, name: str) -> list[str]:
+    block = re.search(rf"const {name}\b[^=]*= \{{.*?choices:\s*\[(.*?)\n\s*\],", source, re.S)
+    if not block:
+        raise ValueError(f"choices of {name} not found")
+    return re.findall(r"\[\s*'([^']+)'\s*,", block.group(1))
 
 
 def typescript_object(source: str, name: str) -> dict[str, str]:
@@ -210,7 +229,8 @@ def main(version: str) -> None:
         "superset_version": version,
         "backend": {cls: python_enum(source(file), cls) for file, cls in BACKEND},
         "frontend": {name: typescript_enum(source(file), name) for file, name in FRONTEND},
-        "choices": {key: control_choices(source(file), control) for key, file, control in CHOICES},
+        "choices": {**{key: control_choices(source(file), control) for key, file, control in CHOICES},
+                    **{key: const_choices(source(file), name) for key, file, name in CONST_CHOICES}},
         "constants": {key: typescript_constants(source(file), pattern) for key, file, pattern in CONSTANTS},
         "objects": {name: typescript_object(source(file), name) for file, name in OBJECTS},
         "options": {name: option_values(source(file), name, identifiers) for file, name in OPTIONS},

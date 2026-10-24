@@ -500,3 +500,37 @@ class PivotAggregateFunction(StringEnum):
     COUNT_AS_FRACTION_OF_TOTAL = 'Count as Fraction of Total'
     COUNT_AS_FRACTION_OF_ROWS = 'Count as Fraction of Rows'
     COUNT_AS_FRACTION_OF_COLUMNS = 'Count as Fraction of Columns'
+
+
+class PercentMetricCalculation(StringEnum):
+    """Table percent_metric_calculation (plugin-chart-table controlPanel, Superset 6.1.0)."""
+    ROW_LIMIT = 'row_limit'
+    ALL_RECORDS = 'all_records'
+
+
+class WhiskerOptions(StringEnum):
+    """box_plot whiskerOptions (plugin-chart-echarts BoxPlot controlPanel, Superset 6.1.0)."""
+    TUKEY = 'Tukey'
+    MIN_MAX = 'Min/max (no outliers)'
+    PERCENTILES_2_98 = '2/98 percentiles'
+    PERCENTILES_5_95 = '5/95 percentiles'
+    PERCENTILES_9_91 = '9/91 percentiles'
+    PERCENTILES_10_90 = '10/90 percentiles'
+
+
+class CalendarDomain(StringEnum):
+    """cal_heatmap domain_granularity (legacy-plugin-chart-calendar controlPanel, Superset 6.1.0)."""
+    HOUR = 'hour'
+    DAY = 'day'
+    WEEK = 'week'
+    MONTH = 'month'
+    YEAR = 'year'
+
+
+class CalendarSubdomain(StringEnum):
+    """cal_heatmap subdomain_granularity (legacy-plugin-chart-calendar controlPanel, Superset 6.1.0)."""
+    MIN = 'min'
+    HOUR = 'hour'
+    DAY = 'day'
+    WEEK = 'week'
+    MONTH = 'month'

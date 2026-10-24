@@ -3,24 +3,40 @@
 from dataclasses import dataclass, field
 
 from supersetapiplus.base.fields import object_field
+from supersetapiplus.base.sentinels import MissingField
 from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.metric import SingleMetricMixin
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.types import ChartType
+from supersetapiplus.charts.types import ChartType, DateFormatType, NumberFormatType
+from supersetapiplus.exceptions import ValidationError
+from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 
 @dataclass
-class BigNumberTotalOption(Option):
-    """
-    Configuration options for Big Number Total chart.
-
-    Fields retained or added after diff:
-      - datasource_id: numeric data source ID
-      - datasource_type: data source type
-      - groupby: list of grouping fields
-    """
+class BigNumberTotalOption(SingleMetricMixin, Option):
+    """Big Number params: one `metric` and no dimensions; defaults are the ones the UI gives a new chart."""
     viz_type: ChartType = field(default_factory=lambda: ChartType.BIG_NUMBER_TOTAL)
+    # The plugin has no dimension control: groupby is absent.
+    groupby: SerializableOptional[list] = field(default_factory=MissingField)
+    _require_groupby: SerializableNotToJson[bool] = False
+    _sorts_by_metric: SerializableNotToJson[bool] = False
+
+    header_font_size: float = 0.4
+    subtitle_font_size: float = 0.15
+    metric_name_font_size: float = 0.15
+    show_metric_name: bool = False
+    time_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
+    y_axis_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
+    force_timestamp_formatting: bool = False
+
+    def _add_simple_groupby(self, column_name: str):
+        raise ValidationError(message='A Big Number has no dimensions.',
+                              solution='Filter the data with add_simple_filter, or use another chart type.')
+
+    def _add_custom_groupby(self, label: str, column=None, sql_expression: str = None, aggregate=None):
+        self._add_simple_groupby(label)
 
 
 @dataclass

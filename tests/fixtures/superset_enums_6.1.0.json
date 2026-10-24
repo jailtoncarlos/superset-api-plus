@@ -83,6 +83,28 @@
   }
  },
  "choices": {
+  "box_plot.whiskerOptions": [
+   "Tukey",
+   "Min/max (no outliers)",
+   "2/98 percentiles",
+   "5/95 percentiles",
+   "9/91 percentiles",
+   "10/90 percentiles"
+  ],
+  "cal_heatmap.domain_granularity": [
+   "hour",
+   "day",
+   "week",
+   "month",
+   "year"
+  ],
+  "cal_heatmap.subdomain_granularity": [
+   "min",
+   "hour",
+   "day",
+   "week",
+   "month"
+  ],
   "echarts.xAxisLabelRotation": [
    0,
    45,
@@ -113,6 +135,10 @@
    "key_z_to_a",
    "value_a_to_z",
    "value_z_to_a"
+  ],
+  "table.percent_metric_calculation": [
+   "row_limit",
+   "all_records"
   ]
  },
  "config": {

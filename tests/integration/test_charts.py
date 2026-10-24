@@ -1,10 +1,12 @@
 """Charts against the real Superset: search, reading, writing, data, export and import."""
+import importlib
 import json
 import zipfile
 
 import pytest
 
 from supersetapiplus.base.base import UnsupportedObject
+from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.exceptions import MultipleFound, NotFound, ResourceNotFoundError, UnsupportedTypeError
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
@@ -150,6 +152,38 @@ def test_chart_created_in_code_returns_data_from_its_query_context(client, add_c
     assert json.loads(stored) == chart.ui_query_context()
     (result, *_) = client.charts.get_chart_data(chart.id)
     assert {value for row in result["data"] for value in row.values()} >= {"North", "South"}
+
+
+def build_with_ui_defaults(viz_type: str, dataset) -> Chart:
+    """A chart of each modeled viz_type, built in code on top of the UI defaults of a new chart."""
+    importlib.import_module(f"supersetapiplus.charts.{viz_type}")
+    chart = Chart.get_class(viz_type, f"supersetapiplus.charts.{viz_type}").instance(
+        slice_name=unique_name(viz_type), datasource=DataSource(id=dataset.id, type="table"))
+    chart.add_simple_metric("count")
+    if viz_type in ("table", "pie", "pivot_table_v2", "word_cloud"):
+        chart.add_simple_dimension("campus")
+    elif viz_type == "mixed_timeseries":
+        chart.set_x_axis("day")
+        chart.add_simple_dimension("campus")
+    elif viz_type == "echarts_timeseries_bar":
+        chart.set_x_axis("campus")
+    elif viz_type == "box_plot":
+        chart.add_distribute_across("campus")
+    elif viz_type == "cal_heatmap":
+        chart.params.granularity_sqla = chart.query_context.form_data.granularity_sqla = "day"
+    return chart
+
+
+@pytest.mark.parametrize("viz_type", ["big_number_total", "box_plot", "cal_heatmap", "echarts_timeseries_bar",
+                                      "mixed_timeseries", "pie", "pivot_table_v2", "table", "word_cloud"])
+def test_every_modeled_viz_type_built_on_ui_defaults_returns_data(client, dataset, cleanup, viz_type):
+    chart = build_with_ui_defaults(viz_type, dataset)
+    cleanup.chart(client.charts.add(chart))
+
+    results = client.charts.get_chart_data(chart.id)
+    rows = [row for result in results for row in result["data"]]
+    assert rows, f"{viz_type}: no rows"
+    assert client.charts.get(chart.id).params.to_dict() == chart.params.to_dict()
 
 
 # --- Export and import -----------------------------------------------------------------------
