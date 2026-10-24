@@ -59,6 +59,11 @@ client = SupersetClient("https://superset.example.org", "username", "password") 
 client.enable_session_mode()  # cookie + X-CSRFToken: required when the Public role has permissions
 ```
 
+A long-lived client renews what Superset rejects before processing a request, once per request, and sends
+the request again: an expired JWT (refresh token), an expired session (new form login) and an expired CSRF
+token. Errors keep the Superset SIP-40 fields typed (`error.superset_errors`: message, `error_type`,
+`level`, issue codes), and `str(error)` gives their messages.
+
 TLS certificates are verified by default (`verify=False` only for development). Timeouts and retries come
 from `SUPERSET_API_PLUS_*` environment variables (see [Configuration](#configuration-through-environment-variables)).
 The client never prompts for credentials: without them, login raises `MissingCredentialsError`.

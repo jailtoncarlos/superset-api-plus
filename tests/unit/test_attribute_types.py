@@ -136,6 +136,12 @@ FREE_TEXT = {
     "resources.saved_queries.SavedQuery.description": TEXT,
     "resources.saved_queries.SavedQuery.schema": NAME,
     "resources.saved_queries.SavedQuery.sql": SQL,
+    # Errors of the server (SIP-40 body)
+    "exceptions.SupersetError.message": "error message written by Superset",
+    "exceptions.SupersetError.error_type":
+        "SupersetErrorType (checked in test_enum_conformance.py); str keeps a type added by a newer Superset",
+    "exceptions.SupersetError.level":
+        "ErrorLevel (checked in test_enum_conformance.py); str keeps a level added by a newer Superset",
 }
 
 

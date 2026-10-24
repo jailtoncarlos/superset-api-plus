@@ -5,7 +5,7 @@ import jwt
 import pytest
 
 from supersetapiplus.dashboards.dashboards import Dashboard
-from supersetapiplus.exceptions import ResourceNotFoundError, UnauthorizedError
+from supersetapiplus.exceptions import ComplexBadRequestError, ResourceNotFoundError, UnauthorizedError
 
 from .conftest import SECRET_KEY, new_client, unique_name
 
@@ -85,16 +85,50 @@ def test_jwt_error_message_reaches_the_exception():
     assert info.value.message == "Not enough segments"
 
 
-def test_session_without_cookie_is_unauthorized_and_does_not_try_to_refresh(monkeypatch):
+def count_requests(session, path: str) -> list[int]:
+    """Spy (not an HTTP mock): status of every response of `session` to a URL containing `path`."""
+    statuses: list[int] = []
+    session.hooks["response"].append(lambda r, *args, **kwargs: statuses.append(r.status_code)
+                                     if path in r.url else None)
+    return statuses
+
+
+def test_lost_session_logs_in_again_once_without_trying_the_jwt_refresh(monkeypatch):
     client = new_client()
-    client.session.cookies.clear()
-    # Spy (not an HTTP mock): a renewal attempt would raise the same UnauthorizedError, so count the calls.
+    client.session.cookies.clear()  # expired or lost session cookie: GET 401, POST 400 "CSRF session token"
     attempts = []
     monkeypatch.setattr(client, "refresh_access_token", lambda: attempts.append(1))
 
-    with pytest.raises(UnauthorizedError):
-        client.charts.count()
+    assert client.charts.count() >= 0
+    client.session.cookies.clear()
+    write_and_delete_a_dashboard(client)
     assert attempts == []
+
+
+@pytest.mark.parametrize("session_mode", [True, False])
+def test_rejected_csrf_token_is_renewed_and_the_write_repeated_once(session_mode):
+    client = new_client(session_mode=session_mode)
+    client.session.headers["X-CSRFToken"] = "expired-token"  # 400 "The CSRF token is invalid."
+    statuses = count_requests(client.session, "/api/v1/dashboard/")
+
+    write_and_delete_a_dashboard(client)
+
+    assert client.session.headers["X-CSRFToken"] != "expired-token"
+    assert statuses[:2] == [400, 201]
+
+
+def test_credentials_are_renewed_at_most_once_per_request(monkeypatch):
+    client = new_client()
+    session = client.session
+    session.headers["X-CSRFToken"] = "expired-token"
+    statuses = count_requests(session, "/api/v1/dashboard/")
+    renewals = []
+    # The renewal "succeeds" without fixing the token: the second rejection must be raised, not retried.
+    monkeypatch.setattr(client, "_renew_credentials", lambda error: renewals.append(error) or True)
+
+    with pytest.raises(ComplexBadRequestError, match="The CSRF token is invalid"):
+        client.dashboards.add(Dashboard(dashboard_title=unique_name("auth")))
+    assert (len(renewals), statuses) == (1, [400, 400])
 
 
 def test_enable_session_mode_wins_after_the_jwt_session_was_used():

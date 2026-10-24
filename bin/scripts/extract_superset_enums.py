@@ -29,6 +29,8 @@ BACKEND = [
     ("superset/utils/core.py", "GenericDataType"),
     ("superset/connectors/sqla/models.py", "DatasourceKind"),
     ("superset/models/core.py", "ConfigurationMethod"),
+    ("superset/errors.py", "SupersetErrorType"),
+    ("superset/errors.py", "ErrorLevel"),
 ]
 
 # Backend marshmallow schemas whose field names the library uses (nested items the OpenAPI excerpt does

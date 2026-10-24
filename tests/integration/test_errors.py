@@ -3,6 +3,7 @@ import logging
 import uuid
 
 import pytest
+import requests
 
 from supersetapiplus.databases import Database
 from supersetapiplus.exceptions import (
@@ -13,6 +14,7 @@ from supersetapiplus.exceptions import (
     UnauthorizedError,
     UnprocessableEntityError,
 )
+from supersetapiplus.transport.http import RequestHandler
 
 from .conftest import PASSWORD, URL, USERNAME, new_client, only_test_stack, unique_name
 
@@ -38,11 +40,9 @@ def test_unknown_field_is_400(client):
 
 
 def test_request_without_credentials_is_401(client):
-    anonymous = new_client()
-    anonymous.session.cookies.clear()
-
+    # A fresh session carries no credentials (the client itself would log in again on a 401).
     with pytest.raises(UnauthorizedError):
-        anonymous.charts.count()
+        RequestHandler.request_with_retry(url=client.charts.base_url, method="GET", session=requests.Session())
 
 
 @only_test_stack
@@ -94,10 +94,9 @@ def test_http_error_logs_do_not_expose_password_token_or_cookie(client, caplog):
     for logged_client in (session_client, jwt_client):
         with pytest.raises(BadRequestError):
             logged_client.charts.get(2_000_000_000)
-    expired_session = new_client()
-    expired_session.session.cookies.clear()
-    with pytest.raises(UnauthorizedError):  # 401 on an authenticated call
-        expired_session.charts.count()
+    with pytest.raises(UnauthorizedError):  # 401 of a request without credentials
+        RequestHandler.request_with_retry(url=session_client.charts.base_url, method="GET",
+                                          session=requests.Session())
 
     errors = [r for r in caplog.records if r.levelno >= logging.ERROR]
     assert len(errors) >= 4, "the four HTTP errors should have been logged"

@@ -24,7 +24,12 @@ from supersetapiplus.auth.session import SessionAuthMixin
 from supersetapiplus.charts.charts import Charts
 from supersetapiplus.core.types import LimitingFactor
 from supersetapiplus.dashboards.dashboards import Dashboards
-from supersetapiplus.exceptions import MissingCredentialsError, QueryLimitReached, UnauthorizedError
+from supersetapiplus.exceptions import (
+    BadRequestError,
+    MissingCredentialsError,
+    QueryLimitReached,
+    UnauthorizedError,
+)
 from supersetapiplus.query_string import QueryStringFilter
 from supersetapiplus.resources.assets import Assets
 from supersetapiplus.resources.databases import Databases
@@ -140,18 +145,47 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         return self._session
 
     def _request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
-        """Authenticated request; in JWT mode, a 401 renews the token and retries the call once."""
+        """Authenticated request. Credentials the server rejects before processing the request are renewed
+        once and the request is sent once more (see _renew_credentials); a second rejection is raised."""
         # No JSON Content-Type without a JSON body: Superset reads request.is_json (e.g. GET /chart/{pk}/data/)
         # and rejects an empty body declared as JSON.
         kwargs["headers"] = self.get_headers(kwargs.pop("headers", None), json_body=kwargs.get("json") is not None)
         kwargs.setdefault("verify", self._verify)
         try:
             return RequestHandler.request_with_retry(url=url, method=method, session=self.session, **kwargs)
-        except UnauthorizedError:
-            if self._session_mode or not self._refresh_token:
+        except BadRequestError as error:
+            if not self._renew_credentials(error):
                 raise
-            self.refresh_access_token()
-            return RequestHandler.request_with_retry(url=url, method=method, session=self.session, **kwargs)
+        return RequestHandler.request_with_retry(url=url, method=method, session=self.session, **kwargs)
+
+    def _renew_credentials(self, error: BadRequestError) -> bool:
+        """Renews what `error` says was rejected; False when there is nothing to renew.
+
+        Superset 6.1.0 rejects these before processing the request, so sending it again (even a POST) does
+        not repeat an operation:
+        - 401: the JWT is renewed with the refresh token; in session mode (an expired or lost session
+          cookie) the client logs in again through the form;
+        - 400 whose SIP-40 error names the CSRF token ("The CSRF token is missing/invalid/has expired"): a
+          new CSRF token for the same session; "The CSRF session token is missing" means, in session mode,
+          that the session cookie was lost: a new login, which also fetches a new CSRF token.
+        """
+        if isinstance(error, UnauthorizedError):
+            if self._session_mode:
+                self.enable_session_mode()
+                return True
+            if self._refresh_token:
+                self.refresh_access_token()
+                return True
+            return False
+        messages = [e.message for e in error.superset_errors]
+        if not self.use_csrf or not any("CSRF" in message for message in messages):
+            return False
+        logger.debug("CSRF token rejected by Superset; renewing it.")
+        if self._session_mode and any("CSRF session token" in message for message in messages):
+            self.enable_session_mode()
+        else:
+            self.enable_csrf(self.session, self._access_token, verify=self._verify)
+        return True
 
     def get(self, url: str, **kwargs: Any) -> requests.Response:
         return self._request("GET", url, **kwargs)

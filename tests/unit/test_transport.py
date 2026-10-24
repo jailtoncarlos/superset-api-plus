@@ -15,6 +15,7 @@ import requests
 import requests_mock as rm
 
 from supersetapiplus.client import SupersetClient
+from supersetapiplus.core.types import ErrorLevel, SupersetErrorType
 from supersetapiplus.exceptions import (
     BadRequestError,
     ComplexBadRequestError,
@@ -101,6 +102,27 @@ def test_error_list_with_another_status_is_a_complex_bad_request_error():
     with pytest.raises(ComplexBadRequestError) as info:
         RequestHandler.raise_for_status(response(500, SIP40))
     assert isinstance(info.value, BadRequestError) and info.value.errors == SIP40["errors"]
+
+
+def test_sip40_errors_are_typed_and_readable():
+    # Body measured on Superset 6.1.0 for a POST with an invalid CSRF token; a second error with a type and a
+    # level this library does not know (a newer Superset) is kept as text.
+    body = {"errors": [
+        {"message": "400 Bad Request: The CSRF token is invalid.", "error_type": "GENERIC_BACKEND_ERROR",
+         "level": "error", "extra": {"issue_codes": [
+             {"code": 1011, "message": "Issue 1011 - Superset encountered an unexpected error."}]}},
+        {"message": "Other", "error_type": "SOME_NEW_ERROR", "level": "notice"},
+    ]}
+    with pytest.raises(ComplexBadRequestError) as info:
+        RequestHandler.raise_for_status(response(400, body))
+
+    first, second = info.value.superset_errors
+    assert (first.error_type, first.level) == (SupersetErrorType.GENERIC_BACKEND_ERROR, ErrorLevel.ERROR)
+    assert [issue["code"] for issue in first.issue_codes] == [1011]
+    assert (second.error_type, second.level, second.issue_codes) == ("SOME_NEW_ERROR", "notice", [])
+    assert str(info.value) == (
+        "400 Bad Request: The CSRF token is invalid. (GENERIC_BACKEND_ERROR) "
+        "[Issue 1011 - Superset encountered an unexpected error.]\nOther (SOME_NEW_ERROR)")
 
 
 @pytest.mark.parametrize("status,msg", [(401, "Token has expired"), (422, "Not enough segments"),

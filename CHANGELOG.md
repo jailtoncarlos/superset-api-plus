@@ -28,6 +28,9 @@ reorganized, tested package.
 
 * Superset errors with a SIP-40 body (`{"errors": [...]}`) or a JWT `{"msg": ...}` body are mapped to the
   status exceptions; rate-limited requests (429) are retried.
+* Long-lived clients: an expired CSRF token or session-mode login is renewed once and the request sent again
+  (it used to fail with "The CSRF token is missing." or a 401). SIP-40 errors are typed
+  (`error.superset_errors`) and `str(error)` is their messages instead of a JSON dump.
 * Objects read from Superset are written back without loss (absent keys stay absent, null JSON stays
   null), including charts whose stored `query_context` differs from older Superset versions.
 * Enum values aligned with the Superset source (aggregates, operators, title positions, stacking...).

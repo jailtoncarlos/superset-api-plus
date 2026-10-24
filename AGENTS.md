@@ -62,6 +62,10 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   (FAB 5). Use `client.enable_session_mode()` (login form cookie + `X-CSRFToken`/`Referer`). In JWT mode
   a rejected token renews it once with the refresh token: a 401, or the 422 `{"msg": ...}` that
   flask-jwt-extended returns for a malformed token (both raise `UnauthorizedError` with the server `msg`).
+  In session mode a 401 (expired or lost session cookie) logs in again through the form. A 400 whose SIP-40
+  error names the CSRF token gets a new token (a new login when it is "The CSRF session token is missing",
+  i.e. the session was lost). At most one renewal and one repeat per request: Superset rejects these before
+  processing the request, so a repeated POST does not repeat the operation.
 - **HTTP**: retries transient failures only on idempotent methods (never POST), except 429 (rate limit:
   the request was not processed, so any method is retried, honoring Retry-After); HTTP errors map by
   status to `UnauthorizedError`/`ForbiddenError`/`ResourceNotFoundError`/`UnprocessableEntityError`

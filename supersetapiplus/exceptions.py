@@ -5,10 +5,15 @@ Defines specialized exception classes for error handling in the Superset API cli
 including HTTP errors, validation errors, and domain-specific exceptions.
 """
 
+from __future__ import annotations
+
 import json
+from dataclasses import dataclass, field
 from typing import Any
 
 from requests import HTTPError
+
+from supersetapiplus.core.types import ErrorLevel, SupersetErrorType
 
 
 class NotFound(Exception):
@@ -39,12 +44,50 @@ class QueryLimitReached(Exception):
     pass
 
 
+@dataclass(frozen=True)
+class SupersetError:
+    """An error of a SIP-40 body (`superset/errors.py` SupersetError): message, type, level and `extra`.
+
+    `error_type` and `level` are the Superset enums; a value this library does not know (a newer Superset)
+    is kept as the text received.
+    """
+    message: str
+    error_type: SupersetErrorType | str | None = None
+    level: ErrorLevel | str | None = None
+    extra: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SupersetError:
+        return cls(message=str(data.get("message", "")), error_type=_enum_or_text(SupersetErrorType, data.get("error_type")),
+                   level=_enum_or_text(ErrorLevel, data.get("level")), extra=dict(data.get("extra") or {}))
+
+    @property
+    def issue_codes(self) -> list[dict[str, Any]]:
+        """Issue codes of the error (`extra.issue_codes`: `code` and `message`)."""
+        return [issue for issue in self.extra.get("issue_codes") or [] if isinstance(issue, dict)]
+
+    def __str__(self) -> str:
+        text = f"{self.message} ({self.error_type})" if self.error_type else self.message
+        issues = [str(issue.get("message")) for issue in self.issue_codes if issue.get("message")]
+        return f"{text} [{'; '.join(issues)}]" if issues else text
+
+
+def _enum_or_text(enum: Any, value: Any) -> Any:
+    if value is None:
+        return None
+    try:
+        return enum(value)
+    except ValueError:
+        return str(value)
+
+
 class BadRequestError(HTTPError):
     """
     Represents an HTTP error response from Superset (the base of the status-specific errors).
 
     `message` holds the `message` of the body (for 422, the errors per field) and `errors` the list of
-    Superset errors (SIP-40 body `{"errors": [...]}`), when present; `str()` renders them as JSON.
+    Superset errors (SIP-40 body `{"errors": [...]}`), when present, also available typed in
+    `superset_errors`. `str()` gives the messages, with the error type and the issue code messages.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -52,8 +95,17 @@ class BadRequestError(HTTPError):
         self.errors: list[dict[str, Any]] | None = kwargs.pop("errors", None)
         super().__init__(*args, **kwargs)
 
+    @property
+    def superset_errors(self) -> list[SupersetError]:
+        """The SIP-40 errors of the body, typed (empty when the body has no `errors` list)."""
+        return [SupersetError.from_dict(error) for error in self.errors or [] if isinstance(error, dict)]
+
     def __str__(self) -> str:
-        return json.dumps(self.message if self.message is not None else self.errors, indent=4)
+        if self.superset_errors:
+            return "\n".join(str(error) for error in self.superset_errors)
+        if isinstance(self.message, str):
+            return self.message
+        return json.dumps(self.message, indent=4)
 
 
 class UnauthorizedError(BadRequestError):
@@ -78,9 +130,6 @@ class ComplexBadRequestError(BadRequestError):
 
     401/403/404/422 bodies with `errors` raise the status class instead (with the same `errors`).
     """
-
-    def __str__(self) -> str:
-        return json.dumps(self.errors, indent=4)
 
 
 class ItemPositionValidationError(Exception):

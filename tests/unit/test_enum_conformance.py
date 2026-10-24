@@ -38,6 +38,8 @@ SOURCES = {
     B.DatasourceKind: official(BACKEND, "DatasourceKind"),
     B.LimitingFactor: official(BACKEND, "LimitingFactor"),
     B.ConfigurationMethod: official(BACKEND, "ConfigurationMethod"),
+    B.SupersetErrorType: official(BACKEND, "SupersetErrorType"),
+    B.ErrorLevel: official(BACKEND, "ErrorLevel"),
     T.FilterOperatorType: official(BACKEND, "FilterOperator"),
     T.TimeGrain: official(BACKEND, "TimeGrain"),
     T.ResultFormat: official(BACKEND, "ChartDataResultFormat"),
