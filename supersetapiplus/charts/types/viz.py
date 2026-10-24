@@ -15,6 +15,26 @@ class ChartType(StringEnum):
     MIXED_TIMESERIES = 'mixed_timeseries'
     WORD_CLOUD = 'word_cloud'
 
+
+# Legacy viz types removed from Superset -> the type Superset migrated their charts to
+# (superset/migrations/shared/migrate_viz/processors.py, 6.1.0; checked in test_enum_conformance.py).
+# filter_box has no chart type: it was replaced by the dashboard native filters (UPDATING.md, #26328).
+REMOVED_VIZ_TYPES: dict[str, str] = {
+    "area": "echarts_area",
+    "bar": "echarts_timeseries_bar",
+    "bubble": "bubble_v2",
+    "dist_bar": "echarts_timeseries_bar",
+    "dual_line": "mixed_timeseries",
+    "heatmap": "heatmap_v2",
+    "histogram": "histogram_v2",
+    "line": "echarts_timeseries_line",
+    "pivot_table": "pivot_table_v2",
+    "sankey": "sankey_v2",
+    "sunburst": "sunburst_v2",
+    "treemap": "treemap_v2",
+}
+REMOVED_WITHOUT_CHART_TYPE = {"filter_box": "dashboard native filters (json_metadata.add_native_filter)"}
+
 #https://github.com/apache/superset/blob/8553b06155249c3583cf0dcd22221ec06cbb833d/superset-frontend/plugins/plugin-chart-echarts/src/types.ts
 class LegendType(StringEnum):
     PLAIN = 'plain'

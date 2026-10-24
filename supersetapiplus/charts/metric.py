@@ -98,13 +98,29 @@ class OrderBy:
         return f'automate: {self.automate}, sort_ascending: {self.sort_ascending}'
 
 
+class _CountUnlessSql:
+    """Default aggregate of get_metric: COUNT for a simple metric, none for a SQL expression."""
+
+
+_COUNT_UNLESS_SQL = _CountUnlessSql()
+
+
 class MetricHelper:
     @classmethod
     def get_metric(cls, label: str,
                    column: AdhocMetricColumn | None = None,
                    sql_expression: str | None = None,
-                   aggregate: MetricType | str | None = MetricType.COUNT) -> AdhocMetric:
+                   aggregate: MetricType | str | None | _CountUnlessSql = _COUNT_UNLESS_SQL) -> AdhocMetric:
+        """Adhoc metric: an aggregate of a column (SIMPLE) or a SQL expression (SQL).
+
+        A SQL metric takes neither a column nor an aggregate, and needs a label: without one Superset names
+        the result column after the expression (``get_metric_name``, superset/utils/core.py, 6.1.0).
+        """
+        if isinstance(aggregate, _CountUnlessSql):
+            aggregate = None if sql_expression else MetricType.COUNT
         expression_type = FilterExpressionType.CUSTOM_SQL if sql_expression else FilterExpressionType.SIMPLE
+        if sql_expression:
+            cls.check_sql_metric(label, column, aggregate)
         if aggregate:
             cls.check_aggregate(aggregate)
         metric = AdhocMetric(expressionType=expression_type, hasCustomLabel=bool(label), column=column,
@@ -119,6 +135,15 @@ class MetricHelper:
         if not isinstance(value, str) or not value.strip():
             raise ValidationError(message='A simple metric is the name of a metric saved in the dataset.',
                                   solution='Pass the metric name, e.g. "count", or use add_custom_metric.')
+
+    @classmethod
+    def check_sql_metric(cls, label: str, column: object, aggregate: object) -> None:
+        if column is not None or aggregate:
+            raise ValidationError(message='A SQL metric takes neither a column nor an aggregate.',
+                                  solution='Write the aggregation in the SQL expression, e.g. "SUM(total)".')
+        if not label or not label.strip():
+            raise ValidationError(message='A SQL metric needs a label.',
+                                  solution='Pass the label shown for the metric (the column name of the result).')
 
     @classmethod
     def check_aggregate(cls, value: object) -> None:
@@ -173,7 +198,8 @@ class SingleMetricMixin:
                            column: AdhocMetricColumn | None,
                            sql_expression: str | None = None,
                            aggregate: MetricType | str | None = None) -> None:
-        if not aggregate:
-            raise ValidationError(message='Argument aggregate cannot be empty.')
+        if not aggregate and not sql_expression:
+            raise ValidationError(message='Argument aggregate cannot be empty.',
+                                  solution='Pass an aggregate, or a sql_expression for a SQL metric.')
         self._sort_by_metric(automatic_order)
         self.metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)

@@ -34,6 +34,11 @@ reorganized, tested package.
 * Objects read from Superset are written back without loss (absent keys stay absent, null JSON stays
   null), including charts whose stored `query_context` differs from older Superset versions.
 * Enum values aligned with the Superset source (aggregates, operators, title positions, stacking...).
+* Chart inputs Superset would reject or silently change are rejected in code: removed viz types name their
+  replacement (`bar` -> `echarts_timeseries_bar`...); a SQL metric takes no column or aggregate and needs a
+  label (single-metric charts now take SQL metrics); IN/NOT IN filters store a list, IS ... filters no value,
+  and the other operators reject a list (Superset kept only its first item); box plot whiskers accept custom
+  `"<low>/<high> percentiles"`; time formats reject moment.js patterns, which Superset 6 shows as text.
 * Secrets are masked in logs; TLS is verified by default.
 * Chart builders: a pie with a SQL-expression metric validates; `add_simple_filter` works on a chart read
   without `adhoc_filters`; a chart whose stored `query_context` is null is edited through its params.

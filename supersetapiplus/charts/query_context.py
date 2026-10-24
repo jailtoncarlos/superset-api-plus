@@ -16,7 +16,7 @@ from supersetapiplus.charts.types import (
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.model import SerializableModel
-from supersetapiplus.core.typing import SerializableOptional
+from supersetapiplus.core.typing import FilterValues, SerializableOptional
 from supersetapiplus.exceptions import ChartValidationError, ValidationError
 
 
@@ -114,7 +114,7 @@ class QueryContext(SerializableModel):
         self.first_queries._add_custom_columns(label, column, sql_expression, aggregate)
 
     def _add_simple_filter(self, column_name: str,
-                           value: str,
+                           value: FilterValues | None,
                            operator: FilterOperatorType = FilterOperatorType.EQUALS) -> None:
         self.form_data._adhoc_filters(expression_type=FilterExpressionType.SIMPLE,
                                    clause=FilterClausesType.WHERE,

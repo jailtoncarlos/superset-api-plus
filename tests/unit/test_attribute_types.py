@@ -136,6 +136,8 @@ FREE_TEXT = {
     "resources.saved_queries.SavedQuery.description": TEXT,
     "resources.saved_queries.SavedQuery.schema": NAME,
     "resources.saved_queries.SavedQuery.sql": SQL,
+    "charts.box_plot.BoxPlotOption.whiskerOptions":
+        "WhiskerOptions preset, or the custom '<low>/<high> percentiles' of the freeForm control (validated)",
     # Errors of the server (SIP-40 body)
     "exceptions.SupersetError.message": "error message written by Superset",
     "exceptions.SupersetError.error_type":

@@ -244,6 +244,38 @@ def number_formats(source: str) -> list[str]:
             + [first or second for first, second in literal])
 
 
+# Legacy viz types removed from Superset and the type their charts were migrated to.
+MIGRATE_VIZ = "superset/migrations/shared/migrate_viz/processors.py"
+
+
+def migrated_viz_types(source: str) -> dict[str, str]:
+    """`source_viz_type` -> `target_viz_type` of the MigrateViz processors (class-level constants)."""
+    pairs = {}
+    for node in ast.parse(source).body:
+        if not isinstance(node, ast.ClassDef):
+            continue
+        values = {target.id: item.value.value for item in node.body if isinstance(item, ast.Assign)
+                  for target in item.targets if isinstance(target, ast.Name) and isinstance(item.value, ast.Constant)}
+        if "source_viz_type" in values and "target_viz_type" in values:
+            pairs[values["source_viz_type"]] = values["target_viz_type"]
+    return pairs
+
+
+# Groups of adhoc filter operators of the filter control: (file, constant).
+OPERATOR_GROUPS = [
+    ("superset-frontend/src/explore/constants.ts", "MULTI_OPERATORS"),
+    ("superset-frontend/src/explore/constants.ts", "DISABLE_INPUT_OPERATORS"),
+]
+
+
+def operator_group(source: str, name: str) -> list[str]:
+    """Members of the `Operators` enum listed in `export const <name> = new Set([...])` or `= [...]`."""
+    match = re.search(rf"export const {name}\s*=\s*(?:new Set\()?\[(.*?)\]", source, re.S)
+    if not match:
+        raise SystemExit(f"{name} not found")
+    return re.findall(r"Operators\.(\w+)", match.group(1))
+
+
 def main(version: str) -> None:
     cache: dict[str, str] = {}
 
@@ -271,6 +303,8 @@ def main(version: str) -> None:
         "identifiers": identifiers,
         "config": {name: config_list(source(CONFIG), name) for name in CONFIG_LISTS},
         "fab": {"version": fab, "filter_operators": fab_operators(download(fab, FAB_FILTERS, FAB_ROOT))},
+        "migrated_viz_types": migrated_viz_types(source(MIGRATE_VIZ)),
+        "operator_groups": {name: operator_group(source(file), name) for file, name in OPERATOR_GROUPS},
     }
     json.dump(subset, sys.stdout, ensure_ascii=False, indent=1, sort_keys=True)
     sys.stdout.write("\n")

@@ -169,6 +169,20 @@ def test_dashboard_grid_limits_are_the_editor_ones():
                                        grid["GRID_DEFAULT_CHART_WIDTH"])
 
 
+def test_removed_viz_types_are_the_ones_superset_migrated():
+    from supersetapiplus.charts.types.viz import REMOVED_VIZ_TYPES
+
+    assert REMOVED_VIZ_TYPES == OFFICIAL["migrated_viz_types"]
+
+
+def test_filter_operator_groups_are_those_of_the_filter_control():
+    from supersetapiplus.charts.filters import DISABLE_INPUT_OPERATORS, MULTI_OPERATORS
+
+    ids = FRONTEND["Operators"]  # Operators member -> operatorId (= FilterOperatorType member name)
+    for group, library in (("MULTI_OPERATORS", MULTI_OPERATORS), ("DISABLE_INPUT_OPERATORS", DISABLE_INPUT_OPERATORS)):
+        assert {operator.name for operator in library} == {ids[name] for name in OFFICIAL["operator_groups"][group]}
+
+
 def _import_quietly(name: str):
     """Modules of the package, including the compatibility modules of old paths (they warn on import)."""
     with warnings.catch_warnings():

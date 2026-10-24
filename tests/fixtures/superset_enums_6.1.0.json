@@ -426,6 +426,20 @@
   "AUTO_CURRENCY_SYMBOL": "AUTO",
   "SMART_DATE_ID": "smart_date"
  },
+ "migrated_viz_types": {
+  "area": "echarts_area",
+  "bar": "echarts_timeseries_bar",
+  "bubble": "bubble_v2",
+  "dist_bar": "echarts_timeseries_bar",
+  "dual_line": "mixed_timeseries",
+  "heatmap": "heatmap_v2",
+  "histogram": "histogram_v2",
+  "line": "echarts_timeseries_line",
+  "pivot_table": "pivot_table_v2",
+  "sankey": "sankey_v2",
+  "sunburst": "sunburst_v2",
+  "treemap": "treemap_v2"
+ },
  "number_formats": [
   "SMART_NUMBER",
   ",d",
@@ -468,6 +482,19 @@
    "MIN": "MIN",
    "SUM": "SUM"
   }
+ },
+ "operator_groups": {
+  "DISABLE_INPUT_OPERATORS": [
+   "IsNotNull",
+   "IsNull",
+   "LatestPartition",
+   "IsTrue",
+   "IsFalse"
+  ],
+  "MULTI_OPERATORS": [
+   "In",
+   "NotIn"
+  ]
  },
  "options": {
   "D3_TIME_FORMAT_OPTIONS": [

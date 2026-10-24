@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
@@ -25,10 +26,27 @@ from supersetapiplus.charts.types import (
 from supersetapiplus.core.fields import default_string, object_field
 from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.core.sentinels import MissingField
-from supersetapiplus.core.typing import SerializableOptional
+from supersetapiplus.core.typing import FilterValues, SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
+
+
+# Time format controls of the chart plugins (free-form, DateFormatType holds the suggestions).
+TIME_FORMAT_FIELDS = ("date_format", "time_format", "x_axis_time_format", "table_timestamp_format",
+                      "tooltipTimeFormat")
+# Tokens of moment.js date formats ("DD/MM/YYYY"): Superset 6 formats dates with d3-time-format
+# (superset-ui-core/src/time-format, "%d/%m/%Y"), which prints them as literal text.
+_MOMENT_TOKENS = re.compile(r"YYYY|YY|DD|Do|HH|hh|mm|ss|MMM|MM")
+
+
+def check_time_formats(option: object) -> None:
+    """Time formats are "smart_date" or d3-time-format patterns, not moment.js ones."""
+    for name in TIME_FORMAT_FIELDS:
+        value = getattr(option, name, None)
+        if isinstance(value, str) and "%" not in value and _MOMENT_TOKENS.search(value):
+            raise ValidationError(message=f"{name} {value!r} is a moment.js format; Superset would show it as text.",
+                                  solution='Use a d3-time-format pattern (e.g. "%d/%m/%Y") or DateFormatType.')
 
 
 @dataclass
@@ -101,6 +119,8 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
 
     def validate(self) -> None:
         super().validate()
+        if not self._read_from_superset:  # what Superset stored is written back as read
+            check_time_formats(self)
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -118,7 +138,7 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
                        expression_type: FilterExpressionType,
                        clause: FilterClausesType,
                        subject: str | None = None,
-                       comparator: str | None = None,
+                       comparator: FilterValues | None = None,
                        sql_expression: str | None = None,
                        operator: FilterOperatorType | None = None) -> None:
         operator_id = None

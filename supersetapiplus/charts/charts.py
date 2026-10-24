@@ -10,21 +10,33 @@ from typing import Any, ClassVar
 from typing_extensions import Self
 
 from supersetapiplus.charts.build_query import query_context_for
+from supersetapiplus.charts.filters import filter_comparator
 from supersetapiplus.charts.metric import AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, FilterClausesType, FilterExpressionType, FilterOperatorType, MetricType
+from supersetapiplus.charts.types.viz import REMOVED_VIZ_TYPES, REMOVED_WITHOUT_CHART_TYPE
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.core.dicts import detailed_dict_diff
 from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.core.types import DatasourceType
-from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.core.typing import FilterValues, SerializableNotToJson, SerializableOptional
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.exceptions import ChartValidationError, NotFound, UnsupportedTypeError, ValidationError
 from supersetapiplus.resources.repository import ApiModelFactories
 
 logger = logging.getLogger(__name__)
+
+
+def _unsupported_message(viz_type: str) -> str:
+    """Why a viz_type has no model; for a type removed from Superset, what replaced it."""
+    if viz_type in REMOVED_VIZ_TYPES:
+        return (f"viz_type '{viz_type}' was removed from Superset, which migrated its charts to "
+                f"'{REMOVED_VIZ_TYPES[viz_type]}': use that type.")
+    if viz_type in REMOVED_WITHOUT_CHART_TYPE:
+        return f"viz_type '{viz_type}' was removed from Superset; use the {REMOVED_WITHOUT_CHART_TYPE[viz_type]}."
+    return f"viz_type '{viz_type}' is not supported by superset-api-plus."
 
 
 @dataclass
@@ -178,7 +190,7 @@ class Chart(SerializableModel):
         try:
             return Chart._REGISTRY[viz_type]
         except KeyError:
-            raise UnsupportedTypeError(f"viz_type '{viz_type}' is not supported by superset-api-plus.") from None
+            raise UnsupportedTypeError(_unsupported_message(viz_type)) from None
 
     @classmethod
     def get_class(cls, type_: str, module_name: str | None = None) -> type["Chart"]:
@@ -272,8 +284,10 @@ class Chart(SerializableModel):
             self.query_context._add_custom_groupby(label, column, sql_expression, aggregate)
 
     def add_simple_filter(self, column_name: str,
-                          value: str,
+                          value: FilterValues | None = None,
                           operator: FilterOperatorType = FilterOperatorType.EQUALS) -> None:
+        """Filter on a column: one value, a list for IN/NOT IN, none for IS NULL and the other IS operators."""
+        value = filter_comparator(operator, value)
         self.params._adhoc_filters(expression_type=FilterExpressionType.SIMPLE,
                                    clause=FilterClausesType.WHERE,
                                    subject=column_name,

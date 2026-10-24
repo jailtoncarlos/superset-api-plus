@@ -161,7 +161,7 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')
 
     def _add_simple_filter(self, column_name: QueryFormColumn,
-                           value: FilterValues,
+                           value: FilterValues | None,
                            operator: FilterOperatorType = FilterOperatorType.EQUALS) -> None:
         query_filter_clause = QueryFilterClause(col=column_name, val=value, op=operator)
         self.filters.append(query_filter_clause)

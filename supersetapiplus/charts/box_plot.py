@@ -1,5 +1,6 @@
 # supersetapiplus/charts/box_plot.py
 
+import re
 from dataclasses import dataclass, field
 from typing import ClassVar
 
@@ -10,6 +11,10 @@ from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, TimeGrain, WhiskerOptions
 from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.typing import SerializableOptional
+from supersetapiplus.exceptions import ValidationError
+
+# PERCENTILE_REGEX of plugin-chart-echarts/src/BoxPlot/buildQuery.ts (Superset 6.1.0).
+PERCENTILE_WHISKERS = re.compile(r"(\d+)/(\d+) percentiles")
 
 
 @dataclass
@@ -23,9 +28,31 @@ class BoxPlotOption(Option):
     # Dimensions are optional in the UI (one box when empty).
     _require_groupby: ClassVar[bool] = False
     columns: SerializableOptional[list[QueryFormColumn]] = object_field(default=None)
-    whiskerOptions: SerializableOptional[WhiskerOptions] = field(default_factory=lambda: WhiskerOptions.TUKEY)
+    # A preset, or custom "<low>/<high> percentiles" (freeForm control; see set_whisker_percentiles).
+    whiskerOptions: SerializableOptional[WhiskerOptions | str] = field(default_factory=lambda: WhiskerOptions.TUKEY)
     row_limit: SerializableOptional[int] = 10000
     time_grain_sqla: SerializableOptional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
+
+    def set_whisker_percentiles(self, low: int, high: int) -> None:
+        """Whiskers at the `low` and `high` percentiles (the editor accepts any pair besides the presets)."""
+        self.whiskerOptions = f"{low}/{high} percentiles"
+        self._check_whiskers()
+
+    def validate(self) -> None:
+        super().validate()
+        self._check_whiskers()
+
+    def _check_whiskers(self) -> None:
+        """A custom value follows PERCENTILE_REGEX of the BoxPlot buildQuery (Superset 6.1.0), with the
+        percentiles the backend accepts (pandas_postprocessing/boxplot.py: low < high, both 0 to 100)."""
+        value = self.whiskerOptions
+        if not isinstance(value, str) or value in {option.value for option in WhiskerOptions}:
+            return
+        match = PERCENTILE_WHISKERS.search(value)
+        if not match or not 0 <= int(match.group(1)) < int(match.group(2)) <= 100:
+            raise ValidationError(message=f"Invalid whiskerOptions {value!r}.",
+                                  solution='Use a WhiskerOptions preset or "<low>/<high> percentiles" with '
+                                           '0 <= low < high <= 100.')
 
     def _add_distribute_across(self, column: QueryFormColumn) -> None:
         if not isinstance(self.columns, list):

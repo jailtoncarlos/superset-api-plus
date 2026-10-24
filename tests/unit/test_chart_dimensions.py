@@ -84,7 +84,7 @@ def test_box_plot_distributes_across_columns_without_requiring_dimensions():
 def test_pie_with_a_sql_expression_metric_validates():
     # The metric has no dataset column (column is None): validate() used to raise AttributeError.
     chart = new_chart("pie")
-    chart.add_custom_metric("Total", sql_expression="SUM(sales)", aggregate="SUM")
+    chart.add_custom_metric("Total", sql_expression="SUM(sales)")  # a SQL metric has no aggregate
     chart.add_simple_dimension("region")
 
     chart.params.validate()
