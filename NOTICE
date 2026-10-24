@@ -1,0 +1,9 @@
+superset-api-plus
+Copyright 2025-2026 COSINF/DIGTI/IFRN
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It includes software derived from superset-api-client
+(https://github.com/opus-42/superset-api-client),
+Copyright Emmanuel B. and the superset-api-client contributors,
+licensed under the Apache License, Version 2.0.

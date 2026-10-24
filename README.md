@@ -1,6 +1,6 @@
 # superset-api-plus
 
-[![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python Versions](https://img.shields.io/pypi/pyversions/superset-api-plus)](https://pypi.org/project/superset-api-plus/)
 [![pre-commit](https://img.shields.io/badge/code%20style-pre--commit-blue)](https://pre-commit.com/)
 
@@ -222,7 +222,10 @@ SUPERSET_URL=... SUPERSET_USERNAME=... SUPERSET_PASSWORD=... python bin/scripts/
 
 ## License
 
-Licensed under the **Mozilla Public License 2.0 (MPL 2.0)**.
+Licensed under the **Apache License 2.0** (see `LICENSE`).
+
+This project started as a fork of [opus-42/superset-api-client](https://github.com/opus-42/superset-api-client),
+also licensed under the Apache License 2.0; see `NOTICE` for attribution.
 
 ---
 
