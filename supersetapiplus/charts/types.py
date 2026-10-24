@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-from supersetapiplus.base.enum_str import StringEnum, deprecate_members
+from supersetapiplus.core.enums import StringEnum, deprecate_members
 from supersetapiplus.deprecation import module_aliases
 
 

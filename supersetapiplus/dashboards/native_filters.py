@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import shortuuid
 
-from supersetapiplus.base.enum_str import StringEnum
+from supersetapiplus.core.enums import StringEnum
 
 NATIVE_FILTER_PREFIX = "NATIVE_FILTER-"
 NATIVE_FILTER_DIVIDER_PREFIX = "NATIVE_FILTER_DIVIDER-"

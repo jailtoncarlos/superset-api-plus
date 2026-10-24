@@ -58,7 +58,6 @@ def test_new_pivot_has_ui_defaults_and_serializes():
     assert str(option.aggregateFunction) == "Sum"
     assert option.combineMetric is False
     assert "currency_format" not in data or data["currency_format"] is None
-    assert T.ChartType.PIVOT_TALBE_V2 is T.ChartType.PIVOT_TABLE_V2
 
 
 def test_json_metadata_defaults_follow_superset_6():

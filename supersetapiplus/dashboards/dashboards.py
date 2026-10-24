@@ -1,13 +1,14 @@
 """Dashboards."""
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import ApiModelFactories, SerializableModel, UnsupportedObject
-from supersetapiplus.base.fields import object_field
+from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.dashboards.layout import DashboardLayout
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.exceptions import DashboardValidationError, UnsupportedTypeError
-from supersetapiplus.typing import SerializableOptional
+from supersetapiplus.resources.repository import ApiModelFactories, UnsupportedObject
 
 
 def default_metadata():
@@ -101,7 +102,7 @@ class Dashboard(SerializableModel):
         if not self.id:
             raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the '
                                            'client.dashboards.add([this-dashboard]) method.')
-        charts = self._factory.client.charts
+        charts = self._repository().client.charts
         if not chart.id:
             charts.add(chart)
 
@@ -127,8 +128,8 @@ class Dashboard(SerializableModel):
 
     def get_charts(self) -> list:
         """Charts associated with the dashboard in Superset (GET /dashboard/{id}/charts), as library objects."""
-        client = self._factory.client
-        url = client.join_urls(self._factory.base_url, self.id, "charts")
+        client = self._repository().client
+        url = client.join_urls(self._repository().base_url, self.id, "charts")
         charts = []
         for item in client.get(url).json()["result"]:
             try:
@@ -140,10 +141,10 @@ class Dashboard(SerializableModel):
     def delete(self, exclude_charts: bool = False) -> bool:
         """Deletes the dashboard; with exclude_charts=True, also deletes the associated charts."""
         charts = self.get_charts() if exclude_charts else []
-        deleted = self._factory.delete(id=self.id)
+        deleted = self._repository().delete(id=self.id)
         if deleted:
             for chart in charts:
-                self._factory.client.charts.delete(chart.id)
+                self._repository().client.charts.delete(chart.id)
         return deleted
 
 

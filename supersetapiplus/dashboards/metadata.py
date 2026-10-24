@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.enum_str import StringEnum
-from supersetapiplus.base.fields import default_string, object_field
+from supersetapiplus.core.enums import StringEnum
+from supersetapiplus.core.fields import default_string, object_field
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.dashboards import native_filters
 from supersetapiplus.deprecation import module_aliases
-from supersetapiplus.typing import SerializableOptional
 
 
 class FilterBarOrientation(StringEnum):

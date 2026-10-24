@@ -152,3 +152,7 @@ class ChartValidationError(ValidationError):
 
 class UnsupportedTypeError(NotImplementedError):
     """Object type (e.g. a chart viz_type) with no corresponding model in the library."""
+
+
+class UnboundModelError(RuntimeError):
+    """A model not bound to a Superset client was asked to reach the server (save, fetch, delete...)."""

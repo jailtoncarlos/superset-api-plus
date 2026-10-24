@@ -2,16 +2,16 @@
 
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.fields import object_field
-from supersetapiplus.base.sentinels import MissingField
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, DateFormatType, NumberFormatType
+from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.sentinels import MissingField
+from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 
 @dataclass

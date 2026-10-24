@@ -1,8 +1,6 @@
 import logging
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.fields import default_string, object_field
 from supersetapiplus.charts.types import (
     ColumnType,
     FilterExpressionType,
@@ -10,8 +8,10 @@ from supersetapiplus.charts.types import (
     MetricType,
     TimeGrain,
 )
+from supersetapiplus.core.fields import default_string, object_field
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 logger = logging.getLogger(__name__)
 

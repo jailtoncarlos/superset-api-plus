@@ -2,13 +2,13 @@
 
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, TimeGrain, WhiskerOptions
-from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 
 
 @dataclass

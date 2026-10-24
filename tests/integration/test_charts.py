@@ -5,7 +5,7 @@ import zipfile
 
 import pytest
 
-from supersetapiplus.base.base import UnsupportedObject
+from supersetapiplus.resources.repository import UnsupportedObject
 from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.exceptions import MultipleFound, NotFound, ResourceNotFoundError, UnsupportedTypeError

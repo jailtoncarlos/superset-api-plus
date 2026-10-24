@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.base.types import DatasourceType
+from supersetapiplus.core.model import SerializableModel
 
 
 @dataclass

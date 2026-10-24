@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from anytree import Node
 from typing_extensions import Self
 
-from supersetapiplus.base.parse import ParseMixin
+from supersetapiplus.core.parse import ParseMixin
 from supersetapiplus.dashboards.itemposition import (
     ColumnItemPosition,
     ItemPosition,

@@ -1,16 +1,16 @@
 """Charts."""
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import Query
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, DateFormatType, LabelType, NumberFormatType
+from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableOptional
 
 _SOLUTION_USE_ADD_METRIC = ("We recommend using one of the Chart class's add_simple_metric or add_custom_metric "
                             "methods to ensure data integrity.")

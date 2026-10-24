@@ -2,8 +2,6 @@
 
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.fields import object_field
-from supersetapiplus.base.sentinels import MissingField
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query
@@ -15,7 +13,9 @@ from supersetapiplus.charts.types import (
     DateFormatType,
     NumberFormatType,
 )
-from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.sentinels import MissingField
+from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 
 
 @dataclass

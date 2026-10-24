@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from supersetapiplus.base.base import SerializableModel
+from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.dashboards.itemposition import (
     ChartItemPosition,
     ColumnItemPosition,

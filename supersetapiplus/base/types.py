@@ -1,4 +1,4 @@
-from supersetapiplus.base.enum_str import StringEnum
+from supersetapiplus.core.enums import StringEnum
 
 
 class DatasourceType(StringEnum):

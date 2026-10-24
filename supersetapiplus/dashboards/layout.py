@@ -14,8 +14,8 @@ from typing import Any
 
 import shortuuid
 
-from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.enum_str import StringEnum
+from supersetapiplus.core.enums import StringEnum
+from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.exceptions import NodePositionValidationError
 
 ROOT_ID = "ROOT_ID"

@@ -2,10 +2,17 @@
 import warnings
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import ApiModelFactories, SerializableModel
-from supersetapiplus.base.fields import default_string, json_field
 from supersetapiplus.base.types import ConfigurationMethod
-from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.core.fields import default_string, json_field
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.sentinels import MissingField
+from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.resources.repository import ApiModelFactories
+
+
+def _given(value) -> bool:
+    """Set by the caller: neither the default (None) nor absent from the JSON read (MissingField)."""
+    return value is not None and not isinstance(value, MissingField)
 
 
 @dataclass
@@ -60,12 +67,12 @@ class Database(SerializableModel):
 
     def __post_init__(self):
         super().__post_init__()
-        if self.encrypted_extra is not None:
+        if _given(self.encrypted_extra):
             warnings.warn("Database.encrypted_extra is deprecated: Superset 6 takes masked_encrypted_extra.",
                           DeprecationWarning, stacklevel=3)
-            if self.masked_encrypted_extra is None:
+            if not _given(self.masked_encrypted_extra):
                 self.masked_encrypted_extra = self.encrypted_extra
-        if self.allow_multi_schema_metadata_fetch is not None:
+        if _given(self.allow_multi_schema_metadata_fetch):
             warnings.warn("Database.allow_multi_schema_metadata_fetch no longer exists in Superset 6 and is "
                           "ignored.", DeprecationWarning, stacklevel=3)
 
@@ -80,10 +87,10 @@ class Database(SerializableModel):
         return super().to_json(columns)
 
     def run(self, query, query_limit=None):
-        return self._factory.client.run(database_id=self.id, query=query, query_limit=query_limit)
+        return self._repository().client.run(database_id=self.id, query=query, query_limit=query_limit)
 
     def test_connection(self):
-        return self._factory.test_connection(self)
+        return self._repository().test_connection(self)
 
 
 class Databases(ApiModelFactories):

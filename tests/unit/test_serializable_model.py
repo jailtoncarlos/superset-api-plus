@@ -1,10 +1,10 @@
 """Contract of SerializableModel: per-instance state, equality, and what to_dict serializes."""
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.fields import object_field
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.fields import object_field
 from supersetapiplus.charts.types import ChartType
-from supersetapiplus.typing import SerializableOptional
+from supersetapiplus.core.typing import SerializableOptional
 
 
 @dataclass
@@ -53,3 +53,19 @@ def test_equality_is_field_by_field_and_ignores_extra_fields():
 def test_string_enum_members_are_their_string_values():
     assert ChartType.PIE == "pie" and {ChartType.PIE: 1}["pie"] == 1
     assert isinstance(ChartType.PIE, str) and str(ChartType.PIE) == f"{ChartType.PIE}" == "pie"
+
+
+def test_models_work_without_a_client_and_fail_clearly_when_asked_to_reach_the_server():
+    from supersetapiplus.dashboards.dashboards import Dashboard
+    from supersetapiplus.exceptions import UnboundModelError
+
+    dashboard = Dashboard(dashboard_title="Offline")
+    assert dashboard.to_json()["dashboard_title"] == "Offline"
+
+    for call in (dashboard.save, dashboard.fetch, dashboard.delete, lambda: dashboard.base_url):
+        try:
+            call()
+        except UnboundModelError as error:
+            assert "client" in str(error)
+        else:
+            raise AssertionError("expected UnboundModelError")

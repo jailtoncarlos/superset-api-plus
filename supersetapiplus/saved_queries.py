@@ -1,9 +1,10 @@
 """Saved queries."""
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import ApiModelFactories, SerializableModel
-from supersetapiplus.base.fields import default_string
-from supersetapiplus.typing import SerializableOptional
+from supersetapiplus.core.fields import default_string
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.typing import SerializableOptional
+from supersetapiplus.resources.repository import ApiModelFactories
 
 
 @dataclass
@@ -37,7 +38,7 @@ class SavedQuery(SerializableModel):
         return res
 
     def run(self, query_limit=None):
-        return self._factory.client.run(database_id=self.db_id, query=self.sql, query_limit=query_limit)
+        return self._repository().client.run(database_id=self.db_id, query=self.sql, query_limit=query_limit)
 
 
 class SavedQueries(ApiModelFactories):

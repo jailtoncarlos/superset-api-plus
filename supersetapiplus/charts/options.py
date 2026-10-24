@@ -1,9 +1,6 @@
 import logging
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.fields import default_string, object_field
-from supersetapiplus.base.sentinels import MissingField
 from supersetapiplus.charts.filters import AdhocFilterClause
 from supersetapiplus.charts.metric import (
     AdhocMetric,
@@ -25,8 +22,11 @@ from supersetapiplus.charts.types import (
     ResultType,
     TimeGrain,
 )
+from supersetapiplus.core.fields import default_string, object_field
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.sentinels import MissingField
+from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
 
 logger = logging.getLogger(__name__)
 

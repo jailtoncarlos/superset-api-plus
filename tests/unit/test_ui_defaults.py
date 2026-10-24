@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from supersetapiplus.base.base import ObjectDecoder
+from supersetapiplus.core.model import ObjectDecoder
 from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.charts import build_query
 from supersetapiplus.charts.charts import Chart

@@ -9,6 +9,7 @@ point OFFICIAL to it; the divergences show up as failures here.
 """
 import enum
 import importlib
+import warnings
 import json
 import pkgutil
 from pathlib import Path
@@ -120,7 +121,7 @@ def package_enums() -> set:
     for info in pkgutil.walk_packages(supersetapiplus.__path__, "supersetapiplus."):
         if info.name.endswith("generate_graphviz"):  # optional dependency (graphviz)
             continue
-        module = importlib.import_module(info.name)
+        module = _import_quietly(info.name)
         found |= {obj for obj in vars(module).values()
                   if isinstance(obj, type) and issubclass(obj, enum.Enum) and obj.__module__ == info.name
                   and len(obj)}
@@ -164,3 +165,10 @@ def test_dashboard_grid_limits_are_the_editor_ones():
             L.DEFAULT_CHART_WIDTH) == (grid["GRID_COLUMN_COUNT"], grid["GRID_MIN_COLUMN_COUNT"],
                                        grid["GRID_MIN_ROW_UNITS"], grid["GRID_MAX_ROW_UNITS"],
                                        grid["GRID_DEFAULT_CHART_WIDTH"])
+
+
+def _import_quietly(name: str):
+    """Modules of the package, including the compatibility modules of old paths (they warn on import)."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        return importlib.import_module(name)

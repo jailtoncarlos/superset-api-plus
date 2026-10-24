@@ -40,6 +40,12 @@ def test_removed_database_fields_warn_and_are_not_sent():
     assert payload["masked_encrypted_extra"] == '{"secret": 1}' and "encrypted_extra" not in payload
 
 
+def test_database_read_from_superset_does_not_warn(recwarn):
+    Database.from_json({"id": 9, "database_name": "dw", "sqlalchemy_uri": "postgresql://u:XXXXXXXXXX@h/db"})
+
+    assert not [w for w in recwarn if issubclass(w.category, DeprecationWarning)]
+
+
 def test_json_metadata_keys_of_superset_6_round_trip():
     metadata = {"color_namespace": "ns", "map_label_colors": {"North": "#fff"}, "positions": {},
                 "filter_bar_orientation": "HORIZONTAL", "show_chart_timestamps": True,

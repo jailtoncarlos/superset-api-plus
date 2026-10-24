@@ -3,7 +3,6 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any
 
-from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import AdhocColumn, Query, QueryFormColumn
@@ -21,7 +20,8 @@ from supersetapiplus.charts.types import (
     TimeGrain,
     TitlePositionType,
 )
-from supersetapiplus.typing import SerializableOptional
+from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.typing import SerializableOptional
 
 
 @dataclass

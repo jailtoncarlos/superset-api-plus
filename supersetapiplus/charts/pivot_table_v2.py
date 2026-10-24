@@ -1,7 +1,6 @@
 """Charts."""
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import OrderByTyping
 from supersetapiplus.charts.options import Option
@@ -17,7 +16,8 @@ from supersetapiplus.charts.types import (
     PivotAggregateFunction,
     TimeGrain,
 )
-from supersetapiplus.typing import SerializableOptional
+from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.typing import SerializableOptional
 
 
 @dataclass

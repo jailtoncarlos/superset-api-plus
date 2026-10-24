@@ -6,8 +6,8 @@ from enum import Enum
 
 import shortuuid
 
-from supersetapiplus.base.enum_str import StringEnum
-from supersetapiplus.base.parse import ParseMixin
+from supersetapiplus.core.enums import StringEnum
+from supersetapiplus.core.parse import ParseMixin
 from supersetapiplus.exceptions import ItemPositionValidationError, NodePositionValidationError
 
 

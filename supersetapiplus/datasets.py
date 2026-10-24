@@ -1,12 +1,13 @@
 """Datasets."""
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import ApiModelFactories, QueryStringFilter, SerializableModel
 from supersetapiplus.base.datasource import DataSource
 from supersetapiplus.base.types import DatasourceKind, DatasourceType
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import NotFound
-from supersetapiplus.query_string import QueryOperator
-from supersetapiplus.typing import SerializableOptional
+from supersetapiplus.query_string import QueryOperator, QueryStringFilter
+from supersetapiplus.resources.repository import ApiModelFactories
 
 
 @dataclass
@@ -92,7 +93,7 @@ class Dataset(SerializableModel):
     def run(self, query_limit=None):
         if not self.sql:
             raise ValueError("Cannot run a dataset with no SQL")
-        return self._factory.client.run(database_id=self.database_id, query=self.sql, query_limit=query_limit)
+        return self._repository().client.run(database_id=self.database_id, query=self.sql, query_limit=query_limit)
 
 
 class Datasets(ApiModelFactories):

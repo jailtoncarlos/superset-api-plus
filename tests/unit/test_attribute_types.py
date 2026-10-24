@@ -8,6 +8,7 @@ genuinely free text, add it here. Entries for fields that no longer exist or are
 """
 import dataclasses
 import importlib
+import warnings
 import inspect
 import pkgutil
 import re
@@ -146,7 +147,7 @@ def str_fields() -> dict[str, str]:
     for info in pkgutil.walk_packages(supersetapiplus.__path__, "supersetapiplus."):
         if info.name.endswith("generate_graphviz"):  # optional dependency (graphviz)
             continue
-        for obj in vars(importlib.import_module(info.name)).values():
+        for obj in vars(_import_quietly(info.name)).values():
             if not (isinstance(obj, type) and dataclasses.is_dataclass(obj)
                     and obj.__module__.startswith("supersetapiplus.")):
                 continue
@@ -175,3 +176,10 @@ def test_declared_free_text_fields_still_exist_as_str():
 
 def test_every_free_text_field_has_a_reason():
     assert all(reason.strip() for reason in FREE_TEXT.values())
+
+
+def _import_quietly(name: str):
+    """Modules of the package, including the compatibility modules of old paths (they warn on import)."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        return importlib.import_module(name)

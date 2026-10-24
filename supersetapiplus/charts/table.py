@@ -2,8 +2,6 @@
 from dataclasses import dataclass, field, replace
 from typing import Any
 
-from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.fields import object_field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import AdhocMetricColumn, Metric, OrderBy
 from supersetapiplus.charts.options import Option
@@ -21,8 +19,10 @@ from supersetapiplus.charts.types import (
     ResultType,
     TimeGrain,
 )
+from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableOptional
 
 
 @dataclass

@@ -2,9 +2,6 @@ import logging
 import warnings
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.fields import default_string, object_field
-from supersetapiplus.base.sentinels import MissingField
 from supersetapiplus.charts.metric import AdhocMetric, AdhocMetricColumn, Metric, MetricHelper, MetricsListMixin, OrderByTyping
 from supersetapiplus.charts.types import (
     ColumnType,
@@ -17,9 +14,12 @@ from supersetapiplus.charts.types import (
     NumberFormatType,
     TimeGrain,
 )
+from supersetapiplus.core.fields import default_string, object_field
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.sentinels import MissingField
+from supersetapiplus.core.typing import FilterValues, SerializableOptional
 from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import FilterValues, SerializableOptional
 
 logger = logging.getLogger(__name__)
 

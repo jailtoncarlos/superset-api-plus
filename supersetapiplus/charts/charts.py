@@ -7,8 +7,6 @@ from dataclasses import dataclass, field
 
 from typing_extensions import Self
 
-from supersetapiplus.base.base import ApiModelFactories, SerializableModel
-from supersetapiplus.base.fields import object_field
 from supersetapiplus.base.types import DatasourceType
 from supersetapiplus.charts.build_query import query_context_for
 from supersetapiplus.charts.metric import OrderBy
@@ -17,9 +15,12 @@ from supersetapiplus.charts.queries import AdhocMetricColumn
 from supersetapiplus.charts.query_context import DataSource, QueryContext
 from supersetapiplus.charts.types import ChartType, FilterClausesType, FilterExpressionType, FilterOperatorType, MetricType
 from supersetapiplus.core.dicts import detailed_dict_diff
+from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.exceptions import ChartValidationError, DashboardValidationError, NotFound, ValidationError
-from supersetapiplus.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.resources.repository import ApiModelFactories
 
 logger = logging.getLogger(__name__)
 

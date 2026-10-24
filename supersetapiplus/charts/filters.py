@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 
-from supersetapiplus.base.base import SerializableModel
 from supersetapiplus.charts.types import FilterClausesType, FilterExpressionType, FilterOperatorType
-from supersetapiplus.typing import SerializableOptional
+from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.typing import SerializableOptional
 
 #https://github.com/apache/superset/blob/8553b06155249c3583cf0dcd22221ec06cbb833d/superset/utils/core.py#L137
 

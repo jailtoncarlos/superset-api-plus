@@ -41,6 +41,12 @@ Loggers follow the module names (e.g. `supersetapiplus.transport.http`).
 | `supersetapiplus.utils.dict_utils` | `supersetapiplus.core.dicts` |
 | `supersetapiplus.security.csrf`, `security.session_auth` | `supersetapiplus.auth.csrf`, `auth.session` |
 | `supersetapiplus.utils.helpers` (unused by the library) | removed in a future major version |
+| `supersetapiplus.base.base` | `supersetapiplus.core.model` (`SerializableModel`, `ObjectDecoder`) and `supersetapiplus.resources.repository` (`ApiModelFactories`, `UnsupportedObject`) |
+| `supersetapiplus.base.fields`, `base.parse`, `base.sentinels`, `base.enum_str` | `supersetapiplus.core.fields`, `core.parse`, `core.sentinels`, `core.enums` |
+| `supersetapiplus.typing` | `supersetapiplus.core.typing` |
+
+A model not bound to a client (not created through `client.<resource>.add()` nor read with `get()`) raises
+`UnboundModelError` on `save()`, `fetch()`, `delete()` and `base_url`, instead of `AttributeError`.
 
 
 ## 1.0.0a1 (2025-04-10)
