@@ -1,6 +1,9 @@
-"""Client security: application logging, TLS verification and secrets kept out of logs."""
+"""Client security: application logging, TLS verification and the masking of secrets.
+
+The secrets in real error logs are checked against the real Superset (tests/integration/test_data.py).
+TLS verification stays mocked: the test stack serves plain HTTP, so `verify` cannot be observed on it.
+"""
 import json
-import logging
 import os
 import subprocess
 import sys
@@ -53,26 +56,6 @@ def test_request_without_explicit_verify_inherits_the_session():
         RequestHandler.request_with_retry(f"{HOST}/api/v1/me/", session=session)
 
     assert mock.last_request.verify is True
-
-
-def test_http_error_log_does_not_expose_password_token_or_cookie(caplog):
-    session = requests.Session()
-    session.headers.update({"Authorization": f"Bearer {TOKEN}", "X-CSRFToken": "csrf-123"})
-    session.cookies.set("session", "session-cookie")
-
-    with requests_mock.Mocker() as mock, caplog.at_level(logging.DEBUG):
-        mock.post(f"{HOST}/api/v1/security/login", status_code=401,
-                  json={"message": "Not authorized", "access_token": TOKEN},
-                  headers={"Set-Cookie": "session=session-cookie"})
-        with pytest.raises(requests.HTTPError):
-            RequestHandler.request_with_retry(
-                f"{HOST}/api/v1/security/login", method="POST", session=session, retries=0,
-                json={"username": "robot", "password": PASSWORD, "provider": "db"},
-            )
-
-    assert caplog.text
-    for secret in (PASSWORD, TOKEN, "csrf-123", "session-cookie"):
-        assert secret not in caplog.text, secret
 
 
 def test_masks_sensitive_headers_without_changing_the_others():

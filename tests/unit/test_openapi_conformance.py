@@ -6,6 +6,10 @@ ones and respect the declared type. The routes called must exist with the method
 
 To validate another Superset version, generate a new excerpt with bin/scripts/extract_openapi.py
 and point SPEC to it.
+
+HTTP is mocked on purpose: this module runs offline in the `superset-conformance` pre-commit hook and checks
+the payloads against the versioned specification. That the real server accepts them is tested in
+tests/integration.
 """
 import json
 import re

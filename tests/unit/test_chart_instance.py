@@ -20,3 +20,9 @@ def test_instance_creates_chart_bound_to_datasource(viz_type):
     assert str(chart.viz_type) == viz_type
     assert chart.datasource_id == 7
     assert chart.params.datasource == "7__table"
+
+
+def test_chart_get_class_resolves_from_viz_type():
+    # Current contract: the type module must be imported first (an explicit registry would remove this requirement).
+    importlib.import_module("supersetapiplus.charts.table")
+    assert Chart.get_class("table", "supersetapiplus.charts.table").__name__ == "TableChart"

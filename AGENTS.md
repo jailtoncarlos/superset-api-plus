@@ -87,10 +87,18 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 - CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on push/PR; pre-commit on
   the PR diff. CI/CD changes require explicit authorization from the maintainer.
 - Every bug fix comes with a test that fails before the fix. Prefer tests of the public contract
-  (requests sent, payloads, results) over implementation details.
+  (results observed on the server) over implementation details.
+- **Server behavior is tested against the real Superset**, in `tests/integration` (one module per area:
+  auth, errors, charts, dashboards, data). HTTP mocks are a guess about the server: a mocked test passed
+  while the real 6.1.0 rejected the request. `tests/unit` mocks HTTP only when the real server cannot
+  produce the condition deterministically (5xx and retry, asynchronous SQL Lab, TLS on the plain-HTTP
+  stack) or to run offline in a hook (OpenAPI conformance), and the module docstring says why. Pure
+  logic (serialization, layout, buildQuery, enums) stays in `tests/unit` without HTTP.
 - Integration tests: `docker compose -p superset-api-plus up -d --build`, then
   `SUPERSET_INTEGRATION=1 pytest tests/integration`, then `docker compose -p superset-api-plus down -v`.
-  They create and remove their own objects (prefix `zz-superset-api-plus-test`). The Docker host may be
+  They create and remove their own objects (prefix `zz-superset-api-plus-test`; the `cleanup` fixture
+  removes them even when a test fails). Tests that change the whole instance or its users
+  (`only_test_stack`) are skipped when `SUPERSET_URL` points to another instance. The Docker host may be
   shared with other projects: only manage this compose project; never run `docker system/image/volume
   prune`.
 
