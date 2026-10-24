@@ -132,8 +132,8 @@ Where each finding went, in the institutional issue tracker (numbers as cited in
 
 | Finding | Destination |
 |---|---|
-| D1 license | pending maintainer decision (recommendation: Apache-2.0 plus a `NOTICE` crediting opus-42) |
-| D2–D5; A1 and E1 of the [follow-up audit](./2026-10-24-layout-errors-enums-audit.md) | defect fix task #331 |
+| D1 license | decided by the maintainer: Apache-2.0 everywhere plus a `NOTICE` crediting opus-42 (commit `816ebb3`) |
+| D2–D5; A1 and E1 of the [follow-up audit](./2026-10-24-layout-errors-enums-audit.md) | defect fix task #331, fixed in `9c438ae` and `642299a` |
 | H1 (+ audit A2) | #333 layout structural validation |
 | M6 (+ audit A3) | #334 layout conveniences |
 | H4, H5 | #335 native filters |
