@@ -12,6 +12,7 @@ Features:
 
 import json
 import logging
+from typing import Any
 from urllib.parse import urlparse
 
 import requests
@@ -45,8 +46,8 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
     databases_cls = Databases
     saved_queries_cls = SavedQueries
 
-    def __init__(self, host, username=None, password=None, provider="db",
-                 verify=True, use_csrf=True):
+    def __init__(self, host: str, username: str | None = None, password: str | None = None, provider: str = "db",
+                 verify: bool = True, use_csrf: bool = True) -> None:
         """
         Initializes the Superset client with API URL and credentials.
 
@@ -66,10 +67,11 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self.provider = provider
         self._verify = verify
 
-        self._session = None
-        self._access_token = None
-        self._refresh_token = None
-        self._csrf_token = None
+        self._session: requests.Session | None = None
+        self._session_cookie: requests.Session | None = None
+        self._access_token: str | None = None
+        self._refresh_token: str | None = None
+        self._csrf_token: str | None = None
         self._session_mode = False
 
         # Object wrappers
@@ -83,11 +85,11 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self.dashboard_charts = DashboardCharts(self)
 
     @property
-    def base_url(self):
+    def base_url(self) -> str:
         return self._base_url
 
     @property
-    def access_token(self):
+    def access_token(self) -> str | None:
         """Returns JWT token via login endpoint."""
         if self._access_token is None:
             self._init_session()
@@ -98,10 +100,11 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         """Authenticated session (JWT, or cookie after enable_session_mode()), created on first use."""
         if self._session is None:
             self._init_session()
+        assert self._session is not None
         return self._session
 
     @staticmethod
-    def get_headers(headers: dict | None = None, json_body: bool = True) -> dict:
+    def get_headers(headers: dict[str, str] | None = None, json_body: bool = True) -> dict[str, str]:
         """Request headers; JSON Content-Type only when the body is JSON (not for multipart or no body)."""
         headers = dict(headers or {})
         if json_body:
@@ -122,6 +125,8 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
 
     def enable_session_mode(self) -> requests.Session:
         """Initializes a cookie-based (non-JWT) authenticated session."""
+        if not self.username or self._password is None:
+            raise MissingCredentialsError("SupersetClient needs a username and a password to log in.")
         session = requests.Session()
         session.verify = self._verify
         self.enable_session_auth(session, self.username, self._password)
@@ -134,7 +139,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self._access_token = self._refresh_token = None
         return self._session
 
-    def _request(self, method: str, url: str, **kwargs) -> requests.Response:
+    def _request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
         """Authenticated request; in JWT mode, a 401 renews the token and retries the call once."""
         # No JSON Content-Type without a JSON body: Superset reads request.is_json (e.g. GET /chart/{pk}/data/)
         # and rejects an empty body declared as JSON.
@@ -148,19 +153,19 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             self.refresh_access_token()
             return RequestHandler.request_with_retry(url=url, method=method, session=self.session, **kwargs)
 
-    def get(self, url, **kwargs) -> requests.Response:
+    def get(self, url: str, **kwargs: Any) -> requests.Response:
         return self._request("GET", url, **kwargs)
 
-    def post(self, url, data=None, json=None, **kwargs) -> requests.Response:
+    def post(self, url: str, data: Any = None, json: Any = None, **kwargs: Any) -> requests.Response:
         return self._request("POST", url, data=data, json=json, **kwargs)
 
-    def put(self, url, data=None, **kwargs) -> requests.Response:
+    def put(self, url: str, data: Any = None, **kwargs: Any) -> requests.Response:
         return self._request("PUT", url, data=data, **kwargs)
 
-    def delete(self, url, **kwargs) -> requests.Response:
+    def delete(self, url: str, **kwargs: Any) -> requests.Response:
         return self._request("DELETE", url, **kwargs)
 
-    def authenticate(self, session: requests.Session):
+    def authenticate(self, session: requests.Session) -> None:
         """
         Authenticates via JWT (POST /security/login) and stores the access and refresh tokens.
         """
@@ -201,7 +206,8 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self.session.headers["Authorization"] = f"Bearer {self._access_token}"
         logger.debug("[OK] Access token renewed.")
 
-    def run(self, database_id: int, query: str, query_limit: int = None, schema: str | None = None):
+    def run(self, database_id: int, query: str, query_limit: int | None = None,
+            schema: str | None = None) -> tuple[list[Any], list[Any]]:
         """
         Runs SQL through SQL Lab (POST /api/v1/sqllab/execute/), synchronously.
 
@@ -238,7 +244,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         return result["columns"], result["data"]
 
     def find(self, url: str, filter: QueryStringFilter, columns: list[str] | None = None, page_size: int = 100,
-             page: int = 0, order_column: str | None = None, order_direction: str | None = None):
+             page: int = 0, order_column: str | None = None, order_direction: str | None = None) -> requests.Response:
         """
         Performs a paginated API search with optional filters.
 
@@ -274,14 +280,14 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         return self.join_urls(self.base_url, "sqllab/execute/")
 
     @staticmethod
-    def join_urls(*args) -> str:
+    def join_urls(*args: Any) -> str:
         """Joins parts of a URL ensuring proper formatting."""
         parts = [str(part).strip("/") for part in args]
         if str(args[-1]).endswith("/"):
             parts.append("")  # Preserve trailing slash
         return "/".join(parts)
 
-    def get_domain(self):
+    def get_domain(self) -> str | None:
         parsed = urlparse(self.base_url)
         domain = parsed.hostname
         return domain

@@ -43,7 +43,7 @@ repos:
         # Ratchet: the modules already clean under mypy --strict stay clean. Add a package here once it reaches
         # zero errors; errors of the modules they import are not reported (--follow-imports=silent).
         args: ["--explicit-package-bases", "--follow-imports=silent"]
-        files: ^supersetapiplus/(core/|transport/|auth/|services/|resources/|exceptions\.py|deprecation\.py|query_string\.py)
+        files: ^supersetapiplus/(client\.py|core/|transport/|auth/|services/|resources/|exceptions\.py|deprecation\.py|query_string\.py)
         additional_dependencies: ["types-requests", "types-PyYAML", "beautifulsoup4>=4.11", "urllib3>=2"]
 
   - repo: local

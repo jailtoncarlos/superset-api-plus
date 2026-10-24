@@ -126,3 +126,5 @@ def test_login_without_credentials_raises_instead_of_prompting():
     client = SupersetClient(HOST, username="robot", password=None)
     with pytest.raises(MissingCredentialsError):
         client.authenticate(requests.Session())
+    with pytest.raises(MissingCredentialsError):
+        client.enable_session_mode()

@@ -1,5 +1,5 @@
 import logging
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 import requests
 
@@ -11,17 +11,20 @@ logger = logging.getLogger(__name__)
 @runtime_checkable
 class SupportsCSRFToken(Protocol):
     """What CSRFSupportMixin needs from the client class it is mixed into."""
-    base_url: str
     host: str
     _csrf_token: str | None
 
     def _init_session(self) -> None:
         ...
 
-    def get_domain(self) -> str:
+    @property
+    def base_url(self) -> str:
+        ...
+
+    def get_domain(self) -> str | None:
         ...  # Ellipsis indicates abstract method
 
-    def join_urls(self, *args: str) -> str:
+    def join_urls(self, *args: Any) -> str:
         ...  # Variadic arguments need to be typed
 
 

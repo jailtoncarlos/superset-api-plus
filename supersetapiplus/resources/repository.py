@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 
 class HttpClient(Protocol):
     """What a repository needs from SupersetClient (a protocol: resources must not import the client layer)."""
-    base_url: str
+    @property
+    def base_url(self) -> str: ...
 
     def get(self, url: str, **kwargs: Any) -> requests.Response: ...
 
