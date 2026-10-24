@@ -79,3 +79,24 @@ def test_box_plot_distributes_across_columns_without_requiring_dimensions():
 
     assert params(chart)["columns"] == ["day"]
     chart.params.validate()
+
+
+def test_pie_with_a_sql_expression_metric_validates():
+    # The metric has no dataset column (column is None): validate() used to raise AttributeError.
+    chart = new_chart("pie")
+    chart.add_custom_metric("Total", sql_expression="SUM(sales)", aggregate="SUM")
+    chart.add_simple_dimension("region")
+
+    chart.params.validate()
+
+
+def test_chart_stored_without_query_context_is_edited_through_params():
+    chart = Chart.for_viz_type("table").from_json({
+        "id": 1, "slice_name": "t", "viz_type": "table", "query_context": None,
+        "params": json.dumps({"datasource": "1__table", "viz_type": "table", "query_mode": "aggregate",
+                              "groupby": [], "metrics": ["count"]})})
+
+    chart.add_simple_dimension("region")
+    chart.add_simple_filter("product", "A")
+
+    assert chart.query_context is None and params(chart)["groupby"] == ["region"]

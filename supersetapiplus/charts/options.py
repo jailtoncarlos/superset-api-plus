@@ -1,13 +1,12 @@
 import logging
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from supersetapiplus.charts.filters import AdhocFilterClause
 from supersetapiplus.charts.metric import (
     AdhocMetric,
     AdhocMetricColumn,
     MetricsListMixin,
-    OrderByTyping,
 )
 from supersetapiplus.charts.queries import CurrencyFormat, custom_column
 from supersetapiplus.charts.types import (
@@ -44,13 +43,14 @@ class ChartVisualOptionsMixin:
 
 @dataclass
 class OptionListGroupByMixin:
-    groupby: list[OrderByTyping] = object_field(cls=AdhocMetric, default_factory=list)
+    # Dimensions: column names or AdhocColumn dicts; MissingField when the key was absent in the JSON read.
+    groupby: list[Any] | MissingField | None = object_field(cls=AdhocMetric, default_factory=list)
 
     # by default, every chart requires groupby
     _require_groupby: ClassVar[bool] = True
 
     def validate(self) -> None:
-        super().validate()
+        super().validate()  # type: ignore[misc]  # mixin: the next class in the MRO validates too
         # Only for charts built in code whose plugin requires a dimension (see _read_from_superset).
         if self._require_groupby and not getattr(self, "_read_from_superset", False) \
                 and not isinstance(self.groupby, MissingField) \
@@ -60,7 +60,7 @@ class OptionListGroupByMixin:
                 solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.'
             )
 
-    def _editable_groupby(self) -> list:
+    def _editable_groupby(self) -> list[Any]:
         if not isinstance(self.groupby, list):
             self.groupby = []
         return self.groupby
@@ -82,7 +82,7 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
 
     datasource: str | None = field(default=None)
 
-    extra_form_data: dict = field(default_factory=dict)
+    extra_form_data: dict[str, Any] = field(default_factory=dict)
     # Absent unless the plugin has a row limit control (each chart class sets the UI default).
     row_limit: SerializableOptional[int] = None
 
@@ -107,9 +107,9 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
         # None becomes an empty list; MissingField (key absent from the JSON read) is kept so that
         # re-reading does not add "groupby": [] to charts that did not have it.
         if self.groupby is None:
-            self.groupby: list[OrderByTyping] = []
+            self.groupby = []
 
-    def add_dashboard(self, dashboard_id) -> None:
+    def add_dashboard(self, dashboard_id: int) -> None:
         dashboards = set(self.dashboards)
         dashboards.add(dashboard_id)
         self.dashboards = list(dashboards)
@@ -119,7 +119,7 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
                        clause: FilterClausesType,
                        subject: str | None = None,
                        comparator: str | None = None,
-                       sql_expression=None,
+                       sql_expression: str | None = None,
                        operator: FilterOperatorType | None = None) -> None:
         operator_id = None
         if operator:
@@ -132,4 +132,6 @@ class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
                                                 comparator=comparator,
                                                 clause=clause,
                                                 sqlExpression=sql_expression)
+        if not isinstance(self.adhoc_filters, list):  # absent from a chart read from Superset
+            self.adhoc_filters = []
         self.adhoc_filters.append(adhoc_filter_clause)

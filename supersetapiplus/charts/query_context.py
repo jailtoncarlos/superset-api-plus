@@ -1,9 +1,10 @@
 from abc import abstractmethod
 from dataclasses import dataclass, field
+from typing import Any
 
-from supersetapiplus.charts.metric import OrderBy
+from supersetapiplus.charts.metric import AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import AdhocMetricColumn, Query
+from supersetapiplus.charts.queries import Query
 from supersetapiplus.charts.types import (
     FilterClausesType,
     FilterExpressionType,
@@ -27,8 +28,9 @@ class FormData(Option):
 @dataclass
 class QueryContext(SerializableModel):
     datasource: DataSource = object_field(cls=DataSource, default_factory=DataSource)
-    queries: list[Query] = object_field(cls=Query, default_factory=list)
-    form_data: FormData = object_field(cls=FormData, default_factory=FormData)
+    # Each chart type narrows these to its own classes (e.g. TableQueryObject, TableFormData).
+    queries: list[Any] = object_field(cls=Query, default_factory=list)
+    form_data: Option = object_field(cls=FormData, default_factory=FormData)
 
     force: bool = False
     result_format: SerializableOptional[ResultFormat] = field(default_factory=lambda: ResultFormat.JSON)
@@ -41,13 +43,11 @@ class QueryContext(SerializableModel):
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        self._automatic_order: OrderBy = None
+        self._automatic_order: OrderBy | None = None
 
     @property
-    def automatic_order(self):
-        if not hasattr(self, '_automatic_order'):
-            self._automatic_order: OrderBy = None
-        return self._automatic_order
+    def automatic_order(self) -> OrderBy | None:
+        return getattr(self, '_automatic_order', None)
 
     def validate(self) -> None:
         super().validate()
@@ -58,21 +58,20 @@ class QueryContext(SerializableModel):
         for query in self.queries:
             query.validate()
 
-    def add_dashboard(self, dashboard_id) -> None:
+    def add_dashboard(self, dashboard_id: int) -> None:
         self.form_data.add_dashboard(dashboard_id)
 
     @property
-    def first_queries(self):
+    def first_queries(self) -> Query:
         if self.queries and len(self.queries) > 1:
             raise ChartValidationError("""There are more than one query in the queries list.
                                        We don't know which one to include the filter in.""")
         if not self.queries:
-            QueryObjectClass = self._default_query_object_class()
-            self.queries: list[QueryObjectClass] = []
+            self.queries = []
         if len(self.queries) == 0:
-            QueryObjectClass = self._default_query_object_class()
-            self.queries.append(QueryObjectClass())
-        return self.queries[-1]
+            self.queries.append(self._default_query_object_class()())
+        last: Query = self.queries[-1]
+        return last
 
     def _add_simple_metric(self, metric: str, automatic_order: OrderBy) -> None:
         self._automatic_order = automatic_order

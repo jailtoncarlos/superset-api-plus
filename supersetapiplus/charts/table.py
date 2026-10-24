@@ -29,9 +29,9 @@ from supersetapiplus.exceptions import ValidationError
 class TableOptionBase(Option):
     # Dimensions are optional in the UI (a table in raw mode or with metrics only, mixed series, pivot rows).
     _require_groupby: ClassVar[bool] = False
-    conditional_formatting: SerializableOptional[list] = field(default=None)
-    temporal_columns_lookup: SerializableOptional[dict] = field(default=None)
-    annotation_layers: SerializableOptional[list] = field(default=None)
+    conditional_formatting: SerializableOptional[list[Any]] = field(default=None)
+    temporal_columns_lookup: SerializableOptional[dict[str, bool]] = field(default=None)
+    annotation_layers: SerializableOptional[list[Any]] = field(default=None)
 
 
 @dataclass
@@ -45,7 +45,7 @@ class TableOption(TableOptionBase):
         default_factory=lambda: PercentMetricCalculation.ROW_LIMIT)
     query_mode: QueryModeType = field(default_factory=lambda: QueryModeType.AGGREGATE)
 
-    order_by_cols: list = field(default_factory=list)
+    order_by_cols: list[Any] = field(default_factory=list)
 
     server_pagination: SerializableOptional[bool] = False
     server_page_length: SerializableOptional[int] = 10
@@ -66,8 +66,8 @@ class TableOption(TableOptionBase):
     column_config: SerializableOptional[dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True,
                                                                                default=None)
 
-    all_columns: SerializableOptional[list] = field(default_factory=list)
-    percent_metrics: SerializableOptional[list] = field(default_factory=list)
+    all_columns: SerializableOptional[list[Any]] = field(default_factory=list)
+    percent_metrics: SerializableOptional[list[Any]] = field(default_factory=list)
     allow_render_html: SerializableOptional[bool] = True
     comparison_color_scheme: SerializableOptional[ComparisonColorScheme] = field(default=None)
 

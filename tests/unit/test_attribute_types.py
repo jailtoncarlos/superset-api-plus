@@ -34,7 +34,6 @@ FREE_TEXT = {
     "charts.options.Option.datasource": "'<id>__<type>' reference to the instance's dataset",
     "charts.options.ChartVisualOptionsMixin.color_scheme":
         "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",
-    "charts.options.OptionListGroupByMixin.groupby": NAME,
     "charts.cal_heatmap.CalHeatmapOption.granularity_sqla": NAME,
     "charts.cal_heatmap.CalHeatmapOption.time_range":
         "free-form time range ('No filter', 'Last week', '<since> : <until>') of the time_range control",
@@ -44,7 +43,6 @@ FREE_TEXT = {
     "charts.word_cloud.WordCloudOption.series": NAME,
     "charts.echarts_timeseries_bar.TimeSeriesBarOption.x_axis": NAME,
     "charts.mixed_timeseries.MixedTimeseriesOption.x_axis": NAME,
-    "charts.pivot_table_v2.PivotTableV2Option.groupby": NAME,
     "charts.pivot_table_v2.PivotTableV2Option.groupbyColumns": NAME,
     "charts.pivot_table_v2.PivotTableV2Option.groupbyRows": NAME,
     "charts.echarts_timeseries_bar.TimeSeriesBarOption.x_axis_title": TEXT,

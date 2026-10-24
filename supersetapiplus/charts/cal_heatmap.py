@@ -1,7 +1,7 @@
 # supersetapiplus/charts/cal_heatmap.py
 
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
@@ -28,7 +28,7 @@ class CalHeatmapOption(Option):
     """
     viz_type: ChartType = field(default_factory=lambda: ChartType.CAL_HEATMAP)
     # The plugin has no dimension control: groupby is absent.
-    groupby: SerializableOptional[list] = field(default_factory=MissingField)
+    groupby: SerializableOptional[list[Any] | MissingField] = field(default_factory=MissingField)
     _require_groupby: ClassVar[bool] = False
     granularity_sqla: SerializableOptional[str] = None
     time_range: SerializableOptional[str] = 'No filter'

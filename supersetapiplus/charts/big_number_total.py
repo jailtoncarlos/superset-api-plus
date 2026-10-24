@@ -1,7 +1,7 @@
 # supersetapiplus/charts/big_number_total.py
 
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
@@ -20,7 +20,7 @@ class BigNumberTotalOption(SingleMetricMixin, Option):
     """Big Number params: one `metric` and no dimensions; defaults are the ones the UI gives a new chart."""
     viz_type: ChartType = field(default_factory=lambda: ChartType.BIG_NUMBER_TOTAL)
     # The plugin has no dimension control: groupby is absent.
-    groupby: SerializableOptional[list] = field(default_factory=MissingField)
+    groupby: SerializableOptional[list[Any] | MissingField] = field(default_factory=MissingField)
     _require_groupby: ClassVar[bool] = False
     _sorts_by_metric: ClassVar[bool] = False
 
@@ -36,7 +36,8 @@ class BigNumberTotalOption(SingleMetricMixin, Option):
         raise ValidationError(message='A Big Number has no dimensions.',
                               solution='Filter the data with add_simple_filter, or use another chart type.')
 
-    def _add_custom_groupby(self, label: str, column=None, sql_expression: str | None = None, aggregate=None) -> None:
+    def _add_custom_groupby(self, label: str, column: Any = None, sql_expression: str | None = None,
+                            aggregate: Any = None) -> None:
         self._add_simple_groupby(label)
 
 

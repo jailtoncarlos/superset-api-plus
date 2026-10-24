@@ -1,7 +1,7 @@
 # supersetapiplus/charts/mixed_timeseries.py
 
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
@@ -35,7 +35,7 @@ class MixedTimeseriesOption(Option):
     comparison_type_b: SerializableOptional[ComparisonType] = field(
         default_factory=lambda: ComparisonType.VALUES)
     time_grain_sqla: SerializableOptional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
-    annotation_layers: SerializableOptional[list] = field(default_factory=list)
+    annotation_layers: SerializableOptional[list[Any]] = field(default_factory=list)
 
     def set_x_axis(self, column: QueryFormColumn) -> None:
         self.x_axis = column

@@ -45,7 +45,7 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
     comparison_type: SerializableOptional[ComparisonType] = field(default_factory=lambda: ComparisonType.VALUES)
     group_others_when_limit_reached: SerializableOptional[bool] = False
     truncate_metric: bool = True
-    annotation_layers: list = field(default_factory=list)
+    annotation_layers: list[Any] = field(default_factory=list)
     forecastEnabled: SerializableOptional[bool] = False
     forecastPeriods: SerializableOptional[int] = 10
     forecastInterval: SerializableOptional[float] = 0.8
@@ -108,13 +108,13 @@ class TimeSeriesBarOption(ChartVisualOptionsMixin, Option):
 
 @dataclass()
 class TimeSeriesBarFormData(TimeSeriesBarOption):
-    series_columns: SerializableOptional[list] = field(default=None)
+    series_columns: SerializableOptional[list[Any]] = field(default=None)
 
 
 
 @dataclass
 class TimeSeriesBarQueryObject(Query):
-    series_columns: SerializableOptional[list] = field(default_factory=list)
+    series_columns: SerializableOptional[list[Any]] = field(default_factory=list)
     time_offsets: list[str] = field(default_factory=list)
     post_processing: list[Any] = field(default_factory=list)
 

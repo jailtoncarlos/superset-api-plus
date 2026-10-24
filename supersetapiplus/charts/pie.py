@@ -41,7 +41,8 @@ class PieOption(SingleMetricMixin, ChartVisualOptionsMixin, Option):
             raise ValidationError(message='Field metric cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a metric.')
 
-        if hasattr(self.metric, 'column') and (not self.metric.column.column_name or not self.metric.column.type):
+        column = getattr(self.metric, 'column', None)  # None for a SQL-expression metric
+        if column is not None and (not column.column_name or not column.type):
             raise ValidationError(message='Fields self.metric.column.column_name and self.metric.column.type cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a metric.')
 
@@ -74,7 +75,7 @@ class PieQueryContext(QueryContext):
                                   solution=_SOLUTION_USE_ADD_METRIC)
 
     def _validate_metric_orderby(self) -> None:
-        orders = [order for query in self.queries for order in query.orderby]
+        orders = [order for query in self.queries for order in (query.orderby or [])]
         if any(not isinstance(order, tuple) for order in orders):
             raise ValidationError('Order by must be a tuple.', solution=_SOLUTION_USE_ADD_METRIC)
         if not any(self.form_data.metric == order[0] for order in orders):

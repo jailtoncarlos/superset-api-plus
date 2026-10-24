@@ -5,16 +5,16 @@ import json
 import logging
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from typing_extensions import Self
 
 from supersetapiplus.charts.build_query import query_context_for
-from supersetapiplus.charts.metric import OrderBy
+from supersetapiplus.charts.metric import AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import AdhocMetricColumn
-from supersetapiplus.charts.query_context import DataSource, QueryContext
+from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, FilterClausesType, FilterExpressionType, FilterOperatorType, MetricType
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.core.dicts import detailed_dict_diff
 from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.model import SerializableModel
@@ -53,7 +53,7 @@ class Chart(SerializableModel):
     VOLATILE_FORM_DATA_FIELDS = {'slice_id', 'dashboards', 'force', 'result_format', 'result_type'}
     # Suffixes of keys that Superset stores in params but may omit from query_context.form_data
     # (e.g. the query B keys of mixed_timeseries). Only absence is tolerated, not diverging values.
-    PARAMS_ONLY_FIELD_SUFFIXES = ()
+    PARAMS_ONLY_FIELD_SUFFIXES: ClassVar[tuple[str, ...]] = ()
 
     slice_name: str
     id: int | None = field(default=None)
@@ -68,21 +68,23 @@ class Chart(SerializableModel):
     query_context_generation: SerializableOptional[bool] = field(default=None)
 
     params: Option = field(init=False)  # Do not instantiate Option directly!
-    query_context: QueryContext = object_field(cls=QueryContext, default_factory=QueryContext)
+    # None when Superset stored a null query_context (charts never saved from Explore): edits then go to
+    # params only, and derive_query_context() rebuilds it on save.
+    query_context: QueryContext | None = object_field(cls=QueryContext, default_factory=QueryContext)
 
     datasource_id: SerializableOptional[int] = field(default=None)
     datasource_type: SerializableOptional[DatasourceType] = field(default=None)
     cache_timeout: int | None = field(default=None)
 
     dashboards: SerializableNotToJson[list[Dashboard]] = object_field(cls=Dashboard, default_factory=list)
-    owners: SerializableNotToJson[list[dict]] = field(default=None)
+    owners: SerializableNotToJson[list[dict[str, Any]] | None] = field(default=None)
 
-    tags: SerializableNotToJson[list] = field(default=None)
+    tags: SerializableNotToJson[list[Any] | None] = field(default=None)
 
-    changed_on_delta_humanized: SerializableNotToJson[str] = None
-    _slice_name_override: SerializableNotToJson[str] = field(default=None)
-    thumbnail_url: SerializableNotToJson[str] = field(default=None)
-    url: SerializableNotToJson[str] = field(default=None)
+    changed_on_delta_humanized: SerializableNotToJson[str | None] = None
+    _slice_name_override: SerializableNotToJson[str | None] = field(default=None)
+    thumbnail_url: SerializableNotToJson[str | None] = field(default=None)
+    url: SerializableNotToJson[str | None] = field(default=None)
 
 
     @classmethod
@@ -153,7 +155,7 @@ class Chart(SerializableModel):
                                           f'Diff: modified={modified}, added={added}, removed={removed}',
                                   solution="We recommend using the public methods of the chart class.")
 
-    def __init_subclass__(cls, **kwargs) -> None:
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if cls.__dict__.get('VIZ_TYPE') is not None:
             Chart._REGISTRY[str(cls.VIZ_TYPE)] = cls
@@ -187,7 +189,7 @@ class Chart(SerializableModel):
     def instance(cls,
                  slice_name: str,
                  datasource: DataSource,
-                 options: Option | None = None):
+                 options: Option | None = None) -> Self:
 
         if options is None:
             options = cls._default_option_class()()  # delegates to the subclass
@@ -199,12 +201,14 @@ class Chart(SerializableModel):
         options.datasource = f'{datasource.id}__{datasource.type}'
 
         new_chart.params = options
-        new_chart.query_context.form_data = copy.deepcopy(options)
+        if new_chart.query_context is not None:
+            new_chart.query_context.form_data = copy.deepcopy(options)
         return new_chart
 
-    def add_dashboard(self, dashboard) -> None:
+    def add_dashboard(self, dashboard: Dashboard) -> None:
         self.dashboards.append(dashboard)
-        self.query_context.add_dashboard(dashboard.id)
+        if self.query_context is not None and dashboard.id is not None:
+            self.query_context.add_dashboard(dashboard.id)
 
     def clone(self, slice_name: str | None = None, slice_name_override: str | None = None, clear_dashboard: bool = False,
               clear_filter: bool = True) -> Self:
@@ -222,13 +226,15 @@ class Chart(SerializableModel):
 
     def clear_filter(self) -> None:
         self.params.adhoc_filters = []
-        for query in self.query_context.queries:
-            query.filters = []
-        self.query_context.form_data.adhoc_filters = []
+        if self.query_context is not None:
+            for query in self.query_context.queries:
+                query.filters = []
+            self.query_context.form_data.adhoc_filters = []
 
     def add_simple_metric(self, metric: MetricType, automatic_order: OrderBy = OrderBy()) -> None:
         self.params._add_simple_metric(metric, automatic_order)
-        self.query_context._add_simple_metric(metric, automatic_order)
+        if self.query_context is not None:
+            self.query_context._add_simple_metric(metric, automatic_order)
 
     def add_custom_metric(self, label: str,
                           automatic_order: OrderBy = OrderBy(),
@@ -236,29 +242,34 @@ class Chart(SerializableModel):
                           sql_expression: str | None = None,
                           aggregate: MetricType | None = None) -> None:
         self.params._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
-        self.query_context._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
+        if self.query_context is not None:
+            self.query_context._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
 
     def add_simple_orderby(self, column_name: str,
                             sort_ascending: bool = True) -> None:
-        self.query_context._add_simple_orderby(column_name, sort_ascending)
+        if self.query_context is not None:
+            self.query_context._add_simple_orderby(column_name, sort_ascending)
 
     def add_custom_orderby(self, label: str,
                              sort_ascending: bool,
                              column: AdhocMetricColumn | None = None,
                              sql_expression: str | None = None,
                              aggregate: MetricType | None = None) -> None:
-        self.query_context._add_custom_orderby(label, sort_ascending, column, sql_expression, aggregate)
+        if self.query_context is not None:
+            self.query_context._add_custom_orderby(label, sort_ascending, column, sql_expression, aggregate)
 
     def add_simple_dimension(self, column_name: str) -> None:
         self.params._add_simple_groupby(column_name)
-        self.query_context._add_simple_groupby(column_name)
+        if self.query_context is not None:
+            self.query_context._add_simple_groupby(column_name)
 
     def add_custom_dimension(self, label: str,
                              column: AdhocMetricColumn | None = None,
                              sql_expression: str | None = None,
                              aggregate: MetricType | None = None) -> None:
         self.params._add_custom_groupby(label, column, sql_expression, aggregate)
-        self.query_context._add_custom_groupby(label, column, sql_expression, aggregate)
+        if self.query_context is not None:
+            self.query_context._add_custom_groupby(label, column, sql_expression, aggregate)
 
     def add_simple_filter(self, column_name: str,
                           value: str,
@@ -268,18 +279,19 @@ class Chart(SerializableModel):
                                    subject=column_name,
                                    comparator=value,
                                    operator=operator)
-        self.query_context._add_simple_filter(column_name=column_name,
-                                              value=value,
-                                              operator=operator)
+        if self.query_context is not None:
+            self.query_context._add_simple_filter(column_name=column_name, value=value, operator=operator)
 
     def add_extra_where(self, sql: str) -> None:
         self.params._adhoc_filters(expression_type=FilterExpressionType.CUSTOM_SQL,
                                    clause=FilterClausesType.WHERE,
                                    sql_expression=sql)
-        self.query_context._add_extra_where(sql)
+        if self.query_context is not None:
+            self.query_context._add_extra_where(sql)
 
     def add_extra_having(self, sql: str) -> None:
-        self.query_context._add_extra_having(sql)
+        if self.query_context is not None:
+            self.query_context._add_extra_having(sql)
 
     def derive_query_context(self, enabled: bool = True) -> None:
         """Rebuild the query_context from params on the next save, as Explore does when the chart is saved.
@@ -290,11 +302,11 @@ class Chart(SerializableModel):
         """
         self._derive_query_context = enabled
 
-    def ui_query_context(self) -> dict:
+    def ui_query_context(self) -> dict[str, Any]:
         """Query context the Superset UI derives from the current params (frontend buildQuery, 6.1.0)."""
         return query_context_for(self.params.to_dict())
 
-    def to_json(self, columns: list | None = None) -> dict:
+    def to_json(self, columns: list[str] | None = None) -> dict[str, Any]:
         data = super().to_json(columns).copy()
         if getattr(self, '_derive_query_context', False) and 'query_context' in data \
                 and isinstance(self.params, SerializableModel):
@@ -302,7 +314,7 @@ class Chart(SerializableModel):
         return data
 
     @classmethod
-    def from_json(cls, data: dict):
+    def from_json(cls, data: dict[str, Any]) -> Self:
         obj = super().from_json(data)
         obj._dashboards = obj.dashboards
 
@@ -342,7 +354,7 @@ class Charts(ApiModelFactories):
     def _default_object_class(self) -> type[SerializableModel]:
         return Chart
 
-    def get_chart_data(self, slice_id: int, dashboard_id: int | None = None) -> list[dict]:
+    def get_chart_data(self, slice_id: int, dashboard_id: int | None = None) -> list[dict[str, Any]]:
         """
         Chart data computed by Superset from the saved query_context (GET /chart/{pk}/data/).
 
@@ -356,17 +368,20 @@ class Charts(ApiModelFactories):
         if dashboard_id is not None and dashboard_id not in self.dashboard_ids(slice_id):
             raise NotFound(f'Chart {slice_id} does not belong to dashboard {dashboard_id}.')
         url = self.client.join_urls(self.base_url, slice_id, "data/")
-        return self.client.get(url, params={"format": "json", "type": "full"}).json()["result"]
+        results: list[dict[str, Any]] = self.client.get(url, params={"format": "json", "type": "full"}).json()["result"]
+        return results
 
     def dashboard_ids(self, chart_id: int) -> list[int]:
         """Ids of the dashboards associated with the chart, as stored by Superset."""
         result = self.client.get(self.client.join_urls(self.base_url, chart_id)).json()["result"]
-        return [d["id"] for d in result.get("dashboards") or []]
+        return [int(d["id"]) for d in result.get("dashboards") or []]
 
     def add_to_dashboard(self, chart: Chart | int, dashboard_id: int) -> list[int]:
         """Associates the chart with the dashboard, keeping existing associations (see DashboardCharts)."""
-        return self.client.dashboard_charts.add_to_dashboard(chart, dashboard_id)
+        updated: list[int] = self.client.dashboard_charts.add_to_dashboard(chart, dashboard_id)
+        return updated
 
-    def add_and_attach_to_dashboard(self, chart: Chart, title: str, parent=None) -> int:
+    def add_and_attach_to_dashboard(self, chart: Chart, title: str, parent: Any = None) -> int:
         """Creates the chart and places it in the dashboard of the source chart (see DashboardCharts)."""
-        return self.client.dashboard_charts.add_and_attach_to_dashboard(chart, title, parent)
+        new_id: int = self.client.dashboard_charts.add_and_attach_to_dashboard(chart, title, parent)
+        return new_id

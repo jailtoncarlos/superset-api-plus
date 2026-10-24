@@ -1,6 +1,7 @@
 import logging
 import warnings
 from dataclasses import dataclass, field
+from typing import Any
 
 from supersetapiplus.charts.metric import AdhocMetric, AdhocMetricColumn, Metric, MetricHelper, MetricsListMixin, OrderByTyping
 from supersetapiplus.charts.types import (
@@ -82,36 +83,46 @@ class QueryFilterClause(SerializableModel):
 
 @dataclass
 class ColumnsMixin:
-    columns: SerializableOptional[list[Metric]] = object_field(cls=AdhocMetric, default_factory=list)
+    columns: SerializableOptional[list[AdhocColumn | Metric]] = object_field(cls=AdhocMetric, default_factory=list)
+
+    def _editable_columns(self) -> list[AdhocColumn | Metric]:
+        if not isinstance(self.columns, list):
+            self.columns = []
+        return self.columns
 
     def _add_simple_columns(self, column_name:str) -> None:
-        self.columns.append(column_name)
+        self._editable_columns().append(column_name)
 
     def _add_custom_columns(self, label: str,
                             column: AdhocMetricColumn | None = None,
                             sql_expression: str | None = None,
                             aggregate: MetricType | None = None) -> None:
-        self.columns.append(custom_column(label, column, sql_expression, aggregate))
+        self._editable_columns().append(custom_column(label, column, sql_expression, aggregate))
 
 
 @dataclass
 class OrderByMixin:
     orderby: SerializableOptional[list[OrderByTyping]] = object_field(default_factory=list)
 
+    def _editable_orderby(self) -> list[OrderByTyping]:
+        if not isinstance(self.orderby, list):
+            self.orderby = []
+        return self.orderby
+
     def _add_simple_orderby(self, column_name: str,
                             sort_ascending: bool) -> None:
-        self.orderby.append((column_name, sort_ascending))
+        self._editable_orderby().append((column_name, sort_ascending))
 
     def _add_custom_orderby(self, label: str,
                             sort_ascending: bool,
-                            column: AdhocMetricColumn,
+                            column: AdhocMetricColumn | None,
                             sql_expression: str | None = None,
                             aggregate: MetricType | None = None) -> None:
         metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
-        self.orderby.append((metric, sort_ascending))
+        self._editable_orderby().append((metric, sort_ascending))
 
     def validate(self) -> None:
-        super().validate()
+        super().validate()  # type: ignore[misc]  # mixin: the next class in the MRO validates too
         if getattr(self, "_read_from_superset", False):  # e.g. tables saved without ordering
             return
         if not isinstance(self.orderby, MissingField) and not self.orderby:
@@ -130,11 +141,11 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
     filters: list[QueryFilterClause] = object_field(cls=QueryFilterClause, default_factory=list)
     extras: QueryExtra = object_field(cls=QueryExtra, default_factory=QueryExtra)
 
-    applied_time_extras: dict = field(default_factory=dict)
-    url_params: dict = field(default_factory=dict)
-    custom_params: dict = field(default_factory=dict)
-    custom_form_data: dict = field(default_factory=dict)
-    annotation_layers: list = field(default_factory=list)
+    applied_time_extras: dict[str, Any] = field(default_factory=dict)
+    url_params: dict[str, Any] = field(default_factory=dict)
+    custom_params: dict[str, Any] = field(default_factory=dict)
+    custom_form_data: dict[str, Any] = field(default_factory=dict)
+    annotation_layers: list[Any] = field(default_factory=list)
 
     # Additional fields, as needed in the API JSON
     row_offset: SerializableOptional[int] = None

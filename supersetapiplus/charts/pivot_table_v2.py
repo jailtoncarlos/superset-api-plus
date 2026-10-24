@@ -1,9 +1,8 @@
 """Charts."""
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.metric import OrderByTyping
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import CurrencyFormat, Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
@@ -18,6 +17,7 @@ from supersetapiplus.charts.types import (
     TimeGrain,
 )
 from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.sentinels import MissingField
 from supersetapiplus.core.typing import SerializableOptional
 
 
@@ -27,7 +27,7 @@ class PivotTableV2Option(TableOptionBase):
     _require_groupby: ClassVar[bool] = False
     viz_type: ChartType = field(default_factory=lambda: ChartType.PIVOT_TABLE_V2)
 
-    groupby: SerializableOptional[list[OrderByTyping]] = None
+    groupby: SerializableOptional[list[Any] | MissingField] = None
 
     groupbyColumns: list[QueryFormColumn] = object_field(default_factory=list)
     groupbyRows: list[QueryFormColumn] = object_field(default_factory=list)
@@ -71,7 +71,7 @@ class PivotTableV2Option(TableOptionBase):
         super().__post_init__()
         self.groupby = None
 
-    def _editable_groupby(self) -> list:
+    def _editable_groupby(self) -> list[Any]:
         # The pivot buildQuery reads only groupbyColumns/groupbyRows: dimensions added in code are rows,
         # as the "Rows" control in Explore.
         if not isinstance(self.groupbyRows, list):
