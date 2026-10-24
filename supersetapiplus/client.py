@@ -35,6 +35,7 @@ from supersetapiplus.resources.assets import Assets
 from supersetapiplus.resources.databases import Databases
 from supersetapiplus.resources.datasets import Datasets
 from supersetapiplus.resources.saved_queries import SavedQueries
+from supersetapiplus.services.bundle_import import BundleImport
 from supersetapiplus.services.dashboard_charts import DashboardCharts
 from supersetapiplus.transport.http import RequestHandler
 
@@ -88,6 +89,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self.saved_queries = self.saved_queries_cls(self)
         # Operations across resources (charts and dashboards together).
         self.dashboard_charts = DashboardCharts(self)
+        self.bundle_import = BundleImport(self)
 
     @property
     def base_url(self) -> str:

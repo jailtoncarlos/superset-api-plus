@@ -101,6 +101,17 @@ copy = client.datasets.get(virtual_id).duplicate("sales_copy")              # vi
 `add_metric` and `add_calculated_column` need a dataset read with `client.datasets.get` (or returned by
 the methods above): only it holds the stored metrics and columns.
 
+Export and import:
+
+```python
+ids = [c.id for c in client.charts.iter_all()]       # pages requested as the iteration goes
+client.charts.export(ids, "charts.zip", batch_size=50)  # one request per 50 ids, merged into one bundle
+client.assets.import_file("charts.zip", passwords={"warehouse": "..."})  # the whole bundle at once
+report = client.bundle_import.import_objects("charts.zip", passwords={"warehouse": "..."},
+                                             continue_on_error=True, checkpoint="import.json")
+report.imported, report.existing, report.failed      # one import per object, databases first
+```
+
 ## Creating a chart
 
 ```python

@@ -1,8 +1,11 @@
 """Repositories: CRUD of each REST resource over the HTTP client (search, read, write, export/import)."""
+import io
 import json
 import logging
 import os.path
+import zipfile
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from functools import cached_property
 from pathlib import Path
 from typing import Any, Protocol
@@ -273,15 +276,20 @@ class ApiModelFactories(ABC):
     def find_all(self, filter: QueryStringFilter | None = None, columns: list[str] | None = None,
                  page_size: int = 100, order_column: str | None = None,
                  order_direction: str | None = None) -> list[Any]:
-        """Find across all pages; same parameters as `find`."""
+        """Find across all pages; same parameters as `find` (see iter_all to read one page at a time)."""
+        return list(self.iter_all(filter, columns, page_size, order_column, order_direction))
+
+    def iter_all(self, filter: QueryStringFilter | None = None, columns: list[str] | None = None,
+                 page_size: int = 100, order_column: str | None = None,
+                 order_direction: str | None = None) -> Iterator[Any]:
+        """Objects of every page, requesting a page only when the previous one has been consumed."""
         filter = filter or QueryStringFilter()
-        objects: list[Any] = []
         page = 0
         while True:
             page_objects = self.find(filter, columns, page_size, page, order_column, order_direction)
-            objects.extend(page_objects)
+            yield from page_objects
             if len(page_objects) < page_size:
-                return objects
+                return
             page += 1
 
     def count(self, filter: QueryStringFilter | None = None) -> int:
@@ -355,16 +363,22 @@ class ApiModelFactories(ABC):
         new_id: int = obj.id
         return new_id
 
-    def export(self, ids: list[int], path: Path | str) -> None:
+    def export(self, ids: list[int], path: Path | str, batch_size: int | None = None) -> None:
         """
         Export objects to a file in a compatible format (ZIP, JSON or YAML).
 
         Args:
             ids (List[int]): IDs of the objects to export.
             path (Path | str): destination file path.
+            batch_size (int, optional): export at most this many ids per request and merge the ZIP bundles
+                into one (the dependencies each bundle repeats are written once); one request when None.
         """
-        ids_array = ",".join([str(i) for i in ids])
-        response = self.client.get(self.export_url, params={"q": f"[{ids_array}]"})
+        if batch_size and len(ids) > batch_size:
+            bundles = [self._export_response(ids[i:i + batch_size]).content for i in range(0, len(ids), batch_size)]
+            with open(path, "wb") as f:
+                f.write(merge_bundles(bundles))
+            return
+        response = self._export_response(ids)
         content_type = response.headers["content-type"].strip()
 
         if content_type.startswith("application/text"):
@@ -381,6 +395,10 @@ class ApiModelFactories(ABC):
                 f.write(data)
         else:
             raise ValueError(f"Unknown content type {content_type}")
+
+    def _export_response(self, ids: list[int]) -> requests.Response:
+        ids_array = ",".join([str(i) for i in ids])
+        return self.client.get(self.export_url, params={"q": f"[{ids_array}]"})
 
     def delete(self, id: int) -> bool:
         """
@@ -444,6 +462,27 @@ class ApiModelFactories(ABC):
                 headers={"Accept": "application/json"},
             )
         return bool(response.json().get("message") == "OK")
+
+
+def merge_bundles(bundles: list[bytes]) -> bytes:
+    """One export bundle (ZIP) with the files of `bundles`, under the root folder of the first one.
+
+    Superset exports each request as ``<type>_export_<timestamp>/`` with ``metadata.yaml`` and the object
+    files, dependencies included; a file present in several bundles (a database, a dataset) is written once.
+    """
+    merged = io.BytesIO()
+    written: set[str] = set()
+    root: str | None = None
+    with zipfile.ZipFile(merged, "w", zipfile.ZIP_DEFLATED) as target:
+        for bundle in bundles:
+            with zipfile.ZipFile(io.BytesIO(bundle)) as source:
+                for name in source.namelist():
+                    bundle_root, _, relative = name.partition("/")
+                    root = root or bundle_root
+                    if relative and relative not in written:
+                        written.add(relative)
+                        target.writestr(f"{root}/{relative}", source.read(name))
+    return merged.getvalue()
 
 
 # Name used by the package reorganization (issue #318); ApiModelFactories stays as the public name.

@@ -9,6 +9,9 @@ reorganized, tested package.
 
 * Superset 6.1.0 support: login-form session mode with CSRF (`enable_session_mode()`), JWT renewal on a
   rejected token, `POST /api/v1/sqllab/execute/`, multipart import, paginated `find_all()` and `count()`.
+* Export in batches (`export(ids, path, batch_size=N)`, merged into one bundle), lazy pagination
+  (`iter_all()`), and `client.bundle_import.import_objects()`: one import per object of a bundle, in
+  dependency order, with a checkpoint file and continue-on-error.
 * Dashboards: `DashboardLayout` builder for `position_json` (tabs, rows, columns, markdown, charts, headers,
   dividers; `add_chart_grid()` and `add_chart_tabs()` presets, `remove_chart()` pruning empty rows), native filters with dependencies, chart scopes and dataset-less time filters, owners and
   roles, `Dashboards.copy()`, `client.dashboard_charts`. Layouts are checked against the dashboard renderer
