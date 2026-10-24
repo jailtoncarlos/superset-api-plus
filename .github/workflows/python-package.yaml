@@ -47,8 +47,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[test,graph]"
 
-      - name: Run unit tests
-        run: pytest --cov=supersetapiplus tests/unit
+      - name: Run tests
+        # The whole tests/ tree: integration tests skip themselves without the stack, and no test
+        # directory can be left out of CI unnoticed.
+        run: pytest --cov=supersetapiplus tests
 
   integration:
     # Server behavior is tested against a real Superset (tests/integration): the compose stack of the

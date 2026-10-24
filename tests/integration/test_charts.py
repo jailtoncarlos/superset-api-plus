@@ -83,8 +83,13 @@ def test_find_one_not_found_multiple_and_full(client, three_tables):
     with pytest.raises(MultipleFound):
         client.charts.find_one(name_filter("slice_name", prefix, QueryOperator.STARTS_WITH))
 
-    full = client.charts.find_one(name_filter("slice_name", charts[0].slice_name), full=True)
-    assert full.id == charts[0].id and full.params.groupby == ["campus"]
+    columns = ["id", "slice_name", "viz_type"]
+    partial = client.charts.find_one(name_filter("slice_name", charts[0].slice_name), columns=columns)
+    full = client.charts.find_one(name_filter("slice_name", charts[0].slice_name), columns=columns, full=True)
+    assert partial.id == full.id == charts[0].id
+    # The restricted listing does not bring params (the partial object keeps them as an empty dict).
+    assert not (partial.params if isinstance(partial.params, dict) else partial.params.to_dict()).get("groupby")
+    assert full.params.groupby == ["campus"] and full.query_context is not None
 
 
 def test_listing_tolerates_an_unmodeled_viz_type(client, unmodeled_chart, three_tables):
@@ -159,6 +164,7 @@ def test_export_and_import_a_chart(client, add_chart, cleanup, tmp_path):
     client.charts.delete(chart.id)
 
     assert client.charts.import_file(archive, overwrite=True)
-    imported = client.charts.find_one(name_filter("slice_name", chart.slice_name))
-    cleanup.chart(imported.id)  # the import may assign a new id
-    assert imported.slice_name == chart.slice_name
+    imported = client.charts.find(name_filter("slice_name", chart.slice_name), columns=["id"])
+    for item in imported:  # the import may assign a new id
+        cleanup.chart(item.id)
+    assert len(imported) == 1

@@ -14,7 +14,7 @@ from supersetapiplus.exceptions import (
     UnprocessableEntityError,
 )
 
-from .conftest import PASSWORD, URL, new_client, only_test_stack, unique_name
+from .conftest import PASSWORD, URL, USERNAME, new_client, only_test_stack, unique_name
 
 
 @pytest.fixture(scope="module")
@@ -83,10 +83,17 @@ def test_http_error_logs_do_not_expose_password_token_or_cookie(client, caplog):
     for logged_client in (session_client, jwt_client):
         with pytest.raises(BadRequestError):
             logged_client.charts.get(2_000_000_000)
+    expired_session = new_client()
+    expired_session.session.cookies.clear()
+    with pytest.raises(UnauthorizedError):  # 401 on an authenticated call
+        expired_session.charts.count()
 
     errors = [r for r in caplog.records if r.levelno >= logging.ERROR]
-    assert len(errors) >= 3, "the three HTTP errors should have been logged"
+    assert len(errors) >= 4, "the four HTTP errors should have been logged"
     logged = caplog.text
     assert "Authorization" in logged and "Cookie" in logged, "headers are logged (masked), so the check is meaningful"
-    for secret in (f"{PASSWORD}-wrong", cookie, csrf, jwt_client._access_token, jwt_client._refresh_token):
+    secrets = [f"{PASSWORD}-wrong", cookie, csrf, jwt_client._access_token, jwt_client._refresh_token]
+    if PASSWORD != USERNAME and len(PASSWORD) >= 8:  # on the stack admin/admin, the username itself is logged
+        secrets.append(PASSWORD)
+    for secret in secrets:
         assert secret not in logged

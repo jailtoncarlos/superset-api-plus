@@ -17,7 +17,7 @@ def own_bundle(full_export, target, names: list[str]) -> list[str]:
     return kept
 
 
-def test_assets_export_and_import_from_the_given_path(client, database, dataset, add_chart, tmp_path):
+def test_assets_export_and_import_from_the_given_path(client, database, dataset, add_chart, cleanup, tmp_path):
     chart = add_chart()
     full, archive = tmp_path / "full.zip", tmp_path / "subdir" / "assets.zip"
     archive.parent.mkdir()
@@ -32,11 +32,10 @@ def test_assets_export_and_import_from_the_given_path(client, database, dataset,
     passwords = {name: os.environ.get("POSTGRES_PASSWORD", "") for name in database_files}
     assert client.assets.import_file(archive, passwords=passwords) is True
 
-    imported = client.charts.find_one(name_filter("slice_name", chart.slice_name))
-    try:
-        assert imported.slice_name == chart.slice_name
-    finally:
-        client.charts.delete(imported.id)
+    imported = client.charts.find(name_filter("slice_name", chart.slice_name), columns=["id"])
+    for item in imported:  # the import may assign a new id
+        cleanup.chart(item.id)
+    assert len(imported) == 1
 
 
 @pytest.fixture(autouse=True)

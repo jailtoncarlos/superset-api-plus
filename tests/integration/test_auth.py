@@ -50,9 +50,17 @@ def test_expired_access_token_is_renewed_with_the_refresh_token():
     expired = jwt.encode({**claims, "exp": int(time.time()) - 60}, SECRET_KEY, algorithm="HS256")
     client._access_token = expired
     client.session.headers["Authorization"] = f"Bearer {expired}"
+    renewals = []
+    refresh = client.refresh_access_token
+
+    def counted_refresh():
+        renewals.append(1)
+        refresh()
+
+    client.refresh_access_token = counted_refresh
 
     assert client.charts.count() >= 0
-    assert client._access_token != expired
+    assert renewals == [1] and client._access_token != expired
 
 
 def test_session_without_cookie_is_unauthorized_and_does_not_try_to_refresh(monkeypatch):

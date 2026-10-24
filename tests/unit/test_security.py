@@ -1,6 +1,6 @@
 """Client security: application logging, TLS verification and the masking of secrets.
 
-The secrets in real error logs are checked against the real Superset (tests/integration/test_data.py).
+The secrets in real error logs are checked against the real Superset (tests/integration/test_errors.py).
 TLS verification stays mocked: the test stack serves plain HTTP, so `verify` cannot be observed on it.
 """
 import json

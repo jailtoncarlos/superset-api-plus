@@ -97,7 +97,7 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 - Integration tests: `docker compose -p superset-api-plus up -d --build`, then
   `SUPERSET_INTEGRATION=1 pytest tests/integration`, then `docker compose -p superset-api-plus down -v`.
   They create and remove their own objects (prefix `zz-superset-api-plus-test`; the `cleanup` fixture
-  removes them even when a test fails). Tests that change the whole instance or its users
+  removes them even when a test fails). Tests that create users
   (`only_test_stack`) are skipped when `SUPERSET_URL` points to another instance. The Docker host may be
   shared with other projects: only manage this compose project; never run `docker system/image/volume
   prune`.

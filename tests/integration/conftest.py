@@ -43,9 +43,9 @@ DATABASE_URI = config("SUPERSET_TEST_DATABASE_URI") or (
                                              d=os.getenv("POSTGRES_DB", "tests"))
     if os.getenv("POSTGRES_USER") and os.getenv("POSTGRES_PASSWORD") else None)
 
-# Tests that change the whole instance (assets import) or its users run only on the local test stack.
+# Tests that change the instance users (403 with a Gamma user) run only on the local test stack.
 only_test_stack = pytest.mark.skipif(bool(os.getenv("SUPERSET_URL")),
-                                     reason="changes the whole instance or its users: local test stack only")
+                                     reason="creates users: local test stack only")
 
 PREFIX = "zz-superset-api-plus-test"
 SQL_DATASET = "select 'North' as campus, 10 as total union all select 'South', 7"
