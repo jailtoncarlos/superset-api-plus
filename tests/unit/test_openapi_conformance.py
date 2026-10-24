@@ -23,6 +23,7 @@ from supersetapiplus.client import SupersetClient
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.databases import Database
 from supersetapiplus.datasets import Dataset
+from supersetapiplus.resources.css_templates import CssTemplate
 from supersetapiplus.saved_queries import SavedQuery
 
 SPEC = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_openapi_6.1.0.json").read_text())
@@ -67,12 +68,17 @@ RESOURCES = {
                     lambda: SavedQuery(label="Query", sql="select 1", db_id=1, schema="analytics"),
                     {"id": 9, "label": "Query", "sql": "select 1", "schema": "analytics", "description": "",
                      "database": {"id": 1}, "db_id": 1}),
+    "css_template": ("CssTemplateRestApi",
+                     lambda: CssTemplate(template_name="Panel", css=".header { color: #333; }"),
+                     {"id": 9, "template_name": "Panel", "css": ".header { color: #333; }",
+                      "changed_on_delta_humanized": "now"}),
 }
 
 
 def factory_for(client, resource):
     return {"chart": client.charts, "dashboard": client.dashboards, "dataset": client.datasets,
-            "database": client.databases, "saved_query": client.saved_queries}[resource]
+            "database": client.databases, "saved_query": client.saved_queries,
+            "css_template": client.css_templates}[resource]
 
 
 @pytest.fixture

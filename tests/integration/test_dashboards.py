@@ -6,6 +6,7 @@ from supersetapiplus.charts.charts import Chart
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.datasets import Dataset
+from supersetapiplus.resources.css_templates import CssTemplate
 from supersetapiplus.dashboards.native_filters import FilterType
 from supersetapiplus.exceptions import DashboardValidationError, NotFound, ResourceNotFoundError
 from supersetapiplus.query_string import QueryOperator
@@ -274,3 +275,21 @@ def test_dashboard_charts_service_associates_and_places(client, add_chart, add_d
     stored = client.dashboards.get(dashboard.id)
     assert stored.position_json.chart_ids() == [chart.id]
     assert client.charts.dashboard_ids(chart.id) == [dashboard.id]
+
+
+def test_css_template_created_found_by_name_updated_and_applied_to_a_dashboard(client, add_dashboard, cleanup):
+    name = unique_name("css")
+    template = CssTemplate(template_name=name, css=".dashboard-header { color: #2f5233; }")
+    cleanup.css_template(client.css_templates.add(template))
+
+    found = client.css_templates.find_one(name_filter("template_name", name))
+    assert (found.id, found.css) == (template.id, template.css)
+    found.css += "\n.chart-header { font-weight: bold; }"
+    found.save()
+    stored = client.css_templates.get(template.id)
+    assert stored.css.endswith("font-weight: bold; }")
+
+    dashboard = add_dashboard()
+    dashboard.css = stored.css
+    dashboard.save()
+    assert client.dashboards.get(dashboard.id).css == stored.css

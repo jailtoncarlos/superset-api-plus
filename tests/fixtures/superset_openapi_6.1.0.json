@@ -749,6 +749,34 @@
    },
    "required": []
   },
+  "CssTemplateRestApi.post": {
+   "properties": {
+    "css": {
+     "nullable": true,
+     "type": "string"
+    },
+    "template_name": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    }
+   },
+   "required": []
+  },
+  "CssTemplateRestApi.put": {
+   "properties": {
+    "css": {
+     "nullable": true,
+     "type": "string"
+    },
+    "template_name": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    }
+   },
+   "required": []
+  },
   "DashboardRestApi.post": {
    "properties": {
     "certification_details": {

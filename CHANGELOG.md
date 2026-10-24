@@ -9,6 +9,7 @@ reorganized, tested package.
 
 * Superset 6.1.0 support: login-form session mode with CSRF (`enable_session_mode()`), JWT renewal on a
   rejected token, `POST /api/v1/sqllab/execute/`, multipart import, paginated `find_all()` and `count()`.
+* CSS templates: `client.css_templates` (`CssTemplate`: `template_name`, `css`).
 * Export in batches (`export(ids, path, batch_size=N)`, merged into one bundle), lazy pagination
   (`iter_all()`), and `client.bundle_import.import_objects()`: one import per object of a bundle, in
   dependency order, with a checkpoint file and continue-on-error.

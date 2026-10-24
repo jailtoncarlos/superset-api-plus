@@ -138,6 +138,8 @@ FREE_TEXT = {
     "resources.saved_queries.SavedQuery.sql": SQL,
     "charts.box_plot.BoxPlotOption.whiskerOptions":
         "WhiskerOptions preset, or the custom '<low>/<high> percentiles' of the freeForm control (validated)",
+    "resources.css_templates.CssTemplate.template_name": TEXT,
+    "resources.css_templates.CssTemplate.css": "CSS text",
     # Report of a bundle import: paths of files in the bundle and error messages
     "services.bundle_import.ImportReport.imported": "paths of files in the export bundle",
     "services.bundle_import.ImportReport.existing": "paths of files in the export bundle",

@@ -14,7 +14,8 @@ import urllib.request
 
 SPEC_URL = "https://raw.githubusercontent.com/apache/superset/{version}/docs/static/resources/openapi.json"
 
-RESOURCES = ["ChartRestApi", "DashboardRestApi", "DatasetRestApi", "DatabaseRestApi", "SavedQueryRestApi"]
+RESOURCES = ["ChartRestApi", "DashboardRestApi", "DatasetRestApi", "DatabaseRestApi", "SavedQueryRestApi",
+             "CssTemplateRestApi"]
 
 
 def schema_subset(schema: dict) -> dict:

@@ -85,7 +85,8 @@ chart.save()  # PUT with the fields the API accepts on update
 ```
 
 `find_all()` walks every page and `count()` returns the total for a filter. The same methods exist on
-`client.dashboards`, `client.datasets`, `client.databases` and `client.saved_queries`.
+`client.dashboards`, `client.datasets`, `client.databases`, `client.saved_queries` and `client.css_templates`
+(CSS templates, applied to a dashboard through its `css` field).
 
 Datasets:
 
