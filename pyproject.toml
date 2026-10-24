@@ -40,7 +40,9 @@ graph = [
 test = [
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "requests-mock>=1.12.1"
+  "requests-mock>=1.12.1",
+  # tests/integration/test_auth.py signs an expired JWT to exercise the token renewal.
+  "PyJWT>=2.10.1"
 ]
 
 [project.urls]
