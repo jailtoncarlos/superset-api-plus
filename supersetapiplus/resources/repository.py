@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 class HttpClient(Protocol):
     """What a repository needs from SupersetClient (a protocol: resources must not import the client layer)."""
+    # Operations across resources (services.DashboardCharts), reached by the resource facades.
+    dashboard_charts: Any
     @property
     def base_url(self) -> str: ...
 

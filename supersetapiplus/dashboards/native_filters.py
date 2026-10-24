@@ -6,7 +6,9 @@ editor saves (``FiltersConfigModal/utils.ts::createHandleSave``, Superset 6.1.0)
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Any
 
 import shortuuid
 
@@ -44,22 +46,22 @@ class FilterType(StringEnum):
 @dataclass(frozen=True)
 class NativeFilterItem:
     """Handle to an item of `native_filter_configuration`; pass filters as ``parent`` of other filters."""
-    config: dict
+    config: dict[str, Any]
 
     @property
     def id(self) -> str:
-        return self.config["id"]
+        return str(self.config["id"])
 
 
 def new_id(prefix: str) -> str:
     return f"{prefix}{shortuuid.ShortUUID().random(length=21)}"
 
 
-def root_scope() -> dict:
+def root_scope() -> dict[str, Any]:
     return {"rootPath": [DASHBOARD_ROOT_ID], "excluded": []}
 
 
-def divider_config(title: str, description: str = "", id: str | None = None) -> dict:
+def divider_config(title: str, description: str = "", id: str | None = None) -> dict[str, Any]:
     return {
         "id": id or new_id(NATIVE_FILTER_DIVIDER_PREFIX),
         "type": str(NativeFilterType.DIVIDER),
@@ -69,13 +71,13 @@ def divider_config(title: str, description: str = "", id: str | None = None) -> 
     }
 
 
-def dataset_target(dataset, column: str | None) -> dict:
+def dataset_target(dataset: Any, column: str | None) -> dict[str, Any]:
     """Filter target. Through the REST API Superset expects ``datasetId``; a ``str`` is taken as the
     dataset uuid (``datasetUuid``), which is the form used by dashboard import/export bundles.
 
     Without a dataset (e.g. a time range filter) the target is ``{}``, and a column needs a dataset, as in
     the filter editor (FiltersConfigModal createHandleSave, Superset 6.1.0)."""
-    target: dict = {}
+    target: dict[str, Any] = {}
     if dataset is None:
         if column:
             raise ValueError("a filter column needs the dataset it belongs to.")
@@ -93,24 +95,24 @@ def dataset_target(dataset, column: str | None) -> dict:
     return target
 
 
-def chart_scope(charts_in_scope, layout_chart_ids) -> dict:
+def chart_scope(charts_in_scope: Iterable[int], layout_chart_ids: Iterable[int]) -> dict[str, Any]:
     """Scope covering only `charts_in_scope`: the dashboard root minus every other chart of the layout."""
     return {"rootPath": [DASHBOARD_ROOT_ID],
             "excluded": [chart_id for chart_id in layout_chart_ids if chart_id not in set(charts_in_scope)]}
 
 
-def filter_config(name: str, dataset, column: str | None, parents: list[NativeFilterItem | str] | None = None,
-                  filter_type: FilterType | str = FilterType.SELECT, adhoc_filters: list | None = None,
-                  description: str = "", id: str | None = None, **control_values) -> dict:
+def filter_config(name: str, dataset: Any, column: str | None, parents: list[NativeFilterItem | str] | None = None,
+                  filter_type: FilterType | str = FilterType.SELECT, adhoc_filters: list[Any] | None = None,
+                  description: str = "", id: str | None = None, **control_values: Any) -> dict[str, Any]:
     """Native filter as saved by the editor. Extra keyword arguments go to ``controlValues``, except the
     optional top-level keys ``time_range``, ``granularity_sqla``, ``sortMetric`` and ``defaultDataMask``."""
-    top_level = {key: control_values.pop(key) for key in ("time_range", "granularity_sqla", "sortMetric")
+    top_level: dict[str, Any] = {key: control_values.pop(key) for key in ("time_range", "granularity_sqla", "sortMetric")
                  if key in control_values}
     default_data_mask = control_values.pop("defaultDataMask", None) or {
         "extraFormData": {}, "filterState": {}, "ownState": {}}
-    controls = dict(SELECT_CONTROL_VALUES) if str(filter_type) == str(FilterType.SELECT) else {}
+    controls: dict[str, Any] = dict(SELECT_CONTROL_VALUES) if str(filter_type) == str(FilterType.SELECT) else {}
     controls.update(control_values)
-    config = {
+    config: dict[str, Any] = {
         "id": id or new_id(NATIVE_FILTER_PREFIX),
         "adhoc_filters": list(adhoc_filters or []),
         "controlValues": controls,

@@ -101,6 +101,8 @@ FREE_TEXT = {
     "dashboards.metadata.Metadata.color_scheme": "color scheme id from an extensible registry",
     "dashboards.metadata.Metadata.color_namespace": "label color namespace chosen by the user",
     "dashboards.metadata.Metadata.color_scheme_domain": "colors (hex) of the scheme",
+    "dashboards.metadata.Metadata.label_colors": "series label -> color (hex) chosen by the user",
+    "dashboards.metadata.Metadata.map_label_colors": "series label -> color (hex) assigned by Superset",
     "dashboards.metadata.Metadata.shared_label_colors": "series labels of the instance's data",
     "dashboards.layout.legacy.metadata_position.MetadataPosition.DASHBOARD_VERSION_KEY": "constant of the layout format",
     "dashboards.dashboards.Dashboard.certified_by": TEXT,

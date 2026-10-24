@@ -84,16 +84,17 @@ class LayoutComponent:
     id: str
 
     @property
-    def data(self) -> dict:
+    def data(self) -> dict[str, Any]:
         return self.layout.components[self.id]
 
     @property
     def type(self) -> str:
-        return self.data["type"]
+        return str(self.data["type"])
 
     @property
-    def meta(self) -> dict:
-        return self.data.setdefault("meta", {})
+    def meta(self) -> dict[str, Any]:
+        meta: dict[str, Any] = self.data.setdefault("meta", {})
+        return meta
 
     @property
     def children(self) -> list[LayoutComponent]:
@@ -103,8 +104,9 @@ class LayoutComponent:
 class DashboardLayout(SerializableModel):
     """`position_json` of a dashboard."""
 
-    def __init__(self, components: dict | None = None, version: Any = LAYOUT_VERSION, **kwargs):
-        self.components: dict[str, dict] = components if components is not None else {}
+    def __init__(self, components: dict[str, dict[str, Any]] | None = None, version: Any = LAYOUT_VERSION,
+                 **kwargs: Any) -> None:
+        self.components: dict[str, dict[str, Any]] = components if components is not None else {}
         self.version = version
         self._extra_fields = {}
         # True for layouts started by the library (empty()): their title header follows the dashboard title.
@@ -124,33 +126,33 @@ class DashboardLayout(SerializableModel):
         return layout
 
     @classmethod
-    def from_json(cls, data: dict) -> DashboardLayout:
+    def from_json(cls, data: dict[str, Any]) -> DashboardLayout:
         data = data or {}
         components = {key: copy.deepcopy(value) for key, value in data.items() if isinstance(value, dict)}
         layout = cls(components, data.get(VERSION_KEY))
         layout._extra_fields = {k: v for k, v in data.items() if not isinstance(v, dict) and k != VERSION_KEY}
         return layout
 
-    def to_dict(self, columns: list = None, convert_to_json: bool = False) -> dict:
-        data: dict = {}
+    def to_dict(self, columns: list[str] | None = None, convert_to_json: bool = False) -> dict[str, Any]:
+        data: dict[str, Any] = {}
         if self.version is not None:
             data[VERSION_KEY] = self.version
         data.update(copy.deepcopy(self.components))
         data.update(self._extra_fields)
         return data
 
-    def validate(self):
+    def validate(self) -> None:
         for component in self.components.values():
             for child in component.get("children", []):
                 if child not in self.components:
                     raise NodePositionValidationError(f"{component['id']} has unknown child {child}.")
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, DashboardLayout):
             return NotImplemented
         return self.to_dict() == other.to_dict()
 
-    __hash__ = None
+    __hash__ = None  # type: ignore[assignment]  # mutable
 
     @property
     def tree(self) -> DashboardLayout:
@@ -209,45 +211,47 @@ class DashboardLayout(SerializableModel):
         if HEADER_ID in self.components:
             self.components[HEADER_ID].setdefault("meta", {})["text"] = title
 
-    def add_tabs(self, parent=None, id: str | None = None) -> LayoutComponent:
+    def add_tabs(self, parent: Any = None, id: str | None = None) -> LayoutComponent:
         """Tabs container. Without `parent`, top-level tabs go inside the grid (ROOT → GRID → TABS)."""
         return self._add("TABS", parent or GRID_ID, {}, id)
 
-    def add_tab(self, title: str, parent=None, id: str | None = None) -> LayoutComponent:
+    def add_tab(self, title: str, parent: Any = None, id: str | None = None) -> LayoutComponent:
         """Tab inside a TABS container; without `parent`, uses the last top-level TABS (creating it if needed)."""
         if parent is None:
-            grid_tabs = [c for c in self.find_by_id(GRID_ID).children if c.type == "TABS"]
+            grid = self.find_by_id(GRID_ID)
+            grid_tabs = [c for c in grid.children if c.type == "TABS"] if grid else []
             parent = grid_tabs[-1] if grid_tabs else self.add_tabs()
         return self._add("TAB", parent, {"text": title}, id)
 
-    def add_row(self, parent=None, background: Background | str = Background.TRANSPARENT,
+    def add_row(self, parent: Any = None, background: Background | str = Background.TRANSPARENT,
                 id: str | None = None) -> LayoutComponent:
         return self._add("ROW", parent or GRID_ID, {"background": str(background)}, id)
 
-    def add_header(self, text: str, parent=None, size: HeaderSize | str = HeaderSize.MEDIUM,
+    def add_header(self, text: str, parent: Any = None, size: HeaderSize | str = HeaderSize.MEDIUM,
                    background: Background | str = Background.TRANSPARENT, id: str | None = None) -> LayoutComponent:
         meta = {"text": text, "headerSize": str(size), "background": str(background)}
         return self._add("HEADER", parent or GRID_ID, meta, id)
 
-    def add_divider(self, parent=None, id: str | None = None) -> LayoutComponent:
+    def add_divider(self, parent: Any = None, id: str | None = None) -> LayoutComponent:
         return self._add("DIVIDER", parent or GRID_ID, {}, id)
 
-    def add_markdown(self, code: str, parent=None, height: int | None = DEFAULT_HEIGHT, width: int = DEFAULT_CHART_WIDTH,
+    def add_markdown(self, code: str, parent: Any = None, height: int | None = DEFAULT_HEIGHT,
+                     width: int = DEFAULT_CHART_WIDTH,
                      id: str | None = None) -> LayoutComponent:
         """Markdown block; ``height=None`` omits the height from ``meta``, as some exports do."""
         _check_size(width, height)
-        meta: dict = {"code": code, "width": width}
+        meta: dict[str, Any] = {"code": code, "width": width}
         if height is not None:
             meta["height"] = height
         return self._add("MARKDOWN", self._row_for(parent, width), meta, id)
 
-    def add_chart(self, chart, title: str | None = None, parent=None, height: int = DEFAULT_HEIGHT,
+    def add_chart(self, chart: Any, title: str | None = None, parent: Any = None, height: int = DEFAULT_HEIGHT,
                   width: int = DEFAULT_CHART_WIDTH, id: str | None = None) -> LayoutComponent:
         """Place a saved chart (a library Chart or a :class:`ChartRef`); `title` becomes ``sliceNameOverride``."""
         if not getattr(chart, "id", None):
             raise NodePositionValidationError("Save the chart before placing it in a layout (chart.id is empty).")
         _check_size(width, height)
-        meta: dict = {"chartId": chart.id, "sliceName": chart.slice_name, "width": width, "height": height}
+        meta: dict[str, Any] = {"chartId": chart.id, "sliceName": chart.slice_name, "width": width, "height": height}
         uuid = getattr(chart, "uuid", None)
         if uuid:
             meta["uuid"] = str(uuid)
@@ -255,7 +259,7 @@ class DashboardLayout(SerializableModel):
             meta["sliceNameOverride"] = title
         return self._add("CHART", self._row_for(parent, width), meta, id)
 
-    def _row_for(self, parent, width: int):
+    def _row_for(self, parent: Any, width: int) -> str:
         """Charts and markdown live in a ROW or COLUMN; inside a grid or tab, reuse its last row with room."""
         parent_id = self._resolve(parent or GRID_ID)
         if self.components[parent_id]["type"] in ("ROW", "COLUMN"):
@@ -266,19 +270,20 @@ class DashboardLayout(SerializableModel):
             return parent_id
         rows = [c for c in self.components[parent_id].get("children", []) if self.components[c]["type"] == "ROW"]
         if rows and self._row_width(rows[-1]) + width <= GRID_COLUMN_COUNT:
-            return rows[-1]
+            return str(rows[-1])
         return self.add_row(parent_id).id
 
     def _row_width(self, row_id: str) -> int:
         return sum(self.components[c].get("meta", {}).get("width", 0) for c in self.components[row_id].get("children", []))
 
-    def _resolve(self, parent) -> str:
+    def _resolve(self, parent: Any) -> str:
         parent_id = parent.id if isinstance(parent, LayoutComponent) else str(parent)
         if parent_id not in self.components:
             raise NodePositionValidationError(f"Unknown parent component {parent_id}.")
         return parent_id
 
-    def _add(self, component_type: str, parent, meta: dict, component_id: str | None) -> LayoutComponent:
+    def _add(self, component_type: str, parent: Any, meta: dict[str, Any],
+             component_id: str | None) -> LayoutComponent:
         parent_id = self._resolve(parent)
         parent_data = self.components[parent_id]
         if component_type not in _ALLOWED_CHILDREN.get(parent_data["type"], set()):

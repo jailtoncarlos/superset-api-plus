@@ -1,4 +1,6 @@
+from collections.abc import Iterable
 from dataclasses import dataclass, field
+from typing import Any
 
 from supersetapiplus.core.enums import StringEnum
 from supersetapiplus.core.fields import default_string, object_field
@@ -49,48 +51,50 @@ class Metadata(SerializableModel):
     # List of labels in 6.x (SharedLabelsColorsField discards dicts).
     shared_label_colors: list[str] = field(default_factory=list)
     color_scheme_domain: list[str] = field(default_factory=list)
-    expanded_slices: dict = field(default_factory=dict)
-    label_colors: dict = field(default_factory=dict)
+    expanded_slices: dict[str, Any] = field(default_factory=dict)
+    label_colors: dict[str, str] = field(default_factory=dict)
     timed_refresh_immune_slices: list[int] = field(default_factory=list)
     cross_filters_enabled: bool = field(default=False)
-    filter_scopes: SerializableOptional[dict] = field(default_factory=dict)
+    filter_scopes: SerializableOptional[dict[str, Any]] = field(default_factory=dict)
     chart_configuration: dict[str, ChartConfiguration] = object_field(cls=ChartConfiguration, dict_right=True,
                                                                       default_factory=dict)
     global_chart_configuration: GlobalChartConfiguration = object_field(cls=GlobalChartConfiguration,
                                                                         default_factory=GlobalChartConfiguration)
-    default_filters: SerializableOptional[dict] = field(default=None)
+    default_filters: SerializableOptional[dict[str, Any]] = field(default=None)
 
     # List of native filters and dividers, kept as the dicts Superset stores (see native_filters).
-    native_filter_configuration: SerializableOptional[list] = field(default=None)
+    native_filter_configuration: SerializableOptional[list[dict[str, Any]]] = field(default=None)
 
     # Other keys of DashboardJSONMetadataSchema (6.1.0); absent unless read or set.
     color_namespace: SerializableOptional[str] = field(default=None)
-    map_label_colors: SerializableOptional[dict] = field(default=None)
-    positions: SerializableOptional[dict] = field(default=None)
+    map_label_colors: SerializableOptional[dict[str, str]] = field(default=None)
+    positions: SerializableOptional[dict[str, Any]] = field(default=None)
     filter_bar_orientation: SerializableOptional[FilterBarOrientation] = field(default=None)
     show_chart_timestamps: SerializableOptional[bool] = field(default=None)
-    chart_customization_config: SerializableOptional[list] = field(default=None)
+    chart_customization_config: SerializableOptional[list[dict[str, Any]]] = field(default=None)
     stagger_refresh: SerializableOptional[bool] = field(default=None)
     stagger_time: SerializableOptional[int] = field(default=None)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         # Ids of the native filter items created by the library: only their scopes are recomputed.
-        self._library_filter_ids = set()
+        self._library_filter_ids: set[str] = set()
         # Filter id -> chart ids in scope, for filters restricted to some charts (excluded = the others).
-        self._filter_charts = {}
+        self._filter_charts: dict[str, list[int]] = {}
 
     def clear_native_filters(self) -> None:
         self.native_filter_configuration = []
         self._library_filter_ids = set()
         self._filter_charts = {}
 
-    def add_filter_divider(self, title: str, description: str = "", id: str | None = None):
+    def add_filter_divider(self, title: str, description: str = "",
+                           id: str | None = None) -> native_filters.NativeFilterItem:
         """Section divider in the native filter bar."""
         return self._add_native_item(native_filters.divider_config(title, description, id))
 
-    def add_native_filter(self, name: str, dataset=None, column: str | None = None, parent=None,
-                          charts=None, excluded_charts=None, **options):
+    def add_native_filter(self, name: str, dataset: Any = None, column: str | None = None, parent: Any = None,
+                          charts: Iterable[Any] | None = None, excluded_charts: Iterable[Any] | None = None,
+                          **options: Any) -> native_filters.NativeFilterItem:
         """Native filter on `column` of `dataset` (a saved Dataset, its id or its uuid).
 
         Without `dataset` the filter has no target (``targets: [{}]``), e.g.
@@ -103,7 +107,8 @@ class Metadata(SerializableModel):
         """
         if charts is not None and excluded_charts is not None:
             raise ValueError("pass either charts or excluded_charts, not both.")
-        parents = parent if isinstance(parent, (list, tuple)) else [parent] if parent else []
+        parents: list[native_filters.NativeFilterItem | str] = (
+            list(parent) if isinstance(parent, (list, tuple)) else [parent] if parent else [])
         item = self._add_native_item(native_filters.filter_config(name, dataset, column, parents, **options))
         if charts is not None:
             self._filter_charts[item.id] = [_chart_id(chart) for chart in charts]
@@ -111,7 +116,7 @@ class Metadata(SerializableModel):
             item.config["scope"]["excluded"] = [_chart_id(chart) for chart in excluded_charts]
         return item
 
-    def update_native_filter_scopes(self, layout) -> None:
+    def update_native_filter_scopes(self, layout: Any) -> None:
         """Sets chartsInScope/tabsInScope of the items created by the library from the dashboard layout."""
         for item in self.native_filter_configuration or []:
             if item.get("id") in self._library_filter_ids:
@@ -121,14 +126,14 @@ class Metadata(SerializableModel):
                 item["chartsInScope"], item["tabsInScope"] = layout.charts_and_tabs_in_scope(
                     scope.get("rootPath", []), scope.get("excluded", []))
 
-    def _add_native_item(self, config: dict):
+    def _add_native_item(self, config: dict[str, Any]) -> native_filters.NativeFilterItem:
         if not isinstance(self.native_filter_configuration, list):
             self.native_filter_configuration = []
         self.native_filter_configuration.append(config)
         self._library_filter_ids.add(config["id"])
         return native_filters.NativeFilterItem(config)
 
-    def add_chart(self, chart):
+    def add_chart(self, chart: Any) -> None:
         chart_configuration = ChartConfiguration(id=chart.id)
         if self.global_chart_configuration.chartsInScope:
             for chart_id in self.global_chart_configuration.chartsInScope:
@@ -139,8 +144,8 @@ class Metadata(SerializableModel):
         self.global_chart_configuration.chartsInScope.append(chart.id)
 
 
-def _chart_id(chart) -> int:
-    return chart if isinstance(chart, int) else chart.id
+def _chart_id(chart: Any) -> int:
+    return chart if isinstance(chart, int) else int(chart.id)
 
 
 # Old names, kept as aliases that emit DeprecationWarning.

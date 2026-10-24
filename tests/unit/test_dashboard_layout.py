@@ -227,3 +227,11 @@ def test_component_sizes_at_the_grid_limits_are_accepted():
     pos.add_chart(ChartRef(1, "A"), width=1, height=5)
     pos.add_markdown("text", width=11, height=100)
     pos.add_markdown("no height", width=12, height=None)
+
+
+def test_dashboard_stored_without_layout_gets_an_empty_one_when_built():
+    dashboard = Dashboard.from_json({"id": 1, "dashboard_title": "P", "position_json": None, "json_metadata": "{}"})
+
+    dashboard.position.add_markdown("text", width=12)
+
+    assert len(dashboard.position.components) == 5  # root, grid, header, row, markdown

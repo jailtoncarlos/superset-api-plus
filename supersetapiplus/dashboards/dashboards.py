@@ -1,5 +1,8 @@
 """Dashboards."""
 from dataclasses import dataclass, field
+from typing import Any
+
+from typing_extensions import Self
 
 from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.model import SerializableModel
@@ -11,11 +14,11 @@ from supersetapiplus.exceptions import DashboardValidationError, UnsupportedType
 from supersetapiplus.resources.repository import ApiModelFactories, UnsupportedObject
 
 
-def default_metadata():
+def default_metadata() -> Metadata:
     return Metadata()
 
 
-def default_metadata_position():
+def default_metadata_position() -> DashboardLayout:
     return DashboardLayout.empty()
 
 
@@ -46,8 +49,8 @@ class Dashboard(SerializableModel):
     slug: SerializableOptional[str] = field(default=None)
     # Users (owners) and roles (dashboard RBAC) as read from Superset, or their ids; sent as ids.
     # Absent on create unless set: Superset then makes the current user the owner.
-    owners: SerializableOptional[list] = field(default=None)
-    roles: SerializableOptional[list] = field(default=None)
+    owners: SerializableOptional[list[Any]] = field(default=None)
+    roles: SerializableOptional[list[Any]] = field(default=None)
     certified_by: SerializableOptional[str] = field(default=None)
     certification_details: SerializableOptional[str] = field(default=None)
     external_url: SerializableOptional[str] = field(default=None)
@@ -57,26 +60,29 @@ class Dashboard(SerializableModel):
     position_json: SerializableOptional[DashboardLayout] = object_field(cls=DashboardLayout,
                                                                         default_factory=DashboardLayout.empty)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
-        self._charts_slice_names = []
+        self._charts_slice_names: list[str] = []
 
     @classmethod
-    def from_json(cls, data: dict):
+    def from_json(cls, data: dict[str, Any]) -> Self:
         obj = super().from_json(data)
         obj._charts_slice_names = obj._extra_fields.get('charts', [])
         return obj
 
     @property
-    def charts_slice_names(self):
+    def charts_slice_names(self) -> list[str]:
         return self._charts_slice_names
 
     @property
-    def metadata(self):
+    def metadata(self) -> Metadata:
         return self.json_metadata
 
     @property
-    def position(self):
+    def position(self) -> DashboardLayout:
+        """The layout (`position_json`); a dashboard stored without one gets an empty layout."""
+        if not isinstance(self.position_json, DashboardLayout):
+            self.position_json = DashboardLayout.empty(self.dashboard_title)
         return self.position_json
 
     def reset_layout(self) -> DashboardLayout:
@@ -84,7 +90,7 @@ class Dashboard(SerializableModel):
         self.position_json = DashboardLayout.empty(self.dashboard_title)
         return self.position_json
 
-    def to_dict(self, columns: list = None, convert_to_json: bool = False) -> dict:
+    def to_dict(self, columns: list[str] | None = None, convert_to_json: bool = False) -> dict[str, Any]:
         # Native filter scopes (chartsInScope/tabsInScope) are derived from the layout, as the editor does.
         if isinstance(self.position_json, DashboardLayout):
             if self.position_json.created_by_library:
@@ -93,7 +99,8 @@ class Dashboard(SerializableModel):
                 self.json_metadata.update_native_filter_scopes(self.position_json)
         return super().to_dict(columns, convert_to_json)
 
-    def add_chart(self, chart, title: str, parent=None, height: int = 50, width: int = 4, id: str | None = None):
+    def add_chart(self, chart: Any, title: str, parent: Any = None, height: int = 50, width: int = 4,
+                  id: str | None = None) -> None:
         """Places the chart in the layout and associates it with this dashboard in Superset (see DashboardCharts).
 
         The dashboard must be saved (have an id); a chart without an id is created first.
@@ -105,26 +112,26 @@ class Dashboard(SerializableModel):
                                                              id=id)
 
     @property
-    def colors(self) -> dict:
+    def colors(self) -> dict[str, str]:
         """Get dashboard color mapping."""
         return self.json_metadata.label_colors
 
     @colors.setter
-    def colors(self, value: dict) -> None:
+    def colors(self, value: dict[str, str]) -> None:
         """Set dashboard color mapping."""
         self.json_metadata.label_colors = dict(value)
 
-    def update_colors(self, value: dict) -> None:
+    def update_colors(self, value: dict[str, str]) -> None:
         """Update dashboard colors."""
         colors = self.colors
         colors.update(value)
         self.colors = colors
 
-    def get_charts(self) -> list:
+    def get_charts(self) -> list[Any]:
         """Charts associated with the dashboard in Superset (GET /dashboard/{id}/charts), as library objects."""
         client = self._repository().client
         url = client.join_urls(self._repository().base_url, self.id, "charts")
-        charts = []
+        charts: list[Any] = []
         for item in client.get(url).json()["result"]:
             try:
                 charts.append(client.charts.get(item["id"]))
@@ -135,7 +142,7 @@ class Dashboard(SerializableModel):
     def delete(self, exclude_charts: bool = False) -> bool:
         """Deletes the dashboard; with exclude_charts=True, also deletes the associated charts."""
         charts = self.get_charts() if exclude_charts else []
-        deleted = self._repository().delete(id=self.id)
+        deleted: bool = self._repository().delete(id=self.id)
         if deleted:
             for chart in charts:
                 self._repository().client.charts.delete(chart.id)
@@ -152,18 +159,22 @@ class Dashboards(ApiModelFactories):
         `duplicate_slices` also copies its charts (otherwise the copy shows the same charts). The copy keeps
         the json_metadata of the original (required by DashboardCopySchema).
         """
-        source = dashboard if isinstance(dashboard, Dashboard) and dashboard.id else self.get(
-            dashboard.id if isinstance(dashboard, Dashboard) else dashboard)
+        source_id = dashboard.id if isinstance(dashboard, Dashboard) else dashboard
+        if source_id is None:
+            raise DashboardValidationError("Save the dashboard before copying it (dashboard.id is empty).")
+        source = dashboard if isinstance(dashboard, Dashboard) else self.get(source_id)
         payload = {"json_metadata": source.to_json()["json_metadata"], "duplicate_slices": duplicate_slices,
                    "dashboard_title": dashboard_title or f"{source.dashboard_title} (copy)"}
         if css is not None:
             payload["css"] = css
         response = self.client.post(self.client.join_urls(self.base_url, source.id, "copy/"), json=payload)
-        return response.json()["result"]["id"]
+        new_id: int = response.json()["result"]["id"]
+        return new_id
 
     def attach_charts(self, dashboard: Dashboard) -> list[int]:
         """Associates with the dashboard every chart present in its layout (see DashboardCharts)."""
-        return self.client.dashboard_charts.attach_charts(dashboard)
+        attached: list[int] = self.client.dashboard_charts.attach_charts(dashboard)
+        return attached
 
     def _default_object_class(self) -> type[SerializableModel]:
         return Dashboard
