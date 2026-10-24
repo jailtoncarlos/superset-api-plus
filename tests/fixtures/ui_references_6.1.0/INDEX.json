@@ -34,6 +34,11 @@
   "query_context": "null",
   "slice_name": "Table"
  },
+ "treemap_v2": {
+  "dataset": "main.wb_health_population",
+  "query_context": "null",
+  "slice_name": "Treemap"
+ },
  "word_cloud": {
   "dataset": "main.cleaned_sales_data",
   "query_context": "null",

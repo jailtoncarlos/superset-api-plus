@@ -301,6 +301,11 @@
    "Value": "value",
    "ValuePercent": "value_percent"
   },
+  "EchartsTreemapLabelType": {
+   "Key": "key",
+   "KeyValue": "key_value",
+   "Value": "value"
+  },
   "ExpressionTypes": {
    "Simple": "SIMPLE",
    "Sql": "SQL"
@@ -540,6 +545,7 @@
     "superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts",
     "superset-frontend/plugins/plugin-chart-echarts/src/Pie/types.ts",
     "superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Treemap/types.ts",
     "superset-frontend/plugins/plugin-chart-echarts/src/constants.ts",
     "superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx",
     "superset-frontend/plugins/plugin-chart-echarts/src/types.ts",

@@ -36,6 +36,7 @@ Target: **Superset 6.1.0** (Flask-AppBuilder 5) · Python **3.10–3.14**.
 | `mixed_timeseries` | `charts.mixed_timeseries.MixedTimeseriesChart` | `set_x_axis()`; query B in the `_b` keys |
 | `big_number_total` | `charts.big_number_total.BigNumberTotalChart` | one metric, no dimension |
 | `word_cloud` | `charts.word_cloud.WordCloudChart` | one metric, one dimension (`series`) |
+| `treemap_v2` | `charts.treemap_v2.TreemapChart` | one metric; dimensions nest the rectangles |
 | `box_plot` | `charts.box_plot.BoxPlotChart` | `add_distribute_across()` |
 | `cal_heatmap` | `charts.cal_heatmap.CalHeatmapChart` | legacy plugin; set `granularity_sqla` |
 

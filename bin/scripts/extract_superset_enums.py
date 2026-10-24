@@ -60,6 +60,7 @@ FRONTEND = [
     ("superset-frontend/plugins/plugin-chart-echarts/src/types.ts", "LegendType"),
     ("superset-frontend/plugins/plugin-chart-echarts/src/constants.ts", "StackControlsValue"),
     ("superset-frontend/plugins/plugin-chart-echarts/src/Pie/types.ts", "EchartsPieLabelType"),
+    ("superset-frontend/plugins/plugin-chart-echarts/src/Treemap/types.ts", "EchartsTreemapLabelType"),
     ("superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/types.ts", "OrientationType"),
     ("superset-frontend/plugins/plugin-chart-pivot-table/src/types.ts", "MetricsLayoutEnum"),
     ("superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts", "VizType"),

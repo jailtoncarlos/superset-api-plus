@@ -32,6 +32,7 @@ CHARTS = {
     "pie": "Pie",
     "pivot_table_v2": "Pivot Table",
     "table": "Table",
+    "treemap_v2": "Treemap",
     "word_cloud": "Word Cloud",
 }
 

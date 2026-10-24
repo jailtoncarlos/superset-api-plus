@@ -57,6 +57,7 @@ SOURCES = {
     T.LegendType: official(FRONTEND, "LegendType"),
     T.StackStyleType: official(FRONTEND, "StackControlsValue"),
     T.LabelType: official(FRONTEND, "EchartsPieLabelType"),
+    T.TreemapLabelType: official(FRONTEND, "EchartsTreemapLabelType"),
     T.Orientation: official(FRONTEND, "OrientationType"),
     T.MetricsLayoutEnum: official(FRONTEND, "MetricsLayoutEnum"),
     T.MetricType: set(OFFICIAL["objects"]["AGGREGATES"].values()),

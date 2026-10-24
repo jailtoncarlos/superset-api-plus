@@ -14,6 +14,7 @@ class ChartType(StringEnum):
     CAL_HEATMAP = 'cal_heatmap'
     MIXED_TIMESERIES = 'mixed_timeseries'
     WORD_CLOUD = 'word_cloud'
+    TREEMAP_V2 = 'treemap_v2'
 
 
 # Legacy viz types removed from Superset -> the type Superset migrated their charts to
@@ -45,6 +46,16 @@ class LegendOrientationType(StringEnum):
     TOP = 'top'
     LEFT = 'left'
     RIGHT = 'right'
+
+class TreemapLabelType(StringEnum):
+    """treemap_v2 label_type (EchartsTreemapLabelType, plugin-chart-echarts Treemap/types.ts, Superset 6.1.0).
+
+    The control lists 'Key' for the first option, which matches no case of the plugin (no label is shown);
+    the enum keeps the plugin values, and a 'Key' read from Superset is kept as read."""
+    KEY = 'key'
+    VALUE = 'value'
+    KEY_VALUE = 'key_value'
+
 
 class LabelType(StringEnum):
     CATEGORY_NAME = 'key'

@@ -140,6 +140,20 @@ def test_forecast_options_follow_parse_int_and_parse_float(interval, periods, ex
     json.dumps(context, allow_nan=False)
 
 
+@pytest.mark.parametrize("row_limit, expected", [
+    (100, [["count", False], ["region", True]]), (0, None), ("0", None), ("abc", [["count", False], ["region", True]]),
+    (None, None),
+])
+def test_treemap_orders_by_metric_then_physical_groupby_columns_when_there_is_a_row_limit(row_limit, expected):
+    adhoc = {"label": "upper", "sqlExpression": "upper(city)", "expressionType": "SQL"}
+    form_data = {**BASE, "viz_type": "treemap_v2", "metric": "count", "sort_by_metric": True,
+                 "groupby": ["region", adhoc], "row_limit": row_limit}
+
+    (query,) = bq.query_context_for(form_data)["queries"]
+
+    assert query.get("orderby") == expected  # applyOrderBy: Number("abc") is NaN, which applies
+
+
 def test_box_plot_percentile_whiskers():
     form_data = {**BASE, "viz_type": "box_plot", "columns": ["a"], "groupby": ["b"], "metrics": ["count"],
                  "whiskerOptions": "10/90 percentiles"}

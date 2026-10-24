@@ -34,6 +34,8 @@ FREE_TEXT = {
     "charts.options.Option.datasource": "'<id>__<type>' reference to the instance's dataset",
     "charts.options.ChartVisualOptionsMixin.color_scheme":
         "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",
+    "charts.treemap_v2.TreemapOption.color_scheme":
+        "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",
     "charts.cal_heatmap.CalHeatmapOption.granularity_sqla": NAME,
     "charts.cal_heatmap.CalHeatmapOption.time_range":
         "free-form time range ('No filter', 'Last week', '<since> : <until>') of the time_range control",

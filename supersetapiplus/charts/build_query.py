@@ -602,6 +602,27 @@ def build_word_cloud(form_data: dict[str, Any]) -> dict[str, Any]:
     return build_query_context(form_data, lambda base: [{**base, "orderby": orderby} if apply else base])
 
 
+def build_columns_orderby(columns: Any, ascending: bool = True) -> list[Any]:
+    """``buildColumnsOrderBy`` (plugin-chart-echarts utils/orderby.ts): physical columns only."""
+    return [[column, ascending] for column in ensure_list(columns) if isinstance(column, str) and column != ""]
+
+
+def apply_orderby(orderby: list[Any], row_limit: Any) -> dict[str, Any]:
+    """``applyOrderBy``: the orderby, unless there is no row limit or it is 0 (a non-numeric text applies)."""
+    if not defined(row_limit) or not orderby:
+        return {}
+    parsed = js_number(row_limit) if isinstance(row_limit, str) else row_limit
+    applies = (isinstance(parsed, float) and math.isnan(parsed)) or parsed != 0
+    return {"orderby": orderby} if applies else {}
+
+
+def build_treemap(form_data: dict[str, Any]) -> dict[str, Any]:
+    metric = form_data.get("metric")
+    orderby = [[metric, False]] if form_data.get("sort_by_metric") and metric else []
+    orderby.extend(build_columns_orderby(form_data.get("groupby")))
+    return build_query_context(form_data, lambda base: [{**base, **apply_orderby(orderby, form_data.get("row_limit"))}])
+
+
 def build_pivot_table_v2(form_data: dict[str, Any]) -> dict[str, Any]:
     grain = (form_data.get("extra_form_data") or {}).get("time_grain_sqla") or form_data.get("time_grain_sqla")
     raw = [*ensure_list(form_data.get("groupbyColumns")), *ensure_list(form_data.get("groupbyRows"))]
@@ -825,6 +846,7 @@ BUILD_QUERY: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "pie": build_pie,
     "pivot_table_v2": build_pivot_table_v2,
     "table": build_table,
+    "treemap_v2": build_treemap,
     "word_cloud": build_word_cloud,
 }
 
