@@ -2,7 +2,8 @@
 
 Server behavior (errors by status, JWT renewal, session mode, multipart, SQL Lab, search) is tested against
 the real Superset in tests/integration. What stays here, and why:
-- retry policy and adapter mounting: the server does not produce 5xx/429 on demand;
+- retry policy and adapter mounting: the server does not produce 5xx/429 on demand (429 comes from the
+  rate limit of a production-mode Superset, reached by bursts; the policy is checked without HTTP);
 - exception hierarchy: no server involved;
 - asynchronous SQL Lab (202): the test stack has no Celery workers to run queries asynchronously.
 """
@@ -33,6 +34,17 @@ def test_retry_only_on_idempotent_methods_without_swallowing_the_api_error():
     assert "POST" not in retry.allowed_methods and set(retry.allowed_methods) == IDEMPOTENT_METHODS
     assert retry.total == 3 and 429 in retry.status_forcelist and 503 in retry.status_forcelist
     assert retry.raise_on_status is False and retry.respect_retry_after_header is True
+
+
+def test_any_method_is_retried_on_429_and_only_idempotent_ones_on_server_errors():
+    # The real stack produced it: the suite exceeded RATELIMIT_APPLICATION (50/s) and the login POST got 429.
+    session = requests.Session()
+    RequestHandler.configure_retries(session, retries=3)
+    retry = session.get_adapter("https://x").max_retries
+
+    assert retry.is_retry("POST", 429) and retry.is_retry("GET", 429)
+    assert retry.is_retry("GET", 503) and not retry.is_retry("POST", 503)
+    assert not retry.new(total=0).is_retry("POST", 429), "stops when the retries are exhausted"
 
 
 def test_retry_adapter_is_mounted_once_per_session():

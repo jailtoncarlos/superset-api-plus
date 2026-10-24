@@ -41,8 +41,9 @@ DEFAULT_BACKOFF_FACTOR = _number_from_env("SUPERSET_API_PLUS_BACKOFF_FACTOR", 0.
 DEFAULT_STATUS_FORCELIST = (429, 500, 502, 503, 504)
 
 # Only idempotent methods are retried: retrying a POST that failed on the server could create
-# the resource twice.
+# the resource twice. The exception is 429 (see RateLimitAwareRetry).
 IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE"})
+RATE_LIMITED = 429
 
 HTTP_METHODS = frozenset({"GET", "POST", "PUT", "DELETE"})
 
@@ -52,6 +53,20 @@ STATUS_EXCEPTIONS = {
     404: ResourceNotFoundError,
     422: UnprocessableEntityError,
 }
+
+
+class RateLimitAwareRetry(Retry):
+    """Retries idempotent methods on transient failures, and any method on 429.
+
+    A rate-limited request was rejected before being processed (RFC 6585), so repeating it cannot duplicate
+    a resource. Superset in production mode limits every client (RATELIMIT_APPLICATION, 50 requests per
+    second) and the login endpoint (AUTH_RATE_LIMIT).
+    """
+
+    def is_retry(self, method: str, status_code: int, has_retry_after: bool = False) -> bool:
+        if status_code == RATE_LIMITED and status_code in (self.status_forcelist or ()) and self.total:
+            return True
+        return super().is_retry(method, status_code, has_retry_after)
 
 
 class RequestHandler:
@@ -65,7 +80,7 @@ class RequestHandler:
         config = (int(retries), float(backoff_factor), tuple(status_forcelist))
         if getattr(session, "_supersetapiplus_retry", None) == config:
             return
-        retry = Retry(
+        retry = RateLimitAwareRetry(
             total=config[0],
             backoff_factor=config[1],
             status_forcelist=config[2],

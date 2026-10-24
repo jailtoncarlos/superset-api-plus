@@ -56,7 +56,8 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 - **Authentication**: instances where the `Public` role has permissions ignore JWT on public endpoints
   (FAB 5). Use `client.enable_session_mode()` (login form cookie + `X-CSRFToken`/`Referer`). In JWT mode
   a 401 renews the token once with the refresh token.
-- **HTTP**: retries only on idempotent methods (never POST); HTTP errors map to
+- **HTTP**: retries transient failures only on idempotent methods (never POST), except 429 (rate limit:
+  the request was not processed, so any method is retried, honoring Retry-After); HTTP errors map to
   `UnauthorizedError`/`ForbiddenError`/`ResourceNotFoundError`/`UnprocessableEntityError`, all
   subclasses of `BadRequestError`. TLS is verified by default.
 - **Security**: never log secrets (use `supersetapiplus.utils.sensitive` masking); never commit
