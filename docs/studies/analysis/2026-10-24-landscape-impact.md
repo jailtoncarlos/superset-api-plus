@@ -122,3 +122,25 @@ rule or technique can be checked (code from Preset projects is not reusable, see
   created in the UI. They could be offered later as a convenience layer on top of the native models.
 - Silent auth fallbacks, retries on POST, hidden mutation of other objects (bintocher sets
   `always_filter_main_dttm` on datasets when adding a filter).
+
+## 6. Disposition (2026-10-24)
+
+Where each finding went, in the institutional issue tracker (numbers as cited in commit footers).
+
+| Finding | Destination |
+|---|---|
+| D1 license | pending maintainer decision (recommendation: Apache-2.0 plus a `NOTICE` crediting opus-42) |
+| D2–D5; A1 and E1 of the [follow-up audit](./2026-10-24-layout-errors-enums-audit.md) | defect fix task #331 |
+| H1 (+ audit A2) | #333 layout structural validation |
+| M6 (+ audit A3) | #334 layout conveniences |
+| H4, H5 | #335 native filters |
+| H3, M5 (+ audit E2) | #336 transport robustness |
+| M1 | #337 new chart models |
+| M2, M3, M8 | #338 assets and listings |
+| M4 | #339 dataset operations |
+| M7, L1, L2, L3 | #340 chart model validations |
+| L4, L6 | #341 additional API resources |
+| Hardening practices of the [dependency decision](./2026-10-24-superset-as-dependency.md) | #342 conformance hardening |
+| Section 4 | #343 next Superset version |
+| L5 | #344 optional async transport |
+| H2 | reclassified as defect A1 (#331) after reproduction |
