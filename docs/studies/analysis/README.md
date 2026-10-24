@@ -15,3 +15,4 @@ related:
 | Date | Analysis | Summary | Based on |
 |---|---|---|---|
 | 2026-10-24 | [Impact of the client landscape on superset-api-plus](./2026-10-24-landscape-impact.md) | Defects confirmed in our code, prioritized improvement opportunities, design choices the landscape confirms, license decision | [research/2026-10-24-superset-client-landscape.md](../research/2026-10-24-superset-client-landscape.md) |
+| 2026-10-24 | [Follow-up audit: layout rules, server error shapes and value sets](./2026-10-24-layout-errors-enums-audit.md) | Builder vs frontend `isValidChild` depth and size rules; error bodies of a live 6.1.0; library enums vs Superset's MCP service value sets | [research/2026-10-24-superset-client-landscape.md](../research/2026-10-24-superset-client-landscape.md) |
