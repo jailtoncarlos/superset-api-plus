@@ -147,3 +147,23 @@ Where each finding went, in the institutional issue tracker (numbers as cited in
 | Section 4 | #343 next Superset version |
 | L5 | #344 optional async transport |
 | H2 | reclassified as defect A1 (#331) after reproduction |
+
+## 7. Outcome (2026-10-24)
+
+What became of each task of section 6 (commits on `feat/aai2026-compat`; each one validated against the
+dashboards of the integration that embeds the library).
+
+| Task | Outcome |
+|---|---|
+| #333 (H1) | done in `29d3811`: renderer rules of `isValidChild.ts`; stale `parents` are checked only on layouts built by the library, since Superset itself saves them (3 of its 9 example dashboards) |
+| #334 (M6) | done in `457a90d`: `add_column`, `add_chart_grid`, `add_chart_tabs`, `skip_existing`, `remove_chart` |
+| #335 (H4, H5) | done in `5595c7d` and `0183a44`: `default_value`, column checks, `native_filter_problems`, which found a filter Superset silently drops on a published dashboard |
+| #336 (H3, M5) | done in `7744d63`: one renewal of the CSRF token or session login per request; typed SIP-40 errors |
+| #337 (M1) | `treemap_v2` done in `5dfe012` (the only one of these types the integration uses); the other types wait for a use |
+| #338 (M2, M3, M8) | done in `2432a9b`: batched export, `iter_all`, per-object import with checkpoint |
+| #339 (M4) | done in `ad047f0`: metrics and calculated columns merged by name; `refresh`, `duplicate`, `get_or_create`; the partial PUT reset of `always_filter_main_dttm` confirmed |
+| #340 (M7, L1–L3) | done in `2efd37e` |
+| #341 (L4, L6) | CSS templates done in `24e4ba2`; guest token, embedded dashboard and Preset authentication left out (no use) |
+| #342 | done in `d817d2a`: provenance, strict extractors, orphan keys; the scheduled drift job needs a CI change |
+| #343 (section 4) | `b4f6ee1`: 6.1.0 has no chart data for a chart saved without `query_context`; `docs/superset-version-bump.md` |
+| #344 (L5) | left out: no asynchronous consumer |
