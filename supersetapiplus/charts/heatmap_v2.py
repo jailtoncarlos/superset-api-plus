@@ -6,7 +6,7 @@ from pydantic import Field
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
 from supersetapiplus.charts.options import Option, unbounded
-from supersetapiplus.charts.queries import CurrencyFormat, Query, QueryFormColumn
+from supersetapiplus.charts.queries import CurrencyFormat, Query, QueryFormColumn, custom_column
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import (
     ChartType,
@@ -27,10 +27,15 @@ def _border_color() -> dict[str, float]:
     return {"a": 1, "b": 0, "g": 0, "r": 0}
 
 class HeatmapOption(SingleMetricMixin, Option):
-    """Heatmap params: the `x_axis` column (set_x_axis), one `groupby` column for the Y axis and one `metric`
-    colouring the cells; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0)."""
+    """Heatmap params: the `x_axis` column (set_x_axis), the Y axis column in `groupby` and one `metric` colouring
+    the cells; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0).
+
+    The Y axis control is a single column (multi: false), so `groupby` holds one column, as the UI stores it,
+    and not a list: [] until a dimension is added.
+    """
     viz_type: ChartType = Field(default_factory=lambda: ChartType.HEATMAP_V2)
     x_axis: SerializableOptional[QueryFormColumn] = None
+    groupby: Any = Field(default_factory=list)
     _require_groupby: ClassVar[bool] = False  # checked in validate: exactly one Y column
     _sorts_by_metric: ClassVar[bool] = False  # no sort_by_metric control: sort_x_axis / sort_y_axis
     time_grain_sqla: SerializableOptional[TimeGrain] = Field(default_factory=lambda: TimeGrain.DAY)
@@ -69,9 +74,22 @@ class HeatmapOption(SingleMetricMixin, Option):
         if not self.metric or not self.x_axis:
             raise ValidationError(message='A heatmap needs a metric and an X axis column.',
                                   solution='Use add_simple_metric (or add_custom_metric) and set_x_axis.')
-        if not isinstance(self.groupby, list) or len(self.groupby) != 1:
+        if not self.groupby or isinstance(self.groupby, list):
             raise ValidationError(message='A heatmap has exactly one Y axis column (groupby).',
                                   solution='Call add_simple_dimension or add_custom_dimension once.')
+
+    def _set_y_axis(self, column: QueryFormColumn) -> None:
+        if self.groupby and not isinstance(self.groupby, list):
+            raise ValidationError(message='A heatmap has a single Y axis column (groupby).',
+                                  solution='Call add_simple_dimension or add_custom_dimension once.')
+        self.groupby = column
+
+    def _add_simple_groupby(self, column_name: str) -> None:
+        self._set_y_axis(column_name)
+
+    def _add_custom_groupby(self, label: str, column: Any = None, sql_expression: str | None = None,
+                            aggregate: Any = None) -> None:
+        self._set_y_axis(custom_column(label, column, sql_expression, aggregate))
 
 
 class HeatmapFormData(HeatmapOption):

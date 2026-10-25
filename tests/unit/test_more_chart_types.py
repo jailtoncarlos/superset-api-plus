@@ -91,11 +91,13 @@ def test_heatmap_has_one_y_column_and_ranks_the_metric():
         chart.to_json()
 
     chart.add_simple_dimension("campus")
+    with pytest.raises(ValidationError, match="single Y axis column"):
+        chart.add_simple_dimension("region")
     chart.params.sort_y_axis = chart.query_context.form_data.sort_y_axis = HeatmapSortAxis.VALUE_DESC
     params, context = sent(chart)
 
     (query,) = context["queries"]
-    assert "sort_by_metric" not in params
+    assert params["groupby"] == "campus" and "sort_by_metric" not in params  # one column, as the UI stores it
     assert query["columns"][0]["columnType"] == "BASE_AXIS" and query["columns"][1] == "campus"
     assert query["orderby"] == [["count", False]]
     assert query["post_processing"] == [{"operation": "rank", "options": {"metric": "count"}}]

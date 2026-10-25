@@ -895,12 +895,9 @@ def build_heatmap(form_data: dict[str, Any]) -> dict[str, Any]:
         if sort:
             axis = columns[position] if position < len(columns) else UNSET
             orderby.append([metric if "value" in sort else axis, "asc" in sort])
-    normalize_across = form_data.get("normalize_across")
-    group_by = UNSET
-    if normalize_across == "x":
-        group_by = column_label(form_data.get("x_axis"))
-    elif normalize_across == "y":
-        group_by = column_label(ensure_list(form_data.get("groupby"))[0])
+    # getColumnLabel of one column (the Y axis control is single, multi: false); undefined for anything else.
+    axis = {"x": form_data.get("x_axis"), "y": form_data.get("groupby")}.get(str(form_data.get("normalize_across")))
+    group_by = column_label(axis) if is_query_form_column(axis) else UNSET
     return build_query_context(form_data, lambda base: [{
         **base, "columns": columns, "orderby": orderby,
         "post_processing": [{"operation": "rank", "options": {"metric": metric, "group_by": group_by}}]}])
