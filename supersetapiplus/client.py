@@ -12,6 +12,7 @@ Features:
 
 import json
 import logging
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlparse
 
@@ -156,12 +157,38 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         # and rejects an empty body declared as JSON.
         kwargs["headers"] = self.get_headers(kwargs.pop("headers", None), json_body=kwargs.get("json") is not None)
         kwargs.setdefault("verify", self._verify)
+        file_positions = self._multipart_positions(kwargs.get("files"))
         try:
             return RequestHandler.request_with_retry(url=url, method=method, session=self.session, **kwargs)
         except BadRequestError as error:
             if not self._renew_credentials(error):
                 raise
+        for stream, position in file_positions:
+            if position is None:
+                raise requests.exceptions.UnrewindableBodyError("Cannot rewind an uploaded file for authentication retry.")
+            try:
+                stream.seek(position)
+            except (AttributeError, OSError) as error:
+                raise requests.exceptions.UnrewindableBodyError(
+                    "Cannot rewind an uploaded file for authentication retry."
+                ) from error
         return RequestHandler.request_with_retry(url=url, method=method, session=self.session, **kwargs)
+
+    @staticmethod
+    def _multipart_positions(files: Any) -> list[tuple[Any, int | None]]:
+        """Remember stream offsets before requests consumes the multipart body, ignoring literal parts."""
+        positions: list[tuple[Any, int | None]] = []
+        parts = files.values() if isinstance(files, Mapping) else (value for _, value in (files or ()))
+        for part in parts:
+            stream = part[1] if isinstance(part, (tuple, list)) else part
+            if not hasattr(stream, "read"):
+                continue
+            try:
+                position = stream.tell()
+            except (AttributeError, OSError):
+                position = None
+            positions.append((stream, position))
+        return positions
 
     def _renew_credentials(self, error: BadRequestError) -> bool:
         """Renews what `error` says was rejected; False when there is nothing to renew.

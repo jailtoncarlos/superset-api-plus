@@ -6,7 +6,7 @@ import pytest
 
 from supersetapiplus.exceptions import UnprocessableEntityError
 
-from .conftest import name_filter
+from .conftest import name_filter, new_client
 
 
 def own_bundle(full_export, target, names: list[str]) -> list[str]:
@@ -38,6 +38,32 @@ def test_assets_export_and_import_from_the_given_path(client, database, dataset,
     for item in imported:  # the import may assign a new id
         cleanup.chart(item.id)
     assert len(imported) == 1
+
+
+def test_import_replays_the_archive_after_renewing_credentials(client, add_chart, cleanup, tmp_path):
+    chart = add_chart()
+    archive = tmp_path / "chart.zip"
+    client.charts.export([chart.id], archive)
+    client.charts.delete(chart.id)
+    importing = new_client(session_mode=False)
+    session = importing.session
+    statuses = []
+
+    def record(response, *args, **kwargs):
+        if "/chart/import/" in response.url:
+            statuses.append(response.status_code)
+
+    session.hooks["response"].append(record)
+    session.headers["Authorization"] = "Bearer malformed"
+
+    try:
+        assert importing.charts.import_file(archive) is True
+    finally:
+        imported = client.charts.find(name_filter("slice_name", chart.slice_name), columns=["id"])
+        for item in imported:
+            cleanup.chart(item.id)
+    assert len(imported) == 1
+    assert statuses == [422, 200]
 
 
 @pytest.fixture(autouse=True)
