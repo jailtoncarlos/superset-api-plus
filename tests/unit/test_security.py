@@ -15,7 +15,7 @@ import yaml
 
 from supersetapiplus.client import SupersetClient
 from supersetapiplus.transport.http import RequestHandler
-from supersetapiplus.core.masking import MASK, mask_body, mask_data, mask_headers
+from supersetapiplus.core.masking import MASK, mask_body, mask_data, mask_headers, mask_request_kwargs
 
 HOST = "https://superset.example"
 PASSWORD = "s3cr3t-top-secret"
@@ -75,6 +75,15 @@ def test_masks_json_body_form_body_and_connection_uri():
     assert json.loads(mask_body(json_body)) == {"username": "robot", "password": MASK, "nested": {"refresh_token": MASK}}
     assert mask_body(form_body) == f"csrf_token={MASK.replace('*', '%2A')}&username=robot&password={MASK.replace('*', '%2A')}"
     assert mask_data(database)["sqlalchemy_uri"] == f"postgresql://robot:{MASK}@db:5432/dw"
+
+
+@pytest.mark.parametrize("field", ["ssh_tunnel_private_keys", "ssh_tunnel_private_key_passwords"])
+def test_masks_json_encoded_ssh_import_secrets_without_changing_request_data(field):
+    secret = json.dumps({"databases/examples.yaml": "synthetic-ssh-secret"})
+    kwargs = {"data": {"overwrite": "false", field: secret}}
+
+    assert mask_request_kwargs(kwargs) == {"data": {"overwrite": "false", field: MASK}}
+    assert kwargs == {"data": {"overwrite": "false", field: secret}}
 
 
 def test_network_parameters_come_from_the_environment():

@@ -12,6 +12,7 @@ SENSITIVE_HEADERS = frozenset({"authorization", "cookie", "set-cookie", "x-csrft
 SENSITIVE_KEYS = frozenset({
     "password", "passwords", "access_token", "refresh_token", "csrf_token", "token",
     "secret", "encrypted_extra", "masked_encrypted_extra", "ssh_tunnel_passwords",
+    "ssh_tunnel_private_keys", "ssh_tunnel_private_key_passwords",
 })
 
 # Password embedded in a connection URI (e.g. sqlalchemy_uri "postgresql://user:password@host/db")
