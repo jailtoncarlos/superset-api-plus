@@ -7,7 +7,7 @@ and settings the synthetic payloads of the unit tests do not cover. For each exa
    ``to_json()``, give what Superset stored;
 2. chart copies: each chart of a modeled type is copied through the library (read model, new name, query context
    derived from its params) and the copy returns the data the original shows in the UI: the query the UI builds
-   from the original params (the library port of the frontend buildQuery) sent to ``/api/v1/chart/data``. The
+   captured independently from Explore for that exact chart, replayed against ``/api/v1/chart/data``. The
    examples store no ``query_context``, so ``/chart/{id}/data`` of the original is not available in 6.1.0;
 3. dashboard copy: a dashboard created through the library with the original layout and ``json_metadata``, chart
    ids remapped to the copies, reads back like the original, and the copies are associated with it.
@@ -31,9 +31,11 @@ from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.exceptions import UnsupportedTypeError
 
 from ..conftest import Cleanup, unique_name
+from .references import reference_context
 
 LAYOUTS = Path(__file__).parents[2] / "fixtures" / "example_layouts_6.1.0.json"
 EXAMPLE_TITLES = {layout["dashboard_title"] for layout in json.loads(LAYOUTS.read_text())["layouts"].values()}
+QUERY_CAPTURES = LAYOUTS.with_name("example_query_contexts_6.1.0.json")
 CHART_FIELDS = ("params", "query_context")
 DASHBOARD_FIELDS = ("position_json", "json_metadata")
 
@@ -251,18 +253,20 @@ class ExampleDashboardChecks:
     # --- copies built by the library ---
 
     def test_chart_copies_keep_the_params_and_return_the_data_of_the_original(self, client, modeled, chart_copies):
+        captures = json.loads(QUERY_CAPTURES.read_text())["charts"]
         found = {}
         for chart_id, copy_id in chart_copies.items():
-            diffs = differences(parsed(stored(client, client.charts, chart_id)["params"]),
+            source = stored(client, client.charts, chart_id)
+            diffs = differences(parsed(source["params"]),
                                 parsed(stored(client, client.charts, copy_id)["params"]))
             shown = client.post(client.join_urls(client.charts.base_url, "data"),
-                                json=modeled[chart_id].ui_query_context()).json()["result"]
+                                json=reference_context(source, captures)).json()["result"]
             if [result["data"] for result in shown] != [result["data"] for result in client.charts.get_chart_data(copy_id)]:
                 diffs.append("data differs from the original")
             if diffs:
                 found[f"{chart_id} {modeled[chart_id].viz_type}"] = diffs
 
-        assert found == {}
+        assert found == {}, found
 
     def test_dashboard_copy_reads_back_like_the_original(self, client, original, chart_copies, unmodeled_copies,
                                                           dashboard_copy):
