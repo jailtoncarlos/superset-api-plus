@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Unreleased
+
+### Fixed
+
+* Objects read from Superset are written back as read in three more cases found by the round trip of the
+  Superset examples: a key stored as `null` in a nested structure (e.g. `params.page_length` of a table) is no
+  longer dropped (#15); a `null` read in a field with a default (e.g. `xscale_interval` of a heatmap) is no
+  longer replaced by the default (#16); integers inside lists and dicts (e.g. `color_picker`, `y_axis_bounds`)
+  are no longer written back as floats (#17).
+
 ## 2.0.2 (2026-10-25)
 
 ### Added

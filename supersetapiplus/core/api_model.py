@@ -67,6 +67,7 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
     _factory: Any = None  # repository the object was read or created through (see PersistenceMixin)
     _request_response: Any = None  # HTTP response the object was read from, if any
     _read_from_superset: bool = False
+    _read_keys: frozenset[str] = frozenset()  # fields present in the data read from Superset
 
     # --- reading -----------------------------------------------------------------------------------
 
@@ -97,18 +98,20 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
     @classmethod
     def _keep_what_was_read(cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo) -> Any:
         """Data read from Superset is kept as stored: a value of another type than the field's stays as read,
-        and a scalar is not converted (5 stays 5 in a float field, 'pie' stays a string in an enum field)."""
+        and a scalar is not converted (5 stays 5 in a float field, 'pie' stays a string in an enum field), also
+        inside a list or a dict ([0, null] stays [0, null] in a list[float | None] field)."""
         if not (info.context or {}).get(_READ):
             return handler(value)
         try:
             result = handler(value)
         except ValidationError:
             return value
-        return value if isinstance(value, _SCALARS) and result == value else result
+        return value if isinstance(value, (*_SCALARS, list, dict)) and result == value else result
 
     def model_post_init(self, context: Any) -> None:
         if (context or {}).get(_READ):
             self._read_from_superset = True
+            self._read_keys = frozenset(self.model_fields_set)
             for name in type(self).model_fields:
                 if name not in self.model_fields_set:  # absent key: stays absent when written back
                     self.__dict__[name] = MissingField()
@@ -121,9 +124,10 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
             if isinstance(value, str):
                 self.__dict__[name] = json.loads(value)
         for name, info in type(self).model_fields.items():
-            # None given to a field with a plain default (not an optional one) takes the default.
-            if self.__dict__.get(name) is None and info.default not in (None, PydanticUndefined) \
-                    and not _is_optional(info):
+            # None given in code to a field with a plain default (not an optional one) takes the default; a null
+            # read from Superset stays null.
+            if not self._read_from_superset and self.__dict__.get(name) is None \
+                    and info.default not in (None, PydanticUndefined) and not _is_optional(info):
                 self.__dict__[name] = info.default
 
     # --- writing -----------------------------------------------------------------------------------
@@ -183,9 +187,16 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
             return False
         default = info.get_default(call_default_factory=True)
         if serialized is None:
-            return default is None
+            return default is None and not self._null_read_kept(name)
         return (isinstance(serialized, dict) and isinstance(default, ApiModel)
                 and dicts_equal_and_all_values_none(serialized, default.to_dict()))
+
+    def _null_read_kept(self, name: str) -> bool:
+        """A null read in a structure nested in a resource (e.g. the params of a chart) is written back: leaving the
+        key out would remove it. The fields of a REST resource and its JSON text fields are left out, which keeps
+        what Superset stored."""
+        return (self._read_from_superset and name in self._read_keys and name not in self.JSON_FIELDS
+                and self.POST_FIELDS is None and self.PUT_FIELDS is None)
 
     # --- the rest of the facade ----------------------------------------------------------------------
 
