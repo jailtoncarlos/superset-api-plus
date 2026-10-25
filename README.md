@@ -145,6 +145,30 @@ client.charts.add(table)
 rows = client.charts.get_chart_data(pie.id)[0]["data"]
 ```
 
+Chart types with their own keys (see the table of supported types):
+
+```python
+from supersetapiplus.charts.cal_heatmap import CalHeatmapChart
+from supersetapiplus.charts.mixed_timeseries import MixedTimeseriesChart
+from supersetapiplus.charts.word_cloud import WordCloudChart
+
+words = WordCloudChart.instance(slice_name="Products", datasource=datasource)
+words.add_simple_metric("count")
+words.add_simple_dimension("product")      # the words: a word cloud has one dimension (series)
+client.charts.add(words)
+
+mixed = MixedTimeseriesChart.instance(slice_name="Sales over time", datasource=datasource)
+mixed.set_x_axis("order_date")             # shared by query A and query B
+mixed.add_simple_metric("count")           # query A; query B uses the `_b` keys (metrics_b, groupby_b...)
+mixed.add_simple_dimension("region")
+client.charts.add(mixed)
+
+calendar = CalHeatmapChart.instance(slice_name="Daily sales", datasource=datasource)
+calendar.add_simple_metric("count")
+calendar.params.granularity_sqla = calendar.query_context.form_data.granularity_sqla = "order_date"
+client.charts.add(calendar)
+```
+
 A chart read from Superset keeps its stored `query_context`; call `chart.derive_query_context()` after
 changing its `params` to store the one the UI would derive.
 
