@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2.0.2 (2026-10-25)
+
+### Added
+
+* `CssTemplate` is exported by `supersetapiplus`, like the other resource models (`from supersetapiplus import
+  CssTemplate`); a test keeps every resource model of `supersetapiplus.resources` exported at the top level.
+
 ## 2.0.1 (2026-10-25)
 
 ### Changed
