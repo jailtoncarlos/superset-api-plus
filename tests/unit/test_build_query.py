@@ -12,7 +12,9 @@ import pytest
 
 from supersetapiplus.charts import build_query as bq
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.table import TableChart
+from supersetapiplus.charts.table import TableChart, TableOption
+from supersetapiplus.core.datasource import DataSource
+from supersetapiplus.exceptions import ValidationError
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 CAPTURES = FIXTURES / "ui_query_contexts_6.1.0"
@@ -239,6 +241,61 @@ def test_chart_read_from_superset_keeps_its_query_context_until_asked():
     chart.derive_query_context()
 
     assert json.loads(chart.to_json()["query_context"])["queries"][0]["columns"] == ["a"]
+
+
+def test_derivation_uses_changed_params_instead_of_validating_the_stored_context():
+    params = {**BASE, "query_mode": "aggregate", "metrics": ["count"], "row_limit": 100}
+    stored = bq.query_context_for(params)
+    chart = TableChart.from_json({"id": 3, "slice_name": "T", "params": json.dumps(params),
+                                  "query_context": json.dumps(stored)})
+    original_context = chart.query_context
+    chart.params.row_limit = 25
+
+    with pytest.raises(ValidationError, match="self.params is not the same"):
+        chart.to_json()
+
+    chart.derive_query_context()
+    payload = chart.to_json()
+    sent = json.loads(payload["query_context"])
+
+    assert sent["queries"][0]["row_limit"] == 25
+    assert sent["form_data"] == json.loads(payload["params"])
+    assert chart.query_context is original_context
+    assert chart.query_context.to_dict() == stored
+
+    chart.derive_query_context(False)
+    with pytest.raises(ValidationError, match="self.params is not the same"):
+        chart.to_json()
+
+
+@pytest.mark.parametrize("query_mode, options", [
+    ("aggregate", {"metrics": ["count"]}),
+    ("raw", {"all_columns": ["campus"]}),
+])
+def test_populated_options_derive_queries_before_validating_the_empty_intermediate_context(query_mode, options):
+    chart = TableChart.instance(slice_name="T", datasource=DataSource(id=7, type="table"),
+                                options=TableOption(query_mode=query_mode, row_limit=25, **options))
+
+    payload = chart.to_json()
+    sent = json.loads(payload["query_context"])
+
+    assert sent == chart.ui_query_context()
+    expected_form_data = json.loads(payload["params"])
+    if query_mode == "raw":
+        expected_form_data["include_time"] = False
+    assert sent["form_data"] == expected_form_data
+    assert sent["queries"][0]["row_limit"] == 25
+
+
+def test_derivation_still_rejects_invalid_params():
+    chart = TableChart.instance(slice_name="T", datasource=DataSource(id=7, type="table"),
+                                options=TableOption(query_mode="raw"))
+    original_context = chart.query_context
+
+    with pytest.raises(ValidationError, match="all_columns cannot be empty"):
+        chart.to_json()
+
+    assert chart.query_context is original_context
 
 
 def test_pivot_dimension_added_in_code_is_a_row_and_reaches_the_query():

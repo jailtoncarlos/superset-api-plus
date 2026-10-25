@@ -1,7 +1,6 @@
 """Charts."""
 import copy
 import importlib
-import json
 import logging
 from abc import abstractmethod
 from typing import Any, ClassVar
@@ -149,7 +148,9 @@ class Chart(ApiModel):
         if self.query_context is None or not isinstance(self.query_context.form_data, ApiModel):
             return
 
-        params = {k: v for k, v in self.params.to_dict().items() if k not in self.VOLATILE_FORM_DATA_FIELDS}
+        # Plugins may augment the derived form_data (raw tables add include_time=False).
+        expected = self.ui_query_context()['form_data'] if self._derive_query_context else self.params.to_dict()
+        params = {k: v for k, v in expected.items() if k not in self.VOLATILE_FORM_DATA_FIELDS}
         form_data = {k: v for k, v in self.query_context.form_data.to_dict().items()
                      if k not in self.VOLATILE_FORM_DATA_FIELDS}
         # Old Superset versions stored form_data.datasource as "None__table";
@@ -324,11 +325,16 @@ class Chart(ApiModel):
         return query_context_for(self.params.to_dict())
 
     def to_json(self, columns: list[str] | None = None) -> dict[str, Any]:
-        data = super().to_json(columns).copy()
-        if getattr(self, '_derive_query_context', False) and 'query_context' in data \
+        chart = self
+        if getattr(self, '_derive_query_context', False) and (not columns or 'query_context' in columns) \
                 and isinstance(self.params, ApiModel):
-            data['query_context'] = json.dumps(self.ui_query_context())
-        return data
+            self.params._check_tree()
+            template = type(self).model_fields['query_context'].get_default(call_default_factory=True)
+            # Load the UI payload losslessly: plugin queries may omit metrics or orderby.
+            context = type(template).from_json(self.ui_query_context())
+            # Validate and serialize the replacement, keeping the stored context on the original chart.
+            chart = self.model_copy(update={'query_context': context})
+        return super(Chart, chart).to_json(columns)
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> Self:
