@@ -7,6 +7,10 @@ SUPERSET_LOAD_EXAMPLES=1), one chart per viz_type, located by title and type (id
 from instance to instance), and writes only the fields used by the modeling, without those
 that depend on the instance or the moment (ids, URLs, thumbnails, "11 months ago").
 
+The example charts ship with `query_context: null`, and Superset stores one when a chart is opened in Explore.
+Run this script before extract_query_contexts.py (which opens them) on a stack whose examples were not opened;
+a chart that already has a query context is reported.
+
 Usage:
     SUPERSET_URL=... SUPERSET_USERNAME=... SUPERSET_PASSWORD=... \\
         python bin/scripts/extract_ui_references.py 6.1.0
@@ -25,12 +29,21 @@ from supersetapiplus.query_string import QueryOperator, QueryStringFilter  # noq
 # viz_type -> chart title in the "one chart per type" set of the Superset examples
 # (`superset load_examples`). cal_heatmap does not exist in the examples.
 CHARTS = {
+    "big_number": "Big Number with Trendline",
     "big_number_total": "Big Number",
     "box_plot": "Box Plot",
+    "bubble_v2": "Bubble",
+    "echarts_area": "Area",
     "echarts_timeseries_bar": "Bar",
+    "echarts_timeseries_line": "Line",
+    "funnel": "Funnel",
+    "gauge_chart": "Gauge",
+    "heatmap_v2": "Heatmap",
+    "histogram_v2": "Histogram",
     "mixed_timeseries": "Mixed",
     "pie": "Pie",
     "pivot_table_v2": "Pivot Table",
+    "sunburst_v2": "Sunburst",
     "table": "Table",
     "treemap_v2": "Treemap",
     "word_cloud": "Word Cloud",
@@ -62,6 +75,9 @@ def main(version: str) -> None:
             continue
         chart_id = response["result"][0]["id"]
         result = client.get(client.join_urls(client.charts.base_url, chart_id)).json()["result"]
+        if result.get("query_context"):
+            print(f"{viz_type}: '{title}' already has a query_context (opened in Explore) - not the example as "
+                  "shipped; recreate the stack", file=sys.stderr)
         write_json(target_dir / f"{viz_type}.json", {field: result.get(field) for field in FIELDS})
         index[viz_type] = {"slice_name": title, "dataset": result.get("datasource_name_text"),
                            "query_context": "present" if result.get("query_context") else "null"}

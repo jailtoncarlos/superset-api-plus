@@ -1,0 +1,10 @@
+{
+ "cache_timeout": null,
+ "datasource_name_text": "main.cleaned_sales_data",
+ "datasource_type": "table",
+ "description": null,
+ "params": "{\"adhoc_filters\": [{\"clause\": \"WHERE\", \"comparator\": \"No filter\", \"expressionType\": \"SIMPLE\", \"operator\": \"TEMPORAL_RANGE\", \"subject\": \"order_date\"}], \"annotation_layers\": [], \"bottom_margin\": \"auto\", \"dashboards\": [13], \"datasource\": \"22__table\", \"extra_form_data\": {}, \"groupby\": \"deal_size\", \"left_margin\": \"auto\", \"legend_type\": \"continuous\", \"linear_color_scheme\": \"superset_seq_1\", \"metric\": \"count\", \"normalize_across\": \"heatmap\", \"row_limit\": 10000, \"show_legend\": true, \"show_percentage\": true, \"show_values\": true, \"sort_x_axis\": \"alpha_asc\", \"sort_y_axis\": \"alpha_asc\", \"time_grain_sqla\": \"P1D\", \"value_bounds\": [null, null], \"viz_type\": \"heatmap_v2\", \"x_axis\": \"product_line\", \"x_axis_time_format\": \"smart_date\", \"xscale_interval\": -1, \"y_axis_format\": \"SMART_NUMBER\", \"yscale_interval\": -1}",
+ "query_context": null,
+ "slice_name": "Heatmap",
+ "viz_type": "heatmap_v2"
+}

@@ -1,13 +1,22 @@
 {
  "dataset": "cleaned_sales_data",
  "viz_types": [
+  "big_number",
   "big_number_total",
   "box_plot",
+  "bubble_v2",
   "cal_heatmap",
+  "echarts_area",
   "echarts_timeseries_bar",
+  "echarts_timeseries_line",
+  "funnel",
+  "gauge_chart",
+  "heatmap_v2",
+  "histogram_v2",
   "mixed_timeseries",
   "pie",
   "pivot_table_v2",
+  "sunburst_v2",
   "table",
   "treemap_v2",
   "word_cloud"

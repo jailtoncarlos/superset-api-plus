@@ -1,0 +1,98 @@
+{
+ "datasource": {
+  "type": "table"
+ },
+ "form_data": {
+  "adhoc_filters": [
+   {
+    "clause": "WHERE",
+    "comparator": "No filter",
+    "expressionType": "SIMPLE",
+    "operator": "TEMPORAL_RANGE",
+    "subject": "order_date"
+   }
+  ],
+  "animation": true,
+  "color_scheme": "supersetColors",
+  "end_angle": -45,
+  "extra_form_data": {},
+  "font_size": 13,
+  "force": false,
+  "groupby": [
+   "deal_size"
+  ],
+  "interval_color_indices": "",
+  "intervals": "",
+  "matrixify_all_sort_by_columns": "a_to_z",
+  "matrixify_all_sort_by_rows": "a_to_z",
+  "matrixify_cell_title_template": "",
+  "matrixify_charts_per_row": 4,
+  "matrixify_dimension_columns": {
+   "dimension": "",
+   "values": []
+  },
+  "matrixify_dimension_rows": {
+   "dimension": "",
+   "values": []
+  },
+  "matrixify_dimension_selection_mode_columns": "members",
+  "matrixify_dimension_selection_mode_rows": "members",
+  "matrixify_enable": false,
+  "matrixify_fit_columns_dynamically": true,
+  "matrixify_mode_columns": "disabled",
+  "matrixify_mode_rows": "disabled",
+  "matrixify_row_height": 300,
+  "matrixify_show_column_headers": true,
+  "matrixify_show_row_labels": true,
+  "matrixify_topn_order_columns": true,
+  "matrixify_topn_order_rows": true,
+  "matrixify_topn_value_columns": 10,
+  "matrixify_topn_value_rows": 10,
+  "metric": "count",
+  "number_format": "SMART_NUMBER",
+  "overlap": true,
+  "result_format": "json",
+  "result_type": "full",
+  "round_cap": false,
+  "row_limit": 10,
+  "show_axis_tick": false,
+  "show_pointer": true,
+  "show_progress": true,
+  "show_split_line": false,
+  "split_number": 10,
+  "start_angle": 225,
+  "value_formatter": "{value}",
+  "viz_type": "gauge_chart"
+ },
+ "queries": [
+  {
+   "annotation_layers": [],
+   "applied_time_extras": {},
+   "columns": [
+    "deal_size"
+   ],
+   "custom_form_data": {},
+   "custom_params": {},
+   "extras": {
+    "having": "",
+    "where": ""
+   },
+   "filters": [
+    {
+     "col": "order_date",
+     "op": "TEMPORAL_RANGE",
+     "val": "No filter"
+    }
+   ],
+   "group_others_when_limit_reached": false,
+   "metrics": [
+    "count"
+   ],
+   "order_desc": true,
+   "row_limit": 10,
+   "series_limit": 0
+  }
+ ],
+ "result_format": "json",
+ "result_type": "full"
+}

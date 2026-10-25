@@ -126,7 +126,7 @@ def test_get_of_unmodeled_viz_type_raises_unsupported_type(client, unmodeled_cha
 
 # --- Writing ---------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("viz_type", ["table", "pie", "treemap_v2"])
+@pytest.mark.parametrize("viz_type", ["table", "pie", "treemap_v2", "funnel", "gauge_chart", "sunburst_v2"])
 def test_chart_created_in_code_round_trips(client, dataset, add_chart, viz_type):
     chart = add_chart(viz_type)
 
@@ -150,7 +150,8 @@ def test_delete_returns_true_and_the_chart_is_gone(client, add_chart):
 
 # --- Data ------------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("viz_type", ["table", "pie", "pivot_table_v2", "treemap_v2", "word_cloud"])
+@pytest.mark.parametrize("viz_type", ["table", "pie", "pivot_table_v2", "treemap_v2", "word_cloud", "funnel",
+                                      "gauge_chart", "sunburst_v2"])
 def test_chart_created_in_code_returns_data_from_its_query_context(client, add_chart, viz_type):
     chart = add_chart(viz_type)
 
@@ -165,14 +166,22 @@ def build_with_ui_defaults(viz_type: str, dataset) -> Chart:
     importlib.import_module(f"supersetapiplus.charts.{viz_type}")
     chart = Chart.get_class(viz_type, f"supersetapiplus.charts.{viz_type}").instance(
         slice_name=unique_name(viz_type), datasource=DataSource(id=dataset.id, type="table"))
+    if viz_type == "histogram_v2":  # no metric: the bins count the rows of the column
+        chart.set_column("total")
+        return chart
     chart.add_simple_metric("count")
-    if viz_type in ("table", "pie", "pivot_table_v2", "treemap_v2", "word_cloud"):
+    if viz_type in ("table", "pie", "pivot_table_v2", "treemap_v2", "word_cloud", "funnel", "gauge_chart",
+                    "sunburst_v2"):
         chart.add_simple_dimension("campus")
-    elif viz_type == "mixed_timeseries":
+    elif viz_type in ("mixed_timeseries", "echarts_timeseries_line", "echarts_area", "heatmap_v2"):
         chart.set_x_axis("day")
         chart.add_simple_dimension("campus")
-    elif viz_type == "echarts_timeseries_bar":
-        chart.set_x_axis("campus")
+    elif viz_type in ("echarts_timeseries_bar", "big_number"):
+        chart.set_x_axis("day" if viz_type == "big_number" else "campus")
+    elif viz_type == "bubble_v2":
+        chart.add_custom_metric("total_sum", sql_expression="SUM(total)")
+        chart.add_custom_metric("total_max", sql_expression="MAX(total)")
+        chart.add_simple_dimension("campus")
     elif viz_type == "box_plot":
         chart.add_distribute_across("campus")
     elif viz_type == "cal_heatmap":
@@ -182,7 +191,8 @@ def build_with_ui_defaults(viz_type: str, dataset) -> Chart:
 
 @pytest.mark.parametrize("viz_type", ["big_number_total", "box_plot", "cal_heatmap", "echarts_timeseries_bar",
                                       "mixed_timeseries", "pie", "pivot_table_v2", "table", "treemap_v2",
-                                      "word_cloud"])
+                                      "word_cloud", "echarts_timeseries_line", "echarts_area", "big_number", "funnel",
+                                      "gauge_chart", "bubble_v2", "histogram_v2", "heatmap_v2", "sunburst_v2"])
 def test_every_modeled_viz_type_built_on_ui_defaults_returns_data(client, dataset, cleanup, viz_type):
     chart = build_with_ui_defaults(viz_type, dataset)
     cleanup.chart(client.charts.add(chart))

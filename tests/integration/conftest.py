@@ -163,6 +163,6 @@ def add_chart(client, dataset, cleanup):
 @pytest.fixture
 def unmodeled_chart(client, dataset, cleanup):
     """Chart of a viz_type the library does not model, created through the raw API."""
-    payload = {"slice_name": unique_name("unmodeled"), "viz_type": "histogram_v2", "datasource_id": dataset.id,
-               "datasource_type": "table", "params": '{"viz_type": "histogram_v2"}'}
+    payload = {"slice_name": unique_name("unmodeled"), "viz_type": "sankey_v2", "datasource_id": dataset.id,
+               "datasource_type": "table", "params": '{"viz_type": "sankey_v2"}'}
     return cleanup.chart(client.post(client.charts.base_url, json=payload).json()["id"])

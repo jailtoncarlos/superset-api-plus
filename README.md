@@ -37,6 +37,15 @@ Target: **Superset 6.1.0** (Flask-AppBuilder 5) · Python **3.10–3.14**.
 | `big_number_total` | `charts.big_number_total.BigNumberTotalChart` | one metric, no dimension |
 | `word_cloud` | `charts.word_cloud.WordCloudChart` | one metric, one dimension (`series`) |
 | `treemap_v2` | `charts.treemap_v2.TreemapChart` | one metric; dimensions nest the rectangles |
+| `echarts_timeseries_line` | `charts.echarts_timeseries_line.EchartsTimeseriesLineChart` | `set_x_axis()` |
+| `echarts_area` | `charts.echarts_area.EchartsAreaChart` | `set_x_axis()` |
+| `big_number` | `charts.big_number.BigNumberChart` | one metric over `set_x_axis()` (trendline), no dimension |
+| `funnel` | `charts.funnel.FunnelChart` | one metric; dimensions are the steps |
+| `gauge_chart` | `charts.gauge_chart.GaugeChart` | one metric; optional dimensions (one pointer each) |
+| `sunburst_v2` | `charts.sunburst_v2.SunburstChart` | one metric; dimensions build the `columns` hierarchy |
+| `heatmap_v2` | `charts.heatmap_v2.HeatmapChart` | one metric, `set_x_axis()` and one dimension (Y axis) |
+| `bubble_v2` | `charts.bubble_v2.BubbleChart` | metrics fill `x`, `y`, `size`; dimensions fill `entity`, `series` |
+| `histogram_v2` | `charts.histogram_v2.HistogramChart` | `set_column()`; no metric; optional dimensions |
 | `box_plot` | `charts.box_plot.BoxPlotChart` | `add_distribute_across()` |
 | `cal_heatmap` | `charts.cal_heatmap.CalHeatmapChart` | legacy plugin; set `granularity_sqla` |
 

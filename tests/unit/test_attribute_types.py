@@ -36,6 +36,18 @@ FREE_TEXT = {
         "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",
     "charts.treemap_v2.TreemapOption.color_scheme":
         "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",
+    "charts.funnel.FunnelOption.color_scheme":
+        "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",
+    "charts.gauge_chart.GaugeOption.color_scheme":
+        "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",
+    "charts.histogram_v2.HistogramOption.color_scheme":
+        "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",
+    "charts.sunburst_v2.SunburstOption.color_scheme":
+        "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",
+    "charts.sunburst_v2.SunburstOption.linear_color_scheme":
+        "sequential color scheme id from a registry that instances extend",
+    "charts.heatmap_v2.HeatmapOption.linear_color_scheme":
+        "sequential color scheme id from a registry that instances extend",
     "charts.cal_heatmap.CalHeatmapOption.granularity_sqla": NAME,
     "charts.cal_heatmap.CalHeatmapOption.time_range":
         "free-form time range ('No filter', 'Last week', '<since> : <until>') of the time_range control",
@@ -43,14 +55,40 @@ FREE_TEXT = {
         "sequential color scheme id from a registry that instances extend",
     "charts.box_plot.BoxPlotOption.columns": NAME,
     "charts.word_cloud.WordCloudOption.series": NAME,
-    "charts.echarts_timeseries_bar.TimeSeriesBarOption.x_axis": NAME,
+    "charts.timeseries.TimeseriesOptionsMixin.x_axis": NAME,
     "charts.mixed_timeseries.MixedTimeseriesOption.x_axis": NAME,
     "charts.pivot_table_v2.PivotTableV2Option.groupbyColumns": NAME,
     "charts.pivot_table_v2.PivotTableV2Option.groupbyRows": NAME,
-    "charts.echarts_timeseries_bar.TimeSeriesBarOption.x_axis_title": TEXT,
-    "charts.echarts_timeseries_bar.TimeSeriesBarOption.y_axis_title": TEXT,
-    "charts.echarts_timeseries_bar.TimeSeriesBarQueryObject.time_offsets":
+    "charts.timeseries.TimeseriesOptionsMixin.x_axis_title": TEXT,
+    "charts.timeseries.TimeseriesOptionsMixin.y_axis_title": TEXT,
+    "charts.timeseries.TimeseriesQueryObject.time_offsets":
         "free-form time shifts ('1 week ago', custom dates) of the time_compare control",
+    "charts.big_number.BigNumberOption.x_axis": NAME,
+    "charts.heatmap_v2.HeatmapOption.x_axis": NAME,
+    "charts.histogram_v2.HistogramOption.column": NAME,
+    "charts.sunburst_v2.SunburstOption.columns": NAME,
+    "charts.bubble_v2.BubbleOption.entity": NAME,
+    "charts.bubble_v2.BubbleOption.metrics": NAME,
+    "charts.histogram_v2.HistogramOption.metrics": NAME,
+    "charts.bubble_v2.BubbleOption.series": NAME,
+    "charts.bubble_v2.BubbleOption.x": NAME,
+    "charts.bubble_v2.BubbleOption.y": NAME,
+    "charts.bubble_v2.BubbleOption.size": NAME,
+    "charts.sunburst_v2.SunburstOption.secondary_metric": NAME,
+    "charts.histogram_v2.HistogramOption.x_axis_title": TEXT,
+    "charts.histogram_v2.HistogramOption.y_axis_title": TEXT,
+    "charts.bubble_v2.BubbleOption.x_axis_label": TEXT,
+    "charts.bubble_v2.BubbleOption.y_axis_label": TEXT,
+    "charts.bubble_v2.BubbleOption.max_bubble_size":
+        "free-form select of the largest bubble size in pixels, stored as text ('25'; Bubble controlPanel)",
+    "charts.gauge_chart.GaugeOption.value_formatter": "value template typed by the user ('{value}')",
+    "charts.gauge_chart.GaugeOption.intervals": "comma-separated interval bounds typed by the user ('2,4,5')",
+    "charts.gauge_chart.GaugeOption.interval_color_indices":
+        "comma-separated color indices typed by the user ('1,2,3')",
+    "charts.heatmap_v2.HeatmapOption.left_margin":
+        "free-form select: 'auto' or a number of pixels (Heatmap controlPanel)",
+    "charts.heatmap_v2.HeatmapOption.bottom_margin":
+        "free-form select: 'auto' or a number of pixels (Heatmap controlPanel)",
     "charts.table.TableQueryObject.time_offsets": "free-form time shifts of the time_compare control",
     "charts.table.TableOption.granularity_sqla": NAME,
     "charts.table.TableOption.timeseries_limit_metric": NAME,

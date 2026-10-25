@@ -22,8 +22,9 @@ reorganized, tested package.
   `client.dashboard_charts.native_filter_problems()` reports filter columns missing from the datasets of
   the charts in scope.
 * Charts: the frontend `buildQuery` ported (`charts/build_query.py`), so charts built in code store the
-  `query_context` Explore derives; UI defaults for new charts; `derive_query_context()`. New model:
-  `treemap_v2` (`TreemapChart`).
+  `query_context` Explore derives; UI defaults for new charts; `derive_query_context()`. New models:
+  `treemap_v2`, `echarts_timeseries_line`, `echarts_area`, `big_number` (with trendline), `funnel`,
+  `gauge_chart`, `sunburst_v2`, `heatmap_v2`, `bubble_v2` and `histogram_v2`.
 * Datasets: saved metrics (`add_metric()`) and calculated columns (`add_calculated_column()`), merged by name
   and sent whole (Superset deletes the ones left out), `refresh()`, `duplicate()`,
   `client.datasets.get_or_create()`, time column and the other update fields; databases: the Superset 6

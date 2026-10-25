@@ -831,20 +831,103 @@ def build_table(form_data: dict[str, Any]) -> dict[str, Any]:
     return build_query_context(query_form_data, build)
 
 
+def build_sorted_by_metric(form_data: dict[str, Any]) -> dict[str, Any]:
+    """Funnel, Gauge and Sunburst buildQuery: ordered by the metric when ``sort_by_metric``."""
+    metric = form_data.get("metric", UNSET)
+    orderby = {"orderby": [[metric, False]]} if form_data.get("sort_by_metric") else {}
+    return build_query_context(form_data, lambda base: [{**base, **orderby}])
+
+
+def build_big_number(form_data: dict[str, Any]) -> dict[str, Any]:
+    """BigNumberWithTrendline buildQuery: the trendline, plus the raw value query when ``aggregation`` is raw."""
+    time_column = ensure_list(x_axis_column(form_data)) if is_x_axis_set(form_data) else []
+
+    def build(base: dict[str, Any]) -> list[Any]:
+        trendline = {**base, "columns": list(time_column), **({} if time_column else {"is_timeseries": True}),
+                     "post_processing": [pivot_operator(form_data, base), resample_operator(form_data, base),
+                                         rolling_window_operator(form_data, base), flatten_operator(form_data, base)]}
+        if form_data.get("aggregation") != "raw":
+            return [trendline]
+        # isRawMetric is always true here, so the second query has no time column and no post-processing
+        # (its aggregationOperator branch never runs: the other aggregations are computed by the frontend).
+        return [trendline, {**base, "columns": [], "is_timeseries": False, "post_processing": []}]
+
+    return build_query_context(form_data, build)
+
+
+def build_bubble(form_data: dict[str, Any]) -> dict[str, Any]:
+    """Bubble buildQuery: entity and series are the columns; the first orderby item follows ``order_desc``."""
+    columns = [*ensure_list(form_data.get("entity")), *ensure_list(form_data.get("series"))]
+
+    def build(base: dict[str, Any]) -> list[Any]:
+        orderby = base.get("orderby")
+        return [{**base, "columns": columns,
+                 "orderby": [[orderby[0], not base.get("order_desc")]] if orderby else UNSET}]
+
+    return build_query_context(form_data, build)
+
+
+def histogram_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
+    """``histogramOperator``: ``bins`` is ``Number(bins)``, 5 when that is NaN."""
+    bins = js_number(form_data["bins"]) if form_data.get("bins") is not None else (0 if "bins" in form_data else UNSET)
+    return {"operation": "histogram", "options": {
+        "column": column_label(form_data.get("column")),
+        "groupby": [column_label(c) for c in ensure_list(form_data.get("groupby", []))],
+        "bins": 5 if bins is UNSET or (isinstance(bins, float) and math.isnan(bins)) else bins,
+        "cumulative": form_data.get("cumulative", UNSET),
+        "normalize": form_data.get("normalize", UNSET),
+    }}
+
+
+def build_histogram(form_data: dict[str, Any]) -> dict[str, Any]:
+    """Histogram buildQuery: the groupby columns and the binned column, without metrics."""
+    columns = [*ensure_list(form_data.get("groupby", [])), form_data.get("column", UNSET)]
+    return build_query_context(form_data, lambda base: [{
+        **base, "columns": columns, "post_processing": [histogram_operator(form_data, base)], "metrics": UNSET}])
+
+
+def build_heatmap(form_data: dict[str, Any]) -> dict[str, Any]:
+    """Heatmap buildQuery: x axis and groupby columns, axis sorting and the rank of the metric."""
+    metric = metric_label(form_data["metric"]) if form_data.get("metric") else UNSET
+    columns = [*ensure_list(x_axis_column(form_data)), *ensure_list(form_data.get("groupby"))]
+    orderby = []
+    for sort, position in ((form_data.get("sort_x_axis"), 0), (form_data.get("sort_y_axis"), 1)):
+        if sort:
+            axis = columns[position] if position < len(columns) else UNSET
+            orderby.append([metric if "value" in sort else axis, "asc" in sort])
+    normalize_across = form_data.get("normalize_across")
+    group_by = UNSET
+    if normalize_across == "x":
+        group_by = column_label(form_data.get("x_axis"))
+    elif normalize_across == "y":
+        group_by = column_label(form_data.get("groupby"))
+    return build_query_context(form_data, lambda base: [{
+        **base, "columns": columns, "orderby": orderby,
+        "post_processing": [{"operation": "rank", "options": {"metric": metric, "group_by": group_by}}]}])
+
+
 def build_default(form_data: dict[str, Any]) -> dict[str, Any]:
     """Plugins without a buildQuery (e.g. big_number_total) and legacy charts saved from Explore."""
     return build_query_context(form_data)
 
 
 BUILD_QUERY: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
+    "big_number": build_big_number,
     "big_number_total": build_default,
     "box_plot": build_box_plot,
+    "bubble_v2": build_bubble,
+    "echarts_area": build_timeseries,
     "echarts_timeseries_bar": build_timeseries,
     "echarts_timeseries_line": build_timeseries,
     "echarts_timeseries": build_timeseries,
+    "funnel": build_sorted_by_metric,
+    "gauge_chart": build_sorted_by_metric,
+    "heatmap_v2": build_heatmap,
+    "histogram_v2": build_histogram,
     "mixed_timeseries": build_mixed_timeseries,
     "pie": build_pie,
     "pivot_table_v2": build_pivot_table_v2,
+    "sunburst_v2": build_sorted_by_metric,
     "table": build_table,
     "treemap_v2": build_treemap,
     "word_cloud": build_word_cloud,

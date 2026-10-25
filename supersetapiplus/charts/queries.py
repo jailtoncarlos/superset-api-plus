@@ -1,7 +1,7 @@
 import logging
 import warnings
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 from supersetapiplus.charts.metric import AdhocMetric, AdhocMetricColumn, Metric, MetricHelper, MetricsListMixin, OrderByTyping
 from supersetapiplus.charts.types import (
@@ -102,7 +102,7 @@ class ColumnsMixin:
 
 @dataclass
 class OrderByMixin:
-    orderby: SerializableOptional[list[OrderByTyping]] = object_field(default_factory=list)
+    orderby: SerializableOptional[list[OrderByTyping] | MissingField] = object_field(default_factory=list)
 
     def _editable_orderby(self) -> list[OrderByTyping]:
         if not isinstance(self.orderby, list):
@@ -151,12 +151,15 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
     row_offset: SerializableOptional[int] = None
     order_desc: SerializableOptional[bool] = None
 
+    # Whether a query built in code needs metrics (False for plugins without a metric, e.g. histogram_v2).
+    _requires_metrics: ClassVar[bool] = True
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
     def validate(self) -> None:
         super().validate()
-        if not self.metrics and not getattr(self, "_read_from_superset", False):
+        if self._requires_metrics and not self.metrics and not getattr(self, "_read_from_superset", False):
             raise ValidationError(message='Field metrics cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')
 

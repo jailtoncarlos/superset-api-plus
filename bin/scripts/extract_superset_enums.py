@@ -61,7 +61,10 @@ FRONTEND = [
     ("superset-frontend/plugins/plugin-chart-echarts/src/constants.ts", "StackControlsValue"),
     ("superset-frontend/plugins/plugin-chart-echarts/src/Pie/types.ts", "EchartsPieLabelType"),
     ("superset-frontend/plugins/plugin-chart-echarts/src/Treemap/types.ts", "EchartsTreemapLabelType"),
+    ("superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/types.ts", "EchartsSunburstLabelType"),
+    ("superset-frontend/plugins/plugin-chart-echarts/src/Funnel/types.ts", "PercentCalcType"),
     ("superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/types.ts", "OrientationType"),
+    ("superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/types.ts", "EchartsTimeseriesSeriesType"),
     ("superset-frontend/plugins/plugin-chart-pivot-table/src/types.ts", "MetricsLayoutEnum"),
     ("superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts", "VizType"),
     ("superset-frontend/src/dashboard/types.ts", "FilterBarOrientation"),
@@ -127,6 +130,30 @@ CHOICES = [
      "domain_granularity"),
     ("cal_heatmap.subdomain_granularity",
      "superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts", "subdomain_granularity"),
+    ("heatmap_v2.normalize_across", "superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx",
+     "normalize_across"),
+    ("heatmap_v2.legend_type", "superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx",
+     "legend_type"),
+    ("big_number.rolling_type",
+     "superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx",
+     "rolling_type"),
+]
+
+# Choices kept in a module constant (`const NAME = [['value', label], ...];`): (key, file, constant).
+ARRAY_CHOICES = [
+    ("heatmap_v2.sort_axis", "superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx",
+     "sortAxisChoices"),
+]
+
+# TypeScript enums with implicit numeric values (`enum Name { A, B }` → A = 0, B = 1): (file, enum).
+NUMERIC_ENUMS = [
+    ("superset-frontend/plugins/plugin-chart-echarts/src/Funnel/types.ts", "EchartsFunnelLabelType"),
+]
+
+# Choices given by the top-level keys of an object constant (`export const NAME = { key: {...}, ... }`).
+OBJECT_KEYS = [
+    ("superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx",
+     "aggregationChoices"),
 ]
 
 # Controls whose config is a named constant (`const NAME: ControlConfig = { ..., choices: [...] }`).
@@ -219,6 +246,35 @@ def const_choices(source: str, name: str) -> list[str]:
     if not block:
         raise ValueError(f"choices of {name} not found")
     return re.findall(r"\[\s*'([^']+)'\s*,", block.group(1))
+
+
+@non_empty
+def array_choices(source: str, name: str) -> list[str]:
+    body = re.search(rf"const {name}\b[^=]*= \[(.*?)\n\];", source, re.S)
+    if not body:
+        raise ValueError(f"choices {name} not found")
+    return re.findall(r"^\s*\[\s*'([^']+)'\s*,", body.group(1), re.M)
+
+
+@non_empty
+def numeric_enum(source: str, name: str) -> dict[str, int]:
+    """Members of an enum whose values are implicit or numeric: the next value is the previous one plus 1."""
+    body = re.search(rf"export enum {name} \{{(.*?)\}}", source, re.S)
+    if not body or "'" in body.group(1):
+        raise ValueError(f"numeric enum {name} not found")
+    members, value = {}, -1
+    for member, explicit in re.findall(r"^\s*(\w+)(?:\s*=\s*(-?\d+))?\s*,?\s*$", body.group(1), re.M):
+        value = int(explicit) if explicit else value + 1
+        members[member] = value
+    return members
+
+
+@non_empty
+def object_keys(source: str, name: str) -> list[str]:
+    body = re.search(rf"export const {name}\b[^=]*= \{{\n(.*?)\n\}}(?: as const)?;", source, re.S)
+    if not body:
+        raise ValueError(f"object {name} not found")
+    return re.findall(r"^  (\w+):", body.group(1), re.M)
 
 
 @non_empty
@@ -338,7 +394,10 @@ def main(version: str) -> None:
         "schemas": {cls: schema_fields(source(file), cls) for file, cls in SCHEMAS},
         "frontend": {name: typescript_enum(source(file), name) for file, name in FRONTEND},
         "choices": {**{key: control_choices(source(file), control) for key, file, control in CHOICES},
-                    **{key: const_choices(source(file), name) for key, file, name in CONST_CHOICES}},
+                    **{key: const_choices(source(file), name) for key, file, name in CONST_CHOICES},
+                    **{key: array_choices(source(file), name) for key, file, name in ARRAY_CHOICES}},
+        "numeric_enums": {name: numeric_enum(source(file), name) for file, name in NUMERIC_ENUMS},
+        "object_keys": {name: object_keys(source(file), name) for file, name in OBJECT_KEYS},
         "constants": {key: typescript_constants(source(file), pattern) for key, file, pattern in CONSTANTS},
         "objects": {name: typescript_object(source(file), name) for file, name in OBJECTS},
         "numbers": {key: typescript_numbers(source(file), pattern) for key, file, pattern in NUMBERS},

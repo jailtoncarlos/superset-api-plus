@@ -1,4 +1,9 @@
 {
+ "big_number": {
+  "dataset": "main.cleaned_sales_data",
+  "query_context": "null",
+  "slice_name": "Big Number with Trendline"
+ },
  "big_number_total": {
   "dataset": "main.cleaned_sales_data",
   "query_context": "null",
@@ -9,10 +14,45 @@
   "query_context": "null",
   "slice_name": "Box Plot"
  },
+ "bubble_v2": {
+  "dataset": "main.cleaned_sales_data",
+  "query_context": "null",
+  "slice_name": "Bubble"
+ },
+ "echarts_area": {
+  "dataset": "main.cleaned_sales_data",
+  "query_context": "null",
+  "slice_name": "Area"
+ },
  "echarts_timeseries_bar": {
   "dataset": "main.cleaned_sales_data",
   "query_context": "null",
   "slice_name": "Bar"
+ },
+ "echarts_timeseries_line": {
+  "dataset": "main.cleaned_sales_data",
+  "query_context": "null",
+  "slice_name": "Line"
+ },
+ "funnel": {
+  "dataset": "main.cleaned_sales_data",
+  "query_context": "null",
+  "slice_name": "Funnel"
+ },
+ "gauge_chart": {
+  "dataset": "main.cleaned_sales_data",
+  "query_context": "null",
+  "slice_name": "Gauge"
+ },
+ "heatmap_v2": {
+  "dataset": "main.cleaned_sales_data",
+  "query_context": "null",
+  "slice_name": "Heatmap"
+ },
+ "histogram_v2": {
+  "dataset": "main.cleaned_sales_data",
+  "query_context": "null",
+  "slice_name": "Histogram"
  },
  "mixed_timeseries": {
   "dataset": "main.cleaned_sales_data",
@@ -28,6 +68,11 @@
   "dataset": "main.cleaned_sales_data",
   "query_context": "null",
   "slice_name": "Pivot Table"
+ },
+ "sunburst_v2": {
+  "dataset": "main.cleaned_sales_data",
+  "query_context": "null",
+  "slice_name": "Sunburst"
  },
  "table": {
   "dataset": "main.cleaned_sales_data",

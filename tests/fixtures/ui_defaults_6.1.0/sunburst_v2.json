@@ -1,0 +1,48 @@
+{
+ "adhoc_filters": [
+  {
+   "clause": "WHERE",
+   "comparator": "No filter",
+   "expressionType": "SIMPLE",
+   "operator": "TEMPORAL_RANGE",
+   "subject": "order_date"
+  }
+ ],
+ "color_scheme": "supersetColors",
+ "columns": [],
+ "date_format": "smart_date",
+ "extra_form_data": {},
+ "label_type": "key",
+ "linear_color_scheme": "superset_seq_1",
+ "matrixify_all_sort_by_columns": "a_to_z",
+ "matrixify_all_sort_by_rows": "a_to_z",
+ "matrixify_cell_title_template": "",
+ "matrixify_charts_per_row": 4,
+ "matrixify_dimension_columns": {
+  "dimension": "",
+  "values": []
+ },
+ "matrixify_dimension_rows": {
+  "dimension": "",
+  "values": []
+ },
+ "matrixify_dimension_selection_mode_columns": "members",
+ "matrixify_dimension_selection_mode_rows": "members",
+ "matrixify_enable": false,
+ "matrixify_fit_columns_dynamically": true,
+ "matrixify_mode_columns": "disabled",
+ "matrixify_mode_rows": "disabled",
+ "matrixify_row_height": 300,
+ "matrixify_show_column_headers": true,
+ "matrixify_show_row_labels": true,
+ "matrixify_topn_order_columns": true,
+ "matrixify_topn_order_rows": true,
+ "matrixify_topn_value_columns": 10,
+ "matrixify_topn_value_rows": 10,
+ "number_format": "SMART_NUMBER",
+ "row_limit": 10000,
+ "show_labels": false,
+ "show_labels_threshold": 5,
+ "show_total": false,
+ "viz_type": "sunburst_v2"
+}

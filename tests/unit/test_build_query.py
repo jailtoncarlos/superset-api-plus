@@ -18,12 +18,17 @@ FIXTURES = Path(__file__).parent.parent / "fixtures"
 CAPTURES = FIXTURES / "ui_query_contexts_6.1.0"
 VIZ_TYPES = sorted(p.stem for p in CAPTURES.glob("*.json") if p.stem != "INDEX")
 BASE = {"datasource": "7__table", "viz_type": "table", "adhoc_filters": [], "extra_form_data": {}}
+# extractQueryFields concatenates the metric controls in form_data key order, which is the control panel order;
+# the captures are written with sorted keys, so that order is restored for the plugins where it shows.
+CONTROL_ORDER = {"bubble_v2": ("x", "y", "size")}
 
 
 def form_data_of(viz_type: str) -> dict:
     """The form_data given to buildQuery. For mixed_timeseries the request carries the form data of query A
     only (removeFormDataSuffix), so the "_b" controls come from the saved chart params."""
-    form_data = dict(json.loads((CAPTURES / f"{viz_type}.json").read_text())["form_data"])
+    captured = json.loads((CAPTURES / f"{viz_type}.json").read_text())["form_data"]
+    first = CONTROL_ORDER.get(viz_type, ())
+    form_data = {**{key: captured[key] for key in first if key in captured}, **captured}
     saved = FIXTURES / "ui_references_6.1.0" / f"{viz_type}.json"
     if saved.exists():  # legacy charts captured on save (cal_heatmap) have no example reference
         params = json.loads(json.loads(saved.read_text())["params"])
@@ -152,6 +157,45 @@ def test_treemap_orders_by_metric_then_physical_groupby_columns_when_there_is_a_
     (query,) = bq.query_context_for(form_data)["queries"]
 
     assert query.get("orderby") == expected  # applyOrderBy: Number("abc") is NaN, which applies
+
+
+@pytest.mark.parametrize("sort_x, sort_y, normalize, orderby, group_by", [
+    ("alpha_desc", "value_asc", "x", [["day", False], ["count", True]], "day"),
+    (None, "alpha_asc", "y", [["campus", True]], "campus"),
+    (None, None, "heatmap", [], None),
+])
+def test_heatmap_sorts_each_axis_and_ranks_within_the_normalized_axis(sort_x, sort_y, normalize, orderby, group_by):
+    form_data = {**BASE, "viz_type": "heatmap_v2", "x_axis": "day", "groupby": "campus", "metric": "count",
+                 "sort_x_axis": sort_x, "sort_y_axis": sort_y, "normalize_across": normalize}
+
+    (query,) = bq.query_context_for(form_data)["queries"]
+
+    assert query["orderby"] == orderby
+    assert query["post_processing"][0]["options"] == {"metric": "count", **({"group_by": group_by} if group_by else {})}
+
+
+@pytest.mark.parametrize("bins, expected", [(10, 10), ("15", 15), ("abc", 5), (None, 0)])
+def test_histogram_bins_follow_number_semantics(bins, expected):
+    form_data = {**BASE, "viz_type": "histogram_v2", "column": "total", "bins": bins}
+
+    (query,) = bq.query_context_for(form_data)["queries"]
+
+    assert query["post_processing"][0]["options"]["bins"] == expected  # Number(null) is 0, Number("abc") is NaN
+
+
+def test_histogram_without_bins_uses_five():
+    (query,) = bq.query_context_for({**BASE, "viz_type": "histogram_v2", "column": "total"})["queries"]
+
+    assert query["post_processing"][0]["options"]["bins"] == 5
+
+
+def test_bubble_orders_by_the_first_orderby_item_following_order_desc():
+    form_data = {**BASE, "viz_type": "bubble_v2", "entity": "country", "x": "a", "y": "b", "size": "c",
+                 "orderby": [["c", True]], "order_desc": True}
+
+    (query,) = bq.query_context_for(form_data)["queries"]
+
+    assert query["orderby"] == [[["c", True], False]] and query["columns"] == ["country"]
 
 
 def test_box_plot_percentile_whiskers():

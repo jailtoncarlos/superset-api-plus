@@ -25,6 +25,24 @@ export const MULTI_OPERATORS = new Set([Operators.In]);
 export const AGGREGATES = {
   SUM: 'SUM',
 };
+export enum LabelType {
+  Key,
+  Value,
+  Total = 5,
+  Rest,
+}
+export const aggregationChoices = {
+  raw: {
+    label: 'Overall value',
+  },
+  LAST_VALUE: {
+    label: 'Last Value',
+  },
+} as const;
+const sortAxisChoices = [
+  ['alpha_asc', t('Axis ascending')],
+  ['value_desc', t('Metric descending')],
+];
 """
 CONTROL_PANEL_TS = """
         {
@@ -53,6 +71,9 @@ class MigrateBar(MigrateViz):
     (extract.typescript_constants, ("^SMART_DATE_ID$",), {"SMART_DATE_ID": "smart_date"}),
     (extract.typescript_object, ("AGGREGATES",), {"SUM": "SUM"}),
     (extract.operator_group, ("MULTI_OPERATORS",), ["In"]),
+    (extract.numeric_enum, ("LabelType",), {"Key": 0, "Value": 1, "Total": 5, "Rest": 6}),
+    (extract.object_keys, ("aggregationChoices",), ["raw", "LAST_VALUE"]),
+    (extract.array_choices, ("sortAxisChoices",), ["alpha_asc", "value_desc"]),
 ])
 def test_typescript_symbols_are_extracted(function, args, expected):
     assert function(CONSTANTS_TS, *args) == expected
@@ -70,6 +91,9 @@ def test_choices_and_python_symbols_are_extracted():
     (extract.typescript_constants, ("^SMART_DATE_ID$",)),
     (extract.typescript_object, ("AGGREGATES",)),
     (extract.operator_group, ("MULTI_OPERATORS",)),
+    (extract.numeric_enum, ("LabelType",)),
+    (extract.object_keys, ("aggregationChoices",)),
+    (extract.array_choices, ("sortAxisChoices",)),
 ])
 def test_a_removed_typescript_symbol_fails_the_extraction(function, args):
     with pytest.raises((ValueError, SystemExit)):
@@ -86,3 +110,7 @@ def test_a_symbol_whose_format_changed_fails_instead_of_giving_an_empty_set():
         extract.python_enum("class ErrorLevel(StrEnum):\n    pass\n", "ErrorLevel")
     with pytest.raises(ValueError):
         extract.migrated_viz_types("class Other:\n    pass\n")
+    with pytest.raises(ValueError, match="LabelType"):  # values became strings: not a numeric enum any more
+        extract.numeric_enum("export enum LabelType {\n  Key = 'key',\n}\n", "LabelType")
+    with pytest.raises(ValueError, match="sortAxisChoices"):
+        extract.array_choices(double_quotes, "sortAxisChoices")

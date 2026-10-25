@@ -159,7 +159,7 @@ dashboards of the integration that embeds the library).
 | #334 (M6) | done in `457a90d`: `add_column`, `add_chart_grid`, `add_chart_tabs`, `skip_existing`, `remove_chart` |
 | #335 (H4, H5) | done in `5595c7d` and `0183a44`: `default_value`, column checks, `native_filter_problems`, which found a filter Superset silently drops on a published dashboard |
 | #336 (H3, M5) | done in `7744d63`: one renewal of the CSRF token or session login per request; typed SIP-40 errors |
-| #337 (M1) | `treemap_v2` done in `5dfe012` (the only one of these types the integration uses); the other types wait for a use |
+| #337 (M1) | `treemap_v2` done in `5dfe012` (the only one of these types the integration uses); on the maintainer's decision the other nine followed, each checked against the UI captures and on the real Superset |
 | #338 (M2, M3, M8) | done in `2432a9b`: batched export, `iter_all`, per-object import with checkpoint |
 | #339 (M4) | done in `ad047f0`: metrics and calculated columns merged by name; `refresh`, `duplicate`, `get_or_create`; the partial PUT reset of `always_filter_main_dttm` confirmed |
 | #340 (M7, L1–L3) | done in `2efd37e` |

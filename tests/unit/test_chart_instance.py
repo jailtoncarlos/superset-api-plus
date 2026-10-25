@@ -7,7 +7,9 @@ from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
 
 VIZ_TYPES = ["table", "pie", "pivot_table_v2", "echarts_timeseries_bar", "big_number_total",
-             "box_plot", "cal_heatmap", "mixed_timeseries", "word_cloud"]
+             "box_plot", "cal_heatmap", "mixed_timeseries", "word_cloud", "treemap_v2", "echarts_timeseries_line",
+             "echarts_area", "big_number", "funnel", "gauge_chart", "bubble_v2", "histogram_v2", "heatmap_v2",
+             "sunburst_v2"]
 
 
 @pytest.mark.parametrize("viz_type", VIZ_TYPES)
@@ -39,4 +41,4 @@ def test_unmodeled_viz_type_is_unsupported():
     from supersetapiplus.exceptions import UnsupportedTypeError
 
     with pytest.raises(UnsupportedTypeError):
-        Chart.for_viz_type("histogram_v2")
+        Chart.for_viz_type("sankey_v2")

@@ -11,6 +11,7 @@ from supersetapiplus.charts.types import (
 )
 from supersetapiplus.core.fields import default_string, object_field
 from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.sentinels import MissingField
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
@@ -155,7 +156,8 @@ class MetricHelper:
 
 @dataclass
 class MetricsListMixin:
-    metrics: list[Metric] = object_field(cls=AdhocMetric, default_factory=list)
+    # MissingField when the key was absent in the JSON read, or the plugin has no metrics control.
+    metrics: list[Metric] | MissingField = object_field(cls=AdhocMetric, default_factory=list)
 
     def _editable_metrics(self) -> list[Metric]:
         if not isinstance(self.metrics, list):

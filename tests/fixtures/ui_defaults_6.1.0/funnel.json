@@ -1,0 +1,50 @@
+{
+ "adhoc_filters": [
+  {
+   "clause": "WHERE",
+   "comparator": "No filter",
+   "expressionType": "SIMPLE",
+   "operator": "TEMPORAL_RANGE",
+   "subject": "order_date"
+  }
+ ],
+ "color_scheme": "supersetColors",
+ "extra_form_data": {},
+ "groupby": [],
+ "label_type": 0,
+ "legendOrientation": "top",
+ "matrixify_all_sort_by_columns": "a_to_z",
+ "matrixify_all_sort_by_rows": "a_to_z",
+ "matrixify_cell_title_template": "",
+ "matrixify_charts_per_row": 4,
+ "matrixify_dimension_columns": {
+  "dimension": "",
+  "values": []
+ },
+ "matrixify_dimension_rows": {
+  "dimension": "",
+  "values": []
+ },
+ "matrixify_dimension_selection_mode_columns": "members",
+ "matrixify_dimension_selection_mode_rows": "members",
+ "matrixify_enable": false,
+ "matrixify_fit_columns_dynamically": true,
+ "matrixify_mode_columns": "disabled",
+ "matrixify_mode_rows": "disabled",
+ "matrixify_row_height": 300,
+ "matrixify_show_column_headers": true,
+ "matrixify_show_row_labels": true,
+ "matrixify_topn_order_columns": true,
+ "matrixify_topn_order_rows": true,
+ "matrixify_topn_value_columns": 10,
+ "matrixify_topn_value_rows": 10,
+ "number_format": "SMART_NUMBER",
+ "percent_calculation_type": "first_step",
+ "row_limit": 10,
+ "show_labels": true,
+ "show_legend": true,
+ "show_tooltip_labels": true,
+ "sort_by_metric": true,
+ "tooltip_label_type": 5,
+ "viz_type": "funnel"
+}

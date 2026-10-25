@@ -1,0 +1,133 @@
+{
+ "datasource": {
+  "type": "table"
+ },
+ "form_data": {
+  "adhoc_filters": [
+   {
+    "clause": "WHERE",
+    "comparator": "No filter",
+    "expressionType": "SIMPLE",
+    "operator": "TEMPORAL_RANGE",
+    "subject": "order_date"
+   }
+  ],
+  "border_color": {
+   "a": 1,
+   "b": 0,
+   "g": 0,
+   "r": 0
+  },
+  "border_width": 0,
+  "bottom_margin": "auto",
+  "extra_form_data": {},
+  "force": false,
+  "groupby": "deal_size",
+  "left_margin": "auto",
+  "legend_type": "continuous",
+  "linear_color_scheme": "superset_seq_1",
+  "matrixify_all_sort_by_columns": "a_to_z",
+  "matrixify_all_sort_by_rows": "a_to_z",
+  "matrixify_cell_title_template": "",
+  "matrixify_charts_per_row": 4,
+  "matrixify_dimension_columns": {
+   "dimension": "",
+   "values": []
+  },
+  "matrixify_dimension_rows": {
+   "dimension": "",
+   "values": []
+  },
+  "matrixify_dimension_selection_mode_columns": "members",
+  "matrixify_dimension_selection_mode_rows": "members",
+  "matrixify_enable": false,
+  "matrixify_fit_columns_dynamically": true,
+  "matrixify_mode_columns": "disabled",
+  "matrixify_mode_rows": "disabled",
+  "matrixify_row_height": 300,
+  "matrixify_show_column_headers": true,
+  "matrixify_show_row_labels": true,
+  "matrixify_topn_order_columns": true,
+  "matrixify_topn_order_rows": true,
+  "matrixify_topn_value_columns": 10,
+  "matrixify_topn_value_rows": 10,
+  "metric": "count",
+  "normalize_across": "heatmap",
+  "normalized": false,
+  "result_format": "json",
+  "result_type": "full",
+  "row_limit": 10000,
+  "show_legend": true,
+  "show_percentage": true,
+  "show_values": true,
+  "sort_x_axis": "alpha_asc",
+  "sort_y_axis": "alpha_asc",
+  "value_bounds": [
+   null,
+   null
+  ],
+  "viz_type": "heatmap_v2",
+  "xAxisLabelRotation": 0,
+  "x_axis": "product_line",
+  "x_axis_time_format": "smart_date",
+  "xscale_interval": -1,
+  "y_axis_format": "SMART_NUMBER",
+  "yscale_interval": -1
+ },
+ "queries": [
+  {
+   "annotation_layers": [],
+   "applied_time_extras": {},
+   "columns": [
+    {
+     "columnType": "BASE_AXIS",
+     "expressionType": "SQL",
+     "isColumnReference": true,
+     "label": "product_line",
+     "sqlExpression": "product_line"
+    },
+    "deal_size"
+   ],
+   "custom_form_data": {},
+   "custom_params": {},
+   "extras": {
+    "having": "",
+    "where": ""
+   },
+   "filters": [
+    {
+     "col": "order_date",
+     "op": "TEMPORAL_RANGE",
+     "val": "No filter"
+    }
+   ],
+   "group_others_when_limit_reached": false,
+   "metrics": [
+    "count"
+   ],
+   "order_desc": true,
+   "orderby": [
+    [
+     "product_line",
+     true
+    ],
+    [
+     "deal_size",
+     true
+    ]
+   ],
+   "post_processing": [
+    {
+     "operation": "rank",
+     "options": {
+      "metric": "count"
+     }
+    }
+   ],
+   "row_limit": 10000,
+   "series_limit": 0
+  }
+ ],
+ "result_format": "json",
+ "result_type": "full"
+}

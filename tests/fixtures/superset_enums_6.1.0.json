@@ -148,6 +148,13 @@
   }
  },
  "choices": {
+  "big_number.rolling_type": [
+   "None",
+   "mean",
+   "sum",
+   "std",
+   "cumsum"
+  ],
   "box_plot.whiskerOptions": [
    "Tukey",
    "Min/max (no outliers)",
@@ -174,6 +181,21 @@
    0,
    45,
    90
+  ],
+  "heatmap_v2.legend_type": [
+   "continuous",
+   "piecewise"
+  ],
+  "heatmap_v2.normalize_across": [
+   "heatmap",
+   "x",
+   "y"
+  ],
+  "heatmap_v2.sort_axis": [
+   "alpha_asc",
+   "alpha_desc",
+   "value_asc",
+   "value_desc"
   ],
   "pivot_table_v2.aggregateFunction": [
    "Count",
@@ -301,6 +323,20 @@
    "Value": "value",
    "ValuePercent": "value_percent"
   },
+  "EchartsSunburstLabelType": {
+   "Key": "key",
+   "KeyValue": "key_value",
+   "Value": "value"
+  },
+  "EchartsTimeseriesSeriesType": {
+   "Bar": "bar",
+   "End": "end",
+   "Line": "line",
+   "Middle": "middle",
+   "Scatter": "scatter",
+   "Smooth": "smooth",
+   "Start": "start"
+  },
   "EchartsTreemapLabelType": {
    "Key": "key",
    "KeyValue": "key_value",
@@ -360,6 +396,11 @@
   "OrientationType": {
    "Horizontal": "horizontal",
    "Vertical": "vertical"
+  },
+  "PercentCalcType": {
+   "FirstStep": "first_step",
+   "PreviousStep": "prev_step",
+   "Total": "total"
   },
   "QueryMode": {
    "Aggregate": "aggregate",
@@ -478,6 +519,28 @@
    "GRID_MIN_ROW_UNITS": 5
   }
  },
+ "numeric_enums": {
+  "EchartsFunnelLabelType": {
+   "Key": 0,
+   "KeyPercent": 4,
+   "KeyValue": 3,
+   "KeyValuePercent": 5,
+   "Percent": 2,
+   "Value": 1,
+   "ValuePercent": 6
+  }
+ },
+ "object_keys": {
+  "aggregationChoices": [
+   "raw",
+   "LAST_VALUE",
+   "sum",
+   "mean",
+   "min",
+   "max",
+   "median"
+  ]
+ },
  "objects": {
   "AGGREGATES": {
    "AVG": "AVG",
@@ -530,6 +593,7 @@
    "paths": [
     "requirements/base.txt",
     "superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx",
+    "superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx",
     "superset-frontend/packages/superset-ui-chart-controls/src/types.ts",
     "superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts",
     "superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts",
@@ -542,8 +606,12 @@
     "superset-frontend/packages/superset-ui-core/src/query/types/QueryFormData.ts",
     "superset-frontend/packages/superset-ui-core/src/time-format/formatters/smartDate.ts",
     "superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx",
     "superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Funnel/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx",
     "superset-frontend/plugins/plugin-chart-echarts/src/Pie/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/types.ts",
     "superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/types.ts",
     "superset-frontend/plugins/plugin-chart-echarts/src/Treemap/types.ts",
     "superset-frontend/plugins/plugin-chart-echarts/src/constants.ts",

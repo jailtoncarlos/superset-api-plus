@@ -15,6 +15,15 @@ class ChartType(StringEnum):
     MIXED_TIMESERIES = 'mixed_timeseries'
     WORD_CLOUD = 'word_cloud'
     TREEMAP_V2 = 'treemap_v2'
+    TIMESERIES_LINE = 'echarts_timeseries_line'
+    AREA = 'echarts_area'
+    BIG_NUMBER = 'big_number'
+    FUNNEL = 'funnel'
+    GAUGE = 'gauge_chart'
+    BUBBLE_V2 = 'bubble_v2'
+    HISTOGRAM_V2 = 'histogram_v2'
+    HEATMAP_V2 = 'heatmap_v2'
+    SUNBURST_V2 = 'sunburst_v2'
 
 
 # Legacy viz types removed from Superset -> the type Superset migrated their charts to
@@ -55,6 +64,86 @@ class TreemapLabelType(StringEnum):
     KEY = 'key'
     VALUE = 'value'
     KEY_VALUE = 'key_value'
+
+
+class SunburstLabelType(StringEnum):
+    """sunburst_v2 label_type (EchartsSunburstLabelType, plugin-chart-echarts Sunburst/types.ts, Superset 6.1.0)."""
+    KEY = 'key'
+    VALUE = 'value'
+    KEY_VALUE = 'key_value'
+
+
+class FunnelLabelType(IntEnum):
+    """funnel label_type and tooltip_label_type: the numeric enum EchartsFunnelLabelType (Funnel/types.ts,
+    Superset 6.1.0), stored as its number."""
+    KEY = 0
+    VALUE = 1
+    PERCENT = 2
+    KEY_VALUE = 3
+    KEY_PERCENT = 4
+    KEY_VALUE_PERCENT = 5
+    VALUE_PERCENT = 6
+
+
+class FunnelPercentCalcType(StringEnum):
+    """funnel percent_calculation_type (PercentCalcType, Funnel/types.ts, Superset 6.1.0)."""
+    TOTAL = 'total'
+    PREVIOUS_STEP = 'prev_step'
+    FIRST_STEP = 'first_step'
+
+
+class TimeseriesSeriesType(StringEnum):
+    """Series style of the timeseries charts (EchartsTimeseriesSeriesType, Timeseries/types.ts, Superset 6.1.0);
+    the area chart offers line, smooth and the three steps."""
+    LINE = 'line'
+    SCATTER = 'scatter'
+    SMOOTH = 'smooth'
+    BAR = 'bar'
+    START = 'start'
+    MIDDLE = 'middle'
+    END = 'end'
+
+
+class HeatmapSortAxis(StringEnum):
+    """heatmap_v2 sort_x_axis / sort_y_axis (sortAxisChoices, Heatmap/controlPanel.tsx, Superset 6.1.0)."""
+    ALPHA_ASC = 'alpha_asc'
+    ALPHA_DESC = 'alpha_desc'
+    VALUE_ASC = 'value_asc'
+    VALUE_DESC = 'value_desc'
+
+
+class HeatmapNormalizeAcross(StringEnum):
+    """heatmap_v2 normalize_across (Heatmap/controlPanel.tsx, Superset 6.1.0)."""
+    HEATMAP = 'heatmap'
+    X = 'x'
+    Y = 'y'
+
+
+class HeatmapLegendType(StringEnum):
+    """heatmap_v2 legend_type (Heatmap/controlPanel.tsx, Superset 6.1.0)."""
+    CONTINUOUS = 'continuous'
+    PIECEWISE = 'piecewise'
+
+
+class RollingType(StringEnum):
+    """rolling_type of the advanced analytics (big_number controlPanel, Superset 6.1.0); 'None' is a value."""
+    NONE = 'None'
+    MEAN = 'mean'
+    SUM = 'sum'
+    STD = 'std'
+    CUMSUM = 'cumsum'
+
+
+class BigNumberAggregation(StringEnum):
+    """big_number aggregation (keys of aggregationChoices, superset-ui-chart-controls customControls.tsx,
+    Superset 6.1.0): how the displayed value is computed from the trendline; raw queries the overall value."""
+    RAW = 'raw'
+    LAST_VALUE = 'LAST_VALUE'
+    SUM = 'sum'
+    MEAN = 'mean'
+    MIN = 'min'
+    MAX = 'max'
+    MEDIAN = 'median'
 
 
 class LabelType(StringEnum):

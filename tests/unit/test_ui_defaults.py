@@ -28,7 +28,8 @@ VIZ_TYPES = json.loads((DEFAULTS / "INDEX.json").read_text())["viz_types"]
 
 # Set by the chart builder methods, or by Superset when the chart is saved (dashboards).
 USER_KEYS = {"datasource", "viz_type", "metrics", "metric", "groupby", "groupbyRows", "groupbyColumns", "columns",
-             "all_columns", "percent_metrics", "series", "x_axis", "dashboards", "metrics_b", "groupby_b"}
+             "all_columns", "percent_metrics", "series", "x_axis", "dashboards", "metrics_b", "groupby_b",
+             "column", "entity", "x", "y", "size", "secondary_metric"}
 # Derived by the UI from the dataset (TEMPORAL_RANGE filter and time column on its main datetime column).
 DATASET_KEYS = {"adhoc_filters", "adhoc_filters_b", "temporal_columns_lookup", "granularity_sqla"}
 
