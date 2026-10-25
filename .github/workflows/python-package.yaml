@@ -1,8 +1,15 @@
 name: Python package
 
 on:
+  # Branches are tested through their pull request; a push trigger on every branch ran each PR commit twice.
   push:
+    branches: [main]
   pull_request:
+
+concurrency:
+  # A new commit on a pull request cancels the run of the previous one; runs on main always finish.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:

@@ -112,7 +112,7 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   and compatibility modules listed in `[tool.mypy]` are exempt). The hooks that import the package (mypy,
   import-layers and the two conformance hooks) run with `uv run --locked --all-extras`: install uv, and keep
   `uv.lock` up to date (`uv lock`) when `pyproject.toml` changes.
-- CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on push/PR with `uv sync --locked`
+- CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on pull requests and pushes to `main` (a new PR commit cancels the run of the previous one) with `uv sync --locked`
   (fails when `uv.lock` is out of date), the unit tests with the lowest direct dependency versions on 3.10 and
   3.14, the integration tests against the compose stack, the example dashboard tests against the stack with the
   examples loaded (job `examples`, in parallel), and pre-commit on the PR diff. A weekly job (`superset-drift.yaml`) compares the newest Superset release and master with the
