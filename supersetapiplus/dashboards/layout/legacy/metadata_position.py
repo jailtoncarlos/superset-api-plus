@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from pydantic import PrivateAttr
 
-from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.dashboards.layout.legacy.items import (
     ChartItemPosition,
     ColumnItemPosition,
@@ -18,12 +18,14 @@ from supersetapiplus.dashboards.layout.legacy.tree import TreeNodePosition
 from supersetapiplus.deprecation import module_aliases
 
 
-@dataclass
-class MetadataPosition(SerializableModel):
+class MetadataPosition(ApiModel):
     DASHBOARD_VERSION_KEY: str = 'v2'
+    _tree: TreeNodePosition = PrivateAttr(default_factory=TreeNodePosition)
 
-    def __init__(self, tree:TreeNodePosition = None, **kwargs):
-        self._tree = tree or TreeNodePosition()
+    def __init__(self, tree: TreeNodePosition = None, **kwargs):
+        super().__init__(**kwargs)
+        if tree is not None:
+            self._tree = tree
 
     @property
     def tree(self):

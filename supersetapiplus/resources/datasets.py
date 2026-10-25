@@ -1,71 +1,71 @@
 """Datasets."""
-from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
+from pydantic import Field
 from typing_extensions import Self
 
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.datasource import DataSource
-from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.core.types import DatasourceKind, DatasourceType
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import NotFound, ValidationError
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 from supersetapiplus.resources.repository import ApiModelFactories
+from supersetapiplus.resources.schema_field import SchemaFieldMixin
 
 
-@dataclass
-class Dataset(SerializableModel):
+class Dataset(SchemaFieldMixin):
     """A dataset: a physical table or a virtual one (`sql`), with its saved metrics and time column."""
-    JSON_FIELDS = []
-    PRESERVE_EXTRA_FIELDS = False
+    JSON_FIELDS: ClassVar[list[str]] = []
+    PRESERVE_EXTRA_FIELDS: ClassVar[bool] = False
     # Fields accepted by the API (OpenAPI 6.1.0: DatasetRestApi.post / DatasetRestApi.put).
-    POST_FIELDS = (
+    POST_FIELDS: ClassVar[tuple[str, ...]] = (
         "always_filter_main_dttm", "catalog", "database", "external_url", "is_managed_externally",
         "normalize_columns", "owners", "schema", "sql", "table_name",
     )
-    PUT_FIELDS = (
+    PUT_FIELDS: ClassVar[tuple[str, ...]] = (
         "always_filter_main_dttm", "cache_timeout", "catalog", "columns", "database_id", "default_endpoint",
         "description", "external_url", "extra", "fetch_values_predicate", "filter_select_enabled", "folders",
         "is_managed_externally", "is_sqllab_view", "main_dttm_col", "metrics", "normalize_columns", "offset",
         "owners", "schema", "sql", "table_name", "template_params",
     )
 
-    ID_REFERENCE_FIELDS = ("owners",)
+    ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ("owners",)
     # Keys of a metric accepted on update (superset/datasets/schemas.py DatasetMetricsPutSchema); GET
     # also returns read-only keys (changed_on, created_on...) that PUT rejects.
-    METRIC_FIELDS = ("id", "expression", "description", "extra", "metric_name", "metric_type", "d3format",
-                     "currency", "verbose_name", "warning_text", "uuid")
+    METRIC_FIELDS: ClassVar[tuple[str, ...]] = (
+        "id", "expression", "description", "extra", "metric_name", "metric_type", "d3format", "currency",
+        "verbose_name", "warning_text", "uuid")
     # Keys of a column accepted on update (DatasetColumnsPutSchema); columns are sent only after a change.
-    COLUMN_FIELDS = ("id", "column_name", "type", "advanced_data_type", "verbose_name", "description", "expression",
-                     "extra", "filterable", "groupby", "is_active", "is_dttm", "python_date_format",
-                     "datetime_format", "uuid")
+    COLUMN_FIELDS: ClassVar[tuple[str, ...]] = (
+        "id", "column_name", "type", "advanced_data_type", "verbose_name", "description", "expression", "extra",
+        "filterable", "groupby", "is_active", "is_dttm", "python_date_format", "datetime_format", "uuid")
 
-    id: int | None = field(default=None)
+    id: int | None = None
     table_name: str = ""
-    schema: str = ""
-    columns: list[Any] = field(default_factory=list)
+    columns: list[Any] = Field(default_factory=list)
     description: str = ""
     kind: DatasourceKind | None = None  # read-only: virtual when the dataset has sql
     database_id: int | None = None
     datasource_type: DatasourceType | None = None  # read-only
     sql: str = ""
     # Saved metrics: dicts as Superset returns them (see add_metric); sent with METRIC_FIELDS only.
-    metrics: SerializableOptional[list[dict[str, Any]]] = field(default=None)
-    main_dttm_col: SerializableOptional[str] = field(default=None)
-    owners: SerializableOptional[list[Any]] = field(default=None)
-    catalog: SerializableOptional[str] = field(default=None)
-    cache_timeout: SerializableOptional[int] = field(default=None)
-    default_endpoint: SerializableOptional[str] = field(default=None)
-    extra: SerializableOptional[str] = field(default=None)  # JSON text
-    fetch_values_predicate: SerializableOptional[str] = field(default=None)
-    template_params: SerializableOptional[str] = field(default=None)  # JSON text
-    filter_select_enabled: SerializableOptional[bool] = field(default=None)
-    normalize_columns: SerializableOptional[bool] = field(default=None)
-    always_filter_main_dttm: SerializableOptional[bool] = field(default=None)
-    is_sqllab_view: SerializableOptional[bool] = field(default=None)
-    offset: SerializableOptional[int] = field(default=None)
-    external_url: SerializableOptional[str] = field(default=None)
-    is_managed_externally: SerializableOptional[bool] = field(default=None)
+    metrics: SerializableOptional[list[dict[str, Any]]] = None
+    main_dttm_col: SerializableOptional[str] = None
+    owners: SerializableOptional[list[Any]] = None
+    catalog: SerializableOptional[str] = None
+    cache_timeout: SerializableOptional[int] = None
+    default_endpoint: SerializableOptional[str] = None
+    extra: SerializableOptional[str] = None  # JSON text
+    fetch_values_predicate: SerializableOptional[str] = None
+    template_params: SerializableOptional[str] = None  # JSON text
+    filter_select_enabled: SerializableOptional[bool] = None
+    normalize_columns: SerializableOptional[bool] = None
+    always_filter_main_dttm: SerializableOptional[bool] = None
+    is_sqllab_view: SerializableOptional[bool] = None
+    offset: SerializableOptional[int] = None
+    external_url: SerializableOptional[str] = None
+    is_managed_externally: SerializableOptional[bool] = None
     # Set by add_calculated_column: columns are sent only after a change (not a dataclass field).
     _columns_changed = False
 
@@ -199,7 +199,7 @@ class Datasets(ApiModelFactories):
         dataset: Dataset = self.get(result["table_id"])
         return dataset
 
-    def _default_object_class(self) -> type[SerializableModel]:
+    def _default_object_class(self) -> type[ApiModel]:
         return Dataset
 
 

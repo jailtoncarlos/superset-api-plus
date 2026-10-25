@@ -1,5 +1,4 @@
 """Heatmap (heatmap_v2, plugin-chart-echarts Heatmap, Superset 6.1.0)."""
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -91,12 +90,11 @@ class HeatmapQueryContext(QueryContext):
         return HeatmapQueryObject
 
 
-@dataclass
 class HeatmapChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.HEATMAP_V2
-    viz_type: ChartType = field(default_factory=lambda: ChartType.HEATMAP_V2)
-    params: HeatmapOption = field(default_factory=HeatmapOption)
-    query_context: HeatmapQueryContext = field(default_factory=HeatmapQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.HEATMAP_V2)
+    params: HeatmapOption = Field(default_factory=HeatmapOption)
+    query_context: HeatmapQueryContext = Field(default_factory=HeatmapQueryContext)
 
     def set_x_axis(self, column: QueryFormColumn) -> None:
         self.params.set_x_axis(column)

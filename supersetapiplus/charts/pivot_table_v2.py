@@ -1,5 +1,4 @@
 """Charts."""
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -95,12 +94,11 @@ class PivotTableV2QueryContext(QueryContext):
         return PivotTableV2QueryObject
 
 
-@dataclass
 class PivotTableV2Chart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.PIVOT_TABLE_V2
-    viz_type: ChartType = field(default_factory=lambda: ChartType.PIVOT_TABLE_V2)
-    params: PivotTableV2Option = field(default_factory=PivotTableV2Option)
-    query_context: PivotTableV2QueryContext = field(default_factory=PivotTableV2QueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.PIVOT_TABLE_V2)
+    params: PivotTableV2Option = Field(default_factory=PivotTableV2Option)
+    query_context: PivotTableV2QueryContext = Field(default_factory=PivotTableV2QueryContext)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

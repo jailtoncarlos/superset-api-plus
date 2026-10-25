@@ -1,5 +1,4 @@
 """Line chart (echarts_timeseries_line, plugin-chart-echarts Timeseries/Regular/Line, Superset 6.1.0)."""
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -45,12 +44,11 @@ class TimeseriesLineQueryContext(QueryContext):
         return TimeseriesLineQueryObject
 
 
-@dataclass
 class EchartsTimeseriesLineChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.TIMESERIES_LINE
-    viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_LINE)
-    params: TimeseriesLineOption = field(default_factory=TimeseriesLineOption)
-    query_context: TimeseriesLineQueryContext = field(default_factory=TimeseriesLineQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.TIMESERIES_LINE)
+    params: TimeseriesLineOption = Field(default_factory=TimeseriesLineOption)
+    query_context: TimeseriesLineQueryContext = Field(default_factory=TimeseriesLineQueryContext)
 
     def set_x_axis(self, column: QueryFormColumn, sort_series_by: SortSeriesType | None = None,
                    sort_ascending: bool = True) -> None:

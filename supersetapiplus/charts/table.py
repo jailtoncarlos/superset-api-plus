@@ -1,5 +1,5 @@
 """Charts."""
-from dataclasses import dataclass, field, replace
+from dataclasses import replace
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -155,12 +155,11 @@ class TableQueryContext(QueryContext):
         return TableQueryObject
 
 
-@dataclass
 class TableChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.TABLE
-    viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
-    params: TableOption = field(default_factory=TableOption)
-    query_context: TableQueryContext = field(default_factory=TableQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.TABLE)
+    params: TableOption = Field(default_factory=TableOption)
+    query_context: TableQueryContext = Field(default_factory=TableQueryContext)
 
     def add_simple_metric(self, metric: MetricType,
                           automatic_order: OrderBy = OrderBy(),

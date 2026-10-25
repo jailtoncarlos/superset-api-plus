@@ -1,5 +1,4 @@
 """Charts."""
-from dataclasses import dataclass, field
 from typing import ClassVar
 
 from pydantic import Field
@@ -84,14 +83,13 @@ class PieQueryContext(QueryContext):
         return PieQueryObject
 
 
-@dataclass
 class PieChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.PIE
-    viz_type: ChartType = field(default_factory=lambda: ChartType.PIE)
-    params: PieOption = field(default_factory=PieOption)
-    query_context: PieQueryContext = field(default_factory=PieQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.PIE)
+    params: PieOption = Field(default_factory=PieOption)
+    query_context: PieQueryContext = Field(default_factory=PieQueryContext)
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
         if self.query_context is None or not isinstance(self.query_context.form_data, ApiModel):
             return

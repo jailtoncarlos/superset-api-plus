@@ -1,5 +1,4 @@
 """Big Number with Trendline (big_number, plugin-chart-echarts BigNumber/BigNumberWithTrendline, Superset 6.1.0)."""
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -71,12 +70,11 @@ class BigNumberQueryContext(QueryContext):
         return BigNumberQueryObject
 
 
-@dataclass
 class BigNumberChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.BIG_NUMBER
-    viz_type: ChartType = field(default_factory=lambda: ChartType.BIG_NUMBER)
-    params: BigNumberOption = field(default_factory=BigNumberOption)
-    query_context: BigNumberQueryContext = field(default_factory=BigNumberQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.BIG_NUMBER)
+    params: BigNumberOption = Field(default_factory=BigNumberOption)
+    query_context: BigNumberQueryContext = Field(default_factory=BigNumberQueryContext)
 
     def set_x_axis(self, column: QueryFormColumn) -> None:
         self.params.set_x_axis(column)

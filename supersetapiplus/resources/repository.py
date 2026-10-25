@@ -13,8 +13,8 @@ from typing import Any, Protocol
 import requests
 import yaml
 
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.masking import mask_data
-from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.exceptions import MultipleFound, NotFound, UnsupportedTypeError
 from supersetapiplus.query_string import QueryStringFilter
 
@@ -91,13 +91,13 @@ class ApiModelFactories(ABC):
         self.client = client
 
     @abstractmethod
-    def _default_object_class(self) -> type[SerializableModel]:
+    def _default_object_class(self) -> type[ApiModel]:
         """
         Must be implemented by subclasses to return the default class of the handled objects.
         """
         ...
 
-    def get_base_object(self, data: dict[str, Any] | None = None) -> type[SerializableModel]:
+    def get_base_object(self, data: dict[str, Any] | None = None) -> type[ApiModel]:
         """
         Returns the class to be instantiated based on the 'viz_type' field in the provided data.
 
@@ -106,7 +106,7 @@ class ApiModelFactories(ABC):
                 If None is passed, an empty dict is used.
 
         Returns:
-            Type[SerializableModel]: The class corresponding to the specified viz_type,
+            Type[ApiModel]: The class corresponding to the specified viz_type,
                 or the default object class if no viz_type is present.
         """
         if data is None:
@@ -115,7 +115,7 @@ class ApiModelFactories(ABC):
         type_ = data.get('viz_type')
         base = self._default_object_class()
         if type_ and hasattr(base, 'for_viz_type'):
-            resolved: type[SerializableModel] = base.for_viz_type(type_)  # e.g. Chart subclasses
+            resolved: type[ApiModel] = base.for_viz_type(type_)  # e.g. Chart subclasses
             return resolved
         return self._default_object_class()
 
@@ -166,7 +166,7 @@ class ApiModelFactories(ABC):
     def object_url(self, id: int | str | None) -> str:
         return self.client.join_urls(self.base_url, id)
 
-    def fetch(self, obj: SerializableModel) -> None:
+    def fetch(self, obj: ApiModel) -> None:
         """Reload the fields of `obj` from Superset (JSON text fields are decoded)."""
         result = self.client.get(self.object_url(getattr(obj, "id", None))).json().get("result")
         field_names = obj.field_names()
@@ -174,7 +174,7 @@ class ApiModelFactories(ABC):
             if key in field_names:
                 setattr(obj, key, json.loads(value or "{}") if key in obj.JSON_FIELDS else value)
 
-    def save(self, obj: SerializableModel) -> None:
+    def save(self, obj: ApiModel) -> None:
         """PUT the update-accepted fields of `obj`.
 
         /_info cannot be used as a filter: in Superset 6.1.0 ChartRestApi declares edit_columns = ['slice_name']
@@ -202,7 +202,7 @@ class ApiModelFactories(ABC):
             id (str): unique identifier of the resource to fetch.
 
         Returns:
-            SerializableModel: instance of the appropriate base class, representing the returned resource.
+            ApiModel: instance of the appropriate base class, representing the returned resource.
 
         Raises:
             requests.HTTPError: if the HTTP response indicates an error (status != 2xx).
@@ -251,7 +251,7 @@ class ApiModelFactories(ABC):
             order_column (str, optional): sort column; order_direction "asc" or "desc".
 
         Returns:
-            List[SerializableModel]: objects found (UnsupportedObject for types without a model).
+            List[ApiModel]: objects found (UnsupportedObject for types without a model).
         """
         # The class of each item comes from its type column (viz_type for charts): a listing restricted to
         # other columns would leave nothing to choose the class from.
@@ -325,7 +325,7 @@ class ApiModelFactories(ABC):
             MultipleFound: more than one object found.
 
         Returns:
-            SerializableModel: the object found.
+            ApiModel: the object found.
         """
         objects = self.find(filter, columns)
         if len(objects) == 0:
@@ -343,7 +343,7 @@ class ApiModelFactories(ABC):
         Add a new object to the remote endpoint.
 
         Args:
-            obj (SerializableModel): object to add.
+            obj (ApiModel): object to add.
 
         Returns:
             int: ID of the created object.

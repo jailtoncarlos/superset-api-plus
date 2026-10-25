@@ -1,4 +1,3 @@
-from dataclasses import dataclass, field
 
 # supersetapiplus/charts/word_cloud.py
 from typing import Any, ClassVar
@@ -64,7 +63,6 @@ class WordCloudQueryContext(QueryContext):
         return WordCloudQueryObject
 
 
-@dataclass
 class WordCloudChart(Chart):
     """
     Chart class for Word Cloud. Consists of:
@@ -72,9 +70,9 @@ class WordCloudChart(Chart):
       - query_context: WordCloudQueryContext
     """
     VIZ_TYPE: ClassVar[ChartType] = ChartType.WORD_CLOUD
-    viz_type: ChartType = field(default_factory=lambda: ChartType.WORD_CLOUD)
-    params: WordCloudOption = field(default_factory=WordCloudOption)
-    query_context: WordCloudQueryContext = field(default_factory=WordCloudQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.WORD_CLOUD)
+    params: WordCloudOption = Field(default_factory=WordCloudOption)
+    query_context: WordCloudQueryContext = Field(default_factory=WordCloudQueryContext)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

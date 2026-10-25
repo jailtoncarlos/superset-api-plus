@@ -1,4 +1,3 @@
-from dataclasses import dataclass, field
 
 # supersetapiplus/charts/mixed_timeseries.py
 from typing import Any, ClassVar
@@ -63,7 +62,6 @@ class MixedTimeseriesQueryContext(QueryContext):
         return MixedTimeseriesQueryObject
 
 
-@dataclass
 class MixedTimeseriesChart(Chart):
     """
     Chart class for Mixed Time Series. Bundles:
@@ -74,9 +72,9 @@ class MixedTimeseriesChart(Chart):
     # Superset may store query_context.form_data without the query B keys (metrics_b, groupby_b...).
     PARAMS_ONLY_FIELD_SUFFIXES = ('_b',)
 
-    viz_type: ChartType = field(default_factory=lambda: ChartType.MIXED_TIMESERIES)
-    params: MixedTimeseriesOption = field(default_factory=MixedTimeseriesOption)
-    query_context: MixedTimeseriesQueryContext = field(default_factory=MixedTimeseriesQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.MIXED_TIMESERIES)
+    params: MixedTimeseriesOption = Field(default_factory=MixedTimeseriesOption)
+    query_context: MixedTimeseriesQueryContext = Field(default_factory=MixedTimeseriesQueryContext)
 
     def set_x_axis(self, column: QueryFormColumn) -> None:
         """X axis column shared by both queries (a column name or an AdhocColumn)."""

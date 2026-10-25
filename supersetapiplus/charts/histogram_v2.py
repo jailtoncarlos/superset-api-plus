@@ -1,5 +1,4 @@
 """Histogram (histogram_v2, plugin-chart-echarts Histogram, Superset 6.1.0)."""
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -74,12 +73,11 @@ class HistogramQueryContext(QueryContext):
         return HistogramQueryObject
 
 
-@dataclass
 class HistogramChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.HISTOGRAM_V2
-    viz_type: ChartType = field(default_factory=lambda: ChartType.HISTOGRAM_V2)
-    params: HistogramOption = field(default_factory=HistogramOption)
-    query_context: HistogramQueryContext = field(default_factory=HistogramQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.HISTOGRAM_V2)
+    params: HistogramOption = Field(default_factory=HistogramOption)
+    query_context: HistogramQueryContext = Field(default_factory=HistogramQueryContext)
 
     def set_column(self, column: QueryFormColumn) -> None:
         self.params.set_column(column)

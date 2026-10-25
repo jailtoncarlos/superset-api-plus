@@ -1,3 +1,6 @@
+"""Dataclass field helpers (object_field, json_field, default_string, default_bool). The models are pydantic
+(ApiModel) and declare their fields with pydantic defaults and ``pydantic.Field``; these helpers are kept for
+code that uses them with its own dataclasses."""
 import dataclasses
 from typing import Any
 

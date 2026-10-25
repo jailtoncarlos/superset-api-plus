@@ -1,18 +1,18 @@
-"""Contract of SerializableModel: per-instance state, equality, and what to_dict serializes."""
+"""Contract of the model base (ApiModel, formerly SerializableModel): per-instance state, equality, and what to_dict
+serializes."""
 import json
 import os
 import subprocess
 import sys
-from dataclasses import dataclass, field
+from pydantic import Field
 
-from supersetapiplus.core.model import ObjectDecoder, SerializableModel
-from supersetapiplus.core.fields import object_field
+from supersetapiplus.core.api_model import ApiModel
+from supersetapiplus.core.model import ObjectDecoder
 from supersetapiplus.charts.types import ChartType, LabelRotation
 from supersetapiplus.core.typing import SerializableOptional
 
 
-@dataclass
-class Child(SerializableModel):
+class Child(ApiModel):
     a: int = 1
 
     @property
@@ -20,11 +20,10 @@ class Child(SerializableModel):
         return "not a field"
 
 
-@dataclass
-class Parent(SerializableModel):
+class Parent(ApiModel):
     b: int = 2
-    child: Child = object_field(cls=Child, default_factory=Child)
-    values: SerializableOptional[list] = field(default=None)
+    child: Child = Field(default_factory=Child)
+    values: SerializableOptional[list] = None
 
 
 def test_extra_fields_are_not_shared_between_instances():
@@ -33,7 +32,6 @@ def test_extra_fields_are_not_shared_between_instances():
     first.extra_fields["only_first"] = 1
 
     assert "only_first" not in second.extra_fields
-    assert dict(SerializableModel._extra_fields) == {}
 
 
 def test_nested_models_serialize_their_own_fields_only():
@@ -59,10 +57,9 @@ def test_string_enum_members_are_their_string_values():
     assert isinstance(ChartType.PIE, str) and str(ChartType.PIE) == f"{ChartType.PIE}" == "pie"
 
 
-@dataclass
-class WithIntEnums(SerializableModel):
+class WithIntEnums(ApiModel):
     rotation: SerializableOptional[LabelRotation] = None
-    rotations: list[LabelRotation] = field(default_factory=list)
+    rotations: list[LabelRotation] = Field(default_factory=list)
 
 
 def test_integer_enum_members_are_written_as_numbers():

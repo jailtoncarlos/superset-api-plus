@@ -1,11 +1,10 @@
 """Dashboards."""
-from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
+from pydantic import Field
 from typing_extensions import Self
 
-from supersetapiplus.core.fields import object_field
-from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.dashboards.layout import DashboardLayout
 from supersetapiplus.dashboards.metadata import Metadata
@@ -22,46 +21,44 @@ def default_metadata_position() -> DashboardLayout:
     return DashboardLayout.empty()
 
 
-@dataclass
-class Dashboard(SerializableModel):
+class Dashboard(ApiModel):
     """A dashboard: title, layout (`position_json`, see DashboardLayout), `json_metadata` (native filters,
     colors, cross-filters), owners and roles. Read with `client.dashboards.get()`, create with `add()`."""
-    JSON_FIELDS = ['json_metadata', 'position_json']
-    PRESERVE_EXTRA_FIELDS = False
+    JSON_FIELDS: ClassVar[list[str]] = ['json_metadata', 'position_json']
+    PRESERVE_EXTRA_FIELDS: ClassVar[bool] = False
     # Fields accepted by the API (OpenAPI 6.1.0: DashboardRestApi.post / DashboardRestApi.put).
-    POST_FIELDS = (
+    POST_FIELDS: ClassVar[tuple[str, ...]] = (
         "certification_details", "certified_by", "css", "dashboard_title", "external_url",
         "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
     )
-    PUT_FIELDS = (
+    PUT_FIELDS: ClassVar[tuple[str, ...]] = (
         "certification_details", "certified_by", "css", "dashboard_title", "external_url",
         "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
         "tags",
     )
 
-    ID_REFERENCE_FIELDS = ("owners", "roles")
+    ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ("owners", "roles")
 
     dashboard_title: str = ''
 
-    published: SerializableOptional[bool] = field(default=None)
-    id: int | None = field(default=None)
-    css: SerializableOptional[str] = field(default=None)
-    slug: SerializableOptional[str] = field(default=None)
+    published: SerializableOptional[bool] = None
+    id: int | None = None
+    css: SerializableOptional[str] = None
+    slug: SerializableOptional[str] = None
     # Users (owners) and roles (dashboard RBAC) as read from Superset, or their ids; sent as ids.
     # Absent on create unless set: Superset then makes the current user the owner.
-    owners: SerializableOptional[list[Any]] = field(default=None)
-    roles: SerializableOptional[list[Any]] = field(default=None)
-    certified_by: SerializableOptional[str] = field(default=None)
-    certification_details: SerializableOptional[str] = field(default=None)
-    external_url: SerializableOptional[str] = field(default=None)
-    is_managed_externally: SerializableOptional[bool] = field(default=None)
+    owners: SerializableOptional[list[Any]] = None
+    roles: SerializableOptional[list[Any]] = None
+    certified_by: SerializableOptional[str] = None
+    certification_details: SerializableOptional[str] = None
+    external_url: SerializableOptional[str] = None
+    is_managed_externally: SerializableOptional[bool] = None
 
-    json_metadata: Metadata = object_field(cls=Metadata, default_factory=Metadata)
-    position_json: SerializableOptional[DashboardLayout] = object_field(cls=DashboardLayout,
-                                                                        default_factory=DashboardLayout.empty)
+    json_metadata: Metadata = Field(default_factory=Metadata)
+    position_json: SerializableOptional[DashboardLayout] = Field(default_factory=DashboardLayout.empty)
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
         self._charts_slice_names: list[str] = []
 
     @classmethod
@@ -176,7 +173,7 @@ class Dashboards(ApiModelFactories):
         attached: list[int] = self.client.dashboard_charts.attach_charts(dashboard)
         return attached
 
-    def _default_object_class(self) -> type[SerializableModel]:
+    def _default_object_class(self) -> type[ApiModel]:
         return Dashboard
 
 

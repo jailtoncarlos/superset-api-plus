@@ -1,37 +1,34 @@
 """Saved queries."""
-from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 from typing_extensions import Self
 
-from supersetapiplus.core.fields import default_string
-from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.resources.repository import ApiModelFactories
+from supersetapiplus.resources.schema_field import SchemaFieldMixin
 
 
-@dataclass
-class SavedQuery(SerializableModel):
+class SavedQuery(SchemaFieldMixin):
     """A query saved in SQL Lab (label, SQL, database and schema)."""
-    JSON_FIELDS = []
-    PRESERVE_EXTRA_FIELDS = False
+    JSON_FIELDS: ClassVar[list[str]] = []
+    PRESERVE_EXTRA_FIELDS: ClassVar[bool] = False
     # Fields accepted by the API (OpenAPI 6.1.0: SavedQueryRestApi.post / SavedQueryRestApi.put).
-    POST_FIELDS = (
+    POST_FIELDS: ClassVar[tuple[str, ...]] = (
         "catalog", "db_id", "description", "extra_json", "label", "schema", "sql", "template_parameters",
     )
-    PUT_FIELDS = (
+    PUT_FIELDS: ClassVar[tuple[str, ...]] = (
         "catalog", "db_id", "description", "extra_json", "label", "schema", "sql", "template_parameters",
     )
 
     label: str
-    id: int | None = field(default=None)
-    description: str = default_string()
-    sql: str = default_string()
+    id: int | None = None
+    description: str = ''
+    sql: str = ''
     db_id: int | None = None
-    schema: str = default_string()
-    catalog: SerializableOptional[str] = field(default=None)
-    template_parameters: SerializableOptional[str] = field(default=None)  # JSON text
-    extra_json: SerializableOptional[str] = field(default=None)  # JSON text
+    catalog: SerializableOptional[str] = None
+    template_parameters: SerializableOptional[str] = None  # JSON text
+    extra_json: SerializableOptional[str] = None  # JSON text
 
     @classmethod
     def from_json(cls, json: dict[str, Any]) -> Self:
@@ -50,5 +47,5 @@ class SavedQueries(ApiModelFactories):
     endpoint = "saved_query/"
     base_object = SavedQuery
 
-    def _default_object_class(self) -> type[SerializableModel]:
+    def _default_object_class(self) -> type[ApiModel]:
         return SavedQuery

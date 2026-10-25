@@ -144,9 +144,13 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 
 ## Roadmap decisions already taken
 
-- Models will move to **pydantic v2** during the package reorganization: `extra="allow"` for free-form
-  Superset structures, discriminated union by `viz_type`, `from_json`/`to_dict`/`to_json`/`validate`
-  kept as a facade. Public API fully typed (`mypy --strict`).
+- Models are **pydantic v2** (issue #318): every model derives from `core.api_model.ApiModel`, with
+  `from_json`/`to_dict`/`to_json`/`validate` kept as the facade and the lossless rules above (from_json keeps a
+  value of another type, or a scalar pydantic would convert, as read). Fields are declared with pydantic
+  defaults and `Field`; `SerializableOptional`/`SerializableNotToJson` are `Annotated` markers read by the
+  serializer; the checks before sending run outside the pydantic serializer. The chart class is resolved by
+  `viz_type` through the `Chart` registry (lazy import of the chart module). `core.model.SerializableModel` is a
+  deprecated alias. Public API fully typed (`mypy --strict`).
 - Package layout (in place since issue #318), from the top layer down; a layer imports only the layers
   below it (`import-layers` hook): `client.py` (facade) → `services/` (operations across resources, e.g.
   `DashboardCharts`) → `charts/` → `dashboards/` (`layout/`, `native_filters`, `metadata`) → `resources/`

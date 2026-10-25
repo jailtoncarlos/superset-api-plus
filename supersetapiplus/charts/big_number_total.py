@@ -1,4 +1,3 @@
-from dataclasses import dataclass, field
 
 # supersetapiplus/charts/big_number_total.py
 from typing import Any, ClassVar
@@ -64,7 +63,6 @@ class BigNumberTotalQueryContext(QueryContext):
         return BigNumberTotalQueryObject
 
 
-@dataclass
 class BigNumberTotalChart(Chart):
     """
     Chart class for Big Number Total. Encapsulates:
@@ -72,9 +70,9 @@ class BigNumberTotalChart(Chart):
       - query_context: BigNumberTotalQueryContext
     """
     VIZ_TYPE: ClassVar[ChartType] = ChartType.BIG_NUMBER_TOTAL
-    viz_type: ChartType = field(default_factory=lambda: ChartType.BIG_NUMBER_TOTAL)
-    params: BigNumberTotalOption = field(default_factory=BigNumberTotalOption)
-    query_context: BigNumberTotalQueryContext = field(default_factory=BigNumberTotalQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.BIG_NUMBER_TOTAL)
+    params: BigNumberTotalOption = Field(default_factory=BigNumberTotalOption)
+    query_context: BigNumberTotalQueryContext = Field(default_factory=BigNumberTotalQueryContext)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

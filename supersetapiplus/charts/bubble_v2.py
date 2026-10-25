@@ -1,5 +1,4 @@
 """Bubble chart (bubble_v2, plugin-chart-echarts Bubble, Superset 6.1.0)."""
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -112,12 +111,11 @@ class BubbleQueryContext(QueryContext):
         return BubbleQueryObject
 
 
-@dataclass
 class BubbleChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.BUBBLE_V2
-    viz_type: ChartType = field(default_factory=lambda: ChartType.BUBBLE_V2)
-    params: BubbleOption = field(default_factory=BubbleOption)
-    query_context: BubbleQueryContext = field(default_factory=BubbleQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.BUBBLE_V2)
+    params: BubbleOption = Field(default_factory=BubbleOption)
+    query_context: BubbleQueryContext = Field(default_factory=BubbleQueryContext)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

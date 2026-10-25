@@ -3,7 +3,7 @@ Module typing.py
 
 Defines generic helper types used to serialize and deserialize objects in `supersetapiplus`.
 These types control selective export of attributes and the handling of optional fields
-in models that inherit from the base class `SerializableModel`.
+in models that inherit from the base class `ApiModel`.
 
 Classes:
     NotToJson[T]: generic type wrapping values that must not be serialized
@@ -17,7 +17,7 @@ Aliases:
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Optional, TypeVar, get_args, get_origin
+from typing import TYPE_CHECKING, Annotated, Any, Optional, TypeVar
 
 T = TypeVar('T')
 
@@ -59,13 +59,7 @@ else:
             return Annotated[Optional[item], OPTIONAL]  # noqa: UP045 (item may be a forward-reference string)
 
 
-def has_marker(annotation: Any, marker: _Marker) -> bool:
-    """Whether a field annotation carries a serialization marker (SerializableOptional, SerializableNotToJson)."""
-    return get_origin(annotation) is Annotated and marker in get_args(annotation)[1:]
-
-
-__all__ = ["FilterValue", "FilterValues", "NOT_TO_JSON", "OPTIONAL", "SerializableNotToJson", "SerializableOptional",
-           "has_marker"]
+__all__ = ["FilterValue", "FilterValues", "NOT_TO_JSON", "OPTIONAL", "SerializableNotToJson", "SerializableOptional"]
 
 #: Helper type for the simple values accepted in filters.
 FilterValue = bool | datetime | float | int | str

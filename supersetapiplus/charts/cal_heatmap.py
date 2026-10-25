@@ -1,4 +1,3 @@
-from dataclasses import dataclass, field
 
 # supersetapiplus/charts/cal_heatmap.py
 from typing import Any, ClassVar
@@ -70,7 +69,6 @@ class CalHeatmapQueryContext(QueryContext):
         return CalHeatmapQueryObject
 
 
-@dataclass
 class CalHeatmapChart(Chart):
     """
     Chart class for CalHeatmap. Combines:
@@ -78,9 +76,9 @@ class CalHeatmapChart(Chart):
       - query_context: CalHeatmapQueryContext
     """
     VIZ_TYPE: ClassVar[ChartType] = ChartType.CAL_HEATMAP
-    viz_type: ChartType = field(default_factory=lambda: ChartType.CAL_HEATMAP)
-    params: CalHeatmapOption = field(default_factory=CalHeatmapOption)
-    query_context: CalHeatmapQueryContext = field(default_factory=CalHeatmapQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.CAL_HEATMAP)
+    params: CalHeatmapOption = Field(default_factory=CalHeatmapOption)
+    query_context: CalHeatmapQueryContext = Field(default_factory=CalHeatmapQueryContext)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

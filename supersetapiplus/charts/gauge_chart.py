@@ -1,5 +1,4 @@
 """Gauge (gauge_chart, plugin-chart-echarts Gauge, Superset 6.1.0)."""
-from dataclasses import dataclass, field
 from typing import ClassVar
 
 from pydantic import Field
@@ -65,12 +64,11 @@ class GaugeQueryContext(QueryContext):
         return GaugeQueryObject
 
 
-@dataclass
 class GaugeChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.GAUGE
-    viz_type: ChartType = field(default_factory=lambda: ChartType.GAUGE)
-    params: GaugeOption = field(default_factory=GaugeOption)
-    query_context: GaugeQueryContext = field(default_factory=GaugeQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.GAUGE)
+    params: GaugeOption = Field(default_factory=GaugeOption)
+    query_context: GaugeQueryContext = Field(default_factory=GaugeQueryContext)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

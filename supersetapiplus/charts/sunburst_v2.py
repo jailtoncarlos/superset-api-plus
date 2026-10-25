@@ -1,5 +1,4 @@
 """Sunburst (sunburst_v2, plugin-chart-echarts Sunburst, Superset 6.1.0)."""
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -71,12 +70,11 @@ class SunburstQueryContext(QueryContext):
         return SunburstQueryObject
 
 
-@dataclass
 class SunburstChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.SUNBURST_V2
-    viz_type: ChartType = field(default_factory=lambda: ChartType.SUNBURST_V2)
-    params: SunburstOption = field(default_factory=SunburstOption)
-    query_context: SunburstQueryContext = field(default_factory=SunburstQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.SUNBURST_V2)
+    params: SunburstOption = Field(default_factory=SunburstOption)
+    query_context: SunburstQueryContext = Field(default_factory=SunburstQueryContext)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

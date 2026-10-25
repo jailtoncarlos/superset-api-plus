@@ -62,7 +62,7 @@ MOVED_MODULES = [
     ("supersetapiplus.utils.dict_utils", "supersetapiplus.core.dicts", "detailed_dict_diff"),
     ("supersetapiplus.security.csrf", "supersetapiplus.auth.csrf", "CSRFSupportMixin"),
     ("supersetapiplus.security.session_auth", "supersetapiplus.auth.session", "SessionAuthMixin"),
-    ("supersetapiplus.base.base", "supersetapiplus.core.model", "SerializableModel"),
+    ("supersetapiplus.base.base", "supersetapiplus.core.model", "ObjectDecoder"),
     ("supersetapiplus.base.fields", "supersetapiplus.core.fields", "object_field"),
     ("supersetapiplus.base.sentinels", "supersetapiplus.core.sentinels", "MissingField"),
     ("supersetapiplus.typing", "supersetapiplus.core.typing", "SerializableOptional"),
@@ -82,3 +82,13 @@ def test_moved_modules_still_import_with_a_warning(old, new, name):
     with pytest.warns(DeprecationWarning, match=new):
         legacy = importlib.import_module(old)
     assert getattr(legacy, name) is getattr(importlib.import_module(new), name)
+
+
+def test_serializable_model_is_a_deprecated_alias_of_the_pydantic_base():
+    from supersetapiplus import core
+    from supersetapiplus.core import model
+    from supersetapiplus.core.api_model import ApiModel
+
+    for module in (model, core):
+        with pytest.warns(DeprecationWarning, match="ApiModel"):
+            assert module.SerializableModel is ApiModel

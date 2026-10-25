@@ -1,5 +1,4 @@
 """Treemap (treemap_v2, plugin-chart-echarts Treemap, Superset 6.1.0)."""
-from dataclasses import dataclass, field
 from typing import ClassVar
 
 from pydantic import Field
@@ -53,12 +52,11 @@ class TreemapQueryContext(QueryContext):
         return TreemapQueryObject
 
 
-@dataclass
 class TreemapChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.TREEMAP_V2
-    viz_type: ChartType = field(default_factory=lambda: ChartType.TREEMAP_V2)
-    params: TreemapOption = field(default_factory=TreemapOption)
-    query_context: TreemapQueryContext = field(default_factory=TreemapQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.TREEMAP_V2)
+    params: TreemapOption = Field(default_factory=TreemapOption)
+    query_context: TreemapQueryContext = Field(default_factory=TreemapQueryContext)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

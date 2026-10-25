@@ -1,6 +1,5 @@
 # supersetapiplus/charts/box_plot.py
 import re
-from dataclasses import dataclass, field
 from typing import ClassVar
 
 from pydantic import Field
@@ -82,7 +81,6 @@ class BoxPlotQueryContext(QueryContext):
         return BoxPlotQueryObject
 
 
-@dataclass
 class BoxPlotChart(Chart):
     """
     Chart class for Box Plot. Ties together:
@@ -90,9 +88,9 @@ class BoxPlotChart(Chart):
       - query_context: BoxPlotQueryContext
     """
     VIZ_TYPE: ClassVar[ChartType] = ChartType.BOX_PLOT
-    viz_type: ChartType = field(default_factory=lambda: ChartType.BOX_PLOT)
-    params: BoxPlotOption = field(default_factory=BoxPlotOption)
-    query_context: BoxPlotQueryContext = field(default_factory=BoxPlotQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.BOX_PLOT)
+    params: BoxPlotOption = Field(default_factory=BoxPlotOption)
+    query_context: BoxPlotQueryContext = Field(default_factory=BoxPlotQueryContext)
 
     def add_distribute_across(self, column: QueryFormColumn) -> None:
         """Adds a "Distribute across" column: its values are the points summarized by each box."""

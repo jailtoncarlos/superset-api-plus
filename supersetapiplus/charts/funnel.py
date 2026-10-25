@@ -1,5 +1,4 @@
 """Funnel (funnel, plugin-chart-echarts Funnel, Superset 6.1.0)."""
-from dataclasses import dataclass, field
 from typing import ClassVar
 
 from pydantic import Field
@@ -61,12 +60,11 @@ class FunnelQueryContext(QueryContext):
         return FunnelQueryObject
 
 
-@dataclass
 class FunnelChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.FUNNEL
-    viz_type: ChartType = field(default_factory=lambda: ChartType.FUNNEL)
-    params: FunnelOption = field(default_factory=FunnelOption)
-    query_context: FunnelQueryContext = field(default_factory=FunnelQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.FUNNEL)
+    params: FunnelOption = Field(default_factory=FunnelOption)
+    query_context: FunnelQueryContext = Field(default_factory=FunnelQueryContext)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

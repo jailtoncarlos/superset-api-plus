@@ -1,6 +1,5 @@
 """Charts."""
 import warnings
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -50,12 +49,11 @@ class TimeSeriesBarQueryContext(QueryContext):
         return TimeSeriesBarQueryObject
 
 
-@dataclass
 class EchartsTimeseriesBarChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.TIMESERIES_BAR
-    viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
-    params: TimeSeriesBarOption = field(default_factory=TimeSeriesBarOption)
-    query_context: TimeSeriesBarQueryContext = field(default_factory=TimeSeriesBarQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.TIMESERIES_BAR)
+    params: TimeSeriesBarOption = Field(default_factory=TimeSeriesBarOption)
+    query_context: TimeSeriesBarQueryContext = Field(default_factory=TimeSeriesBarQueryContext)
 
     def set_x_axis(self, column: QueryFormColumn, sort_series_by: SortSeriesType | None = None,
                    sort_ascending: bool = True) -> None:

@@ -1,5 +1,4 @@
 """Area chart (echarts_area, plugin-chart-echarts Timeseries/Area, Superset 6.1.0)."""
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -45,12 +44,11 @@ class AreaQueryContext(QueryContext):
         return AreaQueryObject
 
 
-@dataclass
 class EchartsAreaChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.AREA
-    viz_type: ChartType = field(default_factory=lambda: ChartType.AREA)
-    params: AreaOption = field(default_factory=AreaOption)
-    query_context: AreaQueryContext = field(default_factory=AreaQueryContext)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.AREA)
+    params: AreaOption = Field(default_factory=AreaOption)
+    query_context: AreaQueryContext = Field(default_factory=AreaQueryContext)
 
     def set_x_axis(self, column: QueryFormColumn, sort_series_by: SortSeriesType | None = None,
                    sort_ascending: bool = True) -> None:

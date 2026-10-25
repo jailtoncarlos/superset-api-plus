@@ -1,10 +1,10 @@
 """Databases."""
 import warnings
-from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
-from supersetapiplus.core.fields import default_string, json_field
-from supersetapiplus.core.model import SerializableModel
+from pydantic import Field
+
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.sentinels import MissingField
 from supersetapiplus.core.types import ConfigurationMethod
 from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
@@ -16,21 +16,20 @@ def _given(value: Any) -> bool:
     return value is not None and not isinstance(value, MissingField)
 
 
-@dataclass
-class Database(SerializableModel):
+class Database(ApiModel):
     """A database connection (`sqlalchemy_uri` or dynamic-form `parameters`) and its SQL Lab permissions."""
-    JSON_FIELDS = [
+    JSON_FIELDS: ClassVar[list[str]] = [
         "extra",
     ]
-    PRESERVE_EXTRA_FIELDS = False
+    PRESERVE_EXTRA_FIELDS: ClassVar[bool] = False
     # Fields accepted by the API (OpenAPI 6.1.0: DatabaseRestApi.post / DatabaseRestApi.put).
-    POST_FIELDS = (
+    POST_FIELDS: ClassVar[tuple[str, ...]] = (
         "allow_ctas", "allow_cvas", "allow_dml", "allow_file_upload", "allow_run_async", "cache_timeout",
         "configuration_method", "database_name", "driver", "engine", "expose_in_sqllab", "external_url",
         "extra", "force_ctas_schema", "impersonate_user", "is_managed_externally", "masked_encrypted_extra",
         "parameters", "server_cert", "sqlalchemy_uri", "ssh_tunnel", "uuid",
     )
-    PUT_FIELDS = (
+    PUT_FIELDS: ClassVar[tuple[str, ...]] = (
         "allow_ctas", "allow_cvas", "allow_dml", "allow_file_upload", "allow_run_async", "cache_timeout",
         "configuration_method", "database_name", "driver", "engine", "expose_in_sqllab", "external_url",
         "extra", "force_ctas_schema", "impersonate_user", "is_managed_externally", "masked_encrypted_extra",
@@ -38,7 +37,7 @@ class Database(SerializableModel):
     )
 
     database_name: str
-    id: int | None = field(default=None)
+    id: int | None = None
     # Same defaults as Superset (models/core.py): DML, CTAS/CVAS and async execution only when
     # explicitly requested (they used to be True, allowing INSERT/UPDATE/DELETE in SQL Lab).
     allow_ctas: bool = False
@@ -46,29 +45,29 @@ class Database(SerializableModel):
     allow_dml: bool = False
     allow_run_async: bool = False
     expose_in_sqllab: bool = True
-    engine: str = default_string()
-    extra: dict[str, Any] = json_field()
-    force_ctas_schema: str = default_string()
-    server_cert: str = default_string()
-    sqlalchemy_uri: str = default_string()
-    allow_file_upload: SerializableOptional[bool] = field(default=None)
-    cache_timeout: SerializableOptional[int] = field(default=None)
-    configuration_method: SerializableOptional[ConfigurationMethod] = field(default=None)
-    driver: SerializableOptional[str] = field(default=None)
-    impersonate_user: SerializableOptional[bool] = field(default=None)
+    engine: str = ''
+    extra: dict[str, Any] = Field(default_factory=dict, repr=False)  # JSON text in the API
+    force_ctas_schema: str = ''
+    server_cert: str = ''
+    sqlalchemy_uri: str = ''
+    allow_file_upload: SerializableOptional[bool] = None
+    cache_timeout: SerializableOptional[int] = None
+    configuration_method: SerializableOptional[ConfigurationMethod] = None
+    driver: SerializableOptional[str] = None
+    impersonate_user: SerializableOptional[bool] = None
     # Secrets of the connection as JSON text (GET returns them masked; send only to change them).
-    masked_encrypted_extra: SerializableOptional[str] = field(default=None)
-    parameters: SerializableOptional[dict[str, Any]] = field(default=None)  # dynamic_form connection parameters
-    ssh_tunnel: SerializableOptional[dict[str, Any]] = field(default=None)
-    uuid: SerializableOptional[str] = field(default=None)
-    external_url: SerializableOptional[str] = field(default=None)
-    is_managed_externally: SerializableOptional[bool] = field(default=None)
+    masked_encrypted_extra: SerializableOptional[str] = None
+    parameters: SerializableOptional[dict[str, Any]] = None  # dynamic_form connection parameters
+    ssh_tunnel: SerializableOptional[dict[str, Any]] = None
+    uuid: SerializableOptional[str] = None
+    external_url: SerializableOptional[str] = None
+    is_managed_externally: SerializableOptional[bool] = None
     # Deprecated: not accepted by Superset 6.1.0 (DatabaseRestApi.post/put); never sent.
-    encrypted_extra: SerializableNotToJson[str | None] = field(default=None)
-    allow_multi_schema_metadata_fetch: SerializableNotToJson[bool | None] = field(default=None)
+    encrypted_extra: SerializableNotToJson[str | None] = None
+    allow_multi_schema_metadata_fetch: SerializableNotToJson[bool | None] = None
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
         if _given(self.encrypted_extra):
             warnings.warn("Database.encrypted_extra is deprecated: Superset 6 takes masked_encrypted_extra.",
                           DeprecationWarning, stacklevel=3)
@@ -113,5 +112,5 @@ class Databases(ApiModelFactories):
         response = self.client.post(url, json=o)
         return bool(response.json().get("message") == "OK")
 
-    def _default_object_class(self) -> type[SerializableModel]:
+    def _default_object_class(self) -> type[ApiModel]:
         return Database
