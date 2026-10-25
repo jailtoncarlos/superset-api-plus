@@ -85,7 +85,7 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   following API is used by an external integration and must keep its import path and signature:
   `SupersetClient(url, user, password, verify=...).enable_session_mode()`,
   `client.datasets.find_one(QueryStringFilter)`, `client.charts.find_one(..., full=True)`,
-  `client.charts.add(chart)`, `chart.save()`, `Chart.get_class(viz_type, module)`,
+  `client.charts.add(chart)`, `chart.save()`, `client.css_templates` with `supersetapiplus.CssTemplate`, `Chart.get_class(viz_type, module)`,
   `supersetapiplus.charts.charts.Chart`, `supersetapiplus.query_string.{QueryStringFilter, QueryOperator}`,
   `supersetapiplus.exceptions.NotFound`, `client.dashboards.attach_charts(dashboard)`,
   `dashboard.reset_layout()`, the `position_json` builder (`add_tabs`, `add_tab`, `add_row`, `add_markdown`,

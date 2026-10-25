@@ -6,6 +6,10 @@ import sys
 
 import pytest
 
+import supersetapiplus
+import supersetapiplus.resources as resources
+from supersetapiplus.core.api_model import ApiModel
+
 PACKAGES = ["supersetapiplus", "supersetapiplus.core", "supersetapiplus.transport", "supersetapiplus.auth",
             "supersetapiplus.resources", "supersetapiplus.services", "supersetapiplus.datasets",
             "supersetapiplus.databases", "supersetapiplus.saved_queries", "supersetapiplus.assets"]
@@ -36,3 +40,11 @@ def test_importing_the_package_does_not_load_superset_or_its_server_stack():
     loaded = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout
 
     assert loaded.strip() == "[]"
+
+
+def test_resource_models_are_exported_by_the_package():
+    """Applications import the resource models from `supersetapiplus`, as `Dataset` or `SavedQuery` (issue #13)."""
+    models = {name for name in resources.__all__
+              if inspect.isclass(getattr(resources, name)) and issubclass(getattr(resources, name), ApiModel)}
+
+    assert models - set(supersetapiplus.__all__) == set()
