@@ -192,6 +192,9 @@ class RequestHandler:
         # on a rejected login, the password.
         request_headers = "\n".join(f"{k}: {v}" for k, v in mask_headers(request.headers).items())
         response_headers = "\n".join(f"{k}: {v}" for k, v in mask_headers(response.headers).items())
+        # Multipart uploads contain credentials and file contents that mask_body cannot redact.
+        content_type = request.headers.get("Content-Type", "").strip().lower()
+        request_body = "<multipart body omitted>" if content_type.startswith("multipart/") else mask_body(request.body)
         try:
             response_body = mask_body(response.text)
         except Exception:
@@ -199,6 +202,6 @@ class RequestHandler:
         logger.error(
             "HTTP request error\nRequest URL: %s\nRequest Method: %s\nRequest Headers:\n%s\n"
             "Request Body:\n%s\nResponse Status Code: %s\nResponse Headers:\n%s\nResponse Body:\n%s",
-            request.url, request.method, request_headers, mask_body(request.body) or "<empty>",
+            request.url, request.method, request_headers, request_body or "<empty>",
             response.status_code, response_headers, response_body,
         )

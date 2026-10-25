@@ -2,6 +2,8 @@
 
 The secrets in real error logs are checked against the real Superset (tests/integration/test_errors.py).
 TLS verification stays mocked: the test stack serves plain HTTP, so `verify` cannot be observed on it.
+Multipart error logging uses a prepared request and a built response without HTTP: the contract under
+test is that the local logger never emits the uploaded content, regardless of the server's response.
 """
 import json
 import os
@@ -84,6 +86,41 @@ def test_masks_json_encoded_ssh_import_secrets_without_changing_request_data(fie
 
     assert mask_request_kwargs(kwargs) == {"data": {"overwrite": "false", field: MASK}}
     assert kwargs == {"data": {"overwrite": "false", field: secret}}
+
+
+@pytest.mark.parametrize("content_type", ["multipart/form-data", "Multipart/Form-Data"])
+def test_multipart_import_error_logs_omit_credentials_and_uploaded_content(caplog, content_type):
+    secrets = {
+        "ssh_tunnel_passwords": "synthetic-tunnel-password",
+        "ssh_tunnel_private_keys": "-----BEGIN PRIVATE KEY-----\nsynthetic-private-key\n-----END PRIVATE KEY-----",
+        "ssh_tunnel_private_key_passwords": "synthetic-key-passphrase",
+    }
+    uploaded_content = b"synthetic-private-archive-content"
+    request = requests.Request(
+        "POST", f"{HOST}/api/v1/dashboard/import/",
+        data={field: json.dumps({"databases/examples.yaml": secret}) for field, secret in secrets.items()},
+        files={"formData": ("bundle.zip", uploaded_content, "application/zip")},
+    ).prepare()
+    boundary = request.headers["Content-Type"].split(";", 1)[1]
+    request.headers["Content-Type"] = f"{content_type};{boundary}"
+    original_body = request.body
+    response = requests.Response()
+    response.status_code, response._content = 400, b'{"message": "Import rejected"}'
+    response.headers["Content-Type"] = "application/json"
+    response.request, response.url = request, request.url
+
+    with caplog.at_level("ERROR", logger="supersetapiplus.transport.http"):
+        with pytest.raises(requests.HTTPError):
+            RequestHandler.raise_for_status(response)
+
+    for secret in ("synthetic-tunnel-password", "synthetic-private-key", "synthetic-key-passphrase"):
+        assert secret not in caplog.text
+    assert uploaded_content.decode() not in caplog.text
+    assert "Request Method: POST" in caplog.text
+    assert request.url in caplog.text
+    assert "Response Status Code: 400" in caplog.text
+    assert "Import rejected" in caplog.text
+    assert request.body == original_body
 
 
 def test_network_parameters_come_from_the_environment():
