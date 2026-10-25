@@ -10,6 +10,7 @@ from supersetapiplus.core.types import DatasourceKind, DatasourceType
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import NotFound, ValidationError
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
+from supersetapiplus.resources.databases import Database
 from supersetapiplus.resources.repository import ApiModelFactories
 from supersetapiplus.resources.schema_field import SchemaFieldMixin
 
@@ -181,15 +182,16 @@ class Datasets(ApiModelFactories):
         duplicated: Dataset = self.get(new_id)
         return duplicated
 
-    def get_or_create(self, table_name: str, database: Any, schema: str | None = None,
-                      catalog: str | None = None, **options: Any) -> Dataset:
+    def get_or_create(self, table_name: str, database: Database | int, schema: str | None = None,
+                      catalog: str | None = None, **options: str | bool | None) -> Dataset:
         """The dataset of a physical table, created when it does not exist (POST /dataset/get_or_create/).
 
         `database` is a Database or its id; `options` are the other fields of GetOrCreateDatasetSchema
         (``template_params``, ``normalize_columns``, ``always_filter_main_dttm``). A table missing from the
         database raises UnprocessableEntityError.
         """
-        body = {"table_name": table_name, "database_id": getattr(database, "id", database), "schema": schema,
+        body = {"table_name": table_name, "database_id": database.id if isinstance(database, Database) else database,
+                "schema": schema,
                 "catalog": catalog, **options}
         unknown = set(body) - set(self.GET_OR_CREATE_FIELDS)
         if unknown:

@@ -40,7 +40,7 @@ class HttpClient(Protocol):
              page: int = 0, order_column: str | None = None,
              order_direction: str | None = None) -> requests.Response: ...
 
-    def join_urls(self, *args: Any) -> str: ...
+    def join_urls(self, *args: object) -> str: ...
 
 
 class UnsupportedObject:
@@ -338,7 +338,7 @@ class ApiModelFactories(ABC):
             obj = self.get(obj.id)  # Reload with complete data via ID
         return obj
 
-    def add(self, obj: Any) -> int:
+    def add(self, obj: ApiModel) -> int:
         """
         Add a new object to the remote endpoint.
 
@@ -358,9 +358,9 @@ class ApiModelFactories(ABC):
         response = self.client.post(self.base_url, json=payload)
         result = response.json()
         logger.debug('response: %s', mask_data(result))
-        obj.id = result.get("id")
+        new_id: int = result["id"]
+        setattr(obj, "id", new_id)  # noqa: B010 (every REST model declares id; ApiModel, its base, does not)
         obj._factory = self
-        new_id: int = obj.id
         return new_id
 
     def export(self, ids: list[int], path: Path | str, batch_size: int | None = None) -> None:

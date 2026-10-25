@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import requests
 
@@ -24,7 +24,7 @@ class SupportsCSRFToken(Protocol):
     def get_domain(self) -> str | None:
         ...  # Ellipsis indicates abstract method
 
-    def join_urls(self, *args: Any) -> str:
+    def join_urls(self, *args: object) -> str:
         ...  # Variadic arguments need to be typed
 
 

@@ -153,7 +153,10 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   defaults and `Field`; `SerializableOptional`/`SerializableNotToJson` are `Annotated` markers read by the
   serializer; the checks before sending run outside the pydantic serializer. The chart class is resolved by
   `viz_type` through the `Chart` registry (lazy import of the chart module). `core.model.SerializableModel` is a
-  deprecated alias. Public API fully typed (`mypy --strict`).
+  deprecated alias. Public API fully typed (`mypy --strict`): no public parameter is a bare `Any` (references to
+  saved objects across layers use the protocols of `core.references`, any value inspected at run time is
+  `object`); the exceptions (signatures imposed by pydantic, requests or the standard library, free-form
+  structures of Superset) are declared with the reason in `tests/unit/test_public_signatures.py`.
 - Package layout (in place since issue #318), from the top layer down; a layer imports only the layers
   below it (`import-layers` hook): `client.py` (facade) → `services/` (operations across resources, e.g.
   `DashboardCharts`) → `charts/` → `dashboards/` (`layout/`, `native_filters`, `metadata`) → `resources/`

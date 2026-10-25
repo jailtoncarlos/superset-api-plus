@@ -47,7 +47,7 @@ class QueryStringFilter:
     def __init__(self) -> None:
         self._filters: list[dict[str, Any]] = []
 
-    def add(self, column: str, operator: QueryOperator | str, value: Any) -> None:
+    def add(self, column: str, operator: QueryOperator | str, value: object) -> None:
         """
         Add a new filter to the filter list.
 
@@ -55,7 +55,7 @@ class QueryStringFilter:
             column (str): The column name to be filtered.
             operator (QueryOperator | str): The comparison operator, or the name of a resource-specific
                 filter (e.g. "chart_all_text").
-            value (Any): The value to be used in the comparison.
+            value: The value to be used in the comparison (serialized by rison: a value or a list of values).
         """
         self._filters.append({
             "col": column,

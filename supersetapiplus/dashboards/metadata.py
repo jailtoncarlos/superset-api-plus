@@ -1,13 +1,18 @@
-from collections.abc import Iterable
-from typing import Any, ClassVar
+from collections.abc import Iterable, Sequence
+from typing import Any, ClassVar, TypeAlias
 
 from pydantic import Field, PrivateAttr
 
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.enums import StringEnum
+from supersetapiplus.core.references import DatasetRef, SavedChart
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.dashboards import native_filters
+from supersetapiplus.dashboards.layout import DashboardLayout
 from supersetapiplus.deprecation import module_aliases
+
+#: The parent filters of a native filter: a filter returned by add_native_filter (or its id), a list of them, or None.
+FilterParent: TypeAlias = "native_filters.NativeFilterItem | str | Sequence[native_filters.NativeFilterItem | str] | None"
 
 
 class FilterBarOrientation(StringEnum):
@@ -83,8 +88,9 @@ class Metadata(ApiModel):
         """Section divider in the native filter bar."""
         return self._add_native_item(native_filters.divider_config(title, description, id))
 
-    def add_native_filter(self, name: str, dataset: Any = None, column: str | None = None, parent: Any = None,
-                          charts: Iterable[Any] | None = None, excluded_charts: Iterable[Any] | None = None,
+    def add_native_filter(self, name: str, dataset: DatasetRef | None = None, column: str | None = None,
+                          parent: FilterParent = None, charts: Iterable[SavedChart | int] | None = None,
+                          excluded_charts: Iterable[SavedChart | int] | None = None,
                           **options: Any) -> native_filters.NativeFilterItem:
         """Native filter on `column` of `dataset` (a saved Dataset, its id or its uuid).
 
@@ -102,7 +108,7 @@ class Metadata(ApiModel):
         if charts is not None and excluded_charts is not None:
             raise ValueError("pass either charts or excluded_charts, not both.")
         parents: list[native_filters.NativeFilterItem | str] = (
-            list(parent) if isinstance(parent, (list, tuple)) else [parent] if parent else [])
+            [parent] if isinstance(parent, (str, native_filters.NativeFilterItem)) else list(parent or []))
         item = self._add_native_item(native_filters.filter_config(name, dataset, column, parents, **options))
         if charts is not None:
             self._filter_charts[item.id] = [_chart_id(chart) for chart in charts]
@@ -110,7 +116,7 @@ class Metadata(ApiModel):
             item.config["scope"]["excluded"] = [_chart_id(chart) for chart in excluded_charts]
         return item
 
-    def update_native_filter_scopes(self, layout: Any) -> None:
+    def update_native_filter_scopes(self, layout: DashboardLayout) -> None:
         """Sets chartsInScope/tabsInScope of the items created by the library from the dashboard layout."""
         for item in self.native_filter_configuration or []:
             if item.get("id") in self._library_filter_ids:
@@ -127,7 +133,7 @@ class Metadata(ApiModel):
         self._library_filter_ids.add(config["id"])
         return native_filters.NativeFilterItem(config)
 
-    def add_chart(self, chart: Any) -> None:
+    def add_chart(self, chart: SavedChart) -> None:
         if not isinstance(self.global_chart_configuration, GlobalChartConfiguration):
             self.global_chart_configuration = GlobalChartConfiguration()
         if not isinstance(self.global_chart_configuration.chartsInScope, list):
@@ -135,18 +141,23 @@ class Metadata(ApiModel):
         if not isinstance(self.chart_configuration, dict):
             self.chart_configuration = {}
 
-        chart_configuration = ChartConfiguration(id=chart.id)
+        new_id = _chart_id(chart)
+        chart_configuration = ChartConfiguration(id=new_id)
         if self.global_chart_configuration.chartsInScope:
             for chart_id in self.global_chart_configuration.chartsInScope:
-                if chart_id != chart.id:
+                if chart_id != new_id:
                     chart_configuration.crossFilters.chartsInScope.append(chart_id)
-        self.chart_configuration[str(chart.id)] = chart_configuration
+        self.chart_configuration[str(new_id)] = chart_configuration
 
-        self.global_chart_configuration.chartsInScope.append(chart.id)
+        self.global_chart_configuration.chartsInScope.append(new_id)
 
 
-def _chart_id(chart: Any) -> int:
-    return chart if isinstance(chart, int) else int(chart.id)
+def _chart_id(chart: SavedChart | int) -> int:
+    if isinstance(chart, int):
+        return chart
+    if chart.id is None:
+        raise ValueError(f"chart {chart.slice_name!r} is not saved: it has no id.")
+    return chart.id
 
 
 # Old names, kept as aliases that emit DeprecationWarning.

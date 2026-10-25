@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## Unreleased
+
+### Changed
+
+* The public API is fully typed: no public parameter is a bare `Any`. Layout methods take a `LayoutParent`
+  (a component, a component id or None), the methods that place a chart or target a dataset take the
+  protocols `SavedChart` and `SavedDataset` of `supersetapiplus.core.references` (a `Chart`, a `ChartRef`, a
+  `Dataset`) or ids, filter values take `FilterValue`, and values inspected at run time take `object`.
+  `DashboardCharts.add_chart` takes the layout options as keyword parameters (`height`, `width`, `id`,
+  `skip_existing`). A test rejects a new bare `Any` that is not declared with its reason.
+
+### Fixed
+
+* `Metadata.add_chart` with a chart not saved yet wrote `None` in the cross-filter configuration; it raises.
+* `DashboardCharts.add_chart` with a chart reference without id fails clearly: only a library Chart is created.
+* The derived query context of a histogram without its column, or of a pie without its metric, raised
+  `AttributeError`; it follows the frontend (no label).
+
 ## 2.0.0 (2026-10-25)
 
 Compatibility with Superset 6.1.0, charts and dashboards built in code as the UI builds them, and a
