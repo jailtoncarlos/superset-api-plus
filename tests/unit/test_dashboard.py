@@ -1,9 +1,12 @@
 """Dashboard: json_metadata/position_json round trip and consistency of the layout built in code."""
 import json
 
+import pytest
+
 from supersetapiplus.charts.table import TableChart
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.layout.legacy.metadata_position import MetadataPosition
+from supersetapiplus.dashboards.metadata import Metadata
 
 POSITION = {
     "DASHBOARD_VERSION_KEY": "v2",
@@ -47,6 +50,40 @@ def field(dashboard: Dashboard, name: str) -> dict:
 
 def test_json_metadata_round_trips_without_loss():
     assert field(Dashboard.from_json(exported()), "json_metadata") == METADATA
+
+
+@pytest.mark.parametrize("stored", [
+    {"color_scheme": "supersetColors"},
+    {"chart_configuration": {}},
+    {"global_chart_configuration": {}},
+    {"global_chart_configuration": {
+        "scope": {"rootPath": ["TAB-1"], "excluded": [11]}, "custom_setting": True,
+    }},
+    {"global_chart_configuration": {"chartsInScope": [11]}},
+    {"chart_configuration": {"11": {"id": 11, "custom_setting": True}},
+     "global_chart_configuration": {"chartsInScope": [11]}},
+])
+def test_add_chart_initializes_missing_cross_filter_metadata_lazily(stored):
+    metadata = Metadata.from_json(stored)
+    assert metadata.to_dict() == stored
+    previous_ids = stored.get("global_chart_configuration", {}).get("chartsInScope", [])
+
+    metadata.add_chart(TableChart(id=12, slice_name="First"))
+    metadata.add_chart(TableChart(id=13, slice_name="Second"))
+
+    result = metadata.to_dict()
+    assert result["global_chart_configuration"]["chartsInScope"] == previous_ids + [12, 13]
+    assert result["chart_configuration"]["12"] == {
+        "id": 12, "crossFilters": {"scope": "global", "chartsInScope": previous_ids},
+    }
+    assert result["chart_configuration"]["13"] == {
+        "id": 13, "crossFilters": {"scope": "global", "chartsInScope": previous_ids + [12]},
+    }
+    for key, value in stored.get("global_chart_configuration", {}).items():
+        if key != "chartsInScope":
+            assert result["global_chart_configuration"][key] == value
+    for key, value in stored.get("chart_configuration", {}).items():
+        assert result["chart_configuration"][key] == value
 
 
 def test_position_json_round_trips_without_loss():

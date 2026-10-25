@@ -128,6 +128,13 @@ class Metadata(ApiModel):
         return native_filters.NativeFilterItem(config)
 
     def add_chart(self, chart: Any) -> None:
+        if not isinstance(self.global_chart_configuration, GlobalChartConfiguration):
+            self.global_chart_configuration = GlobalChartConfiguration()
+        if not isinstance(self.global_chart_configuration.chartsInScope, list):
+            self.global_chart_configuration.chartsInScope = []
+        if not isinstance(self.chart_configuration, dict):
+            self.chart_configuration = {}
+
         chart_configuration = ChartConfiguration(id=chart.id)
         if self.global_chart_configuration.chartsInScope:
             for chart_id in self.global_chart_configuration.chartsInScope:
