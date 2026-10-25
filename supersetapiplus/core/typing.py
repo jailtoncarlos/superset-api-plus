@@ -17,9 +17,25 @@ Aliases:
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Annotated, Any, Optional, TypeVar, get_args, get_origin
 
 T = TypeVar('T')
+
+
+class _Marker:
+    """Serialization rule attached to a field annotation (``Annotated[X, marker]``)."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def __repr__(self) -> str:
+        return f"<{self.name}>"
+
+
+#: Left out of the serialized dictionary while unset: None (with a None default) or an empty model default.
+OPTIONAL = _Marker("SerializableOptional")
+#: Never serialized.
+NOT_TO_JSON = _Marker("SerializableNotToJson")
 
 
 if TYPE_CHECKING:
@@ -28,55 +44,28 @@ if TYPE_CHECKING:
     from typing import Optional as SerializableOptional
     from typing import Union as SerializableNotToJson
 else:
-    class SerializableNotToJson(Generic[T]):
-        """
-        Generic wrapper for a value that **must not be included in JSON serialization**.
+    class SerializableNotToJson:
+        """``SerializableNotToJson[X]``: a field of type X that is never serialized."""
 
-        Used in models that inherit from `Object`, together with the logic of
-        `remove_exclude_keys`, to automatically drop fields from the output JSON.
-
-        Parameters:
-            value (T): wrapped value, used internally but never exported.
-
-        Methods:
-            get() -> T:
-                Returns the wrapped value.
-        """
-
-        def __init__(self, value: T):
-            self.value = value
-
-        def get(self) -> T:
-            """Return the wrapped value."""
-            return self.value
+        def __class_getitem__(cls, item: Any) -> Any:
+            return Annotated[item, NOT_TO_JSON]
 
 
-    class SerializableOptional(Generic[T]):
-        """
-        Generic wrapper for an **optional** value, conditionally excluded during JSON serialization.
+    class SerializableOptional:
+        """``SerializableOptional[X]``: an optional field (X | None) left out of the serialized dictionary while
+        it is unset, i.e. None with a None default, or a dictionary equal to an empty model default."""
 
-        Unlike `typing.Optional`, this class lets `remove_exclude_keys` drop the field
-        from the JSON output when:
-          - the value is `None` and the field has no default; or
-          - the value equals the default defined in the dataclass.
-
-        Parameters:
-            value (T): wrapped value, possibly optional.
-
-        Methods:
-            get() -> T:
-                Returns the wrapped value.
-        """
-
-        def __init__(self, value: T):
-            self.value = value
-
-        def get(self) -> T:
-            """Return the wrapped value."""
-            return self.value
+        def __class_getitem__(cls, item: Any) -> Any:
+            return Annotated[Optional[item], OPTIONAL]  # noqa: UP045 (item may be a forward-reference string)
 
 
-__all__ = ["FilterValue", "FilterValues", "SerializableNotToJson", "SerializableOptional"]
+def has_marker(annotation: Any, marker: _Marker) -> bool:
+    """Whether a field annotation carries a serialization marker (SerializableOptional, SerializableNotToJson)."""
+    return get_origin(annotation) is Annotated and marker in get_args(annotation)[1:]
+
+
+__all__ = ["FilterValue", "FilterValues", "NOT_TO_JSON", "OPTIONAL", "SerializableNotToJson", "SerializableOptional",
+           "has_marker"]
 
 #: Helper type for the simple values accepted in filters.
 FilterValue = bool | datetime | float | int | str

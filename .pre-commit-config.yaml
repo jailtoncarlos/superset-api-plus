@@ -36,7 +36,8 @@ repos:
         # modules marked ignore_errors there are not part of the typed public API.
         args: ["--explicit-package-bases"]
         files: ^supersetapiplus/
-        additional_dependencies: ["types-requests", "types-PyYAML", "beautifulsoup4>=4.11", "urllib3>=2", "shortuuid>=1.0.1"]
+        additional_dependencies: ["types-requests", "types-PyYAML", "beautifulsoup4>=4.11", "urllib3>=2", "shortuuid>=1.0.1",
+                                  "pydantic>=2.12"]
 
   - repo: local
     hooks:
@@ -71,6 +72,7 @@ repos:
           - "anytree>=2.12"
           - "shortuuid>=1.0"
           - "typing_extensions>=4.12"
+          - "pydantic>=2.12"
           - "pytest>=8"
           - "requests-mock>=1.12"
         entry: python -m pytest -q -p no:cacheprovider tests/unit/test_openapi_conformance.py
@@ -90,6 +92,7 @@ repos:
           - "anytree>=2.12"
           - "shortuuid>=1.0"
           - "typing_extensions>=4.12"
+          - "pydantic>=2.12"
           - "pytest>=8"
           - "requests-mock>=1.12"
         entry: python -m pytest -q -p no:cacheprovider tests/unit/test_enum_conformance.py tests/unit/test_attribute_types.py tests/unit/test_ui_defaults.py tests/unit/test_extractors.py

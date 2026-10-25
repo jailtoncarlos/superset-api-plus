@@ -5,57 +5,28 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from enum import Enum
-from pathlib import Path
 from types import MappingProxyType
-from typing import Any, cast, get_origin
+from typing import Any, cast
 
 from typing_extensions import Self
 
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.dicts import dicts_equal_and_all_values_none
+from supersetapiplus.core.encoding import ObjectDecoder as ObjectDecoder  # re-exported (old import path)
+from supersetapiplus.core.encoding import enum_value as enum_value
 from supersetapiplus.core.masking import mask_data
 from supersetapiplus.core.parse import ParseMixin
+from supersetapiplus.core.persistence import PersistenceMixin
 from supersetapiplus.core.sentinels import MissingField
-from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
-from supersetapiplus.exceptions import LoadJsonError, UnboundModelError
+from supersetapiplus.core.typing import NOT_TO_JSON, OPTIONAL, has_marker
+from supersetapiplus.exceptions import LoadJsonError
 
 logger = logging.getLogger(__name__)
 
 FieldValue = str | int | bool | None | dict[str, Any] | list[Any]
 
 
-class ObjectDecoder(json.JSONEncoder):
-    """
-    Custom JSON encoder that serializes objects containing Enum instances.
-
-    Overrides `json.JSONEncoder.default` so that `Enum` values are converted to
-    their string representation (usually `value`), making it easy to serialize
-    objects that use Enums as attributes.
-
-    Example:
-        >>> class Status(Enum):
-        ...     OK = "ok"
-        ...     FAIL = "fail"
-        >>> json.dumps({'status': Status.OK}, cls=ObjectDecoder)
-        '{"status": "ok"}'
-
-    Methods:
-        default(obj): returns the value of an Enum instance (a number for integer enums);
-                      otherwise delegates to the default behavior.
-    """
-
-    def default(self, obj: Any) -> Any:
-        # Convert Enum instances to their value: a number for integer enums, a string otherwise
-        if isinstance(obj, Enum):
-            return enum_value(obj)
-        return super().default(obj)
-
-
-def enum_value(member: Enum) -> Any:
-    """Serialized value of an enum member: integer enums (IntEnum) stay numbers, the others are strings."""
-    return int(member) if isinstance(member, int) else str(member.value)
-
-
-class SerializableModel(ParseMixin, ABC):
+class SerializableModel(PersistenceMixin, ParseMixin, ABC):
     """
     Abstract base class for objects that interact with the Superset API.
 
@@ -143,7 +114,7 @@ class SerializableModel(ParseMixin, ABC):
             # set it to its default
             if not isinstance(field.default, dataclasses._MISSING_TYPE) \
                     and getattr(self, field.name) is None \
-                    and get_origin(field.type) is not SerializableOptional:
+                    and not has_marker(field.type, OPTIONAL):
                 setattr(self, field.name, field.default)
 
     @property
@@ -290,7 +261,7 @@ class SerializableModel(ParseMixin, ABC):
         default_factory = getattr(field, 'default_factory', None)
 
         if default_factory and default_factory is not dataclasses.MISSING:
-            if isinstance(default_factory, type) and issubclass(default_factory, SerializableModel):
+            if isinstance(default_factory, type) and issubclass(default_factory, (SerializableModel, ApiModel)):
                 return default_factory
 
         # If neither approach works, return None
@@ -412,10 +383,9 @@ class SerializableModel(ParseMixin, ABC):
         field = cls.get_field(field_name)
         if field is None:  # attribute requested through `columns`, not a model field
             return False
-        origin = get_origin(field.type)
-        if origin is SerializableNotToJson:
+        if has_marker(field.type, NOT_TO_JSON):
             return True
-        return origin is SerializableOptional and _is_unset_optional(field, value)
+        return has_marker(field.type, OPTIONAL) and _is_unset_optional(field, value)
 
     def to_dict(self, columns: list[str] | None = None, convert_to_json: bool = False) -> dict[str, Any]:
         """
@@ -459,7 +429,7 @@ class SerializableModel(ParseMixin, ABC):
             return enum_value(value)
         if not value:
             return value
-        if isinstance(value, SerializableModel):
+        if isinstance(value, (SerializableModel, ApiModel)):
             return value.to_dict(None, convert_to_json)
         if isinstance(value, list):
             return [self._serialize_item(field_name, item, convert_to_json) for item in value]
@@ -471,7 +441,7 @@ class SerializableModel(ParseMixin, ABC):
 
     @staticmethod
     def _serialize_item(field_name: str, item: Any, convert_to_json: bool) -> Any:
-        if isinstance(item, SerializableModel):
+        if isinstance(item, (SerializableModel, ApiModel)):
             return item.to_dict(None, convert_to_json)
         if isinstance(item, tuple):
             return _serialize_pair(field_name, item, convert_to_json)
@@ -525,39 +495,6 @@ class SerializableModel(ParseMixin, ABC):
 
         return data
 
-    # --- persistence: facade over the repository the object was read or created through ---------------
-
-    def _repository(self) -> Any:
-        """Repository (``client.charts``, ``client.dashboards``...) the object is bound to."""
-        if self._factory is None:
-            raise UnboundModelError(
-                f"{type(self).__name__} is not bound to a Superset client: create it with client.<resource>.add() "
-                "or read it with client.<resource>.get() before calling methods that reach the server.")
-        return self._factory
-
-    @property
-    def base_url(self) -> str:
-        """URL of this object on the REST API."""
-        url: str = self._repository().object_url(getattr(self, "id", None))
-        return url
-
-    def export(self, path: Path | str) -> None:
-        """Export this object to a file (ZIP, JSON or YAML)."""
-        self._repository().export(ids=[getattr(self, "id", None)], path=path)
-
-    def fetch(self) -> None:
-        """Reload the fields of this object from Superset."""
-        self._repository().fetch(self)
-
-    def save(self) -> None:
-        """Send the update-accepted fields (PUT_FIELDS) of this object to Superset."""
-        self._repository().save(self)
-
-    def delete(self) -> bool:
-        """Delete this object from Superset."""
-        deleted: bool = self._repository().delete(id=getattr(self, "id", None))
-        return deleted
-
 
 def _field_default(field: dataclasses.Field[Any]) -> Any:
     if field.default is not dataclasses.MISSING:
@@ -572,7 +509,7 @@ def _is_unset_optional(field: dataclasses.Field[Any], value: Any) -> bool:
     default = _field_default(field)
     if value is None:
         return default is None
-    return (isinstance(value, dict) and isinstance(default, SerializableModel)
+    return (isinstance(value, dict) and isinstance(default, (SerializableModel, ApiModel))
             and dicts_equal_and_all_values_none(value, default.to_dict()))
 
 

@@ -13,9 +13,10 @@ from dataclasses import dataclass
 from typing import Any
 
 import shortuuid
+from pydantic import Field, PrivateAttr, SerializationInfo, SerializerFunctionWrapHandler, model_serializer, model_validator
 
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.enums import StringEnum
-from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.dashboards.layout.validation import layout_problems
 from supersetapiplus.exceptions import LayoutWarning, NodePositionValidationError
 
@@ -102,23 +103,29 @@ class LayoutComponent:
         return [LayoutComponent(self.layout, child) for child in self.data.get("children", [])]
 
 
-class DashboardLayout(SerializableModel):
-    """`position_json` of a dashboard."""
+class DashboardLayout(ApiModel):
+    """`position_json` of a dashboard: the flat component map, its version and any other key Superset stored."""
+    components: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    # default_factory: a layout read without a version stays without one.
+    version: Any = Field(default_factory=lambda: LAYOUT_VERSION)
 
-    def __init__(self, components: dict[str, dict[str, Any]] | None = None, version: Any = LAYOUT_VERSION,
-                 **kwargs: Any) -> None:
-        self.components: dict[str, dict[str, Any]] = components if components is not None else {}
-        self.version = version
-        self._extra_fields = {}
-        # True for layouts started by the library (empty()): their title header follows the dashboard title.
-        self.created_by_library = False
+    # True for layouts started by the library (empty()): their title header follows the dashboard title.
+    _created_by_library: bool = PrivateAttr(default=False)
+
+    @property
+    def created_by_library(self) -> bool:
+        return self._created_by_library
+
+    @created_by_library.setter
+    def created_by_library(self, value: bool) -> None:
+        self._created_by_library = value
 
     # --- construction and serialization -----------------------------------------------------
 
     @classmethod
     def empty(cls, title: str = "") -> DashboardLayout:
         """Layout of a new dashboard, as created by the Superset editor (root, grid and title header)."""
-        layout = cls({
+        layout = cls(components={
             ROOT_ID: {"type": "ROOT", "id": ROOT_ID, "children": [GRID_ID]},
             GRID_ID: {"type": "GRID", "id": GRID_ID, "children": [], "parents": [ROOT_ID]},
             HEADER_ID: {"id": HEADER_ID, "type": "HEADER", "meta": {"text": title}},
@@ -126,22 +133,23 @@ class DashboardLayout(SerializableModel):
         layout.created_by_library = True
         return layout
 
+    @model_validator(mode="before")
     @classmethod
-    def from_json(cls, data: dict[str, Any]) -> DashboardLayout:
-        data = data or {}
+    def _from_flat_map(cls, data: Any) -> Any:
+        """The map Superset stores: components (dicts) by id, the version key and other keys (kept as read)."""
+        if not isinstance(data, dict) or "components" in data:
+            return data
         components = {key: copy.deepcopy(value) for key, value in data.items() if isinstance(value, dict)}
-        layout = cls(components, data.get(VERSION_KEY))
-        layout._extra_fields = {k: v for k, v in data.items() if not isinstance(v, dict) and k != VERSION_KEY}
-        return layout
+        others = {key: value for key, value in data.items() if not isinstance(value, dict) and key != VERSION_KEY}
+        return {**others, "components": components, "version": data.get(VERSION_KEY)}
 
-    def to_dict(self, columns: list[str] | None = None, convert_to_json: bool = False) -> dict[str, Any]:
-        data: dict[str, Any] = {}
-        if self.version is not None:
-            data[VERSION_KEY] = self.version
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler: SerializerFunctionWrapHandler, info: SerializationInfo) -> Any:
+        if not isinstance(self, DashboardLayout):
+            return self
+        data: dict[str, Any] = {} if self.version is None else {VERSION_KEY: self.version}
         data.update(copy.deepcopy(self.components))
-        data.update(self._extra_fields)
-        if convert_to_json:
-            self._check_before_sending()
+        data.update(self.extra_fields)
         return data
 
     def problems(self) -> list[str]:
@@ -152,7 +160,7 @@ class DashboardLayout(SerializableModel):
         """
         return layout_problems(self.components, check_parents=self.created_by_library)
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # the facade method, not the deprecated classmethod
         """Raises NodePositionValidationError listing every problem (see :meth:`problems`)."""
         problems = self.problems()
         if problems:
@@ -172,8 +180,6 @@ class DashboardLayout(SerializableModel):
         if not isinstance(other, DashboardLayout):
             return NotImplemented
         return self.to_dict() == other.to_dict()
-
-    __hash__ = None  # type: ignore[assignment]  # mutable
 
     @property
     def tree(self) -> DashboardLayout:

@@ -13,6 +13,8 @@ import inspect
 import pkgutil
 import re
 
+import pydantic
+
 import supersetapiplus
 
 NAME = "names of objects of the user's instance (column, metric, schema, table, saved metric)"
@@ -201,10 +203,9 @@ def str_fields() -> dict[str, str]:
         if info.name.endswith("graphviz"):  # optional dependency (graphviz)
             continue
         for obj in vars(_import_quietly(info.name)).values():
-            if not (isinstance(obj, type) and dataclasses.is_dataclass(obj)
-                    and obj.__module__.startswith("supersetapiplus.")):
+            names = model_field_names(obj)
+            if not names:
                 continue
-            names = {f.name for f in dataclasses.fields(obj)}
             for cls in obj.__mro__:
                 for name, annotation in inspect.get_annotations(cls).items():
                     text = annotation if isinstance(annotation, str) else repr(annotation)
@@ -213,6 +214,17 @@ def str_fields() -> dict[str, str]:
                         module = cls.__module__.removeprefix("supersetapiplus.")
                         found[f"{module}.{cls.__qualname__}.{name}"] = text
     return found
+
+
+def model_field_names(obj) -> set[str]:
+    """Fields of a model of the package: a dataclass or a pydantic model (#318 migrates them)."""
+    if not (isinstance(obj, type) and obj.__module__.startswith("supersetapiplus.")):
+        return set()
+    if dataclasses.is_dataclass(obj):
+        return {f.name for f in dataclasses.fields(obj)}
+    if issubclass(obj, pydantic.BaseModel):
+        return set(obj.model_fields)
+    return set()
 
 
 def test_every_str_field_is_declared():

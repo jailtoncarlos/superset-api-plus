@@ -59,6 +59,11 @@ reorganized, tested package.
 
 ### Changed
 
+* Models move to pydantic v2 (new runtime dependency `pydantic>=2.12`), keeping `from_json`, `to_dict`,
+  `to_json` and `validate` and what the library writes: values Superset stored are read without conversion or
+  loss, absent keys stay absent, unmodeled keys are kept. Migrated so far: the dashboard `json_metadata`
+  (`Metadata` and its cross-filter models) and `position_json` (`DashboardLayout`, built with keyword
+  arguments: `DashboardLayout(components=...)`).
 * The package is organized in layers checked by `import-linter`: `core` (models, no HTTP), `transport`,
   `auth`, `resources`, `dashboards`, `charts`, `services`, `client`. `supersetapiplus` exports the names
   applications use (`SupersetClient`, `Chart`, `Dashboard`, `ChartRef`, `Dataset`, `Database`...); the
