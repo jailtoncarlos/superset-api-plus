@@ -111,7 +111,8 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   `pyproject.toml`, run by `lint-imports`) and `mypy` (`mypy --strict` on the whole package; only the legacy
   and compatibility modules listed in `[tool.mypy]` are exempt).
 - CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on push/PR; pre-commit on
-  the PR diff. CI/CD changes require explicit authorization from the maintainer.
+  the PR diff. A weekly job (`superset-drift.yaml`) compares the newest Superset release and master with the
+  pinned excerpts and fails when the newest release differs (`docs/superset-version-bump.md`, step 0). CI/CD changes require explicit authorization from the maintainer.
 - Every bug fix comes with a test that fails before the fix. Prefer tests of the public contract
   (results observed on the server) over implementation details.
 - **Server behavior is tested against the real Superset**, in `tests/integration` (one module per area:

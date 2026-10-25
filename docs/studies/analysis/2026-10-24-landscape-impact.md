@@ -164,6 +164,6 @@ dashboards of the integration that embeds the library).
 | #339 (M4) | done in `ad047f0`: metrics and calculated columns merged by name; `refresh`, `duplicate`, `get_or_create`; the partial PUT reset of `always_filter_main_dttm` confirmed |
 | #340 (M7, L1–L3) | done in `2efd37e` |
 | #341 (L4, L6) | CSS templates done in `24e4ba2`; guest token, embedded dashboard and Preset authentication left out (no use) |
-| #342 | done in `d817d2a`: provenance, strict extractors, orphan keys; the scheduled drift job needs a CI change |
+| #342 | done in `d817d2a`: provenance, strict extractors, orphan keys; scheduled drift job (`.github/workflows/superset-drift.yaml`) added after the maintainer authorized the CI change |
 | #343 (section 4) | `b4f6ee1`: 6.1.0 has no chart data for a chart saved without `query_context`; `docs/superset-version-bump.md` |
 | #344 (L5) | left out: no asynchronous consumer |
