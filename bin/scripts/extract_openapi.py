@@ -9,6 +9,7 @@ Keeps every route (methods only) and the create/update schemas of the resources 
 library writes, with properties, types and required fields.
 """
 import json
+import os
 import sys
 import urllib.request
 
@@ -20,6 +21,15 @@ RESOURCES = ["ChartRestApi", "DashboardRestApi", "DatasetRestApi", "DatabaseRest
              "CssTemplateRestApi"]
 
 
+def github_api(url: str) -> urllib.request.Request:
+    """Request to the GitHub API, authenticated with GITHUB_TOKEN when set (higher rate limit on shared CI runners)."""
+    request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+    return request
+
+
 def schema_subset(schema: dict) -> dict:
     properties = {
         name: {k: v for k, v in prop.items() if k in ("type", "nullable", "enum", "maxLength")}
@@ -29,7 +39,7 @@ def schema_subset(schema: dict) -> dict:
 
 
 def commit_sha(ref: str) -> str:
-    with urllib.request.urlopen(COMMIT_URL.format(ref=ref), timeout=60) as response:
+    with urllib.request.urlopen(github_api(COMMIT_URL.format(ref=ref)), timeout=60) as response:
         return str(json.load(response)["sha"])
 
 

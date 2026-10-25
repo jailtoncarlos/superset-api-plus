@@ -10,6 +10,7 @@ Usage:
 import ast
 import functools
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -166,6 +167,15 @@ CONST_CHOICES = [
 COMMIT_URL = "https://api.github.com/repos/{repository}/commits/{ref}"
 
 
+def github_api(url: str) -> urllib.request.Request:
+    """Request to the GitHub API, authenticated with GITHUB_TOKEN when set (higher rate limit on shared CI runners)."""
+    request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+    return request
+
+
 def non_empty(extract):
     """An extraction that finds nothing fails: a symbol renamed or reformatted in a new Superset version must
     stop the regeneration, not produce an empty set that the conformance tests would compare against."""
@@ -180,7 +190,7 @@ def non_empty(extract):
 
 def commit_sha(repository: str, ref: str) -> str:
     """Commit of a tag, recorded in the fixture with the paths it was extracted from."""
-    with urllib.request.urlopen(COMMIT_URL.format(repository=repository, ref=ref), timeout=60) as response:
+    with urllib.request.urlopen(github_api(COMMIT_URL.format(repository=repository, ref=ref)), timeout=60) as response:
         return str(json.load(response)["sha"])
 
 

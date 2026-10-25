@@ -114,3 +114,12 @@ def test_a_symbol_whose_format_changed_fails_instead_of_giving_an_empty_set():
         extract.numeric_enum("export enum LabelType {\n  Key = 'key',\n}\n", "LabelType")
     with pytest.raises(ValueError, match="sortAxisChoices"):
         extract.array_choices(double_quotes, "sortAxisChoices")
+
+
+def test_github_api_requests_use_the_token_when_there_is_one(monkeypatch):
+    """Shared CI runners share the unauthenticated rate limit of the GitHub API (60 requests per hour)."""
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    assert extract.github_api("https://api.github.com/x").get_header("Authorization") is None
+
+    monkeypatch.setenv("GITHUB_TOKEN", "t0ken")
+    assert extract.github_api("https://api.github.com/x").get_header("Authorization") == "Bearer t0ken"

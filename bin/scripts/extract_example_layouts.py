@@ -9,6 +9,7 @@ Usage:
     python bin/scripts/extract_example_layouts.py 6.1.0 > tests/fixtures/example_layouts_6.1.0.json
 """
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -21,18 +22,27 @@ RAW_ROOT = "https://raw.githubusercontent.com/apache/superset/{version}/{path}"
 DASHBOARD_FILE = re.compile(r"^superset/examples/([^/]+)/dashboard\.yaml$")
 
 
-def download(url: str) -> str:
+def github_api(url: str) -> urllib.request.Request:
+    """Request to the GitHub API, authenticated with GITHUB_TOKEN when set (higher rate limit on shared CI runners)."""
+    request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+    return request
+
+
+def download(url: str | urllib.request.Request) -> str:
     with urllib.request.urlopen(url, timeout=60) as response:  # noqa: S310 (fixed https URLs)
         return str(response.read().decode("utf-8"))
 
 
 def commit_sha(ref: str) -> str:
-    return str(json.loads(download(COMMIT_URL.format(ref=ref)))["sha"])
+    return str(json.loads(download(github_api(COMMIT_URL.format(ref=ref))))["sha"])
 
 
 def dashboard_files(version: str) -> dict[str, str]:
     """Example name → path of its dashboard.yaml."""
-    tree = json.loads(download(TREE_URL.format(version=version)))
+    tree = json.loads(download(github_api(TREE_URL.format(version=version))))
     if tree.get("truncated"):
         raise SystemExit("The GitHub tree listing is truncated; the list of examples would be incomplete.")
     files = {}
