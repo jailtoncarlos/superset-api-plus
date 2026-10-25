@@ -313,7 +313,7 @@ The suite creates its own database, dataset, charts, dashboard and saved query (
 `tests/integration/test_examples/` has one module per example dashboard shipped with Superset
 (`test_sales_dashboard.py`, `test_world_health.py`...). They run when the stack loads the examples
 (`SUPERSET_LOAD_EXAMPLES=1` in `.env`; loading takes a few minutes) and are skipped otherwise. For each
-dashboard (checks in `test_examples/examples.py`):
+dashboard (checks in `test_examples/checks.py`):
 
 - **round trip** (read only): the dashboard and each chart placed on it, read and re-serialized with
   `to_json()`, give what Superset stored (`position_json`, `json_metadata`, `params`, `query_context`);
