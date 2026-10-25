@@ -1,11 +1,11 @@
-from dataclasses import dataclass, field
 
-from supersetapiplus.core.model import SerializableModel
+from pydantic import Field
+
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.types import DatasourceType
 
 
-@dataclass
-class DataSource(SerializableModel):
+class DataSource(ApiModel):
     """Reference to a Superset datasource (its id and type, e.g. a dataset is `table`), as charts point to it."""
-    id: int | None = field(default=None)
-    type: DatasourceType = field(default_factory=lambda: DatasourceType.TABLE)
+    id: int | None = None
+    type: DatasourceType = Field(default_factory=lambda: DatasourceType.TABLE)

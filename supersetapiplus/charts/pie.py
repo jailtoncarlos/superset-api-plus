@@ -2,14 +2,15 @@
 from dataclasses import dataclass, field
 from typing import ClassVar
 
+from pydantic import Field
+
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import Query
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, DateFormatType, LabelType, NumberFormatType
-from supersetapiplus.core.fields import object_field
-from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
@@ -17,16 +18,15 @@ _SOLUTION_USE_ADD_METRIC = ("We recommend using one of the Chart class's add_sim
                             "methods to ensure data integrity.")
 
 
-@dataclass
 class PieOption(SingleMetricMixin, ChartVisualOptionsMixin, Option):
-    viz_type: ChartType = field(default_factory=lambda: ChartType.PIE)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.PIE)
     row_limit: SerializableOptional[int] = 100
     sort_by_metric: bool = True
-    label_type: LabelType = field(default_factory=lambda: LabelType.CATEGORY_NAME)
+    label_type: LabelType = Field(default_factory=lambda: LabelType.CATEGORY_NAME)
     show_labels: bool = True
 
-    number_format: NumberFormatType = field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
-    date_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
+    number_format: NumberFormatType = Field(default_factory=lambda: NumberFormatType.SMART_NUMBER)
+    date_format: DateFormatType = Field(default_factory=lambda: DateFormatType.SMART_DATE)
     donut: SerializableOptional[bool] = False
     label_line: SerializableOptional[bool] = False
     labels_outside: bool = True
@@ -35,7 +35,7 @@ class PieOption(SingleMetricMixin, ChartVisualOptionsMixin, Option):
     outerRadius: int = 70
     show_labels_threshold: int = 5
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
         if not self.metric:
             raise ValidationError(message='Field metric cannot be empty.',
@@ -47,7 +47,6 @@ class PieOption(SingleMetricMixin, ChartVisualOptionsMixin, Option):
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a metric.')
 
 
-@dataclass
 class PieFormData(PieOption):
     pass
 
@@ -56,12 +55,11 @@ class PieQueryObject(Query):
     ...
 
 
-@dataclass
 class PieQueryContext(QueryContext):
-    form_data: PieFormData = object_field(cls=PieFormData, default_factory=PieFormData)
-    queries: list[PieQueryObject] = object_field(cls=Query, default_factory=list)
+    form_data: PieFormData = Field(default_factory=PieFormData)
+    queries: list[PieQueryObject] = Field(default_factory=list)
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
         if self.form_data.metric or self.queries:
             self._validate_metric_in_queries()
@@ -90,12 +88,12 @@ class PieQueryContext(QueryContext):
 class PieChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.PIE
     viz_type: ChartType = field(default_factory=lambda: ChartType.PIE)
-    params: PieOption = object_field(cls=PieOption, default_factory=PieOption)
-    query_context: PieQueryContext = object_field(cls=PieQueryContext, default_factory=PieQueryContext)
+    params: PieOption = field(default_factory=PieOption)
+    query_context: PieQueryContext = field(default_factory=PieQueryContext)
 
     def validate(self) -> None:
         super().validate()
-        if self.query_context is None or not isinstance(self.query_context.form_data, SerializableModel):
+        if self.query_context is None or not isinstance(self.query_context.form_data, ApiModel):
             return
         form_data_metric = self.query_context.form_data.metric
         if (self.params.metric or form_data_metric) and self.params.metric != form_data_metric:

@@ -1,7 +1,8 @@
-from dataclasses import dataclass, field
+
+from pydantic import Field
 
 from supersetapiplus.charts.types import FilterClausesType, FilterExpressionType, FilterOperatorType
-from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.typing import FilterValues, SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
@@ -37,18 +38,17 @@ def filter_comparator(operator: FilterOperatorType, value: FilterValues | None) 
 #https://github.com/apache/superset/blob/8553b06155249c3583cf0dcd22221ec06cbb833d/superset/utils/core.py#L137
 
 
-@dataclass
-class AdhocFilterClause(SerializableModel):
-    expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.SIMPLE)
-    subject: str | None = field(default=None)
-    operator: FilterOperatorType | None = field(default=None)
-    comparator: FilterValues | None = field(default=None)
-    clause: FilterClausesType = field(default_factory=lambda: FilterClausesType.WHERE)
-    sqlExpression: str | None = field(default=None)
-    operatorId: SerializableOptional[str] = field(default=None)
+class AdhocFilterClause(ApiModel):
+    expressionType: FilterExpressionType = Field(default_factory=lambda: FilterExpressionType.SIMPLE)
+    subject: str | None = None
+    operator: FilterOperatorType | None = None
+    comparator: FilterValues | None = None
+    clause: FilterClausesType = Field(default_factory=lambda: FilterClausesType.WHERE)
+    sqlExpression: str | None = None
+    operatorId: SerializableOptional[str] = None
 
-    isExtra: SerializableOptional[bool] = field(default=None)
-    isNew: SerializableOptional[bool] = field(default=None)
+    isExtra: SerializableOptional[bool] = None
+    isNew: SerializableOptional[bool] = None
 
-    datasourceWarning: SerializableOptional[bool] = field(default=None)
-    filterOptionName: SerializableOptional[str] = field(default=None)
+    datasourceWarning: SerializableOptional[bool] = None
+    filterOptionName: SerializableOptional[str] = None

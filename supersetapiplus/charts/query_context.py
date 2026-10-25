@@ -1,6 +1,6 @@
-from abc import abstractmethod
-from dataclasses import dataclass, field
 from typing import Any
+
+from pydantic import Field
 
 from supersetapiplus.charts.metric import AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
@@ -13,43 +13,40 @@ from supersetapiplus.charts.types import (
     ResultFormat,
     ResultType,
 )
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.datasource import DataSource
-from supersetapiplus.core.fields import object_field
-from supersetapiplus.core.model import SerializableModel
 from supersetapiplus.core.typing import FilterValues, SerializableOptional
 from supersetapiplus.exceptions import ChartValidationError, ValidationError
 
 
-@dataclass
 class FormData(Option):
     pass
 
 
-@dataclass
-class QueryContext(SerializableModel):
-    datasource: DataSource = object_field(cls=DataSource, default_factory=DataSource)
+class QueryContext(ApiModel):
+    datasource: DataSource = Field(default_factory=DataSource)
     # Each chart type narrows these to its own classes (e.g. TableQueryObject, TableFormData).
-    queries: list[Any] = object_field(cls=Query, default_factory=list)
-    form_data: Option = object_field(cls=FormData, default_factory=FormData)
+    queries: list[Any] = Field(default_factory=list)
+    form_data: Option = Field(default_factory=FormData)
 
     force: bool = False
-    result_format: SerializableOptional[ResultFormat] = field(default_factory=lambda: ResultFormat.JSON)
-    result_type: SerializableOptional[ResultType] = field(default_factory=lambda: ResultType.FULL)
+    result_format: SerializableOptional[ResultFormat] = Field(default_factory=lambda: ResultFormat.JSON)
+    result_type: SerializableOptional[ResultType] = Field(default_factory=lambda: ResultType.FULL)
 
 
-    @abstractmethod
     def _default_query_object_class(self) -> type[Query]:
-        raise NotImplementedError()
+        """Query object class of the chart type (each chart type's context returns its own)."""
+        return Query
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
         self._automatic_order: OrderBy | None = None
 
     @property
     def automatic_order(self) -> OrderBy | None:
         return getattr(self, '_automatic_order', None)
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
         if not self.queries:
             raise ValidationError(message='Field queries cannot be empty.',

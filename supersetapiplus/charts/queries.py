@@ -1,9 +1,10 @@
 import logging
 import warnings
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
-from supersetapiplus.charts.metric import AdhocMetric, AdhocMetricColumn, Metric, MetricHelper, MetricsListMixin, OrderByTyping
+from pydantic import Field
+
+from supersetapiplus.charts.metric import AdhocMetricColumn, Metric, MetricHelper, MetricsListMixin, OrderByTyping
 from supersetapiplus.charts.types import (
     ColumnType,
     CurrencyCodeType,
@@ -15,8 +16,7 @@ from supersetapiplus.charts.types import (
     NumberFormatType,
     TimeGrain,
 )
-from supersetapiplus.core.fields import default_string, object_field
-from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.sentinels import MissingField
 from supersetapiplus.core.typing import FilterValues, SerializableOptional
 from supersetapiplus.deprecation import module_aliases
@@ -24,41 +24,37 @@ from supersetapiplus.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
-@dataclass
-class CurrencyFormat(SerializableModel):
-    symbolPosition: SerializableOptional[CurrencyPositionType] = field(default=None)
-    symbol: SerializableOptional[CurrencyCodeType] = field(default=None)
+class CurrencyFormat(ApiModel):
+    symbolPosition: SerializableOptional[CurrencyPositionType] = None
+    symbol: SerializableOptional[CurrencyCodeType] = None
 
 
-@dataclass
-class ColumnConfig(SerializableModel):
-    d3NumberFormat: SerializableOptional[NumberFormatType] = field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
-    d3SmallNumberFormat: SerializableOptional[NumberFormatType] = field(default=None)
-    horizontalAlign: SerializableOptional[HorizontalAlignType] = field(default=None)
+class ColumnConfig(ApiModel):
+    d3NumberFormat: SerializableOptional[NumberFormatType] = Field(default_factory=lambda: NumberFormatType.ORIGINAL_VALUE)
+    d3SmallNumberFormat: SerializableOptional[NumberFormatType] = None
+    horizontalAlign: SerializableOptional[HorizontalAlignType] = None
 
     alignPositiveNegative: SerializableOptional[bool] = None
     colorPositiveNegative: SerializableOptional[bool] = None
     showCellBars: SerializableOptional[bool] = None
     columnWidth: SerializableOptional[int] = None
-    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default=None)
+    currency_format: SerializableOptional[CurrencyFormat] = None
 
 
-@dataclass
-class QueryExtra(SerializableModel):
+class QueryExtra(ApiModel):
     time_grain_sqla: SerializableOptional[TimeGrain] = None
     having: str = ''
     where: str = ''
 
 
-@dataclass
-class AdhocColumn(SerializableModel):
+class AdhocColumn(ApiModel):
     """Custom SQL column (superset-ui-core AdhocColumn): a dimension defined by an expression."""
-    hasCustomLabel: SerializableOptional[bool] = field(default=None)
-    label: str = default_string()
-    sqlExpression: str = default_string()
-    expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
-    timeGrain: SerializableOptional[TimeGrain] = field(default=None)
-    columnType: SerializableOptional[ColumnType] = field(default=None)
+    hasCustomLabel: SerializableOptional[bool] = None
+    label: str = ''
+    sqlExpression: str = ''
+    expressionType: FilterExpressionType = Field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
+    timeGrain: SerializableOptional[TimeGrain] = None
+    columnType: SerializableOptional[ColumnType] = None
 
 
 QueryFormColumn = AdhocColumn | str
@@ -74,16 +70,14 @@ def custom_column(label: str, column: AdhocMetricColumn | None = None, sql_expre
     return AdhocColumn(label=label, sqlExpression=expression, hasCustomLabel=True)
 
 
-@dataclass
-class QueryFilterClause(SerializableModel):
+class QueryFilterClause(ApiModel):
     col: QueryFormColumn
     val: SerializableOptional[FilterValues]
-    op: FilterOperatorType = field(default_factory=lambda: FilterOperatorType.EQUALS)
+    op: FilterOperatorType = Field(default_factory=lambda: FilterOperatorType.EQUALS)
 
 
-@dataclass
-class ColumnsMixin:
-    columns: SerializableOptional[list[AdhocColumn | Metric]] = object_field(cls=AdhocMetric, default_factory=list)
+class ColumnsMixin(ApiModel):
+    columns: SerializableOptional[list[AdhocColumn | Metric]] = Field(default_factory=list)
 
     def _editable_columns(self) -> list[AdhocColumn | Metric]:
         if not isinstance(self.columns, list):
@@ -100,9 +94,8 @@ class ColumnsMixin:
         self._editable_columns().append(custom_column(label, column, sql_expression, aggregate))
 
 
-@dataclass
-class OrderByMixin:
-    orderby: SerializableOptional[list[OrderByTyping] | MissingField] = object_field(default_factory=list)
+class OrderByMixin(ApiModel):
+    orderby: SerializableOptional[list[OrderByTyping] | MissingField] = Field(default_factory=list)
 
     def _editable_orderby(self) -> list[OrderByTyping]:
         if not isinstance(self.orderby, list):
@@ -121,8 +114,8 @@ class OrderByMixin:
         metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
         self._editable_orderby().append((metric, sort_ascending))
 
-    def validate(self) -> None:
-        super().validate()  # type: ignore[misc]  # mixin: the next class in the MRO validates too
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
+        super().validate()
         if getattr(self, "_read_from_superset", False):  # e.g. tables saved without ordering
             return
         if not isinstance(self.orderby, MissingField) and not self.orderby:
@@ -132,20 +125,19 @@ class OrderByMixin:
                                            'a different order, use the add_simple_orderby or add_custom_orderby methods.')
 
 
-@dataclass
-class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
+class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, ApiModel):
     row_limit: SerializableOptional[int] = 100
     series_limit: SerializableOptional[int] = 0
-    series_limit_metric: SerializableOptional[Metric] = object_field(default=None)
+    series_limit_metric: SerializableOptional[Metric] = None
 
-    filters: list[QueryFilterClause] = object_field(cls=QueryFilterClause, default_factory=list)
-    extras: QueryExtra = object_field(cls=QueryExtra, default_factory=QueryExtra)
+    filters: list[QueryFilterClause] = Field(default_factory=list)
+    extras: QueryExtra = Field(default_factory=QueryExtra)
 
-    applied_time_extras: dict[str, Any] = field(default_factory=dict)
-    url_params: dict[str, Any] = field(default_factory=dict)
-    custom_params: dict[str, Any] = field(default_factory=dict)
-    custom_form_data: dict[str, Any] = field(default_factory=dict)
-    annotation_layers: list[Any] = field(default_factory=list)
+    applied_time_extras: dict[str, Any] = Field(default_factory=dict)
+    url_params: dict[str, Any] = Field(default_factory=dict)
+    custom_params: dict[str, Any] = Field(default_factory=dict)
+    custom_form_data: dict[str, Any] = Field(default_factory=dict)
+    annotation_layers: list[Any] = Field(default_factory=list)
 
     # Additional fields, as needed in the API JSON
     row_offset: SerializableOptional[int] = None
@@ -154,10 +146,10 @@ class Query(MetricsListMixin, ColumnsMixin, OrderByMixin, SerializableModel):
     # Whether a query built in code needs metrics (False for plugins without a metric, e.g. histogram_v2).
     _requires_metrics: ClassVar[bool] = True
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
         if self._requires_metrics and not self.metrics and not getattr(self, "_read_from_superset", False):
             raise ValidationError(message='Field metrics cannot be empty.',

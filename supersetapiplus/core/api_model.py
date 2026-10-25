@@ -82,11 +82,15 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _load_json_fields(cls, data: Any) -> Any:
-        """JSON_FIELDS given as JSON text are decoded ('null' becomes None)."""
+    def _load_json_fields(cls, data: Any, info: ValidationInfo) -> Any:
+        """JSON_FIELDS given as JSON text are decoded ('null' becomes None); when reading, a required field absent
+        from the stored data is MissingField (absent when written back) instead of a validation error."""
         if isinstance(data, dict) and any(isinstance(data.get(name), str) for name in cls.JSON_FIELDS):
             data = {key: json.loads(value) if key in cls.JSON_FIELDS and isinstance(value, str) else value
                     for key, value in data.items()}
+        if isinstance(data, dict) and (info.context or {}).get(_READ):
+            absent = [name for name, field in cls.model_fields.items() if field.is_required() and name not in data]
+            data = {**data, **{name: MissingField() for name in absent}}
         return data
 
     @field_validator("*", mode="wrap")

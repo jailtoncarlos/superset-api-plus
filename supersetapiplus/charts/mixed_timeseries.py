@@ -1,18 +1,18 @@
-# supersetapiplus/charts/mixed_timeseries.py
-
 from dataclasses import dataclass, field
+
+# supersetapiplus/charts/mixed_timeseries.py
 from typing import Any, ClassVar
+
+from pydantic import Field
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, ComparisonType, TimeGrain
-from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.typing import SerializableOptional
 
 
-@dataclass
 class MixedTimeseriesOption(Option):
     """Mixed Time Series params: query A uses the plain keys, query B the `_b` keys (buildQuery of the plugin).
 
@@ -21,51 +21,43 @@ class MixedTimeseriesOption(Option):
     """
     # Dimensions are optional in the UI (a table in raw mode or with metrics only, mixed series, pivot rows).
     _require_groupby: ClassVar[bool] = False
-    viz_type: ChartType = field(default_factory=lambda: ChartType.MIXED_TIMESERIES)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.MIXED_TIMESERIES)
     # X axis shared by both queries: a column name or an AdhocColumn; absent until set (the UI proposes the
     # dataset's time column, and the backend requires a datetime column when it is absent).
-    x_axis: SerializableOptional[QueryFormColumn] = object_field(default=None)
+    x_axis: SerializableOptional[QueryFormColumn] = None
     row_limit: SerializableOptional[int] = 10000
     row_limit_b: SerializableOptional[int] = 10000
     order_desc: SerializableOptional[bool] = True
     order_desc_b: SerializableOptional[bool] = True
     truncate_metric: SerializableOptional[bool] = True
     truncate_metric_b: SerializableOptional[bool] = True
-    comparison_type: SerializableOptional[ComparisonType] = field(default_factory=lambda: ComparisonType.VALUES)
-    comparison_type_b: SerializableOptional[ComparisonType] = field(
-        default_factory=lambda: ComparisonType.VALUES)
-    time_grain_sqla: SerializableOptional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
-    annotation_layers: SerializableOptional[list[Any]] = field(default_factory=list)
+    comparison_type: SerializableOptional[ComparisonType] = Field(default_factory=lambda: ComparisonType.VALUES)
+    comparison_type_b: SerializableOptional[ComparisonType] = Field(default_factory=lambda: ComparisonType.VALUES)
+    time_grain_sqla: SerializableOptional[TimeGrain] = Field(default_factory=lambda: TimeGrain.DAY)
+    annotation_layers: SerializableOptional[list[Any]] = Field(default_factory=list)
 
     def set_x_axis(self, column: QueryFormColumn) -> None:
         self.x_axis = column
 
 
-@dataclass
 class MixedTimeseriesFormData(MixedTimeseriesOption):
     """Form data for Mixed Time Series; same fields as MixedTimeseriesOption."""
     pass
 
 
-@dataclass
 class MixedTimeseriesQueryObject(Query):
     """Query object for Mixed Time Series (no additional attributes)."""
     pass
 
 
-@dataclass
 class MixedTimeseriesQueryContext(QueryContext):
     """
     Query context for Mixed Time Series:
       - queries: list of MixedTimeseriesQueryObject
       - form_data: MixedTimeseriesFormData
     """
-    queries: list[MixedTimeseriesQueryObject] = object_field(
-        cls=MixedTimeseriesQueryObject, default_factory=list
-    )
-    form_data: MixedTimeseriesFormData = object_field(
-        cls=MixedTimeseriesFormData, default_factory=MixedTimeseriesFormData
-    )
+    queries: list[MixedTimeseriesQueryObject] = Field(default_factory=list)
+    form_data: MixedTimeseriesFormData = Field(default_factory=MixedTimeseriesFormData)
 
     def _default_query_object_class(self) -> type[Query]:
         return MixedTimeseriesQueryObject
@@ -83,12 +75,8 @@ class MixedTimeseriesChart(Chart):
     PARAMS_ONLY_FIELD_SUFFIXES = ('_b',)
 
     viz_type: ChartType = field(default_factory=lambda: ChartType.MIXED_TIMESERIES)
-    params: MixedTimeseriesOption = object_field(
-        cls=MixedTimeseriesOption, default_factory=MixedTimeseriesOption
-    )
-    query_context: MixedTimeseriesQueryContext = object_field(
-        cls=MixedTimeseriesQueryContext, default_factory=MixedTimeseriesQueryContext
-    )
+    params: MixedTimeseriesOption = field(default_factory=MixedTimeseriesOption)
+    query_context: MixedTimeseriesQueryContext = field(default_factory=MixedTimeseriesQueryContext)
 
     def set_x_axis(self, column: QueryFormColumn) -> None:
         """X axis column shared by both queries (a column name or an AdhocColumn)."""

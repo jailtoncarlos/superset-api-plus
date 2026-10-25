@@ -1,15 +1,15 @@
 # supersetapiplus/charts/box_plot.py
-
 import re
 from dataclasses import dataclass, field
 from typing import ClassVar
+
+from pydantic import Field
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, TimeGrain, WhiskerOptions
-from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
@@ -17,28 +17,27 @@ from supersetapiplus.exceptions import ValidationError
 PERCENTILE_WHISKERS = re.compile(r"(\d+)/(\d+) percentiles")
 
 
-@dataclass
 class BoxPlotOption(Option):
     """Box Plot params; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0).
 
     `groupby` holds the dimensions (one box per value) and `columns` the "Distribute across" columns, whose
     values are the points of each box (the UI proposes the dataset's time column).
     """
-    viz_type: ChartType = field(default_factory=lambda: ChartType.BOX_PLOT)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.BOX_PLOT)
     # Dimensions are optional in the UI (one box when empty).
     _require_groupby: ClassVar[bool] = False
-    columns: SerializableOptional[list[QueryFormColumn]] = object_field(default=None)
+    columns: SerializableOptional[list[QueryFormColumn]] = None
     # A preset, or custom "<low>/<high> percentiles" (freeForm control; see set_whisker_percentiles).
-    whiskerOptions: SerializableOptional[WhiskerOptions | str] = field(default_factory=lambda: WhiskerOptions.TUKEY)
+    whiskerOptions: SerializableOptional[WhiskerOptions | str] = Field(default_factory=lambda: WhiskerOptions.TUKEY)
     row_limit: SerializableOptional[int] = 10000
-    time_grain_sqla: SerializableOptional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
+    time_grain_sqla: SerializableOptional[TimeGrain] = Field(default_factory=lambda: TimeGrain.DAY)
 
     def set_whisker_percentiles(self, low: int, high: int) -> None:
         """Whiskers at the `low` and `high` percentiles (the editor accepts any pair besides the presets)."""
         self.whiskerOptions = f"{low}/{high} percentiles"
         self._check_whiskers()
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
         self._check_whiskers()
 
@@ -60,31 +59,24 @@ class BoxPlotOption(Option):
         self.columns.append(column)
 
 
-@dataclass
 class BoxPlotFormData(BoxPlotOption):
     """Form data for Box Plot; inherits same fields as BoxPlotOption."""
     pass
 
 
-@dataclass
 class BoxPlotQueryObject(Query):
     """Query object for Box Plot (no extra attributes required)."""
     pass
 
 
-@dataclass
 class BoxPlotQueryContext(QueryContext):
     """
     Query context for Box Plot, holding:
       - a list of BoxPlotQueryObject
       - the associated form_data
     """
-    queries: list[BoxPlotQueryObject] = object_field(
-        cls=BoxPlotQueryObject, default_factory=list
-    )
-    form_data: BoxPlotFormData = object_field(
-        cls=BoxPlotFormData, default_factory=BoxPlotFormData
-    )
+    queries: list[BoxPlotQueryObject] = Field(default_factory=list)
+    form_data: BoxPlotFormData = Field(default_factory=BoxPlotFormData)
 
     def _default_query_object_class(self) -> type[Query]:
         return BoxPlotQueryObject
@@ -99,12 +91,8 @@ class BoxPlotChart(Chart):
     """
     VIZ_TYPE: ClassVar[ChartType] = ChartType.BOX_PLOT
     viz_type: ChartType = field(default_factory=lambda: ChartType.BOX_PLOT)
-    params: BoxPlotOption = object_field(
-        cls=BoxPlotOption, default_factory=BoxPlotOption
-    )
-    query_context: BoxPlotQueryContext = object_field(
-        cls=BoxPlotQueryContext, default_factory=BoxPlotQueryContext
-    )
+    params: BoxPlotOption = field(default_factory=BoxPlotOption)
+    query_context: BoxPlotQueryContext = field(default_factory=BoxPlotQueryContext)
 
     def add_distribute_across(self, column: QueryFormColumn) -> None:
         """Adds a "Distribute across" column: its values are the points summarized by each box."""

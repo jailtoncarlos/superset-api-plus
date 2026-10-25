@@ -2,26 +2,26 @@
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
+from pydantic import Field
+
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.timeseries import TimeseriesOptionsMixin, TimeseriesQueryObject
 from supersetapiplus.charts.types import ChartType, SortSeriesType, TimeseriesSeriesType
-from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.typing import SerializableOptional
 
 
-@dataclass
 class AreaOption(TimeseriesOptionsMixin, ChartVisualOptionsMixin, Option):
     """Area chart params; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0).
 
     Same query as the line chart; `stack` takes StackStyleType (Expand only here: AreaChartStackControlOptions).
     """
-    viz_type: ChartType = field(default_factory=lambda: ChartType.AREA)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.AREA)
     _require_groupby: ClassVar[bool] = False
 
-    seriesType: TimeseriesSeriesType = field(default_factory=lambda: TimeseriesSeriesType.LINE)
+    seriesType: TimeseriesSeriesType = Field(default_factory=lambda: TimeseriesSeriesType.LINE)
     opacity: float = 0.2
     show_extra_controls: bool = False
     markerEnabled: bool = False
@@ -29,20 +29,17 @@ class AreaOption(TimeseriesOptionsMixin, ChartVisualOptionsMixin, Option):
     zoomable: bool = False
 
 
-@dataclass
 class AreaFormData(AreaOption):
-    series_columns: SerializableOptional[list[Any]] = field(default=None)
+    series_columns: SerializableOptional[list[Any]] = None
 
 
-@dataclass
 class AreaQueryObject(TimeseriesQueryObject):
     pass
 
 
-@dataclass
 class AreaQueryContext(QueryContext):
-    form_data: AreaFormData = object_field(cls=AreaFormData, default_factory=AreaFormData)
-    queries: list[AreaQueryObject] = object_field(cls=AreaQueryObject, default_factory=list)
+    form_data: AreaFormData = Field(default_factory=AreaFormData)
+    queries: list[AreaQueryObject] = Field(default_factory=list)
 
     def _default_query_object_class(self) -> type[Query]:
         return AreaQueryObject
@@ -52,8 +49,8 @@ class AreaQueryContext(QueryContext):
 class EchartsAreaChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.AREA
     viz_type: ChartType = field(default_factory=lambda: ChartType.AREA)
-    params: AreaOption = object_field(cls=AreaOption, default_factory=AreaOption)
-    query_context: AreaQueryContext = object_field(cls=AreaQueryContext, default_factory=AreaQueryContext)
+    params: AreaOption = field(default_factory=AreaOption)
+    query_context: AreaQueryContext = field(default_factory=AreaQueryContext)
 
     def set_x_axis(self, column: QueryFormColumn, sort_series_by: SortSeriesType | None = None,
                    sort_ascending: bool = True) -> None:

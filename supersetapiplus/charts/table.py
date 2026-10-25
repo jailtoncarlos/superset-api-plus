@@ -2,6 +2,8 @@
 from dataclasses import dataclass, field, replace
 from typing import Any, ClassVar
 
+from pydantic import Field
+
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import AdhocMetricColumn, Metric, OrderBy
 from supersetapiplus.charts.options import Option
@@ -19,73 +21,69 @@ from supersetapiplus.charts.types import (
     ResultType,
     TimeGrain,
 )
-from supersetapiplus.core.fields import object_field
-from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
 
-@dataclass
 class TableOptionBase(Option):
     # Dimensions are optional in the UI (a table in raw mode or with metrics only, mixed series, pivot rows).
     _require_groupby: ClassVar[bool] = False
-    conditional_formatting: SerializableOptional[list[Any]] = field(default=None)
-    temporal_columns_lookup: SerializableOptional[dict[str, bool]] = field(default=None)
-    annotation_layers: SerializableOptional[list[Any]] = field(default=None)
+    conditional_formatting: SerializableOptional[list[Any]] = None
+    temporal_columns_lookup: SerializableOptional[dict[str, bool]] = None
+    annotation_layers: SerializableOptional[list[Any]] = None
 
 
-@dataclass
 class TableOption(TableOptionBase):
     row_limit: SerializableOptional[int] = 10000
-    viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.TABLE)
     order_desc: SerializableOptional[bool] = True
-    time_grain_sqla: SerializableOptional[TimeGrain] = field(default_factory=lambda: TimeGrain.DAY)
-    comparison_type: SerializableOptional[ComparisonType] = field(default_factory=lambda: ComparisonType.VALUES)
-    percent_metric_calculation: SerializableOptional[PercentMetricCalculation] = field(
+    time_grain_sqla: SerializableOptional[TimeGrain] = Field(default_factory=lambda: TimeGrain.DAY)
+    comparison_type: SerializableOptional[ComparisonType] = Field(default_factory=lambda: ComparisonType.VALUES)
+    percent_metric_calculation: SerializableOptional[PercentMetricCalculation] = Field(
         default_factory=lambda: PercentMetricCalculation.ROW_LIMIT)
-    query_mode: QueryModeType = field(default_factory=lambda: QueryModeType.AGGREGATE)
+    query_mode: QueryModeType = Field(default_factory=lambda: QueryModeType.AGGREGATE)
 
-    order_by_cols: list[Any] = field(default_factory=list)
+    order_by_cols: list[Any] = Field(default_factory=list)
 
     server_pagination: SerializableOptional[bool] = False
     server_page_length: SerializableOptional[int] = 10
     show_totals: SerializableOptional[bool] = False
 
-    table_timestamp_format: DateFormatType = field(default_factory=lambda: DateFormatType.SMART_DATE)
-    page_length: SerializableOptional[int] = field(default=None)
-    include_search: SerializableOptional[bool] = field(default=None)
+    table_timestamp_format: DateFormatType = Field(default_factory=lambda: DateFormatType.SMART_DATE)
+    page_length: SerializableOptional[int] = None
+    include_search: SerializableOptional[bool] = None
     show_cell_bars: bool = True
 
-    align_pn: SerializableOptional[bool] = field(default=None)
+    align_pn: SerializableOptional[bool] = None
     color_pn: bool = True
-    allow_rearrange_columns: SerializableOptional[bool] = field(default=None)
+    allow_rearrange_columns: SerializableOptional[bool] = None
 
-    table_filter: SerializableOptional[bool] = field(default=None)
-    granularity_sqla: SerializableOptional[str] = field(default=None)
+    table_filter: SerializableOptional[bool] = None
+    granularity_sqla: SerializableOptional[str] = None
 
-    column_config: SerializableOptional[dict[str, ColumnConfig]] = object_field(cls=ColumnConfig, dict_right=True,
-                                                                               default=None)
+    column_config: SerializableOptional[dict[str, ColumnConfig]] = None
 
-    all_columns: SerializableOptional[list[Any]] = field(default_factory=list)
-    percent_metrics: SerializableOptional[list[Any]] = field(default_factory=list)
+    all_columns: SerializableOptional[list[Any]] = Field(default_factory=list)
+    percent_metrics: SerializableOptional[list[Any]] = Field(default_factory=list)
     allow_render_html: SerializableOptional[bool] = True
-    comparison_color_scheme: SerializableOptional[ComparisonColorScheme] = field(default=None)
+    comparison_color_scheme: SerializableOptional[ComparisonColorScheme] = None
 
-    timeseries_limit_metric: SerializableOptional[Metric] = object_field(default=None)
+    timeseries_limit_metric: SerializableOptional[Metric] = None
 
-    force: SerializableOptional[bool] = field(default=None)
-    result_format: SerializableOptional[ResultFormat] = field(default=None)
-    result_type: SerializableOptional[ResultType] = field(default=None)
+    force: SerializableOptional[bool] = None
+    result_format: SerializableOptional[ResultFormat] = None
+    result_type: SerializableOptional[ResultType] = None
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
         # None becomes an empty list; MissingField (absent key, e.g. a table in raw mode) is kept.
         if self.metrics is None:
             self.metrics: list[Metric] = []
         if self.server_page_length == 0:
             self.server_page_length = 10
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
         # In raw mode the table lists columns (all_columns) and does not use metrics.
         if str(self.query_mode) == str(QueryModeType.RAW):
@@ -105,23 +103,20 @@ class TableOption(TableOptionBase):
         self.column_config[label] = column_config
 
 
-@dataclass
 class TableFormData(TableOption):
     pass
 
 
-@dataclass
 class TableQueryObject(Query):
     granularity: SerializableOptional[str] = None
-    time_offsets: list[str] = field(default_factory=list)
-    post_processing: list[Any] = field(default_factory=list)
+    time_offsets: list[str] = Field(default_factory=list)
+    post_processing: list[Any] = Field(default_factory=list)
 
 
 
-@dataclass
 class TableQueryContext(QueryContext):
-    form_data: TableFormData = object_field(cls=TableFormData, default_factory=TableFormData)
-    queries: list[TableQueryObject] = object_field(cls=TableQueryObject, default_factory=list)
+    form_data: TableFormData = Field(default_factory=TableFormData)
+    queries: list[TableQueryObject] = Field(default_factory=list)
 
     @staticmethod
     def _table_order(automatic_order: OrderBy) -> OrderBy:
@@ -141,12 +136,12 @@ class TableQueryContext(QueryContext):
                            aggregate: MetricType | None = None) -> None:
         super()._add_custom_metric(label, self._table_order(automatic_order), column, sql_expression, aggregate)
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
         # gather all query metrics into one list
         query_metrics = [qm for q in self.queries if isinstance(q.metrics, list) for qm in q.metrics]
         # keep the form_data metrics that do not appear in query_metrics (absent in raw mode)
-        form_data_metrics = self.form_data.metrics if isinstance(self.form_data, SerializableModel) else []
+        form_data_metrics = self.form_data.metrics if isinstance(self.form_data, ApiModel) else []
         if not isinstance(form_data_metrics, list):
             form_data_metrics = []
         missing = [fm for fm in form_data_metrics if fm not in query_metrics]
@@ -164,8 +159,8 @@ class TableQueryContext(QueryContext):
 class TableChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.TABLE
     viz_type: ChartType = field(default_factory=lambda: ChartType.TABLE)
-    params: TableOption = object_field(cls=TableOption, default_factory=TableOption)
-    query_context: TableQueryContext = object_field(cls=TableQueryContext, default_factory=TableQueryContext)
+    params: TableOption = field(default_factory=TableOption)
+    query_context: TableQueryContext = field(default_factory=TableQueryContext)
 
     def add_simple_metric(self, metric: MetricType,
                           automatic_order: OrderBy = OrderBy(),

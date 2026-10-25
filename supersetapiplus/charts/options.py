@@ -1,11 +1,11 @@
 import logging
 import re
-from dataclasses import dataclass, field
 from typing import Any, ClassVar
+
+from pydantic import Field
 
 from supersetapiplus.charts.filters import AdhocFilterClause
 from supersetapiplus.charts.metric import (
-    AdhocMetric,
     AdhocMetricColumn,
     MetricsListMixin,
 )
@@ -23,8 +23,7 @@ from supersetapiplus.charts.types import (
     ResultType,
     TimeGrain,
 )
-from supersetapiplus.core.fields import default_string, object_field
-from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.sentinels import MissingField
 from supersetapiplus.core.typing import FilterValues, SerializableOptional
 from supersetapiplus.exceptions import ValidationError
@@ -40,6 +39,11 @@ TIME_FORMAT_FIELDS = ("date_format", "time_format", "x_axis_time_format", "table
 _MOMENT_TOKENS = re.compile(r"YYYY|YY|DD|Do|HH|hh|mm|ss|MMM|MM")
 
 
+def unbounded() -> list[float | None]:
+    """Default of the axis and value bounds controls: no minimum and no maximum ([null, null])."""
+    return [None, None]
+
+
 def check_time_formats(option: object) -> None:
     """Time formats are "smart_date" or d3-time-format patterns, not moment.js ones."""
     for name in TIME_FORMAT_FIELDS:
@@ -49,26 +53,24 @@ def check_time_formats(option: object) -> None:
                                   solution='Use a d3-time-format pattern (e.g. "%d/%m/%Y") or DateFormatType.')
 
 
-@dataclass
-class ChartVisualOptionsMixin:
-    color_scheme: str = default_string(default='supersetColors')
+class ChartVisualOptionsMixin(ApiModel):
+    color_scheme: str = 'supersetColors'
     show_legend: SerializableOptional[bool] = True
-    legendType: LegendType = field(default_factory=lambda: LegendType.SCROLL)
-    legendOrientation: LegendOrientationType = field(default_factory=lambda: LegendOrientationType.TOP)
+    legendType: LegendType = Field(default_factory=lambda: LegendType.SCROLL)
+    legendOrientation: LegendOrientationType = Field(default_factory=lambda: LegendOrientationType.TOP)
     legendMargin: SerializableOptional[int] = None  # TextControl with isInt: a number or null
-    currency_format: SerializableOptional[CurrencyFormat] = object_field(cls=CurrencyFormat, default=None)
+    currency_format: SerializableOptional[CurrencyFormat] = None
 
 
-@dataclass
-class OptionListGroupByMixin:
+class OptionListGroupByMixin(ApiModel):
     # Dimensions: column names or AdhocColumn dicts; MissingField when the key was absent in the JSON read.
-    groupby: list[Any] | MissingField | None = object_field(cls=AdhocMetric, default_factory=list)
+    groupby: list[Any] | MissingField | None = Field(default_factory=list)
 
     # by default, every chart requires groupby
     _require_groupby: ClassVar[bool] = True
 
-    def validate(self) -> None:
-        super().validate()  # type: ignore[misc]  # mixin: the next class in the MRO validates too
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
+        super().validate()
         # Only for charts built in code whose plugin requires a dimension (see _read_from_superset).
         if self._require_groupby and not getattr(self, "_read_from_superset", False) \
                 and not isinstance(self.groupby, MissingField) \
@@ -93,37 +95,36 @@ class OptionListGroupByMixin:
         self._editable_groupby().append(custom_column(label, column, sql_expression, aggregate))
 
 
-@dataclass
-class Option(MetricsListMixin, OptionListGroupByMixin, SerializableModel):
-    viz_type: ChartType | None = field(default=None)
-    slice_id: SerializableOptional[int] = field(default=None)
+class Option(MetricsListMixin, OptionListGroupByMixin, ApiModel):
+    viz_type: ChartType | None = None
+    slice_id: SerializableOptional[int] = None
 
-    datasource: str | None = field(default=None)
+    datasource: str | None = None
 
-    extra_form_data: dict[str, Any] = field(default_factory=dict)
+    extra_form_data: dict[str, Any] = Field(default_factory=dict)
     # Absent unless the plugin has a row limit control (each chart class sets the UI default).
     row_limit: SerializableOptional[int] = None
 
-    adhoc_filters: list[AdhocFilterClause] = object_field(cls=AdhocFilterClause, default_factory=list)
-    dashboards: list[int] = field(default_factory=list)
+    adhoc_filters: list[AdhocFilterClause] = Field(default_factory=list)
+    dashboards: list[int] = Field(default_factory=list)
 
-    force: SerializableOptional[bool] = field(default=None)
-    result_format: SerializableOptional[ResultFormat] = field(default=None)
-    result_type: SerializableOptional[ResultType] = field(default=None)
+    force: SerializableOptional[bool] = None
+    result_format: SerializableOptional[ResultFormat] = None
+    result_type: SerializableOptional[ResultType] = None
 
-    cache_timeout: SerializableOptional[int] = field(default=None)
-    time_grain_sqla: SerializableOptional[TimeGrain] = field(default=None)
-    order_desc: SerializableOptional[bool] = field(default=None)
+    cache_timeout: SerializableOptional[int] = None
+    time_grain_sqla: SerializableOptional[TimeGrain] = None
+    order_desc: SerializableOptional[bool] = None
 
-    comparison_type: SerializableOptional[ComparisonType] = field(default=None)
+    comparison_type: SerializableOptional[ComparisonType] = None
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
         if not self._read_from_superset:  # what Superset stored is written back as read
             check_time_formats(self)
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
         # None becomes an empty list; MissingField (key absent from the JSON read) is kept so that
         # re-reading does not add "groupby": [] to charts that did not have it.
         if self.groupby is None:

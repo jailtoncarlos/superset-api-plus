@@ -1,7 +1,9 @@
-# supersetapiplus/charts/word_cloud.py
-
 from dataclasses import dataclass, field
+
+# supersetapiplus/charts/word_cloud.py
 from typing import Any, ClassVar
+
+from pydantic import Field
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.metric import SingleMetricMixin
@@ -9,19 +11,17 @@ from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query, QueryFormColumn, custom_column
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType
-from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.sentinels import MissingField
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
 
-@dataclass
 class WordCloudOption(SingleMetricMixin, Option):
     """Word Cloud params: one `metric` and one dimension in `series` (the words); UI defaults for a new chart."""
-    viz_type: ChartType = field(default_factory=lambda: ChartType.WORD_CLOUD)
-    series: SerializableOptional[QueryFormColumn] = object_field(default=None)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.WORD_CLOUD)
+    series: SerializableOptional[QueryFormColumn] = None
     # The plugin has no groupby control: the dimension is `series`.
-    groupby: SerializableOptional[list[Any] | MissingField] = field(default_factory=MissingField)
+    groupby: SerializableOptional[list[Any] | MissingField] = Field(default_factory=MissingField)
     _require_groupby: ClassVar[bool] = False
     row_limit: SerializableOptional[int] = 100
     size_from: int = 10
@@ -41,31 +41,24 @@ class WordCloudOption(SingleMetricMixin, Option):
         self._set_series(custom_column(label, column, sql_expression))
 
 
-@dataclass
 class WordCloudFormData(WordCloudOption):
     """Form data for Word Cloud; same fields as WordCloudOption."""
     pass
 
 
-@dataclass
 class WordCloudQueryObject(Query):
     """Query object for Word Cloud (no additional attributes)."""
     pass
 
 
-@dataclass
 class WordCloudQueryContext(QueryContext):
     """
     Query context for Word Cloud:
       - queries: list of WordCloudQueryObject
       - form_data: WordCloudFormData
     """
-    queries: list[WordCloudQueryObject] = object_field(
-        cls=WordCloudQueryObject, default_factory=list
-    )
-    form_data: WordCloudFormData = object_field(
-        cls=WordCloudFormData, default_factory=WordCloudFormData
-    )
+    queries: list[WordCloudQueryObject] = Field(default_factory=list)
+    form_data: WordCloudFormData = Field(default_factory=WordCloudFormData)
 
     def _default_query_object_class(self) -> type[Query]:
         return WordCloudQueryObject
@@ -80,12 +73,8 @@ class WordCloudChart(Chart):
     """
     VIZ_TYPE: ClassVar[ChartType] = ChartType.WORD_CLOUD
     viz_type: ChartType = field(default_factory=lambda: ChartType.WORD_CLOUD)
-    params: WordCloudOption = object_field(
-        cls=WordCloudOption, default_factory=WordCloudOption
-    )
-    query_context: WordCloudQueryContext = object_field(
-        cls=WordCloudQueryContext, default_factory=WordCloudQueryContext
-    )
+    params: WordCloudOption = field(default_factory=WordCloudOption)
+    query_context: WordCloudQueryContext = field(default_factory=WordCloudQueryContext)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

@@ -16,6 +16,7 @@ from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.types import ChartType, FilterClausesType, FilterExpressionType, FilterOperatorType, MetricType
 from supersetapiplus.charts.types.viz import REMOVED_VIZ_TYPES, REMOVED_WITHOUT_CHART_TYPE
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.core.dicts import detailed_dict_diff
 from supersetapiplus.core.fields import object_field
@@ -131,11 +132,11 @@ class Chart(SerializableModel):
         Called in __post_init__ and again at the end of from_json: during from_json, __post_init__
         runs while params is still a dict (the conversion to Option happens later).
         """
-        if self.id is not None or self.datasource_id is None or not isinstance(self.params, SerializableModel):
+        if self.id is not None or self.datasource_id is None or not isinstance(self.params, ApiModel):
             return
         if not self.params.datasource:  # None or MissingField (absent from the JSON)
             self.params.datasource = f'{self.datasource_id}__{self.datasource_type}'
-            if isinstance(self.query_context, SerializableModel):
+            if isinstance(self.query_context, ApiModel):
                 self.query_context.datasource.id = self.datasource_id
                 self.query_context.form_data = copy.deepcopy(self.params)
 
@@ -143,7 +144,7 @@ class Chart(SerializableModel):
         super().validate()
         # A null query_context (chart never saved from Explore) or one without form_data (example charts
         # loaded from YAML in Superset 6.1) has nothing to compare with params.
-        if self.query_context is None or not isinstance(self.query_context.form_data, SerializableModel):
+        if self.query_context is None or not isinstance(self.query_context.form_data, ApiModel):
             return
 
         params = {k: v for k, v in self.params.to_dict().items() if k not in self.VOLATILE_FORM_DATA_FIELDS}
@@ -323,7 +324,7 @@ class Chart(SerializableModel):
     def to_json(self, columns: list[str] | None = None) -> dict[str, Any]:
         data = super().to_json(columns).copy()
         if getattr(self, '_derive_query_context', False) and 'query_context' in data \
-                and isinstance(self.params, SerializableModel):
+                and isinstance(self.params, ApiModel):
             data['query_context'] = json.dumps(self.ui_query_context())
         return data
 
@@ -349,7 +350,7 @@ class Chart(SerializableModel):
                 obj.datasource_type = datasource.type
             else:
                 logger.warning("datasource query_context without 'id' defined")
-        elif isinstance(obj.params, SerializableModel) and '__' in str(obj.params.datasource or ''):
+        elif isinstance(obj.params, ApiModel) and '__' in str(obj.params.datasource or ''):
             # Listings with restricted columns (find(columns=[...])) do not include params: the partial
             # object has no datasource and is completed by find_one(..., full=True).
             datasource_id, datasource_type = str(obj.params.datasource).split('__', 1)

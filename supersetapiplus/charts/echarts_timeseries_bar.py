@@ -3,23 +3,23 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
+from pydantic import Field
+
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import AdhocColumn, Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
 from supersetapiplus.charts.timeseries import TimeseriesOptionsMixin, TimeseriesQueryObject
 from supersetapiplus.charts.types import ChartType, Orientation, SortSeriesType
-from supersetapiplus.core.fields import object_field
 from supersetapiplus.core.typing import SerializableOptional
 
 
-@dataclass
 class TimeSeriesBarOption(TimeseriesOptionsMixin, ChartVisualOptionsMixin, Option):
     """Bar chart params; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0)."""
-    viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
+    viz_type: ChartType = Field(default_factory=lambda: ChartType.TIMESERIES_BAR)
     _require_groupby: ClassVar[bool] = False  # groupby (series breakdown) is optional
 
-    orientation: Orientation = field(default_factory=lambda: Orientation.VERTICAL)
+    orientation: Orientation = Field(default_factory=lambda: Orientation.VERTICAL)
     y_axis_title_margin: int = 15
 
     def y_axis(self, label: str,
@@ -33,21 +33,18 @@ class TimeSeriesBarOption(TimeseriesOptionsMixin, ChartVisualOptionsMixin, Optio
         self.set_x_axis(column, sort_series_by, sort_ascending)
 
 
-@dataclass()
 class TimeSeriesBarFormData(TimeSeriesBarOption):
-    series_columns: SerializableOptional[list[Any]] = field(default=None)
+    series_columns: SerializableOptional[list[Any]] = None
 
 
 
-@dataclass
 class TimeSeriesBarQueryObject(TimeseriesQueryObject):
     pass
 
 
-@dataclass
 class TimeSeriesBarQueryContext(QueryContext):
-    form_data: TimeSeriesBarFormData = object_field(cls=TimeSeriesBarFormData, default_factory=TimeSeriesBarFormData)
-    queries: list[TimeSeriesBarQueryObject] = object_field(cls=TimeSeriesBarQueryObject, default_factory=list)
+    form_data: TimeSeriesBarFormData = Field(default_factory=TimeSeriesBarFormData)
+    queries: list[TimeSeriesBarQueryObject] = Field(default_factory=list)
 
     def _default_query_object_class(self) -> type[Query]:
         return TimeSeriesBarQueryObject
@@ -57,10 +54,8 @@ class TimeSeriesBarQueryContext(QueryContext):
 class EchartsTimeseriesBarChart(Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.TIMESERIES_BAR
     viz_type: ChartType = field(default_factory=lambda: ChartType.TIMESERIES_BAR)
-    params: TimeSeriesBarOption = object_field(
-        cls=TimeSeriesBarOption, default_factory=TimeSeriesBarOption)
-    query_context: TimeSeriesBarQueryContext = object_field(
-        cls=TimeSeriesBarQueryContext,  default_factory=TimeSeriesBarQueryContext)
+    params: TimeSeriesBarOption = field(default_factory=TimeSeriesBarOption)
+    query_context: TimeSeriesBarQueryContext = field(default_factory=TimeSeriesBarQueryContext)
 
     def set_x_axis(self, column: QueryFormColumn, sort_series_by: SortSeriesType | None = None,
                    sort_ascending: bool = True) -> None:

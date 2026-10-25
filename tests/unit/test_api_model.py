@@ -43,6 +43,11 @@ class Strict(Parent):
     PRESERVE_EXTRA_FIELDS: ClassVar[bool] = False
 
 
+class Required(ApiModel):
+    key: str
+    value: int
+
+
 def test_reading_keeps_values_of_another_type_and_does_not_convert_scalars():
     stored = {"title": 7, "ratio": 5, "rotation": 45, "child": {"size": "10", "chart": "unknown_plugin"}}
 
@@ -59,6 +64,12 @@ def test_absent_keys_stay_absent_and_unmodeled_keys_are_kept():
     assert isinstance(parent.ratio, MissingField) and isinstance(parent.child.size, MissingField)
     assert parent.to_dict() == {"title": "T", "child": {"extra_key": [1]}, "blob": {}, "unknown": {"a": None}}
     assert Strict.from_json({"title": "T", "unknown": 1}).to_dict() == {"title": "T", "blob": {}}
+
+
+def test_a_required_field_absent_from_the_stored_data_stays_absent():
+    read = Required.from_json({"key": "k"})
+
+    assert isinstance(read.value, MissingField) and read.to_dict() == {"key": "k"}
 
 
 def test_nested_models_are_built_and_flagged_as_read():

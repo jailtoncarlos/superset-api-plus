@@ -63,7 +63,8 @@ reorganized, tested package.
   `to_json` and `validate` and what the library writes: values Superset stored are read without conversion or
   loss, absent keys stay absent, unmodeled keys are kept. Migrated so far: the dashboard `json_metadata`
   (`Metadata` and its cross-filter models) and `position_json` (`DashboardLayout`, built with keyword
-  arguments: `DashboardLayout(components=...)`).
+  arguments: `DashboardLayout(components=...)`); the chart `params`, `query_context` and query models of the
+  19 chart types, with their metric, column, filter and currency models and `DataSource` (keyword arguments).
 * The package is organized in layers checked by `import-linter`: `core` (models, no HTTP), `transport`,
   `auth`, `resources`, `dashboards`, `charts`, `services`, `client`. `supersetapiplus` exports the names
   applications use (`SupersetClient`, `Chart`, `Dashboard`, `ChartRef`, `Dataset`, `Database`...); the

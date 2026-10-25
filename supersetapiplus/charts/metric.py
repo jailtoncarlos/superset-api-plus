@@ -1,6 +1,8 @@
 import logging
-from dataclasses import dataclass, field
-from typing import ClassVar
+from dataclasses import dataclass
+from typing import Any, ClassVar
+
+from pydantic import Field
 
 from supersetapiplus.charts.types import (
     ColumnType,
@@ -9,8 +11,7 @@ from supersetapiplus.charts.types import (
     MetricType,
     TimeGrain,
 )
-from supersetapiplus.core.fields import default_string, object_field
-from supersetapiplus.core.model import SerializableModel
+from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.sentinels import MissingField
 from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
@@ -18,28 +19,27 @@ from supersetapiplus.exceptions import ValidationError
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class AdhocMetricColumn(SerializableModel):
-    column_name: str = default_string()
-    id: int | None = field(default=None)
-    verbose_name: str | None = field(default=None)
-    description: str | None = field(default=None)
-    expression: str | None = field(default=None)
+class AdhocMetricColumn(ApiModel):
+    column_name: str = ''
+    id: int | None = None
+    verbose_name: str | None = None
+    description: str | None = None
+    expression: str | None = None
     filterable: bool = True
     groupby: bool = True
     is_dttm: bool = False
-    python_date_format: str | None = field(default=None)
-    type: SerializableOptional[str] = field(default=None)  # native database type, e.g. "VARCHAR(255)"
-    type_generic: SerializableOptional[GenericDataType] = field(default=None)
+    python_date_format: str | None = None
+    type: SerializableOptional[str] = None  # native database type, e.g. "VARCHAR(255)"
+    type_generic: SerializableOptional[GenericDataType] = None
 
     # Newer fields, as returned in the API JSON
-    advanced_data_type: str | None = field(default=None)
+    advanced_data_type: str | None = None
     is_certified: bool = False
-    certification_details: str | None = field(default=None)
-    certified_by: str | None = field(default=None)
-    warning_markdown: str | None = field(default=None)
+    certification_details: str | None = None
+    certified_by: str | None = None
+    warning_markdown: str | None = None
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
         if not self.column_name or not self.type:
             raise ValidationError(message='At least the column_name and type fields must be informed.',
@@ -58,24 +58,23 @@ class AdhocMetricColumn(SerializableModel):
             return False
 
 
-@dataclass
-class AdhocMetric(SerializableModel):
-    expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
-    sqlExpression: str | None = field(default=None)
-    label: SerializableOptional[str] = default_string()
-    hasCustomLabel: SerializableOptional[bool] = field(default=None)
-    column: AdhocMetricColumn | None = object_field(cls=AdhocMetricColumn, default=None)
-    aggregate: MetricType | None = field(default=None)
+class AdhocMetric(ApiModel):
+    expressionType: FilterExpressionType = Field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
+    sqlExpression: str | None = None
+    label: SerializableOptional[str] = ''
+    hasCustomLabel: SerializableOptional[bool] = None
+    column: AdhocMetricColumn | None = None
+    aggregate: MetricType | None = None
 
-    timeGrain: SerializableOptional[TimeGrain] = field(default=None)
-    columnType: SerializableOptional[ColumnType] = field(default=None)
+    timeGrain: SerializableOptional[TimeGrain] = None
+    columnType: SerializableOptional[ColumnType] = None
 
     # Newer fields
-    optionName: SerializableOptional[str] = field(default=None)
-    datasourceWarning: SerializableOptional[bool] = field(default=None)
+    optionName: SerializableOptional[str] = None
+    datasourceWarning: SerializableOptional[bool] = None
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
         if isinstance(self.column, AdhocMetricColumn) and self.column.is_empty():
             self.column = None
 
@@ -154,10 +153,9 @@ class MetricHelper:
                                   solution='Use the types.MetricType enum')
 
 
-@dataclass
-class MetricsListMixin:
+class MetricsListMixin(ApiModel):
     # MissingField when the key was absent in the JSON read, or the plugin has no metrics control.
-    metrics: list[Metric] | MissingField = object_field(cls=AdhocMetric, default_factory=list)
+    metrics: list[Metric] | MissingField = Field(default_factory=list)
 
     def _editable_metrics(self) -> list[Metric]:
         if not isinstance(self.metrics, list):
@@ -178,9 +176,8 @@ class MetricsListMixin:
         self._editable_metrics().append(metric)
 
 
-@dataclass
-class SingleMetricMixin:
-    metric: Metric | None = object_field(cls=AdhocMetric, default=None)
+class SingleMetricMixin(ApiModel):
+    metric: Metric | None = None
     # Absent unless the plugin has the control (pie: default true; word_cloud: set by automatic ordering).
     sort_by_metric: SerializableOptional[bool] = None
     # Whether the automatic ordering of add_*_metric maps to sort_by_metric (False for big numbers).
