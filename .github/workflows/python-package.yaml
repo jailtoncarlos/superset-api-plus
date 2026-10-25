@@ -6,8 +6,9 @@ on:
 
 jobs:
   lint:
-    # Same hooks as the local pre-commit (ruff, codespell, line endings and the complexity
-    # ratchet), applied only to what the PR changes relative to the target branch.
+    # Same hooks as the local pre-commit (ruff, codespell, line endings, the complexity ratchet, mypy, import
+    # layers and the conformance checks), applied only to what the PR changes relative to the target branch.
+    # The hooks that import the package run in the environment of uv.lock (uv run --locked).
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -15,16 +16,17 @@ jobs:
         with:
           fetch-depth: 0  # the ratchet compares against the merge-base of the target branch
 
-      - uses: actions/setup-python@v7
+      - uses: astral-sh/setup-uv@v6
         with:
+          version: "0.12.2"
           python-version: "3.12"
 
-      - name: Install pre-commit
-        run: python -m pip install pre-commit
+      - name: Install the project (uv.lock)
+        run: uv sync --locked --all-extras
 
       - name: Run pre-commit on the PR diff
         run: >-
-          pre-commit run --show-diff-on-failure
+          uv run --locked --all-extras pre-commit run --show-diff-on-failure
           --from-ref "origin/${{ github.base_ref }}" --to-ref HEAD
 
   test:
@@ -37,20 +39,45 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
+      - uses: astral-sh/setup-uv@v6
         with:
+          version: "0.12.2"
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install ".[test,graph]"
+      - name: Install the project (uv.lock)
+        # --locked fails when uv.lock is out of date with pyproject.toml.
+        run: uv sync --locked --extra test --extra graph
 
       - name: Run tests
         # The whole tests/ tree: integration tests skip themselves without the stack, and no test
         # directory can be left out of CI unnoticed.
-        run: pytest --cov=supersetapiplus tests
+        run: uv run --locked --extra test --extra graph pytest --cov=supersetapiplus tests
+
+  lowest:
+    # The floors of the runtime dependencies in pyproject.toml stay at or below the constraints of the Airflow
+    # version of the integration that embeds the library, so the suite must pass with the lowest direct
+    # versions (installed with uv pip, which leaves uv.lock untouched).
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.2"
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install the lowest direct versions
+        run: |
+          uv venv
+          uv pip install --resolution lowest-direct ".[test]"
+
+      - name: Run unit tests
+        run: .venv/bin/python -m pytest tests/unit
 
   integration:
     # Server behavior is tested against a real Superset (tests/integration): the compose stack of the
@@ -60,14 +87,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - uses: astral-sh/setup-uv@v6
         with:
+          version: "0.12.2"
           python-version: "3.12"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install ".[test]"
+      - name: Install the project (uv.lock)
+        run: uv sync --locked --extra test
 
       - name: Start the Superset test stack
         run: |
@@ -78,7 +104,7 @@ jobs:
       - name: Run integration tests
         env:
           SUPERSET_INTEGRATION: "1"
-        run: pytest -v tests/integration
+        run: uv run --locked --extra test pytest -v tests/integration
 
       - name: Superset logs
         if: failure()

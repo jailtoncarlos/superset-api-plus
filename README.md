@@ -230,15 +230,18 @@ uv lock --upgrade                    # refresh the lock to the newest allowed ve
 uv build                             # sdist and wheel in dist/
 ```
 
-Without uv, `pip install -e ".[dev,test]"` installs the same extras. If uv reports odd failures (a package
-that does not import although its version is right), clear its cache with `uv cache clean`.
+Without uv, `pip install -e ".[dev,test]"` installs the same extras (the pre-commit hooks that import the
+package need uv: they run with `uv run --locked`). If uv reports odd failures (a package that does not import
+although its version is right), clear its cache with `uv cache clean`.
 
 **Dependency floors.** The library runs inside an Airflow image installed with the official Airflow
 constraints, so the runtime floors are the lowest versions the suite passes with, not the newest ones.
-Check both ends after changing a dependency:
+Check both ends after changing a dependency (`uv sync --resolution lowest-direct` would rewrite `uv.lock`, so
+the floors are installed with `uv pip` in a separate environment):
 
 ```bash
-uv sync --resolution lowest-direct --all-extras && uv run pytest tests/unit   # floors
+uv venv /tmp/floors && VIRTUAL_ENV=/tmp/floors uv pip install --resolution lowest-direct ".[test]" \
+  && /tmp/floors/bin/python -m pytest tests/unit                              # floors (CI job `lowest`)
 uv sync --locked --all-extras && uv run pytest tests/unit                     # locked (newest)
 uv pip install --constraint <airflow constraints URL> .                       # no conflict expected
 ```

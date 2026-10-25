@@ -109,9 +109,12 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   (request payloads and routes vs. the OpenAPI specification), `model-attributes` (enums and `str`
   fields vs. the Superset source) and `import-layers` (the layer contracts of `[tool.importlinter]` in
   `pyproject.toml`, run by `lint-imports`) and `mypy` (`mypy --strict` on the whole package; only the legacy
-  and compatibility modules listed in `[tool.mypy]` are exempt).
-- CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on push/PR; pre-commit on
-  the PR diff. A weekly job (`superset-drift.yaml`) compares the newest Superset release and master with the
+  and compatibility modules listed in `[tool.mypy]` are exempt). The hooks that import the package (mypy,
+  import-layers and the two conformance hooks) run with `uv run --locked --all-extras`: install uv, and keep
+  `uv.lock` up to date (`uv lock`) when `pyproject.toml` changes.
+- CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on push/PR with `uv sync --locked`
+  (fails when `uv.lock` is out of date), the unit tests with the lowest direct dependency versions on 3.10 and
+  3.14, the integration tests against the compose stack, and pre-commit on the PR diff. A weekly job (`superset-drift.yaml`) compares the newest Superset release and master with the
   pinned excerpts and fails when the newest release differs (`docs/superset-version-bump.md`, step 0). CI/CD changes require explicit authorization from the maintainer.
 - Every bug fix comes with a test that fails before the fix. Prefer tests of the public contract
   (results observed on the server) over implementation details.
@@ -157,7 +160,7 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   (repositories and the dataset, database, saved query and asset models) → `auth/` → `transport/` (HTTP) →
   `core/` (models, fields, enums and masking; no HTTP). Old module paths are compatibility modules that warn
   on import; `supersetapiplus.datasets`, `.databases`, `.saved_queries` and `.assets` stay public paths.
-- Dependency management will migrate to **uv** (`pyproject.toml` as the single source, `uv.lock`,
-  dependency groups). Runtime dependency floors must stay at or below the constraints of the Airflow
-  version used by the integration that embeds this library, and the suite must pass with the lowest
-  direct versions.
+- Dependency management is **uv** (issue #319): `pyproject.toml` is the single source, `uv.lock` pins the
+  development and CI environment. Runtime dependency floors must stay at or below the constraints of the
+  Airflow version used by the integration that embeds this library, and the suite must pass with the lowest
+  direct versions (CI job `lowest`).
