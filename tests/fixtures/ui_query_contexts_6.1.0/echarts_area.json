@@ -1,0 +1,263 @@
+{
+ "datasource": {
+  "type": "table"
+ },
+ "form_data": {
+  "adhoc_filters": [
+   {
+    "clause": "WHERE",
+    "comparator": "No filter",
+    "expressionType": "SIMPLE",
+    "operator": "TEMPORAL_RANGE",
+    "subject": "order_date"
+   }
+  ],
+  "annotation_layers": [],
+  "color_scheme": "supersetColors",
+  "comparison_type": "values",
+  "echart_options": "{}",
+  "extra_form_data": {},
+  "force": false,
+  "force_max_interval": false,
+  "forecastEnabled": false,
+  "forecastInterval": 0.8,
+  "forecastPeriods": 10,
+  "group_others_when_limit_reached": false,
+  "groupby": [
+   "deal_size"
+  ],
+  "legendOrientation": "top",
+  "legendType": "scroll",
+  "logAxis": false,
+  "markerEnabled": false,
+  "markerSize": 6,
+  "matrixify_all_sort_by_columns": "a_to_z",
+  "matrixify_all_sort_by_rows": "a_to_z",
+  "matrixify_cell_title_template": "",
+  "matrixify_charts_per_row": 4,
+  "matrixify_dimension_columns": {
+   "dimension": "",
+   "values": []
+  },
+  "matrixify_dimension_rows": {
+   "dimension": "",
+   "values": []
+  },
+  "matrixify_dimension_selection_mode_columns": "members",
+  "matrixify_dimension_selection_mode_rows": "members",
+  "matrixify_enable": false,
+  "matrixify_fit_columns_dynamically": true,
+  "matrixify_mode_columns": "disabled",
+  "matrixify_mode_rows": "disabled",
+  "matrixify_row_height": 300,
+  "matrixify_show_column_headers": true,
+  "matrixify_show_row_labels": true,
+  "matrixify_topn_order_columns": true,
+  "matrixify_topn_order_rows": true,
+  "matrixify_topn_value_columns": 10,
+  "matrixify_topn_value_rows": 10,
+  "metrics": [
+   {
+    "aggregate": "SUM",
+    "column": {
+     "advanced_data_type": null,
+     "certification_details": null,
+     "certified_by": null,
+     "column_name": "sales",
+     "description": null,
+     "expression": null,
+     "filterable": true,
+     "groupby": true,
+     "is_certified": false,
+     "is_dttm": false,
+     "python_date_format": null,
+     "type": "DOUBLE PRECISION",
+     "type_generic": 0,
+     "verbose_name": null,
+     "warning_markdown": null
+    },
+    "datasourceWarning": false,
+    "expressionType": "SIMPLE",
+    "hasCustomLabel": false,
+    "label": "SUM(sales)",
+    "optionName": "metric_thuvfstatme_5o1pircsnev",
+    "sqlExpression": null
+   }
+  ],
+  "minorSplitLine": false,
+  "minorTicks": false,
+  "only_total": true,
+  "opacity": 0.2,
+  "percentage_threshold": 0,
+  "result_format": "json",
+  "result_type": "full",
+  "rich_tooltip": true,
+  "row_limit": 10000,
+  "seriesType": null,
+  "showTooltipPercentage": false,
+  "showTooltipTotal": true,
+  "show_empty_columns": true,
+  "show_extra_controls": false,
+  "show_legend": true,
+  "show_value": false,
+  "sort_series_ascending": false,
+  "sort_series_type": "sum",
+  "time_grain_sqla": "P1W",
+  "time_shift_color": true,
+  "tooltipSortByMetric": false,
+  "tooltipTimeFormat": "smart_date",
+  "truncateXAxis": true,
+  "truncateYAxis": false,
+  "truncate_metric": true,
+  "viz_type": "echarts_area",
+  "xAxisForceCategorical": false,
+  "xAxisLabelInterval": "auto",
+  "xAxisLabelRotation": 0,
+  "x_axis": "order_date",
+  "x_axis_number_format": "~g",
+  "x_axis_time_format": "smart_date",
+  "x_axis_title": "",
+  "x_axis_title_margin": 15,
+  "y_axis_bounds": [
+   null,
+   null
+  ],
+  "y_axis_format": "SMART_NUMBER",
+  "y_axis_title": "",
+  "y_axis_title_margin": 15,
+  "y_axis_title_position": "Left",
+  "zoomable": false
+ },
+ "queries": [
+  {
+   "annotation_layers": [],
+   "applied_time_extras": {},
+   "columns": [
+    {
+     "columnType": "BASE_AXIS",
+     "expressionType": "SQL",
+     "isColumnReference": true,
+     "label": "order_date",
+     "sqlExpression": "order_date",
+     "timeGrain": "P1W"
+    },
+    "deal_size"
+   ],
+   "custom_form_data": {},
+   "custom_params": {},
+   "extras": {
+    "having": "",
+    "time_grain_sqla": "P1W",
+    "where": ""
+   },
+   "filters": [
+    {
+     "col": "order_date",
+     "op": "TEMPORAL_RANGE",
+     "val": "No filter"
+    }
+   ],
+   "group_others_when_limit_reached": false,
+   "metrics": [
+    {
+     "aggregate": "SUM",
+     "column": {
+      "advanced_data_type": null,
+      "certification_details": null,
+      "certified_by": null,
+      "column_name": "sales",
+      "description": null,
+      "expression": null,
+      "filterable": true,
+      "groupby": true,
+      "is_certified": false,
+      "is_dttm": false,
+      "python_date_format": null,
+      "type": "DOUBLE PRECISION",
+      "type_generic": 0,
+      "verbose_name": null,
+      "warning_markdown": null
+     },
+     "datasourceWarning": false,
+     "expressionType": "SIMPLE",
+     "hasCustomLabel": false,
+     "label": "SUM(sales)",
+     "optionName": "metric_thuvfstatme_5o1pircsnev",
+     "sqlExpression": null
+    }
+   ],
+   "order_desc": true,
+   "orderby": [
+    [
+     {
+      "aggregate": "SUM",
+      "column": {
+       "advanced_data_type": null,
+       "certification_details": null,
+       "certified_by": null,
+       "column_name": "sales",
+       "description": null,
+       "expression": null,
+       "filterable": true,
+       "groupby": true,
+       "is_certified": false,
+       "is_dttm": false,
+       "python_date_format": null,
+       "type": "DOUBLE PRECISION",
+       "type_generic": 0,
+       "verbose_name": null,
+       "warning_markdown": null
+      },
+      "datasourceWarning": false,
+      "expressionType": "SIMPLE",
+      "hasCustomLabel": false,
+      "label": "SUM(sales)",
+      "optionName": "metric_thuvfstatme_5o1pircsnev",
+      "sqlExpression": null
+     },
+     false
+    ]
+   ],
+   "post_processing": [
+    {
+     "operation": "pivot",
+     "options": {
+      "aggregates": {
+       "SUM(sales)": {
+        "operator": "mean"
+       }
+      },
+      "columns": [
+       "deal_size"
+      ],
+      "drop_missing_columns": false,
+      "index": [
+       "order_date"
+      ]
+     }
+    },
+    {
+     "operation": "rename",
+     "options": {
+      "columns": {
+       "SUM(sales)": null
+      },
+      "inplace": true,
+      "level": 0
+     }
+    },
+    {
+     "operation": "flatten"
+    }
+   ],
+   "row_limit": 10000,
+   "series_columns": [
+    "deal_size"
+   ],
+   "series_limit": 0,
+   "time_offsets": []
+  }
+ ],
+ "result_format": "json",
+ "result_type": "full"
+}

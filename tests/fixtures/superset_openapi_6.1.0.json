@@ -1,0 +1,1289 @@
+{
+ "paths": {
+  "/api/v1/advanced_data_type/convert": [
+   "get"
+  ],
+  "/api/v1/advanced_data_type/types": [
+   "get"
+  ],
+  "/api/v1/annotation_layer/": [
+   "delete",
+   "get",
+   "post"
+  ],
+  "/api/v1/annotation_layer/_info": [
+   "get"
+  ],
+  "/api/v1/annotation_layer/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/annotation_layer/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/annotation_layer/{pk}/annotation/": [
+   "delete",
+   "get",
+   "post"
+  ],
+  "/api/v1/annotation_layer/{pk}/annotation/{annotation_id}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/assets/export/": [
+   "get"
+  ],
+  "/api/v1/assets/import/": [
+   "post"
+  ],
+  "/api/v1/async_event/": [
+   "get"
+  ],
+  "/api/v1/available_domains/": [
+   "get"
+  ],
+  "/api/v1/cachekey/invalidate": [
+   "post"
+  ],
+  "/api/v1/chart/": [
+   "delete",
+   "get",
+   "post"
+  ],
+  "/api/v1/chart/_info": [
+   "get"
+  ],
+  "/api/v1/chart/data": [
+   "post"
+  ],
+  "/api/v1/chart/data/{cache_key}": [
+   "get"
+  ],
+  "/api/v1/chart/export/": [
+   "get"
+  ],
+  "/api/v1/chart/favorite_status/": [
+   "get"
+  ],
+  "/api/v1/chart/import/": [
+   "post"
+  ],
+  "/api/v1/chart/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/chart/warm_up_cache": [
+   "put"
+  ],
+  "/api/v1/chart/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/chart/{pk}/cache_screenshot/": [
+   "get"
+  ],
+  "/api/v1/chart/{pk}/data/": [
+   "get"
+  ],
+  "/api/v1/chart/{pk}/favorites/": [
+   "delete",
+   "post"
+  ],
+  "/api/v1/chart/{pk}/screenshot/{digest}/": [
+   "get"
+  ],
+  "/api/v1/chart/{pk}/thumbnail/{digest}/": [
+   "get"
+  ],
+  "/api/v1/css_template/": [
+   "delete",
+   "get",
+   "post"
+  ],
+  "/api/v1/css_template/_info": [
+   "get"
+  ],
+  "/api/v1/css_template/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/css_template/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/dashboard/": [
+   "delete",
+   "get",
+   "post"
+  ],
+  "/api/v1/dashboard/_info": [
+   "get"
+  ],
+  "/api/v1/dashboard/export/": [
+   "get"
+  ],
+  "/api/v1/dashboard/favorite_status/": [
+   "get"
+  ],
+  "/api/v1/dashboard/import/": [
+   "post"
+  ],
+  "/api/v1/dashboard/permalink/{key}": [
+   "get"
+  ],
+  "/api/v1/dashboard/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/dashboard/{id_or_slug}": [
+   "get"
+  ],
+  "/api/v1/dashboard/{id_or_slug}/charts": [
+   "get"
+  ],
+  "/api/v1/dashboard/{id_or_slug}/copy/": [
+   "post"
+  ],
+  "/api/v1/dashboard/{id_or_slug}/datasets": [
+   "get"
+  ],
+  "/api/v1/dashboard/{id_or_slug}/embedded": [
+   "delete",
+   "get",
+   "post",
+   "put"
+  ],
+  "/api/v1/dashboard/{id_or_slug}/tabs": [
+   "get"
+  ],
+  "/api/v1/dashboard/{pk}": [
+   "delete",
+   "put"
+  ],
+  "/api/v1/dashboard/{pk}/cache_dashboard_screenshot/": [
+   "post"
+  ],
+  "/api/v1/dashboard/{pk}/colors": [
+   "put"
+  ],
+  "/api/v1/dashboard/{pk}/favorites/": [
+   "delete",
+   "post"
+  ],
+  "/api/v1/dashboard/{pk}/filter_state": [
+   "post"
+  ],
+  "/api/v1/dashboard/{pk}/filter_state/{key}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/dashboard/{pk}/filters": [
+   "put"
+  ],
+  "/api/v1/dashboard/{pk}/permalink": [
+   "post"
+  ],
+  "/api/v1/dashboard/{pk}/screenshot/{digest}/": [
+   "get"
+  ],
+  "/api/v1/dashboard/{pk}/thumbnail/{digest}/": [
+   "get"
+  ],
+  "/api/v1/database/": [
+   "get",
+   "post"
+  ],
+  "/api/v1/database/_info": [
+   "get"
+  ],
+  "/api/v1/database/available/": [
+   "get"
+  ],
+  "/api/v1/database/export/": [
+   "get"
+  ],
+  "/api/v1/database/import/": [
+   "post"
+  ],
+  "/api/v1/database/oauth2/": [
+   "get"
+  ],
+  "/api/v1/database/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/database/test_connection/": [
+   "post"
+  ],
+  "/api/v1/database/upload_metadata/": [
+   "post"
+  ],
+  "/api/v1/database/validate_parameters/": [
+   "post"
+  ],
+  "/api/v1/database/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/database/{pk}/catalogs/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/connection": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/function_names/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/related_objects/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/schemas/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/schemas_access_for_file_upload/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/select_star/{table_name}/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/select_star/{table_name}/{schema_name}/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/ssh_tunnel/": [
+   "delete"
+  ],
+  "/api/v1/database/{pk}/sync_permissions/": [
+   "post"
+  ],
+  "/api/v1/database/{pk}/table/{table_name}/{schema_name}/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/table_extra/{table_name}/{schema_name}/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/table_metadata/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/table_metadata/extra/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/tables/": [
+   "get"
+  ],
+  "/api/v1/database/{pk}/upload/": [
+   "post"
+  ],
+  "/api/v1/database/{pk}/validate_sql/": [
+   "post"
+  ],
+  "/api/v1/dataset/": [
+   "delete",
+   "get",
+   "post"
+  ],
+  "/api/v1/dataset/_info": [
+   "get"
+  ],
+  "/api/v1/dataset/distinct/{column_name}": [
+   "get"
+  ],
+  "/api/v1/dataset/duplicate": [
+   "post"
+  ],
+  "/api/v1/dataset/export/": [
+   "get"
+  ],
+  "/api/v1/dataset/get_or_create/": [
+   "post"
+  ],
+  "/api/v1/dataset/import/": [
+   "post"
+  ],
+  "/api/v1/dataset/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/dataset/warm_up_cache": [
+   "put"
+  ],
+  "/api/v1/dataset/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/dataset/{pk}/column/{column_id}": [
+   "delete"
+  ],
+  "/api/v1/dataset/{pk}/metric/{metric_id}": [
+   "delete"
+  ],
+  "/api/v1/dataset/{pk}/refresh": [
+   "put"
+  ],
+  "/api/v1/dataset/{pk}/related_objects": [
+   "get"
+  ],
+  "/api/v1/datasource/{datasource_type}/{datasource_id}/column/{column_name}/values/": [
+   "get"
+  ],
+  "/api/v1/embedded_dashboard/{uuid}": [
+   "get"
+  ],
+  "/api/v1/explore/": [
+   "get"
+  ],
+  "/api/v1/explore/form_data": [
+   "post"
+  ],
+  "/api/v1/explore/form_data/{key}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/explore/permalink": [
+   "post"
+  ],
+  "/api/v1/explore/permalink/{key}": [
+   "get"
+  ],
+  "/api/v1/log/": [
+   "get",
+   "post"
+  ],
+  "/api/v1/log/recent_activity/": [
+   "get"
+  ],
+  "/api/v1/log/{pk}": [
+   "get"
+  ],
+  "/api/v1/me/": [
+   "get"
+  ],
+  "/api/v1/me/roles/": [
+   "get"
+  ],
+  "/api/v1/menu/": [
+   "get"
+  ],
+  "/api/v1/query/": [
+   "get"
+  ],
+  "/api/v1/query/distinct/{column_name}": [
+   "get"
+  ],
+  "/api/v1/query/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/query/stop": [
+   "post"
+  ],
+  "/api/v1/query/updated_since": [
+   "get"
+  ],
+  "/api/v1/query/{pk}": [
+   "get"
+  ],
+  "/api/v1/report/": [
+   "delete",
+   "get",
+   "post"
+  ],
+  "/api/v1/report/_info": [
+   "get"
+  ],
+  "/api/v1/report/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/report/slack_channels/": [
+   "get"
+  ],
+  "/api/v1/report/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/report/{pk}/log/": [
+   "get"
+  ],
+  "/api/v1/report/{pk}/log/{log_id}": [
+   "get"
+  ],
+  "/api/v1/rowlevelsecurity/": [
+   "delete",
+   "get",
+   "post"
+  ],
+  "/api/v1/rowlevelsecurity/_info": [
+   "get"
+  ],
+  "/api/v1/rowlevelsecurity/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/rowlevelsecurity/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/saved_query/": [
+   "delete",
+   "get",
+   "post"
+  ],
+  "/api/v1/saved_query/_info": [
+   "get"
+  ],
+  "/api/v1/saved_query/distinct/{column_name}": [
+   "get"
+  ],
+  "/api/v1/saved_query/export/": [
+   "get"
+  ],
+  "/api/v1/saved_query/import/": [
+   "post"
+  ],
+  "/api/v1/saved_query/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/saved_query/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/security/csrf_token/": [
+   "get"
+  ],
+  "/api/v1/security/guest_token/": [
+   "post"
+  ],
+  "/api/v1/security/login": [
+   "post"
+  ],
+  "/api/v1/security/permissions-resources/": [
+   "get",
+   "post"
+  ],
+  "/api/v1/security/permissions-resources/_info": [
+   "get"
+  ],
+  "/api/v1/security/permissions-resources/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/security/permissions/": [
+   "get"
+  ],
+  "/api/v1/security/permissions/_info": [
+   "get"
+  ],
+  "/api/v1/security/permissions/{pk}": [
+   "get"
+  ],
+  "/api/v1/security/refresh": [
+   "post"
+  ],
+  "/api/v1/security/resources/": [
+   "get",
+   "post"
+  ],
+  "/api/v1/security/resources/_info": [
+   "get"
+  ],
+  "/api/v1/security/resources/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/security/roles/": [
+   "get",
+   "post"
+  ],
+  "/api/v1/security/roles/_info": [
+   "get"
+  ],
+  "/api/v1/security/roles/search/": [
+   "get"
+  ],
+  "/api/v1/security/roles/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/security/roles/{role_id}/permissions": [
+   "post"
+  ],
+  "/api/v1/security/roles/{role_id}/permissions/": [
+   "get"
+  ],
+  "/api/v1/security/roles/{role_id}/users": [
+   "put"
+  ],
+  "/api/v1/security/users/": [
+   "get",
+   "post"
+  ],
+  "/api/v1/security/users/_info": [
+   "get"
+  ],
+  "/api/v1/security/users/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/sqllab/": [
+   "get"
+  ],
+  "/api/v1/sqllab/estimate/": [
+   "post"
+  ],
+  "/api/v1/sqllab/execute/": [
+   "post"
+  ],
+  "/api/v1/sqllab/export/{client_id}/": [
+   "get"
+  ],
+  "/api/v1/sqllab/format_sql/": [
+   "post"
+  ],
+  "/api/v1/sqllab/permalink": [
+   "post"
+  ],
+  "/api/v1/sqllab/permalink/{key}": [
+   "get"
+  ],
+  "/api/v1/sqllab/results/": [
+   "get"
+  ],
+  "/api/v1/tag/": [
+   "delete",
+   "get",
+   "post"
+  ],
+  "/api/v1/tag/_info": [
+   "get"
+  ],
+  "/api/v1/tag/bulk_create": [
+   "post"
+  ],
+  "/api/v1/tag/favorite_status/": [
+   "get"
+  ],
+  "/api/v1/tag/get_objects/": [
+   "get"
+  ],
+  "/api/v1/tag/related/{column_name}": [
+   "get"
+  ],
+  "/api/v1/tag/{object_type}/{object_id}/": [
+   "post"
+  ],
+  "/api/v1/tag/{object_type}/{object_id}/{tag}/": [
+   "delete"
+  ],
+  "/api/v1/tag/{pk}": [
+   "delete",
+   "get",
+   "put"
+  ],
+  "/api/v1/tag/{pk}/favorites/": [
+   "delete",
+   "post"
+  ],
+  "/api/v1/user/{user_id}/avatar.png": [
+   "get"
+  ],
+  "/api/{version}/_openapi": [
+   "get"
+  ]
+ },
+ "provenance": {
+  "paths": [
+   "docs/static/resources/openapi.json"
+  ],
+  "repository": "apache/superset",
+  "sha": "c83fb2bb1dcfac41ac51bcebd82471f4a7180d18",
+  "tag": "6.1.0"
+ },
+ "schemas": {
+  "ChartRestApi.post": {
+   "properties": {
+    "cache_timeout": {
+     "nullable": true,
+     "type": "integer"
+    },
+    "certification_details": {
+     "nullable": true,
+     "type": "string"
+    },
+    "certified_by": {
+     "nullable": true,
+     "type": "string"
+    },
+    "dashboards": {
+     "type": "array"
+    },
+    "datasource_id": {
+     "type": "integer"
+    },
+    "datasource_name": {
+     "nullable": true,
+     "type": "string"
+    },
+    "datasource_type": {
+     "enum": [
+      "table",
+      "dataset",
+      "query",
+      "saved_query",
+      "view"
+     ],
+     "type": "string"
+    },
+    "description": {
+     "nullable": true,
+     "type": "string"
+    },
+    "external_url": {
+     "nullable": true,
+     "type": "string"
+    },
+    "is_managed_externally": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "owners": {
+     "type": "array"
+    },
+    "params": {
+     "nullable": true,
+     "type": "string"
+    },
+    "query_context": {
+     "nullable": true,
+     "type": "string"
+    },
+    "query_context_generation": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "slice_name": {
+     "maxLength": 250,
+     "type": "string"
+    },
+    "viz_type": {
+     "maxLength": 250,
+     "type": "string"
+    }
+   },
+   "required": [
+    "datasource_id",
+    "datasource_type",
+    "slice_name"
+   ]
+  },
+  "ChartRestApi.put": {
+   "properties": {
+    "cache_timeout": {
+     "nullable": true,
+     "type": "integer"
+    },
+    "certification_details": {
+     "nullable": true,
+     "type": "string"
+    },
+    "certified_by": {
+     "nullable": true,
+     "type": "string"
+    },
+    "dashboards": {
+     "type": "array"
+    },
+    "datasource_id": {
+     "nullable": true,
+     "type": "integer"
+    },
+    "datasource_type": {
+     "enum": [
+      "table",
+      "dataset",
+      "query",
+      "saved_query",
+      "view"
+     ],
+     "nullable": true,
+     "type": "string"
+    },
+    "description": {
+     "nullable": true,
+     "type": "string"
+    },
+    "external_url": {
+     "nullable": true,
+     "type": "string"
+    },
+    "is_managed_externally": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "owners": {
+     "type": "array"
+    },
+    "params": {
+     "nullable": true,
+     "type": "string"
+    },
+    "query_context": {
+     "nullable": true,
+     "type": "string"
+    },
+    "query_context_generation": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "slice_name": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    },
+    "tags": {
+     "type": "array"
+    },
+    "viz_type": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    }
+   },
+   "required": []
+  },
+  "CssTemplateRestApi.post": {
+   "properties": {
+    "css": {
+     "nullable": true,
+     "type": "string"
+    },
+    "template_name": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    }
+   },
+   "required": []
+  },
+  "CssTemplateRestApi.put": {
+   "properties": {
+    "css": {
+     "nullable": true,
+     "type": "string"
+    },
+    "template_name": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    }
+   },
+   "required": []
+  },
+  "DashboardRestApi.post": {
+   "properties": {
+    "certification_details": {
+     "nullable": true,
+     "type": "string"
+    },
+    "certified_by": {
+     "nullable": true,
+     "type": "string"
+    },
+    "css": {
+     "type": "string"
+    },
+    "dashboard_title": {
+     "maxLength": 500,
+     "nullable": true,
+     "type": "string"
+    },
+    "external_url": {
+     "nullable": true,
+     "type": "string"
+    },
+    "is_managed_externally": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "json_metadata": {
+     "type": "string"
+    },
+    "owners": {
+     "type": "array"
+    },
+    "position_json": {
+     "type": "string"
+    },
+    "published": {
+     "type": "boolean"
+    },
+    "roles": {
+     "type": "array"
+    },
+    "slug": {
+     "maxLength": 255,
+     "nullable": true,
+     "type": "string"
+    }
+   },
+   "required": []
+  },
+  "DashboardRestApi.put": {
+   "properties": {
+    "certification_details": {
+     "nullable": true,
+     "type": "string"
+    },
+    "certified_by": {
+     "nullable": true,
+     "type": "string"
+    },
+    "css": {
+     "nullable": true,
+     "type": "string"
+    },
+    "dashboard_title": {
+     "maxLength": 500,
+     "nullable": true,
+     "type": "string"
+    },
+    "external_url": {
+     "nullable": true,
+     "type": "string"
+    },
+    "is_managed_externally": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "json_metadata": {
+     "nullable": true,
+     "type": "string"
+    },
+    "owners": {
+     "type": "array"
+    },
+    "position_json": {
+     "nullable": true,
+     "type": "string"
+    },
+    "published": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "roles": {
+     "type": "array"
+    },
+    "slug": {
+     "maxLength": 255,
+     "nullable": true,
+     "type": "string"
+    },
+    "tags": {
+     "type": "array"
+    }
+   },
+   "required": []
+  },
+  "DatabaseRestApi.post": {
+   "properties": {
+    "allow_ctas": {
+     "type": "boolean"
+    },
+    "allow_cvas": {
+     "type": "boolean"
+    },
+    "allow_dml": {
+     "type": "boolean"
+    },
+    "allow_file_upload": {
+     "type": "boolean"
+    },
+    "allow_run_async": {
+     "type": "boolean"
+    },
+    "cache_timeout": {
+     "nullable": true,
+     "type": "integer"
+    },
+    "configuration_method": {
+     "enum": [
+      "sqlalchemy_form",
+      "dynamic_form"
+     ]
+    },
+    "database_name": {
+     "maxLength": 250,
+     "type": "string"
+    },
+    "driver": {
+     "nullable": true,
+     "type": "string"
+    },
+    "engine": {
+     "nullable": true,
+     "type": "string"
+    },
+    "expose_in_sqllab": {
+     "type": "boolean"
+    },
+    "external_url": {
+     "nullable": true,
+     "type": "string"
+    },
+    "extra": {
+     "type": "string"
+    },
+    "force_ctas_schema": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    },
+    "impersonate_user": {
+     "type": "boolean"
+    },
+    "is_managed_externally": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "masked_encrypted_extra": {
+     "nullable": true,
+     "type": "string"
+    },
+    "parameters": {
+     "type": "object"
+    },
+    "server_cert": {
+     "nullable": true,
+     "type": "string"
+    },
+    "sqlalchemy_uri": {
+     "maxLength": 1024,
+     "type": "string"
+    },
+    "ssh_tunnel": {
+     "nullable": true
+    },
+    "uuid": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "database_name"
+   ]
+  },
+  "DatabaseRestApi.put": {
+   "properties": {
+    "allow_ctas": {
+     "type": "boolean"
+    },
+    "allow_cvas": {
+     "type": "boolean"
+    },
+    "allow_dml": {
+     "type": "boolean"
+    },
+    "allow_file_upload": {
+     "type": "boolean"
+    },
+    "allow_run_async": {
+     "type": "boolean"
+    },
+    "cache_timeout": {
+     "nullable": true,
+     "type": "integer"
+    },
+    "configuration_method": {
+     "enum": [
+      "sqlalchemy_form",
+      "dynamic_form"
+     ]
+    },
+    "database_name": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    },
+    "driver": {
+     "nullable": true,
+     "type": "string"
+    },
+    "engine": {
+     "nullable": true,
+     "type": "string"
+    },
+    "expose_in_sqllab": {
+     "type": "boolean"
+    },
+    "external_url": {
+     "nullable": true,
+     "type": "string"
+    },
+    "extra": {
+     "type": "string"
+    },
+    "force_ctas_schema": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    },
+    "impersonate_user": {
+     "type": "boolean"
+    },
+    "is_managed_externally": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "masked_encrypted_extra": {
+     "nullable": true,
+     "type": "string"
+    },
+    "parameters": {
+     "type": "object"
+    },
+    "server_cert": {
+     "nullable": true,
+     "type": "string"
+    },
+    "sqlalchemy_uri": {
+     "maxLength": 1024,
+     "type": "string"
+    },
+    "ssh_tunnel": {
+     "nullable": true
+    },
+    "uuid": {
+     "type": "string"
+    }
+   },
+   "required": []
+  },
+  "DatasetRestApi.post": {
+   "properties": {
+    "always_filter_main_dttm": {
+     "type": "boolean"
+    },
+    "catalog": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    },
+    "database": {
+     "type": "integer"
+    },
+    "external_url": {
+     "nullable": true,
+     "type": "string"
+    },
+    "is_managed_externally": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "normalize_columns": {
+     "type": "boolean"
+    },
+    "owners": {
+     "type": "array"
+    },
+    "schema": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    },
+    "sql": {
+     "nullable": true,
+     "type": "string"
+    },
+    "table_name": {
+     "maxLength": 250,
+     "type": "string"
+    }
+   },
+   "required": [
+    "database",
+    "table_name"
+   ]
+  },
+  "DatasetRestApi.put": {
+   "properties": {
+    "always_filter_main_dttm": {
+     "type": "boolean"
+    },
+    "cache_timeout": {
+     "nullable": true,
+     "type": "integer"
+    },
+    "catalog": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    },
+    "columns": {
+     "type": "array"
+    },
+    "database_id": {
+     "type": "integer"
+    },
+    "default_endpoint": {
+     "nullable": true,
+     "type": "string"
+    },
+    "description": {
+     "nullable": true,
+     "type": "string"
+    },
+    "external_url": {
+     "nullable": true,
+     "type": "string"
+    },
+    "extra": {
+     "nullable": true,
+     "type": "string"
+    },
+    "fetch_values_predicate": {
+     "maxLength": 1000,
+     "nullable": true,
+     "type": "string"
+    },
+    "filter_select_enabled": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "folders": {
+     "type": "array"
+    },
+    "is_managed_externally": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "is_sqllab_view": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "main_dttm_col": {
+     "nullable": true,
+     "type": "string"
+    },
+    "metrics": {
+     "type": "array"
+    },
+    "normalize_columns": {
+     "nullable": true,
+     "type": "boolean"
+    },
+    "offset": {
+     "nullable": true,
+     "type": "integer"
+    },
+    "owners": {
+     "type": "array"
+    },
+    "schema": {
+     "maxLength": 255,
+     "nullable": true,
+     "type": "string"
+    },
+    "sql": {
+     "nullable": true,
+     "type": "string"
+    },
+    "table_name": {
+     "maxLength": 250,
+     "nullable": true,
+     "type": "string"
+    },
+    "template_params": {
+     "nullable": true,
+     "type": "string"
+    }
+   },
+   "required": []
+  },
+  "SavedQueryRestApi.post": {
+   "properties": {
+    "catalog": {
+     "maxLength": 256,
+     "nullable": true,
+     "type": "string"
+    },
+    "db_id": {
+     "nullable": true,
+     "type": "integer"
+    },
+    "description": {
+     "nullable": true,
+     "type": "string"
+    },
+    "extra_json": {
+     "nullable": true,
+     "type": "string"
+    },
+    "label": {
+     "maxLength": 256,
+     "nullable": true,
+     "type": "string"
+    },
+    "schema": {
+     "maxLength": 128,
+     "nullable": true,
+     "type": "string"
+    },
+    "sql": {
+     "nullable": true,
+     "type": "string"
+    },
+    "template_parameters": {
+     "nullable": true,
+     "type": "string"
+    }
+   },
+   "required": []
+  },
+  "SavedQueryRestApi.put": {
+   "properties": {
+    "catalog": {
+     "maxLength": 256,
+     "nullable": true,
+     "type": "string"
+    },
+    "db_id": {
+     "nullable": true,
+     "type": "integer"
+    },
+    "description": {
+     "nullable": true,
+     "type": "string"
+    },
+    "extra_json": {
+     "nullable": true,
+     "type": "string"
+    },
+    "label": {
+     "maxLength": 256,
+     "nullable": true,
+     "type": "string"
+    },
+    "schema": {
+     "maxLength": 128,
+     "nullable": true,
+     "type": "string"
+    },
+    "sql": {
+     "nullable": true,
+     "type": "string"
+    },
+    "template_parameters": {
+     "nullable": true,
+     "type": "string"
+    }
+   },
+   "required": []
+  }
+ },
+ "superset_version": "6.1.0"
+}

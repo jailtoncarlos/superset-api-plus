@@ -1,44 +1,64 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=80.0", "wheel>=0.45"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "superset-api-plus"
-version = "1.0.0a1"
+version = "2.0.0"
 description = "A Python client for automating dashboards and charts in Apache Superset."
 readme = "README.md"
-license = { text = "MPL-2.0" }
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 authors = [
   { name = "COSINF/DIGTI/IFRN", email = "jailtoncarlos@gmail.com" }
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 keywords = ["superset", "dashboard", "automation", "api", "client"]
+# Floors: the lowest versions the test suite passes with (uv sync --resolution lowest-direct, Python 3.10
+# and 3.14), at or below the constraints of the Airflow image that embeds the library.
 dependencies = [
-  "requests>=2.32.3",
-  "requests-oauthlib>=2.0.0",
-  "pyyaml>=6.0.2",
-  "pandas>=2.2.3",
-  "anytree>=2.12.1",
-  "cached_property==2.0.1",
-  "shortuuid>=1.0.13",
-  "ordered-set>=4.1.0",
-  "python-dotenv>=1.0.1"
+  "requests>=2.31.0",
+  "urllib3>=1.26.0; python_version < '3.12'",
+  "urllib3>=2.0.0; python_version >= '3.12'",
+  "pyyaml>=6.0.1; python_version < '3.14'",
+  "pyyaml>=6.0.3; python_version >= '3.14'",
+  "anytree>=2.8.0",
+  "shortuuid>=1.0.1",
+  "typing_extensions>=4.6.0",
+  "beautifulsoup4>=4.11.0",
+  "pydantic>=2.12.0"
 ]
+
+[tool.setuptools.packages.find]
+include = ["supersetapiplus*"]
+
+[tool.setuptools.package-data]
+supersetapiplus = ["py.typed"]
 
 [project.optional-dependencies]
 dev = [
   "ipdb>=0.13.13",
-  "ipython==8.32.0",
-  "pre-commit>=4.1.0",
-  "mypy==1.15.0",
-  "ruff>=0.4.4",
-  "tabulate>=0.9.0",
-  "twine>=6.1.0"
+  "ipython>=8.39.0",
+  "pre-commit>=4.6.2",
+  "import-linter>=2.1",
+  "mypy==2.4.0",
+  "types-PyYAML>=6.0",
+  "types-requests>=2.31",
+  "ruff>=0.17.2",
+  "tabulate>=0.10.0",
+  "twine>=7.0.0"
+]
+
+graph = [
+  "graphviz>=0.21"
 ]
 
 test = [
-  "pytest>=8.3.4",
-  "pytest-cov>=6.0.0"
+  "pytest>=9.1.1",
+  "pytest-cov>=7.1.0",
+  "requests-mock>=1.12.1",
+  # tests/integration/test_auth.py signs an expired JWT to exercise the token renewal.
+  "PyJWT>=2.10.1"
 ]
 
 [project.urls]
@@ -55,15 +75,72 @@ profile = "black"
 strict = true
 python_version = "3.10"
 
+# Not part of the typed public API: the tree layout builder superseded by DashboardLayout (kept for old code)
+# and the compatibility modules of old paths. They are checked without the strict flags.
+[[tool.mypy.overrides]]
+module = [
+  "supersetapiplus.dashboards.layout.legacy.*",
+  "supersetapiplus.utils.*",
+  "supersetapiplus.base.*",
+  "supersetapiplus.security.*",
+]
+ignore_errors = true
+
+# Layer contracts of the package (AGENTS.md); checked by the import-layers pre-commit hook (lint-imports).
+[tool.importlinter]
+root_package = "supersetapiplus"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Each layer imports only the layers below it"
+type = "layers"
+layers = [
+  "supersetapiplus.client",
+  "supersetapiplus.services",
+  "supersetapiplus.charts",
+  "supersetapiplus.dashboards",
+  "supersetapiplus.resources",
+  "supersetapiplus.auth",
+  "supersetapiplus.transport",
+  "supersetapiplus.core",
+]
+
+[[tool.importlinter.contracts]]
+name = "The model layer has no HTTP"
+type = "forbidden"
+source_modules = ["supersetapiplus.core"]
+forbidden_modules = ["requests", "supersetapiplus.transport", "supersetapiplus.auth", "supersetapiplus.client"]
+# exceptions.py (shared) subclasses requests.HTTPError: only direct imports are forbidden.
+allow_indirect_imports = true
+
 [tool.ruff]
 line-length = 127
-select = ["E", "F", "I", "UP", "B", "C", "W", "T201", "T100"]  # T201 = print, T100 = pdb
 exclude = ["tests/*"]
+
+[tool.ruff.lint]
+# C901 (complexity) is not selected here: it is enforced by the ratchet bin/scripts/complexity_ratchet.py,
+# which blocks new or worsened functions above the limit without penalizing legacy code.
+select = ["E", "F", "I", "UP", "B", "C4", "W", "T201", "T100"]  # T201 = print, T100 = pdb
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.flake8-bugbear]
+# OrderBy is an immutable dataclass: safe as a default argument value.
+extend-immutable-calls = ["supersetapiplus.charts.metric.OrderBy"]
+
+[tool.ruff.lint.per-file-ignores]
+# Example and command-line scripts print their output by design.
+"examples/*" = ["T201"]
+"bin/*" = ["T201"]
 
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_level = "INFO"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-filterwarnings = [
-    "ignore::DeprecationWarning"
-]
+
+[tool.codespell]
+# Subsets generated from Superset (data, not project text).
+skip = "tests/fixtures/*"
+# Currency code (South African rand) in CurrencyCodeType, not a typo.
+ignore-words-list = "zar"

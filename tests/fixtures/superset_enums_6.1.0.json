@@ -1,0 +1,709 @@
+{
+ "backend": {
+  "ChartDataResultFormat": {
+   "CSV": "csv",
+   "JSON": "json",
+   "XLSX": "xlsx"
+  },
+  "ChartDataResultType": {
+   "COLUMNS": "columns",
+   "DRILL_DETAIL": "drill_detail",
+   "FULL": "full",
+   "POST_PROCESSED": "post_processed",
+   "QUERY": "query",
+   "RESULTS": "results",
+   "SAMPLES": "samples",
+   "TIMEGRAINS": "timegrains"
+  },
+  "ConfigurationMethod": {
+   "DYNAMIC_FORM": "dynamic_form",
+   "SQLALCHEMY_FORM": "sqlalchemy_form"
+  },
+  "DatasourceKind": {
+   "PHYSICAL": "physical",
+   "VIRTUAL": "virtual"
+  },
+  "DatasourceType": {
+   "DATASET": "dataset",
+   "QUERY": "query",
+   "SAVEDQUERY": "saved_query",
+   "TABLE": "table",
+   "VIEW": "view"
+  },
+  "ErrorLevel": {
+   "ERROR": "error",
+   "INFO": "info",
+   "WARNING": "warning"
+  },
+  "FilterOperator": {
+   "EQUALS": "==",
+   "GREATER_THAN": ">",
+   "GREATER_THAN_OR_EQUALS": ">=",
+   "ILIKE": "ILIKE",
+   "IN": "IN",
+   "IS_FALSE": "IS FALSE",
+   "IS_NOT_NULL": "IS NOT NULL",
+   "IS_NULL": "IS NULL",
+   "IS_TRUE": "IS TRUE",
+   "LESS_THAN": "<",
+   "LESS_THAN_OR_EQUALS": "<=",
+   "LIKE": "LIKE",
+   "NOT_EQUALS": "!=",
+   "NOT_ILIKE": "NOT ILIKE",
+   "NOT_IN": "NOT IN",
+   "NOT_LIKE": "NOT LIKE",
+   "TEMPORAL_RANGE": "TEMPORAL_RANGE"
+  },
+  "GenericDataType": {
+   "BOOLEAN": 3,
+   "NUMERIC": 0,
+   "STRING": 1,
+   "TEMPORAL": 2
+  },
+  "LimitingFactor": {
+   "DROPDOWN": "DROPDOWN",
+   "NOT_LIMITED": "NOT_LIMITED",
+   "QUERY": "QUERY",
+   "QUERY_AND_DROPDOWN": "QUERY_AND_DROPDOWN",
+   "UNKNOWN": "UNKNOWN"
+  },
+  "SupersetErrorType": {
+   "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR": "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR",
+   "ASYNC_WORKERS_ERROR": "ASYNC_WORKERS_ERROR",
+   "BACKEND_TIMEOUT_ERROR": "BACKEND_TIMEOUT_ERROR",
+   "CHART_SECURITY_ACCESS_ERROR": "CHART_SECURITY_ACCESS_ERROR",
+   "COLUMN_DOES_NOT_EXIST_ERROR": "COLUMN_DOES_NOT_EXIST_ERROR",
+   "CONNECTION_ACCESS_DENIED_ERROR": "CONNECTION_ACCESS_DENIED_ERROR",
+   "CONNECTION_DATABASE_PERMISSIONS_ERROR": "CONNECTION_DATABASE_PERMISSIONS_ERROR",
+   "CONNECTION_DATABASE_TIMEOUT": "CONNECTION_DATABASE_TIMEOUT",
+   "CONNECTION_HOST_DOWN_ERROR": "CONNECTION_HOST_DOWN_ERROR",
+   "CONNECTION_INVALID_HOSTNAME_ERROR": "CONNECTION_INVALID_HOSTNAME_ERROR",
+   "CONNECTION_INVALID_PASSWORD_ERROR": "CONNECTION_INVALID_PASSWORD_ERROR",
+   "CONNECTION_INVALID_PORT_ERROR": "CONNECTION_INVALID_PORT_ERROR",
+   "CONNECTION_INVALID_USERNAME_ERROR": "CONNECTION_INVALID_USERNAME_ERROR",
+   "CONNECTION_MISSING_PARAMETERS_ERROR": "CONNECTION_MISSING_PARAMETERS_ERROR",
+   "CONNECTION_PORT_CLOSED_ERROR": "CONNECTION_PORT_CLOSED_ERROR",
+   "CONNECTION_UNKNOWN_DATABASE_ERROR": "CONNECTION_UNKNOWN_DATABASE_ERROR",
+   "DASHBOARD_SECURITY_ACCESS_ERROR": "DASHBOARD_SECURITY_ACCESS_ERROR",
+   "DATABASE_NOT_FOUND_ERROR": "DATABASE_NOT_FOUND_ERROR",
+   "DATABASE_SECURITY_ACCESS_ERROR": "DATABASE_SECURITY_ACCESS_ERROR",
+   "DATASOURCE_SECURITY_ACCESS_ERROR": "DATASOURCE_SECURITY_ACCESS_ERROR",
+   "DML_NOT_ALLOWED_ERROR": "DML_NOT_ALLOWED_ERROR",
+   "FAILED_FETCHING_DATASOURCE_INFO_ERROR": "FAILED_FETCHING_DATASOURCE_INFO_ERROR",
+   "FRONTEND_CSRF_ERROR": "FRONTEND_CSRF_ERROR",
+   "FRONTEND_NETWORK_ERROR": "FRONTEND_NETWORK_ERROR",
+   "FRONTEND_TIMEOUT_ERROR": "FRONTEND_TIMEOUT_ERROR",
+   "GENERIC_BACKEND_ERROR": "GENERIC_BACKEND_ERROR",
+   "GENERIC_COMMAND_ERROR": "GENERIC_COMMAND_ERROR",
+   "GENERIC_DB_ENGINE_ERROR": "GENERIC_DB_ENGINE_ERROR",
+   "INVALID_CTAS_QUERY_ERROR": "INVALID_CTAS_QUERY_ERROR",
+   "INVALID_CVAS_QUERY_ERROR": "INVALID_CVAS_QUERY_ERROR",
+   "INVALID_PAYLOAD_FORMAT_ERROR": "INVALID_PAYLOAD_FORMAT_ERROR",
+   "INVALID_PAYLOAD_SCHEMA_ERROR": "INVALID_PAYLOAD_SCHEMA_ERROR",
+   "INVALID_SQL_ERROR": "INVALID_SQL_ERROR",
+   "INVALID_TEMPLATE_PARAMS_ERROR": "INVALID_TEMPLATE_PARAMS_ERROR",
+   "MARSHMALLOW_ERROR": "MARSHMALLOW_ERROR",
+   "MISSING_OWNERSHIP_ERROR": "MISSING_OWNERSHIP_ERROR",
+   "MISSING_TEMPLATE_PARAMS_ERROR": "MISSING_TEMPLATE_PARAMS_ERROR",
+   "OAUTH2_REDIRECT": "OAUTH2_REDIRECT",
+   "OAUTH2_REDIRECT_ERROR": "OAUTH2_REDIRECT_ERROR",
+   "OBJECT_DOES_NOT_EXIST_ERROR": "OBJECT_DOES_NOT_EXIST_ERROR",
+   "QUERY_SECURITY_ACCESS_ERROR": "QUERY_SECURITY_ACCESS_ERROR",
+   "REPORT_NOTIFICATION_ERROR": "REPORT_NOTIFICATION_ERROR",
+   "RESULTS_BACKEND_ERROR": "RESULTS_BACKEND_ERROR",
+   "RESULTS_BACKEND_NOT_CONFIGURED_ERROR": "RESULTS_BACKEND_NOT_CONFIGURED_ERROR",
+   "RESULT_TOO_LARGE_ERROR": "RESULT_TOO_LARGE_ERROR",
+   "SCHEMA_DOES_NOT_EXIST_ERROR": "SCHEMA_DOES_NOT_EXIST_ERROR",
+   "SQLLAB_TIMEOUT_ERROR": "SQLLAB_TIMEOUT_ERROR",
+   "SYNTAX_ERROR": "SYNTAX_ERROR",
+   "TABLE_DOES_NOT_EXIST_ERROR": "TABLE_DOES_NOT_EXIST_ERROR",
+   "TABLE_NOT_FOUND_ERROR": "TABLE_NOT_FOUND_ERROR",
+   "TABLE_SECURITY_ACCESS_ERROR": "TABLE_SECURITY_ACCESS_ERROR",
+   "UNKNOWN_DATASOURCE_TYPE_ERROR": "UNKNOWN_DATASOURCE_TYPE_ERROR",
+   "USER_ACTIVITY_SECURITY_ACCESS_ERROR": "USER_ACTIVITY_SECURITY_ACCESS_ERROR",
+   "VIZ_GET_DF_ERROR": "VIZ_GET_DF_ERROR"
+  },
+  "TimeGrain": {
+   "DAY": "P1D",
+   "FIFTEEN_MINUTES": "PT15M",
+   "FIVE_MINUTES": "PT5M",
+   "FIVE_SECONDS": "PT5S",
+   "HALF_HOUR": "PT0.5H",
+   "HOUR": "PT1H",
+   "MINUTE": "PT1M",
+   "MONTH": "P1M",
+   "QUARTER": "P3M",
+   "QUARTER_YEAR": "P0.25Y",
+   "SECOND": "PT1S",
+   "SIX_HOURS": "PT6H",
+   "TEN_MINUTES": "PT10M",
+   "THIRTY_MINUTES": "PT30M",
+   "THIRTY_SECONDS": "PT30S",
+   "WEEK": "P1W",
+   "WEEK_ENDING_SATURDAY": "P1W/1970-01-03T00:00:00Z",
+   "WEEK_ENDING_SUNDAY": "P1W/1970-01-04T00:00:00Z",
+   "WEEK_STARTING_MONDAY": "1969-12-29T00:00:00Z/P1W",
+   "WEEK_STARTING_SUNDAY": "1969-12-28T00:00:00Z/P1W",
+   "YEAR": "P1Y"
+  }
+ },
+ "choices": {
+  "big_number.rolling_type": [
+   "None",
+   "mean",
+   "sum",
+   "std",
+   "cumsum"
+  ],
+  "box_plot.whiskerOptions": [
+   "Tukey",
+   "Min/max (no outliers)",
+   "2/98 percentiles",
+   "5/95 percentiles",
+   "9/91 percentiles",
+   "10/90 percentiles"
+  ],
+  "cal_heatmap.domain_granularity": [
+   "hour",
+   "day",
+   "week",
+   "month",
+   "year"
+  ],
+  "cal_heatmap.subdomain_granularity": [
+   "min",
+   "hour",
+   "day",
+   "week",
+   "month"
+  ],
+  "echarts.xAxisLabelRotation": [
+   0,
+   45,
+   90
+  ],
+  "heatmap_v2.legend_type": [
+   "continuous",
+   "piecewise"
+  ],
+  "heatmap_v2.normalize_across": [
+   "heatmap",
+   "x",
+   "y"
+  ],
+  "heatmap_v2.sort_axis": [
+   "alpha_asc",
+   "alpha_desc",
+   "value_asc",
+   "value_desc"
+  ],
+  "pivot_table_v2.aggregateFunction": [
+   "Count",
+   "Count Unique Values",
+   "List Unique Values",
+   "Sum",
+   "Average",
+   "Median",
+   "Sample Variance",
+   "Sample Standard Deviation",
+   "Minimum",
+   "Maximum",
+   "First",
+   "Last",
+   "Sum as Fraction of Total",
+   "Sum as Fraction of Rows",
+   "Sum as Fraction of Columns",
+   "Count as Fraction of Total",
+   "Count as Fraction of Rows",
+   "Count as Fraction of Columns"
+  ],
+  "pivot_table_v2.rowOrder": [
+   "key_a_to_z",
+   "key_z_to_a",
+   "value_a_to_z",
+   "value_z_to_a"
+  ],
+  "table.percent_metric_calculation": [
+   "row_limit",
+   "all_records"
+  ]
+ },
+ "config": {
+  "CURRENCIES": [
+   "USD",
+   "EUR",
+   "GBP",
+   "INR",
+   "MXN",
+   "JPY",
+   "CNY"
+  ]
+ },
+ "constants": {
+  "dashboard.backgrounds": {
+   "BACKGROUND_TRANSPARENT": "BACKGROUND_TRANSPARENT",
+   "BACKGROUND_WHITE": "BACKGROUND_WHITE"
+  },
+  "dashboard.componentTypes": {
+   "CHART_TYPE": "CHART",
+   "COLUMN_TYPE": "COLUMN",
+   "DASHBOARD_GRID_TYPE": "GRID",
+   "DASHBOARD_HEADER_TYPE": "HEADER",
+   "DASHBOARD_ROOT_TYPE": "ROOT",
+   "DIVIDER_TYPE": "DIVIDER",
+   "DYNAMIC_TYPE": "DYNAMIC",
+   "HEADER_TYPE": "HEADER",
+   "MARKDOWN_TYPE": "MARKDOWN",
+   "NEW_COMPONENT_SOURCE_TYPE": "NEW_COMPONENT_SOURCE",
+   "ROW_TYPE": "ROW",
+   "TABS_TYPE": "TABS",
+   "TAB_TYPE": "TAB"
+  },
+  "dashboard.headerSizes": {
+   "LARGE_HEADER": "LARGE_HEADER",
+   "MEDIUM_HEADER": "MEDIUM_HEADER",
+   "SMALL_HEADER": "SMALL_HEADER"
+  }
+ },
+ "fab": {
+  "filter_operators": [
+   "ct",
+   "eq",
+   "eqf",
+   "ew",
+   "gt",
+   "in",
+   "inf",
+   "lt",
+   "nct",
+   "neq",
+   "new",
+   "not_in",
+   "nrel_o_m",
+   "nsw",
+   "rel_m_m",
+   "rel_o_m",
+   "sw"
+  ],
+  "version": "5.0.2"
+ },
+ "frontend": {
+  "Clauses": {
+   "Having": "HAVING",
+   "Where": "WHERE"
+  },
+  "ColorSchemeEnum": {
+   "Green": "Green",
+   "Red": "Red"
+  },
+  "ComparisonType": {
+   "Difference": "difference",
+   "Percentage": "percentage",
+   "Ratio": "ratio",
+   "Values": "values"
+  },
+  "ContributionType": {
+   "Column": "column",
+   "Row": "row"
+  },
+  "DatasourceType": {
+   "Dataset": "dataset",
+   "Query": "query",
+   "SavedQuery": "saved_query",
+   "SlTable": "sl_table",
+   "Table": "table"
+  },
+  "EchartsPieLabelType": {
+   "Key": "key",
+   "KeyPercent": "key_percent",
+   "KeyValue": "key_value",
+   "KeyValuePercent": "key_value_percent",
+   "Percent": "percent",
+   "Template": "template",
+   "Value": "value",
+   "ValuePercent": "value_percent"
+  },
+  "EchartsSunburstLabelType": {
+   "Key": "key",
+   "KeyValue": "key_value",
+   "Value": "value"
+  },
+  "EchartsTimeseriesSeriesType": {
+   "Bar": "bar",
+   "End": "end",
+   "Line": "line",
+   "Middle": "middle",
+   "Scatter": "scatter",
+   "Smooth": "smooth",
+   "Start": "start"
+  },
+  "EchartsTreemapLabelType": {
+   "Key": "key",
+   "KeyValue": "key_value",
+   "Value": "value"
+  },
+  "ExpressionTypes": {
+   "Simple": "SIMPLE",
+   "Sql": "SQL"
+  },
+  "FilterBarOrientation": {
+   "Horizontal": "HORIZONTAL",
+   "Vertical": "VERTICAL"
+  },
+  "FilterPlugins": {
+   "Range": "filter_range",
+   "Select": "filter_select",
+   "Time": "filter_time",
+   "TimeColumn": "filter_timecolumn",
+   "TimeGrain": "filter_timegrain"
+  },
+  "LegendOrientation": {
+   "Bottom": "bottom",
+   "Left": "left",
+   "Right": "right",
+   "Top": "top"
+  },
+  "LegendType": {
+   "Plain": "plain",
+   "Scroll": "scroll"
+  },
+  "MetricsLayoutEnum": {
+   "COLUMNS": "COLUMNS",
+   "ROWS": "ROWS"
+  },
+  "NativeFilterType": {
+   "Divider": "DIVIDER",
+   "NativeFilter": "NATIVE_FILTER"
+  },
+  "Operators": {
+   "CaseInsensitiveLike": "ILIKE",
+   "Equals": "EQUALS",
+   "GreaterThan": "GREATER_THAN",
+   "GreaterThanOrEqual": "GREATER_THAN_OR_EQUAL",
+   "In": "IN",
+   "IsFalse": "IS_FALSE",
+   "IsNotNull": "IS_NOT_NULL",
+   "IsNull": "IS_NULL",
+   "IsTrue": "IS_TRUE",
+   "LatestPartition": "LATEST_PARTITION",
+   "LessThan": "LESS_THAN",
+   "LessThanOrEqual": "LESS_THAN_OR_EQUAL",
+   "Like": "LIKE",
+   "NotEquals": "NOT_EQUALS",
+   "NotIn": "NOT_IN",
+   "TemporalRange": "TEMPORAL_RANGE"
+  },
+  "OrientationType": {
+   "Horizontal": "horizontal",
+   "Vertical": "vertical"
+  },
+  "PercentCalcType": {
+   "FirstStep": "first_step",
+   "PreviousStep": "prev_step",
+   "Total": "total"
+  },
+  "QueryMode": {
+   "Aggregate": "aggregate",
+   "Raw": "raw"
+  },
+  "SortSeriesType": {
+   "Avg": "avg",
+   "Max": "max",
+   "Min": "min",
+   "Name": "name",
+   "Sum": "sum"
+  },
+  "StackControlsValue": {
+   "Expand": "Expand",
+   "Stack": "Stack",
+   "Stream": "Stream"
+  },
+  "VizType": {
+   "Area": "echarts_area",
+   "Bar": "echarts_timeseries_bar",
+   "BigNumber": "big_number",
+   "BigNumberPeriodOverPeriod": "pop_kpi",
+   "BigNumberTotal": "big_number_total",
+   "BoxPlot": "box_plot",
+   "Bubble": "bubble_v2",
+   "Bullet": "bullet",
+   "Calendar": "cal_heatmap",
+   "Cartodiagram": "cartodiagram",
+   "Chord": "chord",
+   "Compare": "compare",
+   "CountryMap": "country_map",
+   "Funnel": "funnel",
+   "Gantt": "gantt_chart",
+   "Gauge": "gauge_chart",
+   "Graph": "graph_chart",
+   "Handlebars": "handlebars",
+   "Heatmap": "heatmap_v2",
+   "Histogram": "histogram_v2",
+   "Horizon": "horizon",
+   "LegacyBubble": "bubble",
+   "Line": "echarts_timeseries_line",
+   "MapBox": "mapbox",
+   "MixedTimeseries": "mixed_timeseries",
+   "PairedTTest": "paired_ttest",
+   "ParallelCoordinates": "para",
+   "Partition": "partition",
+   "Pie": "pie",
+   "PivotTable": "pivot_table_v2",
+   "Radar": "radar",
+   "Rose": "rose",
+   "Sankey": "sankey_v2",
+   "Scatter": "echarts_timeseries_scatter",
+   "SmoothLine": "echarts_timeseries_smooth",
+   "Step": "echarts_timeseries_step",
+   "Sunburst": "sunburst_v2",
+   "Table": "table",
+   "TableAgGrid": "ag-grid-table",
+   "TimePivot": "time_pivot",
+   "TimeTable": "time_table",
+   "Timeseries": "echarts_timeseries",
+   "Tree": "tree_chart",
+   "Treemap": "treemap_v2",
+   "Waterfall": "waterfall",
+   "WordCloud": "word_cloud",
+   "WorldMap": "world_map"
+  }
+ },
+ "identifiers": {
+  "AUTO_CURRENCY_SYMBOL": "AUTO",
+  "SMART_DATE_ID": "smart_date"
+ },
+ "migrated_viz_types": {
+  "area": "echarts_area",
+  "bar": "echarts_timeseries_bar",
+  "bubble": "bubble_v2",
+  "dist_bar": "echarts_timeseries_bar",
+  "dual_line": "mixed_timeseries",
+  "heatmap": "heatmap_v2",
+  "histogram": "histogram_v2",
+  "line": "echarts_timeseries_line",
+  "pivot_table": "pivot_table_v2",
+  "sankey": "sankey_v2",
+  "sunburst": "sunburst_v2",
+  "treemap": "treemap_v2"
+ },
+ "number_formats": [
+  "SMART_NUMBER",
+  ",d",
+  ".1s",
+  ".3s",
+  ",.1%",
+  ".2%",
+  ".3%",
+  ".4r",
+  ",.1f",
+  ",.2f",
+  ",.3f",
+  "+,",
+  "$,.2f",
+  "~g",
+  "DURATION",
+  "DURATION_SUB",
+  "DURATION_COL",
+  "MEMORY_DECIMAL",
+  "MEMORY_BINARY",
+  "MEMORY_TRANSFER_RATE_DECIMAL",
+  "MEMORY_TRANSFER_RATE_BINARY"
+ ],
+ "numbers": {
+  "dashboard.grid": {
+   "GRID_BASE_UNIT": 8,
+   "GRID_COLUMN_COUNT": 12,
+   "GRID_DEFAULT_CHART_WIDTH": 4,
+   "GRID_MAX_ROW_UNITS": 100,
+   "GRID_MIN_COLUMN_COUNT": 1,
+   "GRID_MIN_ROW_UNITS": 5
+  }
+ },
+ "numeric_enums": {
+  "EchartsFunnelLabelType": {
+   "Key": 0,
+   "KeyPercent": 4,
+   "KeyValue": 3,
+   "KeyValuePercent": 5,
+   "Percent": 2,
+   "Value": 1,
+   "ValuePercent": 6
+  }
+ },
+ "object_keys": {
+  "aggregationChoices": [
+   "raw",
+   "LAST_VALUE",
+   "sum",
+   "mean",
+   "min",
+   "max",
+   "median"
+  ]
+ },
+ "objects": {
+  "AGGREGATES": {
+   "AVG": "AVG",
+   "COUNT": "COUNT",
+   "COUNT_DISTINCT": "COUNT_DISTINCT",
+   "MAX": "MAX",
+   "MIN": "MIN",
+   "SUM": "SUM"
+  }
+ },
+ "operator_groups": {
+  "DISABLE_INPUT_OPERATORS": [
+   "IsNotNull",
+   "IsNull",
+   "LatestPartition",
+   "IsTrue",
+   "IsFalse"
+  ],
+  "MULTI_OPERATORS": [
+   "In",
+   "NotIn"
+  ]
+ },
+ "options": {
+  "D3_TIME_FORMAT_OPTIONS": [
+   "smart_date",
+   "%d/%m/%Y",
+   "%m/%d/%Y",
+   "%d.%m.%Y",
+   "%Y-%m-%d",
+   "%Y-%m-%d %H:%M:%S",
+   "%d-%m-%Y %H:%M:%S",
+   "%H:%M:%S"
+  ],
+  "TITLE_POSITION_OPTIONS": [
+   "Left",
+   "Top"
+  ]
+ },
+ "provenance": {
+  "flask_appbuilder": {
+   "paths": [
+    "flask_appbuilder/models/sqla/filters.py"
+   ],
+   "repository": "dpgaspar/Flask-AppBuilder",
+   "sha": "f4a8cfd9f31f7eb36fb7891ccf9747b7506a41d3",
+   "tag": "v5.0.2"
+  },
+  "superset": {
+   "paths": [
+    "requirements/base.txt",
+    "superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx",
+    "superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx",
+    "superset-frontend/packages/superset-ui-chart-controls/src/types.ts",
+    "superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts",
+    "superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts",
+    "superset-frontend/packages/superset-ui-core/src/currency-format/CurrencyFormats.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/AdvancedAnalytics.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/Column.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/Dashboard.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/Datasource.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/Query.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/QueryFormData.ts",
+    "superset-frontend/packages/superset-ui-core/src/time-format/formatters/smartDate.ts",
+    "superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx",
+    "superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Funnel/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Pie/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/Treemap/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/constants.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx",
+    "superset-frontend/plugins/plugin-chart-echarts/src/types.ts",
+    "superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx",
+    "superset-frontend/plugins/plugin-chart-pivot-table/src/types.ts",
+    "superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx",
+    "superset-frontend/src/constants.ts",
+    "superset-frontend/src/dashboard/types.ts",
+    "superset-frontend/src/dashboard/util/componentTypes.ts",
+    "superset-frontend/src/dashboard/util/constants.ts",
+    "superset-frontend/src/explore/components/controls/CurrencyControl/CurrencyControl.tsx",
+    "superset-frontend/src/explore/components/controls/FilterControl/types.ts",
+    "superset-frontend/src/explore/constants.ts",
+    "superset/common/chart_data.py",
+    "superset/config.py",
+    "superset/connectors/sqla/models.py",
+    "superset/constants.py",
+    "superset/datasets/schemas.py",
+    "superset/errors.py",
+    "superset/migrations/shared/migrate_viz/processors.py",
+    "superset/models/core.py",
+    "superset/sqllab/limiting_factor.py",
+    "superset/utils/core.py"
+   ],
+   "repository": "apache/superset",
+   "sha": "c83fb2bb1dcfac41ac51bcebd82471f4a7180d18",
+   "tag": "6.1.0"
+  }
+ },
+ "schemas": {
+  "DatasetColumnsPutSchema": [
+   "id",
+   "column_name",
+   "type",
+   "advanced_data_type",
+   "verbose_name",
+   "description",
+   "expression",
+   "extra",
+   "filterable",
+   "groupby",
+   "is_active",
+   "is_dttm",
+   "python_date_format",
+   "datetime_format",
+   "uuid"
+  ],
+  "DatasetDuplicateSchema": [
+   "base_model_id",
+   "table_name"
+  ],
+  "DatasetMetricsPutSchema": [
+   "id",
+   "expression",
+   "description",
+   "extra",
+   "metric_name",
+   "metric_type",
+   "d3format",
+   "currency",
+   "verbose_name",
+   "warning_text",
+   "uuid"
+  ],
+  "GetOrCreateDatasetSchema": [
+   "table_name",
+   "database_id",
+   "catalog",
+   "schema",
+   "template_params",
+   "normalize_columns",
+   "always_filter_main_dttm"
+  ]
+ },
+ "superset_version": "6.1.0",
+ "unions": {
+  "Column.columnType": [
+   "BASE_AXIS",
+   "SERIES"
+  ],
+  "ColumnConfig.horizontalAlign": [
+   "left",
+   "right",
+   "center"
+  ]
+ },
+ "value_options": {
+  "CURRENCY_SYMBOL_POSITION_OPTIONS": [
+   "prefix",
+   "suffix"
+  ]
+ }
+}

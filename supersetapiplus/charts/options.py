@@ -1,74 +1,136 @@
 import logging
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, runtime_checkable, Protocol
+import re
+from typing import Any, ClassVar
 
-from supersetapiplus.base.base import SerializableModel, object_field
+from pydantic import Field
+
 from supersetapiplus.charts.filters import AdhocFilterClause
-from supersetapiplus.charts.metric import OrderByTyping, AdhocMetricColumn, MetricHelper, AdhocMetric, OrderBy
-from supersetapiplus.charts.types import ChartType, FilterOperatorType, FilterClausesType, \
-    FilterExpressionType, MetricType
+from supersetapiplus.charts.metric import (
+    AdhocMetricColumn,
+    MetricsListMixin,
+)
+from supersetapiplus.charts.queries import CurrencyFormat, custom_column
+from supersetapiplus.charts.types import (
+    ChartType,
+    ComparisonType,
+    FilterClausesType,
+    FilterExpressionType,
+    FilterOperatorType,
+    LegendOrientationType,
+    LegendType,
+    MetricType,
+    ResultFormat,
+    ResultType,
+    TimeGrain,
+)
+from supersetapiplus.core.api_model import ApiModel
+from supersetapiplus.core.sentinels import MissingField
+from supersetapiplus.core.typing import FilterValues, SerializableOptional
 from supersetapiplus.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
 
-@runtime_checkable
-class SupportsGroupBy(Protocol):
-    # This is a protocol that defines the expected structure of classes that have metric.
-    groupby: Optional[List[OrderByTyping]]
+# Time format controls of the chart plugins (free-form, DateFormatType holds the suggestions).
+TIME_FORMAT_FIELDS = ("date_format", "time_format", "x_axis_time_format", "table_timestamp_format",
+                      "tooltipTimeFormat")
+# Tokens of moment.js date formats ("DD/MM/YYYY"): Superset 6 formats dates with d3-time-format
+# (superset-ui-core/src/time-format, "%d/%m/%Y"), which prints them as literal text.
+_MOMENT_TOKENS = re.compile(r"YYYY|YY|DD|Do|HH|hh|mm|ss|MMM|MM")
 
 
-class OptionListGroupByMixin:
-    def _add_simple_groupby(self: SupportsGroupBy, column_name:str):
-        self.groupby.append(column_name)
-
-    def _add_custom_groupby(self: SupportsGroupBy, label: str,
-                            column: AdhocMetricColumn = None,
-                            sql_expression: str = None,
-                            aggregate: MetricType = None):
-        metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
-        if column:
-            metric.expressionType = FilterExpressionType.CUSTOM_SQL
-            column.expressionType = FilterExpressionType.CUSTOM_SQL
-        self.groupby.append(metric)
+def unbounded() -> list[float | None]:
+    """Default of the axis and value bounds controls: no minimum and no maximum ([null, null])."""
+    return [None, None]
 
 
-@dataclass
-class Option(SerializableModel, OptionListGroupByMixin):
-    viz_type: ChartType = None
-    slice_id: Optional[int] = None
+def check_time_formats(option: object) -> None:
+    """Time formats are "smart_date" or d3-time-format patterns, not moment.js ones."""
+    for name in TIME_FORMAT_FIELDS:
+        value = getattr(option, name, None)
+        if isinstance(value, str) and "%" not in value and _MOMENT_TOKENS.search(value):
+            raise ValidationError(message=f"{name} {value!r} is a moment.js format; Superset would show it as text.",
+                                  solution='Use a d3-time-format pattern (e.g. "%d/%m/%Y") or DateFormatType.')
 
-    datasource: str = None
 
-    extra_form_data: Dict = field(default_factory=dict)
-    row_limit: int = 100
+class ChartVisualOptionsMixin(ApiModel):
+    color_scheme: str = 'supersetColors'
+    show_legend: SerializableOptional[bool] = True
+    legendType: LegendType = Field(default_factory=lambda: LegendType.SCROLL)
+    legendOrientation: LegendOrientationType = Field(default_factory=lambda: LegendOrientationType.TOP)
+    legendMargin: SerializableOptional[int] = None  # TextControl with isInt: a number or null
+    currency_format: SerializableOptional[CurrencyFormat] = None
 
-    adhoc_filters: List[AdhocFilterClause] = object_field(cls=AdhocFilterClause, default_factory=list)
-    dashboards: List[int] = field(default_factory=list)
-    groupby: Optional[List[OrderByTyping]] = object_field(cls=AdhocMetric, default_factory=list)
 
-    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
-        raise NotImplementedError("This method should be implemented in the subclass")
+class OptionListGroupByMixin(ApiModel):
+    # Dimensions: column names or AdhocColumn dicts; MissingField when the key was absent in the JSON read.
+    groupby: list[Any] | MissingField | None = Field(default_factory=list)
 
-    def _add_custom_metric(self, label: str,
-                           automatic_order: OrderBy,
-                           column: AdhocMetricColumn,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
-        raise NotImplementedError("This method should be implemented in the subclass")
+    # by default, every chart requires groupby
+    _require_groupby: ClassVar[bool] = True
 
-    def __post_init__(self):
-        super().__post_init__()
-        if not self.groupby:
-            self.groupby: List[OrderByTyping] = []
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
+        super().validate()
+        # Only for charts built in code whose plugin requires a dimension (see _read_from_superset).
+        if self._require_groupby and not getattr(self, "_read_from_superset", False) \
+                and not isinstance(self.groupby, MissingField) \
+                and not self.groupby:
+            raise ValidationError(
+                message='Field groupby cannot be empty.',
+                solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.'
+            )
 
-    def validate(self, data: dict):
-        super().validate(data)
-        if not self.groupby:
-            raise ValidationError(message='Field groupy cannot be empty.',
-                                  solution='Use one of the add_simple_groupby or add_custom_groupby methods to add a groupby.')
+    def _editable_groupby(self) -> list[Any]:
+        if not isinstance(self.groupby, list):
+            self.groupby = []
+        return self.groupby
 
-    def add_dashboard(self, dashboard_id):
+    def _add_simple_groupby(self, column_name: str) -> None:
+        self._editable_groupby().append(column_name)
+
+    def _add_custom_groupby(self, label: str,
+                            column: AdhocMetricColumn | None = None,
+                            sql_expression: str | None = None,
+                            aggregate: MetricType | None = None) -> None:
+        self._editable_groupby().append(custom_column(label, column, sql_expression, aggregate))
+
+
+class Option(MetricsListMixin, OptionListGroupByMixin, ApiModel):
+    viz_type: ChartType | None = None
+    slice_id: SerializableOptional[int] = None
+
+    datasource: str | None = None
+
+    extra_form_data: dict[str, Any] = Field(default_factory=dict)
+    # Absent unless the plugin has a row limit control (each chart class sets the UI default).
+    row_limit: SerializableOptional[int] = None
+
+    adhoc_filters: list[AdhocFilterClause] = Field(default_factory=list)
+    dashboards: list[int] = Field(default_factory=list)
+
+    force: SerializableOptional[bool] = None
+    result_format: SerializableOptional[ResultFormat] = None
+    result_type: SerializableOptional[ResultType] = None
+
+    cache_timeout: SerializableOptional[int] = None
+    time_grain_sqla: SerializableOptional[TimeGrain] = None
+    order_desc: SerializableOptional[bool] = None
+
+    comparison_type: SerializableOptional[ComparisonType] = None
+
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
+        super().validate()
+        if not self._read_from_superset:  # what Superset stored is written back as read
+            check_time_formats(self)
+
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
+        # None becomes an empty list; MissingField (key absent from the JSON read) is kept so that
+        # re-reading does not add "groupby": [] to charts that did not have it.
+        if self.groupby is None:
+            self.groupby = []
+
+    def add_dashboard(self, dashboard_id: int) -> None:
         dashboards = set(self.dashboards)
         dashboards.add(dashboard_id)
         self.dashboards = list(dashboards)
@@ -76,10 +138,10 @@ class Option(SerializableModel, OptionListGroupByMixin):
     def _adhoc_filters(self,
                        expression_type: FilterExpressionType,
                        clause: FilterClausesType,
-                       subject: str = None,
-                       comparator: str = None,
-                       sql_expression=None,
-                       operator: FilterOperatorType = None) -> None:
+                       subject: str | None = None,
+                       comparator: FilterValues | None = None,
+                       sql_expression: str | None = None,
+                       operator: FilterOperatorType | None = None) -> None:
         operator_id = None
         if operator:
             operator_id = operator.name
@@ -91,7 +153,6 @@ class Option(SerializableModel, OptionListGroupByMixin):
                                                 comparator=comparator,
                                                 clause=clause,
                                                 sqlExpression=sql_expression)
+        if not isinstance(self.adhoc_filters, list):  # absent from a chart read from Superset
+            self.adhoc_filters = []
         self.adhoc_filters.append(adhoc_filter_clause)
-
-
-

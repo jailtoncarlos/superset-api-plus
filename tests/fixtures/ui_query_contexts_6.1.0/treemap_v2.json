@@ -1,0 +1,100 @@
+{
+ "datasource": {
+  "type": "table"
+ },
+ "form_data": {
+  "adhoc_filters": [
+   {
+    "clause": "WHERE",
+    "comparator": "1960-01-01 : now",
+    "expressionType": "SIMPLE",
+    "operator": "TEMPORAL_RANGE",
+    "subject": "year"
+   }
+  ],
+  "color_scheme": "supersetColors",
+  "date_format": "smart_date",
+  "extra_form_data": {},
+  "force": false,
+  "groupby": [
+   "region",
+   "country_code"
+  ],
+  "label_type": "key_value",
+  "matrixify_all_sort_by_columns": "a_to_z",
+  "matrixify_all_sort_by_rows": "a_to_z",
+  "matrixify_cell_title_template": "",
+  "matrixify_charts_per_row": 4,
+  "matrixify_dimension_columns": {
+   "dimension": "",
+   "values": []
+  },
+  "matrixify_dimension_rows": {
+   "dimension": "",
+   "values": []
+  },
+  "matrixify_dimension_selection_mode_columns": "members",
+  "matrixify_dimension_selection_mode_rows": "members",
+  "matrixify_enable": false,
+  "matrixify_fit_columns_dynamically": true,
+  "matrixify_mode_columns": "disabled",
+  "matrixify_mode_rows": "disabled",
+  "matrixify_row_height": 300,
+  "matrixify_show_column_headers": true,
+  "matrixify_show_row_labels": true,
+  "matrixify_topn_order_columns": true,
+  "matrixify_topn_order_rows": true,
+  "matrixify_topn_value_columns": 10,
+  "matrixify_topn_value_rows": 10,
+  "metric": "sum__SP_POP_TOTL",
+  "number_format": "SMART_NUMBER",
+  "result_format": "json",
+  "result_type": "full",
+  "row_limit": 50000,
+  "show_labels": true,
+  "show_upper_labels": true,
+  "viz_type": "treemap_v2"
+ },
+ "queries": [
+  {
+   "annotation_layers": [],
+   "applied_time_extras": {},
+   "columns": [
+    "region",
+    "country_code"
+   ],
+   "custom_form_data": {},
+   "custom_params": {},
+   "extras": {
+    "having": "",
+    "where": ""
+   },
+   "filters": [
+    {
+     "col": "year",
+     "op": "TEMPORAL_RANGE",
+     "val": "1960-01-01 : now"
+    }
+   ],
+   "group_others_when_limit_reached": false,
+   "metrics": [
+    "sum__SP_POP_TOTL"
+   ],
+   "order_desc": true,
+   "orderby": [
+    [
+     "region",
+     true
+    ],
+    [
+     "country_code",
+     true
+    ]
+   ],
+   "row_limit": 50000,
+   "series_limit": 0
+  }
+ ],
+ "result_format": "json",
+ "result_type": "full"
+}

@@ -1,11 +1,5 @@
-from enum import Enum
+"""Deprecated module path: use :mod:`supersetapiplus.core.enums`."""
+from supersetapiplus.core.enums import *  # noqa: F401,F403
+from supersetapiplus.deprecation import warn_renamed
 
-class StringEnum(Enum):
-    def __str__(self):
-        return str(self.value)
-
-    def __eq__(self, other):
-        if str(self.__class__) == str(other.__class__):
-            return self.value == other.value
-        # elif isinstance(other, str):
-        #     return self.value == other
+warn_renamed("supersetapiplus.base.enum_str", "supersetapiplus.core.enums", stacklevel=2)

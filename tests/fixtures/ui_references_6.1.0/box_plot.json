@@ -1,0 +1,10 @@
+{
+ "cache_timeout": null,
+ "datasource_name_text": "main.cleaned_sales_data",
+ "datasource_type": "table",
+ "description": null,
+ "params": "{\"adhoc_filters\": [{\"clause\": \"WHERE\", \"comparator\": \"No filter\", \"expressionType\": \"SIMPLE\", \"operator\": \"TEMPORAL_RANGE\", \"subject\": \"order_date\"}], \"annotation_layers\": [], \"color_scheme\": \"supersetColors\", \"columns\": [\"order_date\"], \"dashboards\": [13], \"datasource\": \"22__table\", \"date_format\": \"smart_date\", \"extra_form_data\": {}, \"groupby\": [\"product_line\"], \"metrics\": [\"count\"], \"number_format\": \"SMART_NUMBER\", \"temporal_columns_lookup\": {\"order_date\": true}, \"time_grain_sqla\": \"P1D\", \"viz_type\": \"box_plot\", \"whiskerOptions\": \"Tukey\", \"x_axis_title_margin\": 15, \"x_ticks_layout\": \"auto\", \"y_axis_title_margin\": 15, \"y_axis_title_position\": \"Left\"}",
+ "query_context": null,
+ "slice_name": "Box Plot",
+ "viz_type": "box_plot"
+}

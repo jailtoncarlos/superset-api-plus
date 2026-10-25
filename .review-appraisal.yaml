@@ -1,0 +1,9 @@
+# Settings of the PR review appraisal (multi-llm-workflow review-appraisal), read from the root of the
+# repository. A correction of a review thread is pushed only after these commands pass on it.
+correction:
+  # The same checks as a commit and the CI: a fresh environment from uv.lock (without reusing the local uv
+  # cache), every pre-commit hook on all files, and the unit tests.
+  verification_commands:
+    - ["uv", "sync", "--locked", "--all-extras", "--no-cache"]
+    - ["uv", "run", "--no-sync", "pre-commit", "run", "--all-files"]
+    - ["uv", "run", "--no-sync", "pytest", "-q", "-p", "no:cacheprovider", "tests/unit"]

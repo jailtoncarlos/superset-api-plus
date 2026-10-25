@@ -1,10 +1,5 @@
-from supersetapiplus.base.enum_str import StringEnum
+"""Deprecated module path: use :mod:`supersetapiplus.core.types`."""
+from supersetapiplus.core.types import *  # noqa: F401,F403
+from supersetapiplus.deprecation import warn_renamed
 
-
-class DatasourceType(StringEnum):
-    SLTABLE = "sl_table"
-    TABLE = "table"
-    DATASET = "dataset"
-    QUERY = "query"
-    SAVEDQUERY = "saved_query"
-    VIEW = "view"
+warn_renamed("supersetapiplus.base.types", "supersetapiplus.core.types", stacklevel=2)

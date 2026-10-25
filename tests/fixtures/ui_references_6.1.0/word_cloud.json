@@ -1,0 +1,10 @@
+{
+ "cache_timeout": null,
+ "datasource_name_text": "main.cleaned_sales_data",
+ "datasource_type": "table",
+ "description": null,
+ "params": "{\"adhoc_filters\": [{\"clause\": \"WHERE\", \"comparator\": \"No filter\", \"expressionType\": \"SIMPLE\", \"operator\": \"TEMPORAL_RANGE\", \"subject\": \"order_date\"}], \"annotation_layers\": [], \"color_scheme\": \"supersetColors\", \"dashboards\": [13], \"datasource\": \"22__table\", \"extra_form_data\": {}, \"metric\": \"count\", \"rotation\": \"square\", \"row_limit\": 100, \"series\": \"customer_name\", \"size_from\": 10, \"size_to\": 70, \"viz_type\": \"word_cloud\"}",
+ "query_context": null,
+ "slice_name": "Word Cloud",
+ "viz_type": "word_cloud"
+}

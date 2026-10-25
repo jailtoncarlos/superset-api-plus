@@ -1,10 +1,5 @@
-from dataclasses import dataclass, field
+"""Deprecated module path: use :mod:`supersetapiplus.core.datasource`."""
+from supersetapiplus.core.datasource import *  # noqa: F401,F403
+from supersetapiplus.deprecation import warn_renamed
 
-from supersetapiplus.base.base import SerializableModel
-from supersetapiplus.base.types import DatasourceType
-
-
-@dataclass
-class DataSource(SerializableModel):
-    id: int = None
-    type: DatasourceType = field(default_factory=lambda: DatasourceType.TABLE)
+warn_renamed("supersetapiplus.base.datasource", "supersetapiplus.core.datasource", stacklevel=2)

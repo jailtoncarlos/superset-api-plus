@@ -1,0 +1,10 @@
+{
+ "cache_timeout": null,
+ "datasource_name_text": "main.cleaned_sales_data",
+ "datasource_type": "table",
+ "description": null,
+ "params": "{\"adhoc_filters\": [{\"clause\": \"WHERE\", \"comparator\": \"No filter\", \"expressionType\": \"SIMPLE\", \"operator\": \"TEMPORAL_RANGE\", \"subject\": \"order_date\"}], \"annotation_layers\": [], \"color_scheme\": \"supersetColors\", \"columns\": [\"year\", \"product_line\"], \"dashboards\": [], \"datasource\": \"22__table\", \"date_format\": \"smart_date\", \"extra_form_data\": {}, \"label_type\": \"key\", \"linear_color_scheme\": \"superset_seq_1\", \"metric\": \"count\", \"number_format\": \"~g\", \"row_limit\": 10000, \"show_labels\": true, \"show_labels_threshold\": 5, \"viz_type\": \"sunburst_v2\"}",
+ "query_context": null,
+ "slice_name": "Sunburst",
+ "viz_type": "sunburst_v2"
+}

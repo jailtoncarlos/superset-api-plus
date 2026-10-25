@@ -1,0 +1,10 @@
+{
+ "cache_timeout": null,
+ "datasource_name_text": "main.cleaned_sales_data",
+ "datasource_type": "table",
+ "description": null,
+ "params": "{\"adhoc_filters\": [{\"clause\": \"WHERE\", \"comparator\": \"No filter\", \"expressionType\": \"SIMPLE\", \"operator\": \"TEMPORAL_RANGE\", \"subject\": \"order_date\"}], \"annotation_layers\": [], \"bins\": 10, \"color_scheme\": \"supersetAndPresetColors\", \"column\": \"quantity_ordered\", \"dashboards\": [], \"datasource\": \"22__table\", \"extra_form_data\": {}, \"groupby\": [\"deal_size\"], \"normalize\": false, \"row_limit\": 10000, \"show_legend\": true, \"show_value\": false, \"slice_id\": 130, \"viz_type\": \"histogram_v2\"}",
+ "query_context": null,
+ "slice_name": "Histogram",
+ "viz_type": "histogram_v2"
+}

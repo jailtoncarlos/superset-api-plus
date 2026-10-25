@@ -1,37 +1,51 @@
 import logging
-from dataclasses import dataclass, field
-from typing import Union, Literal, get_args, Protocol, runtime_checkable, List
+from dataclasses import dataclass
+from typing import Any, ClassVar
 
-from supersetapiplus.base.base import SerializableModel, default_string, object_field
-from supersetapiplus.charts.types import FilterExpressionType, SqlMapType, \
-    GenericDataType, MetricType, \
-    ColumnType
+from pydantic import Field
+
+from supersetapiplus.charts.types import (
+    ColumnType,
+    FilterExpressionType,
+    GenericDataType,
+    MetricType,
+    TimeGrain,
+)
+from supersetapiplus.core.api_model import ApiModel
+from supersetapiplus.core.sentinels import MissingField
+from supersetapiplus.core.typing import SerializableOptional
 from supersetapiplus.exceptions import ValidationError
-from supersetapiplus.typing import SerializableOptional
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class AdhocMetricColumn(SerializableModel):
-    column_name: str = default_string()
-    id: SerializableOptional[int] = None
-    verbose_name: SerializableOptional[str] = None
-    description: SerializableOptional[str] = None
-    expression: SerializableOptional[str] = None
+class AdhocMetricColumn(ApiModel):
+    column_name: str = ''
+    id: int | None = None
+    verbose_name: str | None = None
+    description: str | None = None
+    expression: str | None = None
     filterable: bool = True
     groupby: bool = True
     is_dttm: bool = False
-    python_date_format: SerializableOptional[str] = None
-    type: SerializableOptional[SqlMapType] = None
+    python_date_format: str | None = None
+    type: SerializableOptional[str] = None  # native database type, e.g. "VARCHAR(255)"
     type_generic: SerializableOptional[GenericDataType] = None
 
-    def validate(self, data: dict):
-        if not self.column_name or self.type:
+    # Newer fields, as returned in the API JSON
+    advanced_data_type: str | None = None
+    is_certified: bool = False
+    certification_details: str | None = None
+    certified_by: str | None = None
+    warning_markdown: str | None = None
+
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
+        super().validate()
+        if not self.column_name or not self.type:
             raise ValidationError(message='At least the column_name and type fields must be informed.',
                                   solution='')
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         if self.id is None \
             and self.verbose_name is None\
             and self.description is None\
@@ -44,130 +58,147 @@ class AdhocMetricColumn(SerializableModel):
             return False
 
 
-@dataclass
-class AdhocMetric(SerializableModel):
-    expressionType: FilterExpressionType = field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
-    column: SerializableOptional[AdhocMetricColumn] = object_field(cls=AdhocMetricColumn, default_factory=AdhocMetricColumn)
-    label: SerializableOptional[str] = default_string()
-    hasCustomLabel: SerializableOptional[bool] = False
-    sqlExpression: SerializableOptional[str] = None
-    aggregate: SerializableOptional[MetricType] = None
-    timeGrain: SerializableOptional[str] = None
+class AdhocMetric(ApiModel):
+    expressionType: FilterExpressionType = Field(default_factory=lambda: FilterExpressionType.CUSTOM_SQL)
+    sqlExpression: str | None = None
+    label: SerializableOptional[str] = ''
+    hasCustomLabel: SerializableOptional[bool] = None
+    column: AdhocMetricColumn | None = None
+    aggregate: MetricType | None = None
+
+    timeGrain: SerializableOptional[TimeGrain] = None
     columnType: SerializableOptional[ColumnType] = None
 
-    def __post_init__(self):
-        super().__post_init__()
+    # Newer fields
+    optionName: SerializableOptional[str] = None
+    datasourceWarning: SerializableOptional[bool] = None
+
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
         if isinstance(self.column, AdhocMetricColumn) and self.column.is_empty():
-            self.column: SerializableOptional[AdhocMetricColumn] = None
+            self.column = None
 
 
-Metric = Union[AdhocMetric, Literal['count', 'sum', 'avg', 'min', 'max', 'count distinct']]
+# A string metric is the name of a metric saved in the dataset (free text, e.g. "count").
+Metric = AdhocMetric | str
 OrderByTyping = tuple[Metric, bool]
 
 
+@dataclass(frozen=True)
 class OrderBy:
-    def __init__(self, automate: bool = True, sort_ascending: bool = True):
-        self._automate = automate
-        self._sort_ascending = sort_ascending
+    """Automatic ordering when adding a metric.
 
-    def __str__(self):
-        return f'automate: {self._automate}, sort_ascending: {self._sort_ascending}'
+    `automate` generates the metric's orderby; `sort_ascending` sets the direction. Immutable, so that
+    the instance used as the default value of the add_*_metric methods can be shared.
+    """
+    automate: bool = True
+    sort_ascending: bool = True
 
-    @property
-    def automate(self):
-        self._automate
+    def __str__(self) -> str:
+        return f'automate: {self.automate}, sort_ascending: {self.sort_ascending}'
 
-    @property
-    def sort_ascending(self):
-        self._sort_ascending
+
+class _CountUnlessSql:
+    """Default aggregate of get_metric: COUNT for a simple metric, none for a SQL expression."""
+
+
+_COUNT_UNLESS_SQL = _CountUnlessSql()
 
 
 class MetricHelper:
     @classmethod
     def get_metric(cls, label: str,
-                   column: AdhocMetricColumn = None,
-                   sql_expression: str = None,
-                   aggregate: MetricType = MetricType.COUNT):
-        expression_type = FilterExpressionType.SIMPLE
-        if sql_expression:
-            expression_type = FilterExpressionType.CUSTOM_SQL
+                   column: AdhocMetricColumn | None = None,
+                   sql_expression: str | None = None,
+                   aggregate: MetricType | str | None | _CountUnlessSql = _COUNT_UNLESS_SQL) -> AdhocMetric:
+        """Adhoc metric: an aggregate of a column (SIMPLE) or a SQL expression (SQL).
 
+        A SQL metric takes neither a column nor an aggregate, and needs a label: without one Superset names
+        the result column after the expression (``get_metric_name``, superset/utils/core.py, 6.1.0).
+        """
+        if isinstance(aggregate, _CountUnlessSql):
+            aggregate = None if sql_expression else MetricType.COUNT
+        expression_type = FilterExpressionType.CUSTOM_SQL if sql_expression else FilterExpressionType.SIMPLE
+        if sql_expression:
+            cls.check_sql_metric(label, column, aggregate)
         if aggregate:
             cls.check_aggregate(aggregate)
-            aggregate = str(aggregate).upper()
-
-        has_custom_label = False
+        metric = AdhocMetric(expressionType=expression_type, hasCustomLabel=bool(label), column=column,
+                             sqlExpression=sql_expression,
+                             aggregate=MetricType(str(aggregate).upper()) if aggregate else None)
         if label:
-            has_custom_label = True
-
-        _metric = {
-            "expressionType": str(expression_type),
-            "hasCustomLabel": has_custom_label,
-            'column': column,
-            'sqlExpression': sql_expression,
-            'aggregate': aggregate
-        }
-        if has_custom_label:
-            _metric['label'] = label
-
-        return AdhocMetric(**_metric)
+            metric.label = label
+        return metric
 
     @classmethod
-    def check_metric(cls, value):
-        simple_metrics = get_args(get_args(Metric)[-1])
-        if str(value) not in simple_metrics:
-            raise ValidationError(message='Metric not found.',
-                                  solution=f'Use one of the options:{simple_metrics}')
+    def check_metric(cls, value: object) -> None:
+        if not isinstance(value, str) or not value.strip():
+            raise ValidationError(message='A simple metric is the name of a metric saved in the dataset.',
+                                  solution='Pass the metric name, e.g. "count", or use add_custom_metric.')
 
     @classmethod
-    def check_aggregate(cls, value):
+    def check_sql_metric(cls, label: str, column: object, aggregate: object) -> None:
+        if column is not None or aggregate:
+            raise ValidationError(message='A SQL metric takes neither a column nor an aggregate.',
+                                  solution='Write the aggregation in the SQL expression, e.g. "SUM(total)".')
+        if not label or not label.strip():
+            raise ValidationError(message='A SQL metric needs a label.',
+                                  solution='Pass the label shown for the metric (the column name of the result).')
+
+    @classmethod
+    def check_aggregate(cls, value: object) -> None:
         list_aggregates = [e.value for e in MetricType]
-        if str(value) not in list_aggregates:
+        if str(value).upper() not in list_aggregates:
             raise ValidationError(message='Aggregate not found.',
-                                  solution=f'Use o enum types.MetricType')
+                                  solution='Use the types.MetricType enum')
 
 
-@runtime_checkable
-class SupportsMetrics(Protocol):
-    # This is a protocol that defines the expected structure of classes that have metrics.
-    metrics: List[Metric]
+class MetricsListMixin(ApiModel):
+    # MissingField when the key was absent in the JSON read, or the plugin has no metrics control.
+    metrics: list[Metric] | MissingField = Field(default_factory=list)
 
+    def _editable_metrics(self) -> list[Metric]:
+        if not isinstance(self.metrics, list):
+            self.metrics = []
+        return self.metrics
 
-class MetricsListMixin:
-    def _add_simple_metric(self: SupportsMetrics, metric: str, automatic_order: OrderBy):
+    def _add_simple_metric(self, metric: str, automatic_order: OrderBy) -> None:
         MetricHelper.check_metric(metric)
-        self.metrics.append(metric)
+        self._editable_metrics().append(metric)
 
-    def _add_custom_metric(self: SupportsMetrics,
+    def _add_custom_metric(self,
                            label: str,
                            automatic_order: OrderBy,
-                           column: AdhocMetricColumn,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
+                           column: AdhocMetricColumn | None,
+                           sql_expression: str | None = None,
+                           aggregate: MetricType | str | None = None) -> None:
         metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)
-        self.metrics.append(metric)
+        self._editable_metrics().append(metric)
 
 
-@runtime_checkable
-class SupportsMetric(Protocol):
-    # This is a protocol that defines the expected structure of classes that have metric.
-    metric: Metric
+class SingleMetricMixin(ApiModel):
+    metric: Metric | None = None
+    # Absent unless the plugin has the control (pie: default true; word_cloud: set by automatic ordering).
+    sort_by_metric: SerializableOptional[bool] = None
+    # Whether the automatic ordering of add_*_metric maps to sort_by_metric (False for big numbers).
+    _sorts_by_metric: ClassVar[bool] = True
 
+    def _sort_by_metric(self, automatic_order: OrderBy) -> None:
+        if self._sorts_by_metric and automatic_order and automatic_order.automate:
+            self.sort_by_metric = True
 
-class SingleMetricMixin:
-    def _add_simple_metric(self: SupportsMetric, metric: str, automatic_order: OrderBy):
+    def _add_simple_metric(self, metric: str, automatic_order: OrderBy) -> None:
         MetricHelper.check_metric(metric)
         self.metric = metric
-        if automatic_order and automatic_order.automate:
-            self.sort_by_metric = True
+        self._sort_by_metric(automatic_order)
 
-    def _add_custom_metric(self: SupportsMetric, label: str,
+    def _add_custom_metric(self, label: str,
                            automatic_order: OrderBy,
-                           column: AdhocMetricColumn,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
-        if not aggregate:
-            raise ValidationError(message='Argument aggregate cannot be empty.')
-        if automatic_order and automatic_order.automate:
-            self.sort_by_metric = True
+                           column: AdhocMetricColumn | None,
+                           sql_expression: str | None = None,
+                           aggregate: MetricType | str | None = None) -> None:
+        if not aggregate and not sql_expression:
+            raise ValidationError(message='Argument aggregate cannot be empty.',
+                                  solution='Pass an aggregate, or a sql_expression for a SQL metric.')
+        self._sort_by_metric(automatic_order)
         self.metric = MetricHelper.get_metric(label, column, sql_expression, aggregate)

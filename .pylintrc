@@ -1,0 +1,81 @@
+[MASTER]
+ignore=.github,submodules
+
+# Path of additional modules to include.
+# init-hook='import sys; sys.path.append("submodules/app")'
+
+# Optional pylint plugins
+# load-plugins=pylint_django
+# django-settings-module=djud.settings
+
+# Complexity limit allowed for a function/method
+# max-complexity=10
+
+# Recursion depth limit in the code
+# max-recursion-depth=20
+
+# Set the default encoding
+# encoding=utf-8
+
+[MESSAGES CONTROL]
+# Disable specific message categories
+disable=C0114,  # Missing module docstring
+        C0115,  # Missing class docstring
+        C0116,  # Missing function or method docstring
+#        C0301,  # Line too long. black already formats it.
+        R0801,  # Duplicated code
+#        R0902,  # Too many instance attributes
+#        R0903,  # Too few public methods
+#        R0904,  # Too many public methods
+#        R0913,  # Too many arguments
+#        R0914,  # Too many local variables
+#        R0915,  # Too many statements
+#        R1705,  # Unnecessary "else" after "return"
+#        R1706   # Simplifiable "if" statement
+
+[REPORTS]
+# Report type, without the most detailed ones
+output-format=colorized
+reports=no
+score=yes
+
+[FORMAT]
+# Maximum number of characters per line
+max-line-length=80
+
+# Number of lines allowed in a function before the warning
+# max-function-length=50
+
+# Function name pattern
+function-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Accepted short names
+good-names=i,j,k,ex,Run,_,pk,id,db
+
+[DESIGN]
+# Design and complexity limits
+max-args=10  # Maximum number of arguments in functions/methods
+max-locals=50  # Maximum number of local variables
+max-returns=6  # Maximum number of return points in a function
+max-branches=12  # Maximum number of branches in decision structures
+max-statements=100  # Maximum number of statements in a function
+max-parents=7  # Maximum number of base classes
+max-attributes=10  # Maximum number of attributes in a class
+min-public-methods=0  # Minimum number of public methods
+max-public-methods=20  # Maximum number of public methods
+
+[TYPECHECK]
+# Ignore some typing errors to avoid unnecessary warnings
+ignored-modules=logging,django
+ignored-classes=builtins.object,QLObjectS,SQLAlchemy,sqlalchemy.orm.decl_api.Base,optparse.Values,thread._local,_thread._local
+
+
+# [IMPORTS]
+# Allow standard imports even if not explicitly used in the code
+# known-standard-library=numpy, pandas, os, sys
+# known-third-party=requests, flask, django
+
+[LOGGING]
+# Logging configuration
+logging-format-style=new
+logging-modules=logging

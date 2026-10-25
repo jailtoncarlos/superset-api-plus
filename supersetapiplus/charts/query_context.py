@@ -1,66 +1,76 @@
-from abc import abstractmethod
-from dataclasses import dataclass
-from typing import List
+from typing import Any
 
-from supersetapiplus.base.base import SerializableModel, object_field
-from supersetapiplus.base.datasource import DataSource
-from supersetapiplus.charts.metric import OrderBy
+from pydantic import Field
+
+from supersetapiplus.charts.metric import AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
-from supersetapiplus.charts.queries import QuerySerializableModel, AdhocMetricColumn
-from supersetapiplus.charts.types import FilterOperatorType, FilterClausesType, MetricType, FilterExpressionType
+from supersetapiplus.charts.queries import Query
+from supersetapiplus.charts.types import (
+    FilterClausesType,
+    FilterExpressionType,
+    FilterOperatorType,
+    MetricType,
+    ResultFormat,
+    ResultType,
+)
+from supersetapiplus.core.api_model import ApiModel
+from supersetapiplus.core.datasource import DataSource
+from supersetapiplus.core.typing import FilterValues, SerializableOptional
 from supersetapiplus.exceptions import ChartValidationError, ValidationError
 
 
-@dataclass
 class FormData(Option):
     pass
 
 
-@dataclass
-class QueryContext(SerializableModel):
-    datasource: DataSource = object_field(cls=DataSource, default_factory=DataSource)
-    queries: List[QuerySerializableModel] = object_field(cls=QuerySerializableModel, default_factory=list)
-    form_data: FormData = object_field(cls=FormData, default_factory=FormData)
+class QueryContext(ApiModel):
+    datasource: DataSource = Field(default_factory=DataSource)
+    # Each chart type narrows these to its own classes (e.g. TableQueryObject, TableFormData).
+    queries: list[Any] = Field(default_factory=list)
+    form_data: Option = Field(default_factory=FormData)
 
-    @abstractmethod
-    def _default_query_object_class(self) -> type[QuerySerializableModel]:
-        raise NotImplementedError()
+    force: bool = False
+    result_format: SerializableOptional[ResultFormat] = Field(default_factory=lambda: ResultFormat.JSON)
+    result_type: SerializableOptional[ResultType] = Field(default_factory=lambda: ResultType.FULL)
 
-    def __post_init__(self):
-        self._automatic_order: OrderBy = None
+
+    def _default_query_object_class(self) -> type[Query]:
+        """Query object class of the chart type (each chart type's context returns its own)."""
+        return Query
+
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
+        self._automatic_order: OrderBy | None = None
 
     @property
-    def automatic_order(self):
-        if not hasattr(self, '_automatic_order'):
-            self._automatic_order: OrderBy = None
-        return self._automatic_order
+    def automatic_order(self) -> OrderBy | None:
+        return getattr(self, '_automatic_order', None)
 
-    def validate(self, data: dict):
-        super().validate(data)
+    def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
+        super().validate()
         if not self.queries:
             raise ValidationError(message='Field queries cannot be empty.',
                                   solution='Use one of the add_simple_metric or add_custom_metric methods to add a queries.')
 
         for query in self.queries:
-            query.validate(data)
+            query.validate()
 
-    def add_dashboard(self, dashboard_id):
+    def add_dashboard(self, dashboard_id: int) -> None:
         self.form_data.add_dashboard(dashboard_id)
 
     @property
-    def first_queries(self):
+    def first_queries(self) -> Query:
         if self.queries and len(self.queries) > 1:
             raise ChartValidationError("""There are more than one query in the queries list.
                                        We don't know which one to include the filter in.""")
         if not self.queries:
-            QueryObjectClass = self._default_query_object_class()
-            self.queries: List[QueryObjectClass] = []
+            self.queries = []
         if len(self.queries) == 0:
-            QueryObjectClass = self._default_query_object_class()
-            self.queries.append(QueryObjectClass())
-        return self.queries[-1]
+            self.queries.append(self._default_query_object_class()())
+        last: Query = self.queries[-1]
+        return last
 
-    def _add_simple_metric(self, metric: str, automatic_order: OrderBy):
+    def _add_simple_metric(self, metric: str, automatic_order: OrderBy) -> None:
         self._automatic_order = automatic_order
         self.form_data._add_simple_metric(metric, automatic_order)
         self.first_queries._add_simple_metric(metric, automatic_order)
@@ -69,9 +79,9 @@ class QueryContext(SerializableModel):
 
     def _add_custom_metric(self, label: str,
                            automatic_order: OrderBy,
-                           column: AdhocMetricColumn = None,
-                           sql_expression: str = None,
-                           aggregate: MetricType = None):
+                           column: AdhocMetricColumn | None = None,
+                           sql_expression: str | None = None,
+                           aggregate: MetricType | None = None) -> None:
         self._automatic_order = automatic_order
         self.form_data._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
         self.first_queries._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
@@ -79,29 +89,29 @@ class QueryContext(SerializableModel):
             self._add_custom_orderby(label, automatic_order.sort_ascending, column, sql_expression, aggregate)
 
     def _add_simple_orderby(self, column_name: str,
-                            sort_ascending: bool = True):
+                            sort_ascending: bool = True) -> None:
         self.first_queries._add_simple_orderby(column_name, sort_ascending)
 
     def _add_custom_orderby(self, label: str,
                             sort_ascending: bool,
-                            column: AdhocMetricColumn = None,
-                            sql_expression: str = None,
-                            aggregate: MetricType = None):
+                            column: AdhocMetricColumn | None = None,
+                            sql_expression: str | None = None,
+                            aggregate: MetricType | None = None) -> None:
         self.first_queries._add_custom_orderby(label, sort_ascending, column, sql_expression, aggregate)
 
-    def _add_simple_groupby(self, column_name: str):
+    def _add_simple_groupby(self, column_name: str) -> None:
         self.form_data._add_simple_groupby(column_name)
         self.first_queries._add_simple_columns(column_name)
 
     def _add_custom_groupby(self, label: str,
-                            column: AdhocMetricColumn = None,
-                            sql_expression: str = None,
-                            aggregate: MetricType = None):
+                            column: AdhocMetricColumn | None = None,
+                            sql_expression: str | None = None,
+                            aggregate: MetricType | None = None) -> None:
         self.form_data._add_custom_groupby(label, column, sql_expression, aggregate)
         self.first_queries._add_custom_columns(label, column, sql_expression, aggregate)
 
     def _add_simple_filter(self, column_name: str,
-                           value: str,
+                           value: FilterValues | None,
                            operator: FilterOperatorType = FilterOperatorType.EQUALS) -> None:
         self.form_data._adhoc_filters(expression_type=FilterExpressionType.SIMPLE,
                                    clause=FilterClausesType.WHERE,
@@ -111,11 +121,11 @@ class QueryContext(SerializableModel):
         self.first_queries._add_simple_filter(column_name, value, operator)
 
 
-    def _add_extra_where(self, sql: str):
+    def _add_extra_where(self, sql: str) -> None:
         self.form_data._adhoc_filters(expression_type=FilterExpressionType.CUSTOM_SQL,
                                    clause=FilterClausesType.WHERE,
                                    sql_expression=sql)
         self.first_queries._add_extra_where(sql)
 
-    def _add_extra_having(self, sql: str):
+    def _add_extra_having(self, sql: str) -> None:
         self.first_queries._add_extra_having(sql)

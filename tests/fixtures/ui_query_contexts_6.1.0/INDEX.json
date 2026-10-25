@@ -1,0 +1,21 @@
+{
+ "big_number": "Big Number with Trendline",
+ "big_number_total": "Big Number",
+ "box_plot": "Box Plot",
+ "bubble_v2": "Bubble",
+ "cal_heatmap": "saved from Explore (params in LEGACY_CHARTS, dataset cleaned_sales_data)",
+ "echarts_area": "Area",
+ "echarts_timeseries_bar": "Bar",
+ "echarts_timeseries_line": "Line",
+ "funnel": "Funnel",
+ "gauge_chart": "Gauge",
+ "heatmap_v2": "Heatmap",
+ "histogram_v2": "Histogram",
+ "mixed_timeseries": "Mixed",
+ "pie": "Pie",
+ "pivot_table_v2": "Pivot Table",
+ "sunburst_v2": "Sunburst",
+ "table": "Table",
+ "treemap_v2": "Treemap",
+ "word_cloud": "Word Cloud"
+}

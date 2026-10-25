@@ -1,0 +1,27 @@
+### Publish the package
+python setup.py sdist bdist_wheel
+twine upload --repository github dist/*
+
+### Test authentication
+- Check that the configuration is correct by running:
+twine check dist/*
+- publish the package
+twine upload --repository github dist/*
+
+
+### Configure permissions to access the private package
+By default, packages from private repositories can only be accessed by the repository owner.
+
+To allow other people to install the package, follow these steps:
+
+Go to GitHub → Settings → Packages.
+Select the package tabnet-data-framework.
+In the Manage Access section, add users or teams that can download the package.
+
+### How to install a private package from GitHub Packages?
+
+pip install --index-url https://pypi.pkg.github.com/your_user/ tabnet-data-framework
+
+
+### To install the package:
+pip install --index-url https://pypi.pkg.github.com/your_user/ tabnet-data-framework
