@@ -4,6 +4,7 @@ The secrets in real error logs are checked against the real Superset (tests/inte
 TLS verification stays mocked: the test stack serves plain HTTP, so `verify` cannot be observed on it.
 Multipart error logging uses a prepared request and a built response without HTTP: the contract under
 test is that the local logger never emits the uploaded content, regardless of the server's response.
+Database SSH logging also uses a built response: redaction is local and independent of server behavior.
 """
 import json
 import os
@@ -121,6 +122,47 @@ def test_multipart_import_error_logs_omit_credentials_and_uploaded_content(caplo
     assert "Response Status Code: 400" in caplog.text
     assert "Import rejected" in caplog.text
     assert request.body == original_body
+
+
+@pytest.mark.parametrize("method", ["POST", "PUT"])
+def test_database_ssh_credentials_are_masked_in_debug_and_error_logs(caplog, monkeypatch, method):
+    tunnel = {
+        "server_address": "ssh.example",
+        "private_key": "-----BEGIN PRIVATE KEY-----\nsynthetic-private-key\n-----END PRIVATE KEY-----",
+        "private_key_password": "synthetic-key-passphrase",
+    }
+    payload = {"database_name": "example", "ssh_tunnel": dict(tunnel)}
+    expected = {"database_name": "example", "ssh_tunnel": {
+        "server_address": "ssh.example", "private_key": MASK, "private_key_password": MASK,
+    }}
+    assert mask_request_kwargs({"json": payload}) == {"json": expected}
+    assert json.loads(mask_body(json.dumps(payload))) == expected
+    session = requests.Session()
+    sent = []
+
+    def reject_request(method, url, **kwargs):
+        request = requests.Request(method, url, json=kwargs["json"]).prepare()
+        sent.append(json.loads(request.body))
+        response = requests.Response()
+        response.status_code, response._content = 400, b'{"message": "Database rejected"}'
+        response.headers["Content-Type"] = "application/json"
+        response.request, response.url = request, request.url
+        return response
+
+    monkeypatch.setattr(session, "request", reject_request)
+    url = f"{HOST}/api/v1/database/" + ("1" if method == "PUT" else "")
+    with caplog.at_level("DEBUG", logger="supersetapiplus.transport.http"):
+        with pytest.raises(requests.HTTPError):
+            RequestHandler.request_with_retry(url, method=method, session=session, json=payload)
+
+    for level in ("DEBUG", "ERROR"):
+        logged = "\n".join(record.getMessage() for record in caplog.records if record.levelname == level)
+        assert "example" in logged
+        assert MASK in logged
+        assert "synthetic-private-key" not in logged
+        assert tunnel["private_key_password"] not in logged
+    assert sent == [{"database_name": "example", "ssh_tunnel": tunnel}]
+    assert payload == {"database_name": "example", "ssh_tunnel": tunnel}
 
 
 def test_network_parameters_come_from_the_environment():
