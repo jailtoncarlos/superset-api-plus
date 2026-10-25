@@ -83,7 +83,7 @@ class Chart(ApiModel):
     query_context: QueryContext | None = Field(default_factory=QueryContext)
 
     datasource_id: SerializableOptional[int] = None
-    datasource_type: SerializableOptional[DatasourceType] = None
+    datasource_type: SerializableOptional[DatasourceType] = DatasourceType.TABLE
     cache_timeout: int | None = None
 
     dashboards: SerializableNotToJson[list[Dashboard]] = Field(default_factory=list)
