@@ -281,3 +281,20 @@ def test_query_context_of_a_saved_chart_targets_its_dataset_not_the_stale_params
     assert context["datasource"] == {"id": 20, "type": "table"}
     assert context["form_data"]["datasource"] == "20__table"
     assert json.loads(chart.to_json()["params"])["datasource"] == "21__table"  # params written back as read
+
+
+def test_raw_table_read_with_metrics_left_in_params_derives_its_query_context():
+    """Issue #20: the example table "Most Popular Games" is in raw mode and keeps metrics: ["count"] in params
+    (Explore keeps them when the user switches from aggregate to raw); its buildQuery sends no metrics."""
+    params = {"viz_type": "table", "datasource": "20__table", "query_mode": "raw", "metrics": ["count"],
+              "all_columns": ["name", "platform"], "groupby": [], "order_by_cols": [], "row_limit": 10}
+    chart = Chart.for_viz_type("table").from_json(
+        {"id": 6, "slice_name": "Most Popular Games", "viz_type": "table", "params": json.dumps(params),
+         "query_context": None, "datasource_id": 20, "datasource_type": "table"})
+    chart.derive_query_context()
+
+    query_context = json.loads(chart.to_json()["query_context"])
+
+    assert query_context["queries"][0]["columns"] == ["name", "platform"]
+    assert not query_context["queries"][0].get("metrics")
+    assert json.loads(chart.to_json()["params"])["metrics"] == ["count"]  # params written back as read

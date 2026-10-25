@@ -14,6 +14,8 @@
 * The query context derived for a chart (`ui_query_context()`, `derive_query_context()`) targets the chart's own
   dataset (`datasource_id`/`datasource_type`), as Superset does (`Slice.form_data`), instead of a stale
   `params.datasource` (e.g. charts imported from another instance, such as the Superset examples) (#19).
+* The query context of a raw-mode table whose params keep the metrics of the aggregate mode (as Explore keeps
+  them) is no longer rejected: in raw mode the table query has no metrics (#20).
 
 ## 2.0.2 (2026-10-25)
 
