@@ -8,7 +8,9 @@ from typing import Any, Protocol
 import requests
 
 from supersetapiplus.charts.charts import Chart, Charts
+from supersetapiplus.core.references import SavedChart
 from supersetapiplus.dashboards.dashboards import Dashboard, Dashboards
+from supersetapiplus.dashboards.layout import DEFAULT_CHART_WIDTH, DEFAULT_HEIGHT, LayoutParent
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.exceptions import ChartValidationError, DashboardValidationError
 from supersetapiplus.resources.datasets import Datasets
@@ -63,25 +65,30 @@ class DashboardCharts:
             self.add_to_dashboard(chart_id, dashboard.id)
         return chart_ids
 
-    def add_chart(self, dashboard: Dashboard, chart: Chart, title: str | None = None, parent: Any = None,
-                  **placement: Any) -> None:
+    def add_chart(self, dashboard: Dashboard, chart: Chart | SavedChart, title: str | None = None,
+                  parent: LayoutParent = None, height: int = DEFAULT_HEIGHT, width: int = DEFAULT_CHART_WIDTH,
+                  id: str | None = None, skip_existing: bool = False) -> None:
         """
         Places the chart in the dashboard layout and associates it with the dashboard in Superset.
 
         The dashboard must be saved (have an id). A chart without an id is created first. The association
         is made by a PUT on the chart; the layout and json_metadata are only stored on the dashboard's
-        next save(). `placement` takes the layout options (height, width, id).
+        next save(). `chart` is a library Chart or a saved chart reference (a ChartRef); only a library Chart can
+        be created. `height`, `width`, `id` and `skip_existing` are the layout options of DashboardLayout.add_chart.
         """
         if not dashboard.id:
             raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the '
                                            'client.dashboards.add([this-dashboard]) method.')
         if not chart.id:
+            if not isinstance(chart, Chart):
+                raise ChartValidationError("Only a library Chart can be created: save the chart before placing it.")
             self.client.charts.add(chart)
         dashboard.metadata.add_chart(chart)
-        dashboard.position.add_chart(chart, title=title, parent=parent, **placement)
-        self.add_to_dashboard(chart, dashboard.id)
+        dashboard.position.add_chart(chart, title=title, parent=parent, height=height, width=width, id=id,
+                                     skip_existing=skip_existing)
+        self.add_to_dashboard(chart if isinstance(chart, Chart) else int(chart.id or 0), dashboard.id)
 
-    def add_and_attach_to_dashboard(self, chart: Chart, title: str, parent: Any = None) -> int:
+    def add_and_attach_to_dashboard(self, chart: Chart, title: str, parent: LayoutParent = None) -> int:
         """
         Creates the chart and places it in the layout of the dashboard the source chart belongs to.
 

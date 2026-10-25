@@ -10,13 +10,14 @@ from __future__ import annotations
 import copy
 import warnings
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypeAlias
 
 import shortuuid
 from pydantic import Field, PrivateAttr, SerializationInfo, SerializerFunctionWrapHandler, model_serializer, model_validator
 
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.enums import StringEnum
+from supersetapiplus.core.references import SavedChart
 from supersetapiplus.dashboards.layout.validation import layout_problems
 from supersetapiplus.exceptions import LayoutWarning, NodePositionValidationError
 
@@ -101,6 +102,11 @@ class LayoutComponent:
     @property
     def children(self) -> list[LayoutComponent]:
         return [LayoutComponent(self.layout, child) for child in self.data.get("children", [])]
+
+
+#: Where a component goes: a component returned by the ``add_*`` methods, a component id, or None (the default
+#: place of each method, e.g. the grid).
+LayoutParent: TypeAlias = LayoutComponent | str | None
 
 
 class DashboardLayout(ApiModel):
@@ -238,11 +244,11 @@ class DashboardLayout(ApiModel):
         if HEADER_ID in self.components:
             self.components[HEADER_ID].setdefault("meta", {})["text"] = title
 
-    def add_tabs(self, parent: Any = None, id: str | None = None) -> LayoutComponent:
+    def add_tabs(self, parent: LayoutParent = None, id: str | None = None) -> LayoutComponent:
         """Tabs container. Without `parent`, top-level tabs go inside the grid (ROOT → GRID → TABS)."""
         return self._add("TABS", parent or GRID_ID, {}, id)
 
-    def add_tab(self, title: str, parent: Any = None, id: str | None = None) -> LayoutComponent:
+    def add_tab(self, title: str, parent: LayoutParent = None, id: str | None = None) -> LayoutComponent:
         """Tab inside a TABS container; without `parent`, uses the last top-level TABS (creating it if needed)."""
         if parent is None:
             grid = self.find_by_id(GRID_ID)
@@ -250,19 +256,19 @@ class DashboardLayout(ApiModel):
             parent = grid_tabs[-1] if grid_tabs else self.add_tabs()
         return self._add("TAB", parent, {"text": title}, id)
 
-    def add_row(self, parent: Any = None, background: Background | str = Background.TRANSPARENT,
+    def add_row(self, parent: LayoutParent = None, background: Background | str = Background.TRANSPARENT,
                 id: str | None = None) -> LayoutComponent:
         return self._add("ROW", parent or GRID_ID, {"background": str(background)}, id)
 
-    def add_header(self, text: str, parent: Any = None, size: HeaderSize | str = HeaderSize.MEDIUM,
+    def add_header(self, text: str, parent: LayoutParent = None, size: HeaderSize | str = HeaderSize.MEDIUM,
                    background: Background | str = Background.TRANSPARENT, id: str | None = None) -> LayoutComponent:
         meta = {"text": text, "headerSize": str(size), "background": str(background)}
         return self._add("HEADER", parent or GRID_ID, meta, id)
 
-    def add_divider(self, parent: Any = None, id: str | None = None) -> LayoutComponent:
+    def add_divider(self, parent: LayoutParent = None, id: str | None = None) -> LayoutComponent:
         return self._add("DIVIDER", parent or GRID_ID, {}, id)
 
-    def add_markdown(self, code: str, parent: Any = None, height: int | None = DEFAULT_HEIGHT,
+    def add_markdown(self, code: str, parent: LayoutParent = None, height: int | None = DEFAULT_HEIGHT,
                      width: int = DEFAULT_CHART_WIDTH,
                      id: str | None = None) -> LayoutComponent:
         """Markdown block; ``height=None`` omits the height from ``meta``, as some exports do."""
@@ -272,7 +278,7 @@ class DashboardLayout(ApiModel):
             meta["height"] = height
         return self._add("MARKDOWN", self._row_for(parent, width), meta, id)
 
-    def add_column(self, parent: Any = None, width: int = DEFAULT_CHART_WIDTH,
+    def add_column(self, parent: LayoutParent = None, width: int = DEFAULT_CHART_WIDTH,
                    background: Background | str = Background.TRANSPARENT, id: str | None = None) -> LayoutComponent:
         """Column (charts, markdown and rows stacked vertically) of `width` grid columns.
 
@@ -282,20 +288,21 @@ class DashboardLayout(ApiModel):
         _check_size(width, None)
         return self._add("COLUMN", self._row_for(parent, width), {"width": width, "background": str(background)}, id)
 
-    def add_chart(self, chart: Any, title: str | None = None, parent: Any = None, height: int = DEFAULT_HEIGHT,
+    def add_chart(self, chart: SavedChart, title: str | None = None, parent: LayoutParent = None, height: int = DEFAULT_HEIGHT,
                   width: int = DEFAULT_CHART_WIDTH, id: str | None = None,
                   skip_existing: bool = False) -> LayoutComponent:
         """Place a saved chart (a library Chart or a :class:`ChartRef`); `title` becomes ``sliceNameOverride``.
 
         With ``skip_existing=True`` a chart already in the layout is not placed again: its component is returned.
         """
-        if not getattr(chart, "id", None):
+        chart_id = chart.id
+        if not chart_id:
             raise NodePositionValidationError("Save the chart before placing it in a layout (chart.id is empty).")
-        existing = self._chart_components(chart.id) if skip_existing else []
+        existing = self._chart_components(chart_id) if skip_existing else []
         if existing:
             return existing[0]
         _check_size(width, height)
-        meta: dict[str, Any] = {"chartId": chart.id, "sliceName": chart.slice_name, "width": width, "height": height}
+        meta: dict[str, Any] = {"chartId": chart_id, "sliceName": chart.slice_name, "width": width, "height": height}
         uuid = getattr(chart, "uuid", None)
         if uuid:
             meta["uuid"] = str(uuid)
@@ -303,7 +310,7 @@ class DashboardLayout(ApiModel):
             meta["sliceNameOverride"] = title
         return self._add("CHART", self._row_for(parent, width), meta, id)
 
-    def add_chart_grid(self, charts: list[Any], columns: int = 2, parent: Any = None,
+    def add_chart_grid(self, charts: list[SavedChart], columns: int = 2, parent: LayoutParent = None,
                        height: int = DEFAULT_HEIGHT) -> list[LayoutComponent]:
         """Places `charts` in new rows of `columns` charts each, every chart ``12 // columns`` grid columns wide."""
         if not 1 <= columns <= GRID_COLUMN_COUNT:
@@ -316,7 +323,7 @@ class DashboardLayout(ApiModel):
                           for chart in charts[start:start + columns])
         return placed
 
-    def add_chart_tabs(self, tabs: dict[str, list[Any]], columns: int = 2, parent: Any = None,
+    def add_chart_tabs(self, tabs: dict[str, list[SavedChart]], columns: int = 2, parent: LayoutParent = None,
                        height: int = DEFAULT_HEIGHT) -> dict[str, LayoutComponent]:
         """A TABS container with one tab per title, each holding its charts in a grid (see add_chart_grid)."""
         container = self.add_tabs(parent)
@@ -326,10 +333,12 @@ class DashboardLayout(ApiModel):
             self.add_chart_grid(charts, columns, parent=created[title], height=height)
         return created
 
-    def remove_chart(self, chart: Any) -> int:
+    def remove_chart(self, chart: SavedChart | int) -> int:
         """Removes every placement of `chart` (a chart, a ChartRef or a chart id) and the rows and columns left
         empty; returns how many placements were removed. The paths (`parents`) of the other components stay."""
         chart_id = chart if isinstance(chart, int) else chart.id
+        if chart_id is None:  # a chart never saved has no placement
+            return 0
         removed = self._chart_components(chart_id)
         for component in removed:
             self._remove(component.id)
@@ -352,7 +361,7 @@ class DashboardLayout(ApiModel):
                 return
             component_id = parent_id
 
-    def _row_for(self, parent: Any, width: int) -> str:
+    def _row_for(self, parent: LayoutParent, width: int) -> str:
         """Charts and markdown live in a ROW or COLUMN; inside a grid or tab, reuse its last row with room."""
         parent_id = self._resolve(parent or GRID_ID)
         if self.components[parent_id]["type"] in ("ROW", "COLUMN"):
@@ -379,13 +388,13 @@ class DashboardLayout(ApiModel):
     def _row_width(self, row_id: str) -> int:
         return sum(self.components[c].get("meta", {}).get("width", 0) for c in self.components[row_id].get("children", []))
 
-    def _resolve(self, parent: Any) -> str:
+    def _resolve(self, parent: LayoutParent) -> str:
         parent_id = parent.id if isinstance(parent, LayoutComponent) else str(parent)
         if parent_id not in self.components:
             raise NodePositionValidationError(f"Unknown parent component {parent_id}.")
         return parent_id
 
-    def _add(self, component_type: str, parent: Any, meta: dict[str, Any],
+    def _add(self, component_type: str, parent: LayoutParent, meta: dict[str, Any],
              component_id: str | None) -> LayoutComponent:
         parent_id = self._resolve(parent)
         parent_data = self.components[parent_id]

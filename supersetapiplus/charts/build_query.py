@@ -20,7 +20,7 @@ import copy
 import math
 import re
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TypeGuard
 
 UNSET = type("Unset", (), {"__repr__": lambda self: "UNSET", "__bool__": lambda self: False})()
 
@@ -48,48 +48,48 @@ _RESERVED_EXTRA_FILTER_COLUMNS = {
 
 # --- helpers from @superset-ui/core ----------------------------------------------------------------
 
-def ensure_list(value: Any) -> list[Any]:
+def ensure_list(value: object) -> list[Any]:
     if value is None or value is UNSET:
         return []
     return list(value) if isinstance(value, (list, tuple)) else [value]
 
 
-def defined(value: Any) -> bool:
+def defined(value: object) -> bool:
     return value is not None and value is not UNSET
 
 
-def is_empty(value: Any) -> bool:
+def is_empty(value: object) -> bool:
     """lodash ``isEmpty``: empty collections, and anything that is not a non-empty collection or string."""
     if isinstance(value, (str, list, tuple, dict)):
         return len(value) == 0
     return True
 
 
-def is_physical_column(column: Any) -> bool:
+def is_physical_column(column: object) -> TypeGuard[str]:
     return isinstance(column, str)
 
 
-def is_adhoc_column(column: Any) -> bool:
+def is_adhoc_column(column: object) -> TypeGuard[dict[str, Any]]:
     return (isinstance(column, dict) and "sqlExpression" in column and "label" in column
             and column.get("expressionType", "SQL") == "SQL")
 
 
-def is_query_form_column(column: Any) -> bool:
+def is_query_form_column(column: object) -> TypeGuard[str | dict[str, Any]]:
     return is_physical_column(column) or is_adhoc_column(column)
 
 
-def is_query_form_metric(metric: Any) -> bool:
+def is_query_form_metric(metric: object) -> bool:
     return isinstance(metric, str) or (isinstance(metric, dict) and metric.get("expressionType") in ("SIMPLE", "SQL"))
 
 
-def column_label(column: Any) -> str | None:
+def column_label(column: str | dict[str, Any]) -> str | None:
     if isinstance(column, str):
         return column
     label: str | None = column.get("label") or column.get("sqlExpression")
     return label
 
 
-def metric_label(metric: Any) -> str | None:
+def metric_label(metric: str | dict[str, Any]) -> str | None:
     if isinstance(metric, str):
         return metric
     if metric.get("label"):
@@ -111,7 +111,7 @@ def remove_duplicates(items: list[Any], key: Callable[..., Any] = lambda item: i
     return result
 
 
-def js_number(value: Any) -> Any:
+def js_number(value: object) -> Any:
     """``Number(value)``; NaN for values that are not numbers."""
     if isinstance(value, bool):
         return int(value)
@@ -124,7 +124,7 @@ def js_number(value: Any) -> Any:
     return int(number) if number.is_integer() else number
 
 
-def js_int(value: Any, default: float) -> float:
+def js_int(value: object, default: float) -> float:
     """``ensureIsInt``: ``parseInt`` with a default for values that are not integers (NaN for plain parseInt)."""
     match = re.match(r"\s*([+-]?\d+)", str(value)) if defined(value) else None
     return int(match.group(1)) if match else default
@@ -133,13 +133,13 @@ def js_int(value: Any, default: float) -> float:
 _JS_FLOAT = re.compile(r"\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)")
 
 
-def js_float(value: Any) -> float:
+def js_float(value: object) -> float:
     """``parseFloat``: the leading number of the text; NaN when there is none."""
     match = _JS_FLOAT.match(str(value)) if defined(value) else None
     return float(match.group(1)) if match else math.nan
 
 
-def drop_unset(value: Any) -> Any:
+def drop_unset(value: object) -> Any:
     """Removes ``UNSET`` keys recursively, as ``JSON.stringify`` drops ``undefined`` (and writes NaN as null)."""
     if isinstance(value, float) and math.isnan(value):
         return None
@@ -405,7 +405,7 @@ def extra_metrics(form_data: dict[str, Any]) -> list[Any]:
     return []
 
 
-def js_truthy(value: Any) -> bool:
+def js_truthy(value: object) -> bool:
     """JavaScript truthiness: empty lists and dicts are truthy."""
     if isinstance(value, (list, dict)):
         return True
@@ -579,7 +579,7 @@ def _temporal_base_axis(column: Any, form_data: dict[str, Any], time_grain: Any)
 
 def build_pie(form_data: dict[str, Any]) -> dict[str, Any]:
     metric = form_data.get("metric")
-    label = metric_label(metric)
+    label = metric_label(metric) if metric else UNSET  # no metric: the frontend fails as well
 
     def build(base: dict[str, Any]) -> list[Any]:
         query = {**base, "post_processing": [{"operation": "contribution", "options": {
@@ -602,12 +602,12 @@ def build_word_cloud(form_data: dict[str, Any]) -> dict[str, Any]:
     return build_query_context(form_data, lambda base: [{**base, "orderby": orderby} if apply else base])
 
 
-def build_columns_orderby(columns: Any, ascending: bool = True) -> list[Any]:
+def build_columns_orderby(columns: object, ascending: bool = True) -> list[Any]:
     """``buildColumnsOrderBy`` (plugin-chart-echarts utils/orderby.ts): physical columns only."""
     return [[column, ascending] for column in ensure_list(columns) if isinstance(column, str) and column != ""]
 
 
-def apply_orderby(orderby: list[Any], row_limit: Any) -> dict[str, Any]:
+def apply_orderby(orderby: list[Any], row_limit: object) -> dict[str, Any]:
     """``applyOrderBy``: the orderby, unless there is no row limit or it is 0 (a non-numeric text applies)."""
     if not defined(row_limit) or not orderby:
         return {}
@@ -871,7 +871,7 @@ def histogram_operator(form_data: dict[str, Any], query: dict[str, Any]) -> Any:
     """``histogramOperator``: ``bins`` is ``Number(bins)``, 5 when that is NaN."""
     bins = js_number(form_data["bins"]) if form_data.get("bins") is not None else (0 if "bins" in form_data else UNSET)
     return {"operation": "histogram", "options": {
-        "column": column_label(form_data.get("column")),
+        "column": column_label(column) if is_query_form_column(column := form_data.get("column")) else UNSET,
         "groupby": [column_label(c) for c in ensure_list(form_data.get("groupby", []))],
         "bins": 5 if bins is UNSET or (isinstance(bins, float) and math.isnan(bins)) else bins,
         "cumulative": form_data.get("cumulative", UNSET),

@@ -6,14 +6,16 @@ editor saves (``FiltersConfigModal/utils.ts::createHandleSave``, Superset 6.1.0)
 """
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 import shortuuid
 
 from supersetapiplus.core.enums import StringEnum
+from supersetapiplus.core.references import DatasetRef
 from supersetapiplus.core.types import GenericDataType
+from supersetapiplus.core.typing import FilterValue
 
 NATIVE_FILTER_PREFIX = "NATIVE_FILTER-"
 NATIVE_FILTER_DIVIDER_PREFIX = "NATIVE_FILTER_DIVIDER-"
@@ -79,7 +81,7 @@ def divider_config(title: str, description: str = "", id: str | None = None) -> 
     }
 
 
-def dataset_target(dataset: Any, column: str | None) -> dict[str, Any]:
+def dataset_target(dataset: DatasetRef | None, column: str | None) -> dict[str, Any]:
     """Filter target. Through the REST API Superset expects ``datasetId``; a ``str`` is taken as the
     dataset uuid (``datasetUuid``), which is the form used by dashboard import/export bundles.
 
@@ -94,7 +96,7 @@ def dataset_target(dataset: Any, column: str | None) -> dict[str, Any]:
         target["datasetUuid"] = dataset
     elif isinstance(dataset, int):
         target["datasetId"] = dataset
-    elif getattr(dataset, "id", None):
+    elif dataset.id:
         target["datasetId"] = dataset.id
     else:
         raise TypeError("dataset must be a saved Dataset, a dataset id or a dataset uuid.")
@@ -103,7 +105,7 @@ def dataset_target(dataset: Any, column: str | None) -> dict[str, Any]:
     return target
 
 
-def check_target_column(dataset: Any, column: str | None, filter_type: FilterType | str) -> None:
+def check_target_column(dataset: DatasetRef | None, column: str | None, filter_type: FilterType | str) -> None:
     """Checks the column against the dataset columns, when `dataset` carries them (a Dataset read from Superset).
 
     The column must exist, and a range filter needs a numeric column (``type_generic`` NUMERIC, the
@@ -129,7 +131,7 @@ def select_extra_form_data(column: str, values: list[Any], empty_filter: bool = 
     return {}
 
 
-def value_label(value: Any) -> str:
+def value_label(value: object) -> str:
     """Label of a selected value (``getDataRecordFormatter`` for values that are not dates)."""
     if value is None:
         return NULL_LABEL
@@ -169,9 +171,11 @@ def chart_scope(charts_in_scope: Iterable[int], layout_chart_ids: Iterable[int])
             "excluded": [chart_id for chart_id in layout_chart_ids if chart_id not in set(charts_in_scope)]}
 
 
-def filter_config(name: str, dataset: Any, column: str | None, parents: list[NativeFilterItem | str] | None = None,
+def filter_config(name: str, dataset: DatasetRef | None, column: str | None,
+                  parents: list[NativeFilterItem | str] | None = None,
                   filter_type: FilterType | str = FilterType.SELECT, adhoc_filters: list[Any] | None = None,
-                  description: str = "", id: str | None = None, default_value: Any = None,
+                  description: str = "", id: str | None = None,
+                  default_value: FilterValue | Sequence[FilterValue] | None = None,
                   **control_values: Any) -> dict[str, Any]:
     """Native filter as saved by the editor. Extra keyword arguments go to ``controlValues``, except the
     optional top-level keys ``time_range``, ``granularity_sqla``, ``sortMetric`` and ``defaultDataMask``.

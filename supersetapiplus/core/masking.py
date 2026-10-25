@@ -29,7 +29,7 @@ def mask_headers(headers: Mapping[str, Any] | None) -> dict[str, Any]:
     return {k: (MASK if k.lower() in SENSITIVE_HEADERS else v) for k, v in (headers or {}).items()}
 
 
-def mask_data(data: Any) -> Any:
+def mask_data(data: object) -> object:
     """Copy of a dict/list with sensitive-key values masked and URI passwords hidden."""
     if isinstance(data, Mapping):
         return {k: (MASK if _is_sensitive_key(k) else mask_data(v)) for k, v in data.items()}
@@ -40,7 +40,7 @@ def mask_data(data: Any) -> Any:
     return data
 
 
-def mask_body(body: Any) -> Any:
+def mask_body(body: object) -> object:
     """Mask a request/response body given as JSON, form-urlencoded or a Python structure."""
     if body is None or isinstance(body, (Mapping, list, tuple)):
         return mask_data(body)

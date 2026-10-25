@@ -21,6 +21,7 @@ from supersetapiplus.core.dicts import detailed_dict_diff
 from supersetapiplus.core.types import DatasourceType
 from supersetapiplus.core.typing import FilterValues, SerializableNotToJson, SerializableOptional
 from supersetapiplus.dashboards.dashboards import Dashboard
+from supersetapiplus.dashboards.layout import LayoutParent
 from supersetapiplus.exceptions import ChartValidationError, NotFound, UnsupportedTypeError, ValidationError
 from supersetapiplus.resources.repository import ApiModelFactories
 
@@ -418,7 +419,7 @@ class Charts(ApiModelFactories):
         updated: list[int] = self.client.dashboard_charts.add_to_dashboard(chart, dashboard_id)
         return updated
 
-    def add_and_attach_to_dashboard(self, chart: Chart, title: str, parent: Any = None) -> int:
+    def add_and_attach_to_dashboard(self, chart: Chart, title: str, parent: LayoutParent = None) -> int:
         """Creates the chart and places it in the dashboard of the source chart (see DashboardCharts)."""
         new_id: int = self.client.dashboard_charts.add_and_attach_to_dashboard(chart, title, parent)
         return new_id

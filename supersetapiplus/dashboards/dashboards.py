@@ -5,8 +5,9 @@ from pydantic import Field
 from typing_extensions import Self
 
 from supersetapiplus.core.api_model import ApiModel
+from supersetapiplus.core.references import SavedChart
 from supersetapiplus.core.typing import SerializableOptional
-from supersetapiplus.dashboards.layout import DashboardLayout
+from supersetapiplus.dashboards.layout import DashboardLayout, LayoutParent
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.exceptions import DashboardValidationError, UnsupportedTypeError
@@ -96,7 +97,7 @@ class Dashboard(ApiModel):
                 self.json_metadata.update_native_filter_scopes(self.position_json)
         return super().to_dict(columns, convert_to_json)
 
-    def add_chart(self, chart: Any, title: str, parent: Any = None, height: int = 50, width: int = 4,
+    def add_chart(self, chart: SavedChart, title: str, parent: LayoutParent = None, height: int = 50, width: int = 4,
                   id: str | None = None) -> None:
         """Places the chart in the layout and associates it with this dashboard in Superset (see DashboardCharts).
 

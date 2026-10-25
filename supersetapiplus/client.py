@@ -346,7 +346,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         return self.join_urls(self.base_url, "sqllab/execute/")
 
     @staticmethod
-    def join_urls(*args: Any) -> str:
+    def join_urls(*args: object) -> str:
         """Joins parts of a URL ensuring proper formatting."""
         parts = [str(part).strip("/") for part in args]
         if str(args[-1]).endswith("/"):
