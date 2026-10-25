@@ -12,6 +12,7 @@ import pytest
 
 from supersetapiplus.charts import build_query as bq
 from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.metric import OrderBy
 from supersetapiplus.charts.table import TableChart, TableOption
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.exceptions import ValidationError
@@ -240,6 +241,70 @@ def test_chart_built_in_code_sends_the_ui_query_context():
 
     assert sent == chart.ui_query_context()
     assert sent["queries"][0]["columns"] == ["campus"] and sent["queries"][0]["metrics"] == ["count"]
+
+
+@pytest.mark.parametrize("custom", [False, True])
+def test_chart_derivation_preserves_explicit_ordering(custom):
+    chart = TableChart(slice_name="T", datasource_id=7)
+    chart.add_simple_metric("count", automatic_order=OrderBy(automate=False))
+    chart.add_simple_dimension("campus")
+    if custom:
+        chart.add_custom_orderby("campus_order", True, sql_expression="MIN(campus)")
+    else:
+        chart.add_simple_orderby("campus", True)
+    chart.add_simple_orderby("count", False)
+    original_context = chart.query_context.to_dict()
+
+    payload = chart.to_json(columns=list(Chart.POST_FIELDS))
+    sent = json.loads(payload["query_context"])
+    ordering = sent["queries"][0]["orderby"]
+
+    if custom:
+        assert ordering[0][0]["sqlExpression"] == "MIN(campus)"
+        assert ordering[0][0]["label"] == "campus_order"
+    else:
+        assert ordering[0][0] == "campus"
+    assert ordering[0][1] is True
+    assert ordering[1] == ["count", False]
+    assert sent["form_data"] == json.loads(payload["params"])
+    assert chart.query_context.to_dict() == original_context
+    assert chart.to_json(columns=list(Chart.POST_FIELDS)) == payload
+
+
+@pytest.mark.parametrize("custom", [False, True])
+@pytest.mark.parametrize("automate", [False, True])
+def test_chart_derivation_preserves_metric_ordering_options(custom, automate):
+    chart = TableChart(slice_name="T", datasource_id=7)
+    order = OrderBy(automate=automate, sort_ascending=False)
+    if custom:
+        chart.add_custom_metric("total", sql_expression="SUM(total)", automatic_order=order)
+    else:
+        chart.add_simple_metric("count", automatic_order=order)
+
+    sent = json.loads(chart.to_json()["query_context"])
+    ordering = sent["queries"][0]["orderby"]
+
+    if not automate:
+        assert ordering == []
+    else:
+        metric = sent["queries"][0]["metrics"][0]
+        # TableQueryContext inverts the requested direction, as it does before derivation.
+        assert ordering == [[metric, True]]
+
+
+def test_explicit_ordering_leaves_derived_auxiliary_queries_unchanged():
+    chart = TableChart(slice_name="T", datasource_id=7)
+    chart.params.show_totals = True
+    chart.params.server_pagination = True
+    chart.add_simple_metric("count", automatic_order=OrderBy(automate=False))
+    chart.add_simple_dimension("campus")
+    chart.add_simple_orderby("campus", True)
+    expected = chart.ui_query_context()
+
+    sent = json.loads(chart.to_json()["query_context"])
+
+    assert sent["queries"][0]["orderby"] == [["campus", True]]
+    assert sent["queries"][1:] == expected["queries"][1:]
 
 
 def test_chart_read_from_superset_keeps_its_query_context_until_asked():

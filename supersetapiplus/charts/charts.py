@@ -99,6 +99,8 @@ class Chart(ApiModel):
     _dashboards: list[Any] = PrivateAttr(default_factory=list)
     # Rebuild the query_context from params on save (charts built in code; see derive_query_context).
     _derive_query_context: bool = False
+    # Keep builder ordering when the caller overrides the UI's default ordering.
+    _preserve_query_orderby: bool = False
 
 
     @classmethod
@@ -251,6 +253,7 @@ class Chart(ApiModel):
         self.params._add_simple_metric(metric, automatic_order)
         if self.query_context is not None:
             self.query_context._add_simple_metric(metric, automatic_order)
+            self._preserve_query_orderby |= automatic_order != OrderBy()
 
     def add_custom_metric(self, label: str,
                           automatic_order: OrderBy = OrderBy(),
@@ -260,11 +263,13 @@ class Chart(ApiModel):
         self.params._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
         if self.query_context is not None:
             self.query_context._add_custom_metric(label, automatic_order, column, sql_expression, aggregate)
+            self._preserve_query_orderby |= automatic_order != OrderBy()
 
     def add_simple_orderby(self, column_name: str,
                             sort_ascending: bool = True) -> None:
         if self.query_context is not None:
             self.query_context._add_simple_orderby(column_name, sort_ascending)
+            self._preserve_query_orderby = True
 
     def add_custom_orderby(self, label: str,
                              sort_ascending: bool,
@@ -273,6 +278,7 @@ class Chart(ApiModel):
                              aggregate: MetricType | None = None) -> None:
         if self.query_context is not None:
             self.query_context._add_custom_orderby(label, sort_ascending, column, sql_expression, aggregate)
+            self._preserve_query_orderby = True
 
     def add_simple_dimension(self, column_name: str) -> None:
         self.params._add_simple_groupby(column_name)
@@ -324,14 +330,22 @@ class Chart(ApiModel):
         """Query context the Superset UI derives from the current params (frontend buildQuery, 6.1.0)."""
         return query_context_for(self.params.to_dict())
 
+    def _derived_query_context(self) -> QueryContext:
+        template = type(self).model_fields['query_context'].get_default(call_default_factory=True)
+        # Load the UI payload losslessly: plugin queries may omit metrics or orderby.
+        context: QueryContext = type(template).from_json(self.ui_query_context())
+        if self._preserve_query_orderby and self.query_context is not None and self.query_context.queries:
+            # The builder methods target one query. Keep auxiliary queries (totals, row count, etc.)
+            # as the plugin derived them, and do not copy stale filters, columns or metrics.
+            context.queries[0].orderby = copy.deepcopy(self.query_context.queries[0].orderby)
+        return context
+
     def to_json(self, columns: list[str] | None = None) -> dict[str, Any]:
         chart = self
         if getattr(self, '_derive_query_context', False) and (not columns or 'query_context' in columns) \
                 and isinstance(self.params, ApiModel):
             self.params._check_tree()
-            template = type(self).model_fields['query_context'].get_default(call_default_factory=True)
-            # Load the UI payload losslessly: plugin queries may omit metrics or orderby.
-            context = type(template).from_json(self.ui_query_context())
+            context = self._derived_query_context()
             # Validate and serialize the replacement, keeping the stored context on the original chart.
             chart = self.model_copy(update={'query_context': context})
         return super(Chart, chart).to_json(columns)
