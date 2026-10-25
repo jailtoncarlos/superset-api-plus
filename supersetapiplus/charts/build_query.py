@@ -900,7 +900,7 @@ def build_heatmap(form_data: dict[str, Any]) -> dict[str, Any]:
     if normalize_across == "x":
         group_by = column_label(form_data.get("x_axis"))
     elif normalize_across == "y":
-        group_by = column_label(form_data.get("groupby"))
+        group_by = column_label(ensure_list(form_data.get("groupby"))[0])
     return build_query_context(form_data, lambda base: [{
         **base, "columns": columns, "orderby": orderby,
         "post_processing": [{"operation": "rank", "options": {"metric": metric, "group_by": group_by}}]}])

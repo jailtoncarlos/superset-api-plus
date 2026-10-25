@@ -167,13 +167,28 @@ def test_treemap_orders_by_metric_then_physical_groupby_columns_when_there_is_a_
     (None, None, "heatmap", [], None),
 ])
 def test_heatmap_sorts_each_axis_and_ranks_within_the_normalized_axis(sort_x, sort_y, normalize, orderby, group_by):
-    form_data = {**BASE, "viz_type": "heatmap_v2", "x_axis": "day", "groupby": "campus", "metric": "count",
+    form_data = {**BASE, "viz_type": "heatmap_v2", "x_axis": "day", "groupby": ["campus"], "metric": "count",
                  "sort_x_axis": sort_x, "sort_y_axis": sort_y, "normalize_across": normalize}
 
     (query,) = bq.query_context_for(form_data)["queries"]
 
     assert query["orderby"] == orderby
     assert query["post_processing"][0]["options"] == {"metric": "count", **({"group_by": group_by} if group_by else {})}
+
+
+@pytest.mark.parametrize("column, expected_label", [
+    ("campus", "campus"),
+    ({"label": "Campus name", "sqlExpression": "upper(campus)", "expressionType": "SQL"}, "Campus name"),
+])
+def test_heatmap_y_normalization_uses_the_selected_column_label(column, expected_label):
+    form_data = {**BASE, "viz_type": "heatmap_v2", "x_axis": "day", "groupby": [column], "metric": "count",
+                 "normalize_across": "y"}
+
+    (query,) = bq.query_context_for(form_data)["queries"]
+
+    assert query["columns"][1] == column
+    assert query["post_processing"] == [{"operation": "rank", "options": {
+        "metric": "count", "group_by": expected_label}}]
 
 
 @pytest.mark.parametrize("bins, expected", [(10, 10), ("15", 15), ("abc", 5), (None, 0)])
