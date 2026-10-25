@@ -39,15 +39,20 @@ class ObjectDecoder(json.JSONEncoder):
         '{"status": "ok"}'
 
     Methods:
-        default(obj): returns `str(obj.value)` if `obj` is an Enum instance;
+        default(obj): returns the value of an Enum instance (a number for integer enums);
                       otherwise delegates to the default behavior.
     """
 
     def default(self, obj: Any) -> Any:
-        # Convert Enum instances to their value as a string
+        # Convert Enum instances to their value: a number for integer enums, a string otherwise
         if isinstance(obj, Enum):
-            return str(obj.value)
+            return enum_value(obj)
         return super().default(obj)
+
+
+def enum_value(member: Enum) -> Any:
+    """Serialized value of an enum member: integer enums (IntEnum) stay numbers, the others are strings."""
+    return int(member) if isinstance(member, int) else str(member.value)
 
 
 class SerializableModel(ParseMixin, ABC):
@@ -191,7 +196,7 @@ class SerializableModel(ParseMixin, ABC):
             list: names of the relevant fields.
         """
         fields = []
-        for f in cls.fields():
+        for f in dataclasses.fields(cast(Any, cls)):  # declaration order (fields() is a set)
             # Skip fields whose default is an Object instance
             if not isinstance(f.default, SerializableModel):
                 fields.append(f.name)
@@ -425,7 +430,8 @@ class SerializableModel(ParseMixin, ABC):
             dict: dictionary representing the object's current state, with the fields converted.
         """
         data = {}
-        for field_name in set(columns or []) | set(self.field_names()):
+        # Declaration order, then the extra columns: the query of some plugins follows the key order.
+        for field_name in dict.fromkeys([*self.field_names(), *(columns or [])]):
             value = getattr(self, field_name, MissingField())
             if isinstance(value, MissingField):  # absent from the JSON read, or not mapped yet
                 continue
@@ -450,7 +456,7 @@ class SerializableModel(ParseMixin, ABC):
     def _serialize_value(self, field_name: str, value: Any, convert_to_json: bool) -> Any:
         """Serialized form of a field value (models, enums, lists, pairs and dictionaries of models)."""
         if isinstance(value, Enum):
-            return str(value)
+            return enum_value(value)
         if not value:
             return value
         if isinstance(value, SerializableModel):
@@ -470,7 +476,7 @@ class SerializableModel(ParseMixin, ABC):
         if isinstance(item, tuple):
             return _serialize_pair(field_name, item, convert_to_json)
         if isinstance(item, Enum):
-            return str(item)
+            return enum_value(item)
         return item
 
     def _serialize_dict(self, field_name: str, value: dict[Any, Any], convert_to_json: bool) -> dict[Any, Any]:

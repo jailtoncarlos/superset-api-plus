@@ -52,6 +52,9 @@ reorganized, tested package.
   without `adhoc_filters`; a chart whose stored `query_context` is null is edited through its params.
 * Forecast options of the derived query context follow `parseInt`/`parseFloat`: a missing or non-numeric
   `forecastInterval` no longer raises, and NaN is written as `null` (it produced invalid JSON).
+* Serialization: integer enums set in code are written as numbers (`LabelRotation.FORTY_FIVE` was sent as
+  `"45"`, a column's `type_generic` as `"1"`), and fields are written in declaration order (the order changed
+  from one Python process to the next, and the query of some plugins follows the form_data key order).
 
 ### Changed
 
