@@ -128,7 +128,11 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   `SUPERSET_INTEGRATION=1 pytest tests/integration`, then `docker compose -p superset-api-plus down -v`.
   They create and remove their own objects (prefix `zz-superset-api-plus-test`; the `cleanup` fixture
   removes them even when a test fails). Tests that create users
-  (`only_test_stack`) are skipped when `SUPERSET_URL` points to another instance. The Docker host may be
+  (`only_test_stack`) are skipped when `SUPERSET_URL` points to another instance. `tests/integration/test_examples/`
+  checks every example dashboard shipped with Superset (one module per dashboard; stack with
+  `SUPERSET_LOAD_EXAMPLES=1`, skipped without it): lossless round trip of the dashboard and its charts, chart
+  copies built by the library returning the data of the original, and a dashboard copy reading back like the
+  original. A defect it finds gets a unit test reproducing it; unmodeled viz_types are reported, not failed. The Docker host may be
   shared with other projects: only manage this compose project; never run `docker system/image/volume
   prune`.
 

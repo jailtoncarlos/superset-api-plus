@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+* Integration tests on the example dashboards shipped with Superset (`tests/integration/test_examples/`, one
+  module per dashboard, stack with `SUPERSET_LOAD_EXAMPLES=1`): lossless round trip of each dashboard and its
+  charts, chart copies built by the library returning the data of the original, and a dashboard copy reading
+  back like the original. They found the defects fixed below (#6).
+
 ### Fixed
 
 * Objects read from Superset are written back as read in three more cases found by the round trip of the

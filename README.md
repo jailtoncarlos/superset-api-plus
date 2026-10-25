@@ -308,6 +308,31 @@ The suite creates its own database, dataset, charts, dashboard and saved query (
 `zz-superset-api-plus-test`) and removes them. To target another instance instead, set
 `SUPERSET_URL`, `SUPERSET_USERNAME`, `SUPERSET_PASSWORD` and `SUPERSET_TEST_DATABASE_URI`.
 
+#### Tests on the Superset example dashboards
+
+`tests/integration/test_examples/` has one module per example dashboard shipped with Superset
+(`test_sales_dashboard.py`, `test_world_health.py`...). They run when the stack loads the examples
+(`SUPERSET_LOAD_EXAMPLES=1` in `.env`; loading takes a few minutes) and are skipped otherwise. For each
+dashboard (checks in `test_examples/examples.py`):
+
+- **round trip** (read only): the dashboard and each chart placed on it, read and re-serialized with
+  `to_json()`, give what Superset stored (`position_json`, `json_metadata`, `params`, `query_context`);
+- **chart copies**: each chart of a modeled viz_type is copied through the library, with the query context
+  derived from its params, and returns the data the original shows in the UI (the query the UI builds from
+  its params, sent to `/api/v1/chart/data`);
+- **dashboard copy**: a dashboard created through the library with the original layout and `json_metadata`,
+  chart ids remapped to the copies as the Superset dashboard import does, reads back like the original.
+
+Charts of a viz_type the library does not model yet are reported as `NotCoveredWarning` (in the pytest
+warnings summary), not failed: the list shows what the library does not cover. They are copied through the
+raw API, so the examples are never changed. The copies are removed at the end of each module.
+
+```bash
+sed -i 's/^SUPERSET_LOAD_EXAMPLES=.*/SUPERSET_LOAD_EXAMPLES=1/' .env
+docker compose -p superset-api-plus up -d --build      # wait until http://127.0.0.1:8089/health answers
+SUPERSET_INTEGRATION=1 pytest tests/integration/test_examples -W always::UserWarning
+```
+
 ### Configuration through environment variables
 
 | Variable | Default | Purpose |
