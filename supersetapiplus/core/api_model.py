@@ -113,7 +113,11 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
                 if name not in self.model_fields_set:  # absent key: stays absent when written back
                     self.__dict__[name] = MissingField()
         for name in self.JSON_FIELDS:
-            value = getattr(self, name) or "{}"
+            value = getattr(self, name)
+            # An empty structure, except for an optional field read from Superset: absent or null is kept, so
+            # it is not written back as {} (a json_metadata without default_filters stays without it).
+            if not (self._read_from_superset and _is_optional(type(self).model_fields[name])):
+                value = value or "{}"
             if isinstance(value, str):
                 self.__dict__[name] = json.loads(value)
         for name, info in type(self).model_fields.items():

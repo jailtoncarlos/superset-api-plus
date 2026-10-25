@@ -55,15 +55,15 @@ def test_reading_keeps_values_of_another_type_and_does_not_convert_scalars():
 
     assert (parent.title, parent.ratio, parent.child.size, parent.child.chart) == (7, 5, "10", "unknown_plugin")
     assert type(parent.ratio) is int and type(parent.rotation) is int  # 5 is not written back as 5.0
-    assert parent.to_dict() == {**stored, "blob": {}}  # JSON_FIELDS default to {} as in the dataclass engine
+    assert parent.to_dict() == stored
 
 
 def test_absent_keys_stay_absent_and_unmodeled_keys_are_kept():
     parent = Parent.from_json({"title": "T", "child": {"extra_key": [1]}, "unknown": {"a": None}})
 
     assert isinstance(parent.ratio, MissingField) and isinstance(parent.child.size, MissingField)
-    assert parent.to_dict() == {"title": "T", "child": {"extra_key": [1]}, "blob": {}, "unknown": {"a": None}}
-    assert Strict.from_json({"title": "T", "unknown": 1}).to_dict() == {"title": "T", "blob": {}}
+    assert parent.to_dict() == {"title": "T", "child": {"extra_key": [1]}, "unknown": {"a": None}}
+    assert Strict.from_json({"title": "T", "unknown": 1}).to_dict() == {"title": "T"}
 
 
 def test_a_required_field_absent_from_the_stored_data_stays_absent():
@@ -94,7 +94,14 @@ def test_json_fields_are_decoded_on_read_and_written_as_text():
 
     assert parent.blob == {"k": [1]}
     assert json.loads(parent.to_json()["blob"]) == {"k": [1]}
-    assert Parent.from_json({"blob": "null"}).to_json()["blob"] == "{}"  # None becomes {}, as before
+    assert "blob" not in Parent.from_json({"blob": "null"}).to_json()  # null is not replaced by {} (optional: left out)
+
+
+def test_json_fields_of_an_object_read_are_not_filled_and_a_new_object_gets_an_empty_one():
+    """A dashboard json_metadata without default_filters used to be written back with default_filters "{}"."""
+    assert "blob" not in Parent.from_json({"title": "T"}).to_json()
+    assert "blob" not in Parent.from_json({"blob": None}).to_json()  # an optional field read as null is left out
+    assert json.loads(Parent().to_json()["blob"]) == {}
 
 
 def test_checks_before_sending_raise_the_library_errors_and_skip_objects_read():
