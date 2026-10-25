@@ -13,7 +13,7 @@ import json
 import pytest
 
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.charts.metric import MetricHelper
+from supersetapiplus.charts.metric import AdhocMetricColumn, MetricHelper
 from supersetapiplus.charts.types import FilterOperatorType, MetricType
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.exceptions import UnsupportedTypeError, ValidationError
@@ -111,3 +111,18 @@ def test_time_format_of_a_chart_read_from_superset_is_written_back_as_read():
                                                   "params": json.dumps(params), "query_context": None})
 
     assert json.loads(chart.to_json()["params"])["date_format"] == "DD/MM/YYYY"
+
+
+def test_metric_column_without_type_is_written_back_when_read_and_rejected_when_built_in_code():
+    """Issue #18: the example word cloud "Rural Breakdown" stores a SIMPLE metric whose column has only its name;
+    to_json of the chart read from Superset raised, so it could not be saved back."""
+    metric = {"aggregate": "SUM", "column": {"column_name": "value"}, "expressionType": "SIMPLE", "label": "Value"}
+    params = {"viz_type": "word_cloud", "datasource": "1__table", "series": "region", "metric": metric}
+
+    read = Chart.for_viz_type("word_cloud").from_json(
+        {"slice_name": "Rural Breakdown", "viz_type": "word_cloud", "params": json.dumps(params),
+         "query_context": None, "datasource_id": 1, "datasource_type": "table"})
+
+    assert json.loads(read.to_json()["params"])["metric"] == metric
+    with pytest.raises(ValidationError, match="column_name and type"):
+        AdhocMetricColumn(column_name="value").validate()

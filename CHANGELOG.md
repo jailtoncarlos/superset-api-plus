@@ -9,6 +9,8 @@
   longer dropped (#15); a `null` read in a field with a default (e.g. `xscale_interval` of a heatmap) is no
   longer replaced by the default (#16); integers inside lists and dicts (e.g. `color_picker`, `y_axis_bounds`)
   are no longer written back as floats (#17).
+* `to_json()` of a chart read from Superset no longer raises on a metric column stored without `type` (e.g. the
+  example word cloud "Rural Breakdown"); the check stays for metrics built in code (#18).
 
 ## 2.0.2 (2026-10-25)
 
