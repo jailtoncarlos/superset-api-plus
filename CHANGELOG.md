@@ -11,6 +11,9 @@
   are no longer written back as floats (#17).
 * `to_json()` of a chart read from Superset no longer raises on a metric column stored without `type` (e.g. the
   example word cloud "Rural Breakdown"); the check stays for metrics built in code (#18).
+* The query context derived for a chart (`ui_query_context()`, `derive_query_context()`) targets the chart's own
+  dataset (`datasource_id`/`datasource_type`), as Superset does (`Slice.form_data`), instead of a stale
+  `params.datasource` (e.g. charts imported from another instance, such as the Superset examples) (#19).
 
 ## 2.0.2 (2026-10-25)
 

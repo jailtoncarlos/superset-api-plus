@@ -328,8 +328,16 @@ class Chart(ApiModel):
         self._derive_query_context = enabled
 
     def ui_query_context(self) -> dict[str, Any]:
-        """Query context the Superset UI derives from the current params (frontend buildQuery, 6.1.0)."""
-        return query_context_for(self.params.to_dict())
+        """Query context the Superset UI derives from the current params (frontend buildQuery, 6.1.0).
+
+        The dataset is the chart's (`datasource_id`/`datasource_type`), as in the form_data Superset gives Explore
+        (``Slice.form_data``, models/slice.py): `params.datasource` may be stale, e.g. in charts imported from
+        another instance.
+        """
+        form_data = self.params.to_dict()
+        if isinstance(self.datasource_id, int) and self.datasource_type:
+            form_data["datasource"] = f"{self.datasource_id}__{self.datasource_type}"
+        return query_context_for(form_data)
 
     def _derived_query_context(self) -> QueryContext:
         template = type(self).model_fields['query_context'].get_default(call_default_factory=True)

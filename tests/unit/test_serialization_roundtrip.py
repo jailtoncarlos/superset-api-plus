@@ -265,3 +265,19 @@ def test_table_query_saved_without_ordering_or_metrics_is_written_back():
     chart = load_chart("table", params, query_context)
 
     assert dumped(chart, "query_context")["queries"] == query_context["queries"]
+
+
+def test_query_context_of_a_saved_chart_targets_its_dataset_not_the_stale_params_datasource():
+    """Issue #19: the Superset examples store a stale params.datasource (chart on dataset 20, params "21__table").
+    Superset builds the form_data of a saved chart with its own datasource (Slice.form_data, models/slice.py)."""
+    params = dict(word_cloud_params(), datasource="21__table")
+    importlib.import_module("supersetapiplus.charts.word_cloud")
+    chart = Chart.get_class("word_cloud", "supersetapiplus.charts.word_cloud").from_json(
+        {"id": 5, "slice_name": "w", "viz_type": "word_cloud", "params": json.dumps(params), "query_context": None,
+         "datasource_id": 20, "datasource_type": "table"})
+
+    context = chart.ui_query_context()
+
+    assert context["datasource"] == {"id": 20, "type": "table"}
+    assert context["form_data"]["datasource"] == "20__table"
+    assert json.loads(chart.to_json()["params"])["datasource"] == "21__table"  # params written back as read
