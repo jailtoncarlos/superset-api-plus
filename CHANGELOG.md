@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## 2.0.0 (2026-10-25)
 
 Compatibility with Superset 6.1.0, charts and dashboards built in code as the UI builds them, and a
 reorganized, tested package.

@@ -2131,7 +2131,7 @@ wheels = [
 
 [[package]]
 name = "superset-api-plus"
-version = "1.0.0a1"
+version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "anytree" },
