@@ -47,6 +47,9 @@ repos:
         entry: uv run --locked --all-extras mypy --explicit-package-bases
         files: ^supersetapiplus/
         types: [python]
+        # One mypy at a time: pre-commit splits many files into parallel batches, and concurrent mypy processes
+        # sharing .mypy_cache end in an INTERNAL ERROR (as the mirrors-mypy hook, which sets it too).
+        require_serial: true
       - id: import-layers
         # Layer contracts of the package ([tool.importlinter] in pyproject.toml): each layer imports only
         # the layers below it, and the model layer (core) has no HTTP.
