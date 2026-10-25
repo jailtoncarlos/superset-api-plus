@@ -333,6 +333,9 @@ docker compose -p superset-api-plus up -d --build      # wait until http://127.0
 SUPERSET_INTEGRATION=1 pytest tests/integration/test_examples -W always::UserWarning
 ```
 
+In CI they run in the job `examples` of `.github/workflows/python-package.yaml`, in parallel with the other jobs,
+with `SUPERSET_EXAMPLES_REQUIRED=1`: a stack that did not load the examples fails instead of skipping.
+
 ### Configuration through environment variables
 
 | Variable | Default | Purpose |

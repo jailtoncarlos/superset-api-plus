@@ -114,7 +114,8 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   `uv.lock` up to date (`uv lock`) when `pyproject.toml` changes.
 - CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on push/PR with `uv sync --locked`
   (fails when `uv.lock` is out of date), the unit tests with the lowest direct dependency versions on 3.10 and
-  3.14, the integration tests against the compose stack, and pre-commit on the PR diff. A weekly job (`superset-drift.yaml`) compares the newest Superset release and master with the
+  3.14, the integration tests against the compose stack, the example dashboard tests against the stack with the
+  examples loaded (job `examples`, in parallel), and pre-commit on the PR diff. A weekly job (`superset-drift.yaml`) compares the newest Superset release and master with the
   pinned excerpts and fails when the newest release differs (`docs/superset-version-bump.md`, step 0). CI/CD changes require explicit authorization from the maintainer.
 - Every bug fix comes with a test that fails before the fix. Prefer tests of the public contract
   (results observed on the server) over implementation details.

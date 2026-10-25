@@ -14,10 +14,13 @@ and settings the synthetic payloads of the unit tests do not cover. For each exa
 
 Charts of a viz_type the library does not model are reported (NotCoveredWarning) and copied through the raw API, so
 the dashboard copy points only to copies and the examples are not changed. Needs the test stack with ``SUPERSET_LOAD_EXAMPLES=1`` (loading takes a few minutes); skipped on an
-instance without the example dashboard. The copies use the test prefix and are removed at the end of the module.
+instance without the example dashboard, or failed when ``SUPERSET_EXAMPLES_REQUIRED=1`` (the CI job ``examples``, so
+that a stack that did not load them does not pass). The copies use the test prefix and are removed at the end of the
+module.
 """
 import copy
 import json
+import os
 import warnings
 from pathlib import Path
 from typing import Any, ClassVar
@@ -144,7 +147,10 @@ class ExampleDashboardChecks:
         found = [dashboard.id for dashboard in client.dashboards.find_all(columns=["id", "dashboard_title"])
                  if dashboard.dashboard_title == cls.TITLE]
         if not found:
-            pytest.skip(f"example dashboard {cls.TITLE!r} not loaded: start the stack with SUPERSET_LOAD_EXAMPLES=1")
+            reason = f"example dashboard {cls.TITLE!r} not loaded: start the stack with SUPERSET_LOAD_EXAMPLES=1"
+            if os.getenv("SUPERSET_EXAMPLES_REQUIRED") == "1":
+                pytest.fail(reason)
+            pytest.skip(reason)
         return client.dashboards.get(found[0])
 
     @pytest.fixture(scope="class")

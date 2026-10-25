@@ -113,3 +113,40 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose -p superset-api-plus down -v
+
+  examples:
+    # The integration tests on the example dashboards shipped with Superset (tests/integration/test_examples):
+    # the same stack loading the examples (SUPERSET_LOAD_EXAMPLES=1, a few minutes), in parallel with the other
+    # jobs. Viz types the library does not model are listed as NotCoveredWarning in the warnings summary.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.2"
+          python-version: "3.12"
+
+      - name: Install the project (uv.lock)
+        run: uv sync --locked --extra test
+
+      - name: Start the Superset test stack with the examples
+        run: |
+          sed 's/^SUPERSET_LOAD_EXAMPLES=.*/SUPERSET_LOAD_EXAMPLES=1/' .env.example > .env
+          docker compose -p superset-api-plus up -d --build
+          timeout 1200 bash -c 'until curl -sf http://127.0.0.1:8089/health >/dev/null; do sleep 10; done'
+
+      - name: Run the example dashboard tests
+        env:
+          SUPERSET_INTEGRATION: "1"
+          SUPERSET_EXAMPLES_REQUIRED: "1"  # a stack without the examples fails instead of skipping
+        run: uv run --locked --extra test pytest -v tests/integration/test_examples -W always::UserWarning
+
+      - name: Superset logs
+        if: failure()
+        run: docker compose -p superset-api-plus logs --tail 200 superset
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose -p superset-api-plus down -v
