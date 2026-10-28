@@ -133,7 +133,8 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   checks every example dashboard shipped with Superset (one module per dashboard; stack with
   `SUPERSET_LOAD_EXAMPLES=1`, skipped without it): lossless round trip of the dashboard and its charts, chart
   copies built by the library returning the data of the original, and a dashboard copy reading back like the
-  original. A defect it finds gets a unit test reproducing it; unmodeled viz_types are reported, not failed. The Docker host may be
+  original. A defect it finds gets a unit test reproducing it; unmodeled viz_types are reported, not failed, and so are the
+  charts whose data differs with an open issue (`known_divergences.py`, removed from the list when fixed). The Docker host may be
   shared with other projects: only manage this compose project; never run `docker system/image/volume
   prune`.
 

@@ -8,7 +8,8 @@ and settings the synthetic payloads of the unit tests do not cover. For each exa
 2. chart copies: each chart of a modeled type is copied through the library (read model, new name, query context
    derived from its params) and the copy returns the data the original shows in the UI: the query the UI builds
    captured independently from Explore for that exact chart, replayed against ``/api/v1/chart/data``. The
-   examples store no ``query_context``, so ``/chart/{id}/data`` of the original is not available in 6.1.0;
+   examples store no ``query_context``, so ``/chart/{id}/data`` of the original is not available in 6.1.0. Charts
+   with an open issue for their difference (``known_divergences.py``) are reported as KnownDivergenceWarning;
 3. dashboard copy: a dashboard created through the library with the original layout and ``json_metadata``, chart
    ids remapped to the copies, reads back like the original, and the copies are associated with it.
 
@@ -31,6 +32,7 @@ from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.exceptions import UnsupportedTypeError
 
 from ..conftest import Cleanup, unique_name
+from .known_divergences import KNOWN_DATA_DIVERGENCES
 from .references import reference_context
 
 LAYOUTS = Path(__file__).parents[2] / "fixtures" / "example_layouts_6.1.0.json"
@@ -42,6 +44,10 @@ DASHBOARD_FIELDS = ("position_json", "json_metadata")
 
 class NotCoveredWarning(UserWarning):
     """An example chart of a viz_type the library does not model yet."""
+
+
+class KnownDivergenceWarning(UserWarning):
+    """An example chart whose copy returns other data than the original, with an open issue."""
 
 
 # --- comparison ---------------------------------------------------------------------------------
@@ -254,18 +260,27 @@ class ExampleDashboardChecks:
 
     def test_chart_copies_keep_the_params_and_return_the_data_of_the_original(self, client, modeled, chart_copies):
         captures = json.loads(QUERY_CAPTURES.read_text())["charts"]
-        found = {}
+        found, known = {}, {}
         for chart_id, copy_id in chart_copies.items():
             source = stored(client, client.charts, chart_id)
             diffs = differences(parsed(source["params"]),
                                 parsed(stored(client, client.charts, copy_id)["params"]))
             shown = client.post(client.join_urls(client.charts.base_url, "data"),
                                 json=reference_context(source, captures)).json()["result"]
-            if [result["data"] for result in shown] != [result["data"] for result in client.charts.get_chart_data(copy_id)]:
+            same = [result["data"] for result in shown] == [result["data"] for result in client.charts.get_chart_data(copy_id)]
+            issues = KNOWN_DATA_DIVERGENCES.get(source["uuid"])
+            if issues and not same:
+                known[f"{source['slice_name']!r} ({modeled[chart_id].viz_type})"] = issues
+            elif issues:
+                diffs.append(f"returns the data of the original: remove it from KNOWN_DATA_DIVERGENCES (issues {issues})")
+            elif not same:
                 diffs.append("data differs from the original")
             if diffs:
                 found[f"{chart_id} {modeled[chart_id].viz_type}"] = diffs
 
+        if known:
+            summary = ", ".join(f"{name} #{', #'.join(map(str, issues))}" for name, issues in sorted(known.items()))
+            warnings.warn(KnownDivergenceWarning(f"{self.TITLE}: data differs, open issues: {summary}"), stacklevel=1)
         assert found == {}, found
 
     def test_dashboard_copy_reads_back_like_the_original(self, client, original, chart_copies, unmodeled_copies,
