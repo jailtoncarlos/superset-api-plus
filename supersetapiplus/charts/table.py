@@ -140,9 +140,11 @@ class TableQueryContext(QueryContext):
         super().validate()
         # gather all query metrics into one list
         query_metrics = [qm for q in self.queries if isinstance(q.metrics, list) for qm in q.metrics]
-        # keep the form_data metrics that do not appear in query_metrics (absent in raw mode)
+        # keep the form_data metrics that do not appear in query_metrics; in raw mode the table buildQuery sends
+        # no metrics, and Explore keeps those of the aggregate mode in the form_data
         form_data_metrics = self.form_data.metrics if isinstance(self.form_data, ApiModel) else []
-        if not isinstance(form_data_metrics, list):
+        if not isinstance(form_data_metrics, list) \
+                or str(getattr(self.form_data, "query_mode", None)) == str(QueryModeType.RAW):
             form_data_metrics = []
         missing = [fm for fm in form_data_metrics if fm not in query_metrics]
         if missing:

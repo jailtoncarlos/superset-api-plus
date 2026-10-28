@@ -265,3 +265,36 @@ def test_table_query_saved_without_ordering_or_metrics_is_written_back():
     chart = load_chart("table", params, query_context)
 
     assert dumped(chart, "query_context")["queries"] == query_context["queries"]
+
+
+def test_query_context_of_a_saved_chart_targets_its_dataset_not_the_stale_params_datasource():
+    """Issue #19: the Superset examples store a stale params.datasource (chart on dataset 20, params "21__table").
+    Superset builds the form_data of a saved chart with its own datasource (Slice.form_data, models/slice.py)."""
+    params = dict(word_cloud_params(), datasource="21__table")
+    importlib.import_module("supersetapiplus.charts.word_cloud")
+    chart = Chart.get_class("word_cloud", "supersetapiplus.charts.word_cloud").from_json(
+        {"id": 5, "slice_name": "w", "viz_type": "word_cloud", "params": json.dumps(params), "query_context": None,
+         "datasource_id": 20, "datasource_type": "table"})
+
+    context = chart.ui_query_context()
+
+    assert context["datasource"] == {"id": 20, "type": "table"}
+    assert context["form_data"]["datasource"] == "20__table"
+    assert json.loads(chart.to_json()["params"])["datasource"] == "21__table"  # params written back as read
+
+
+def test_raw_table_read_with_metrics_left_in_params_derives_its_query_context():
+    """Issue #20: the example table "Most Popular Games" is in raw mode and keeps metrics: ["count"] in params
+    (Explore keeps them when the user switches from aggregate to raw); its buildQuery sends no metrics."""
+    params = {"viz_type": "table", "datasource": "20__table", "query_mode": "raw", "metrics": ["count"],
+              "all_columns": ["name", "platform"], "groupby": [], "order_by_cols": [], "row_limit": 10}
+    chart = Chart.for_viz_type("table").from_json(
+        {"id": 6, "slice_name": "Most Popular Games", "viz_type": "table", "params": json.dumps(params),
+         "query_context": None, "datasource_id": 20, "datasource_type": "table"})
+    chart.derive_query_context()
+
+    query_context = json.loads(chart.to_json()["query_context"])
+
+    assert query_context["queries"][0]["columns"] == ["name", "platform"]
+    assert not query_context["queries"][0].get("metrics")
+    assert json.loads(chart.to_json()["params"])["metrics"] == ["count"]  # params written back as read

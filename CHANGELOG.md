@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 2.0.3 (2026-10-25)
+
+### Added
+
+* Integration tests on the example dashboards shipped with Superset (`tests/integration/test_examples/`, one
+  module per dashboard, stack with `SUPERSET_LOAD_EXAMPLES=1`): lossless round trip of each dashboard and its
+  charts, chart copies built by the library returning the data of the original, and a dashboard copy reading
+  back like the original. They found the defects fixed below (#6).
+
+### Fixed
+
+* Objects read from Superset are written back as read in three more cases found by the round trip of the
+  Superset examples: a key stored as `null` in a nested structure (e.g. `params.page_length` of a table) is no
+  longer dropped (#15); a `null` read in a field with a default (e.g. `xscale_interval` of a heatmap) is no
+  longer replaced by the default (#16); integers inside lists and dicts (e.g. `color_picker`, `y_axis_bounds`)
+  are no longer written back as floats (#17).
+* `to_json()` of a chart read from Superset no longer raises on a metric column stored without `type` (e.g. the
+  example word cloud "Rural Breakdown"); the check stays for metrics built in code (#18).
+* The query context derived for a chart (`ui_query_context()`, `derive_query_context()`) targets the chart's own
+  dataset (`datasource_id`/`datasource_type`), as Superset does (`Slice.form_data`), instead of a stale
+  `params.datasource` (e.g. charts imported from another instance, such as the Superset examples) (#19).
+* The query context of a raw-mode table whose params keep the metrics of the aggregate mode (as Explore keeps
+  them) is no longer rejected: in raw mode the table query has no metrics (#20).
+
 ## 2.0.2 (2026-10-25)
 
 ### Added

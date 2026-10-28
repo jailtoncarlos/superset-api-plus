@@ -41,7 +41,8 @@ class AdhocMetricColumn(ApiModel):
 
     def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
-        if not self.column_name or not self.type:
+        # Built in code only: Superset stores columns without type (e.g. the example word cloud Rural Breakdown).
+        if not self._read_from_superset and (not self.column_name or not self.type):
             raise ValidationError(message='At least the column_name and type fields must be informed.',
                                   solution='')
 

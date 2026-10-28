@@ -123,3 +123,34 @@ def test_equality_is_field_by_field_and_ignores_extra_fields():
 def test_invalid_input_raises_load_json_error():
     with pytest.raises(LoadJsonError):
         Parent.from_json({"title": object()})
+
+
+class Options(ApiModel):
+    """A free-form structure nested in a resource (as the params of a chart), not a REST resource itself."""
+    page_length: SerializableOptional[int] = None
+    interval: int = -1
+    bounds: list[float | None] = Field(default_factory=lambda: [None, None])
+    color: dict[str, float] = Field(default_factory=dict)
+
+
+class Holder(ApiModel):
+    options: Options = Field(default_factory=Options)
+
+
+def test_null_of_an_optional_field_read_is_written_back():
+    """Issue #15: a table stored "page_length": null and was written back without the key."""
+    assert Holder.from_json({"options": {"page_length": None}}).to_dict() == {"options": {"page_length": None}}
+    assert Holder().to_dict()["options"].get("page_length", "absent") == "absent"  # unset in code: left out
+
+
+def test_null_of_a_field_with_a_default_read_stays_null():
+    """Issue #16: heatmap_v2 stored "xscale_interval": null and it was written back as the default -1."""
+    assert Options.from_json({"interval": None}).to_dict() == {"interval": None}
+
+
+def test_scalars_inside_containers_read_are_not_converted():
+    """Issue #17: color_picker {"r": 0, ...} and y_axis_bounds [0, null] were written back with floats."""
+    read = Options.from_json({"bounds": [0, None], "color": {"r": 0, "a": 1}})
+
+    assert read.to_dict() == {"bounds": [0, None], "color": {"r": 0, "a": 1}}
+    assert type(read.bounds[0]) is int and type(read.color["r"]) is int
