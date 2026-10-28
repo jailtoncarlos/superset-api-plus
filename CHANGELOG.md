@@ -10,6 +10,9 @@
 
 ### Fixed
 
+* `find`, `find_all` and `count` match a `_` or `%` in the value of a STARTS_WITH, ENDS_WITH or CONTAINS filter
+  literally: Flask-AppBuilder turns them into ILIKE patterns without an ESCAPE clause, so the server results are
+  checked again (case-insensitive, as ILIKE); a prefix such as `zz_test_` no longer matches `zzXtestY...` (#29).
 * Minor divergences of the buildQuery port from the frontend: a unary filter (IS NULL, IS NOT NULL) has no value,
   a null `url_params` is left out, items without a label are deduplicated into one, a server-paginated table
   without a page size has a null row offset, and `js_number` follows JavaScript `Number()` (`0x10` is 16, `inf` is

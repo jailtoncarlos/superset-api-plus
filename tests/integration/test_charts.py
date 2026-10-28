@@ -66,18 +66,18 @@ def test_count_and_find_all_follow_the_filter(client, three_tables):
     query_filter = name_filter("slice_name", prefix, QueryOperator.STARTS_WITH)
 
     pages = []
-    original_find = client.charts.find
+    original_page = client.charts._find_page
 
-    def recording_find(*args, **kwargs):
-        result = original_find(*args, **kwargs)
+    def recording_page(*args, **kwargs):
+        result = original_page(*args, **kwargs)
         pages.append(len(result))
         return result
 
-    client.charts.find = recording_find
+    client.charts._find_page = recording_page
     try:
         found = client.charts.find_all(query_filter, columns=["id", "viz_type"], page_size=2)
     finally:
-        del client.charts.find
+        del client.charts._find_page
 
     assert client.charts.count(query_filter) == 3
     assert pages == [2, 1], "find_all walks the pages the server returns"
@@ -99,6 +99,18 @@ def test_find_one_not_found_multiple_and_full(client, three_tables):
     # The restricted listing does not bring params (the partial object keeps them as an empty dict).
     assert not (partial.params if isinstance(partial.params, dict) else partial.params.to_dict()).get("groupby")
     assert full.params.groupby == ["campus"] and full.query_context is not None
+
+
+def test_starts_with_matches_a_prefix_with_wildcards_literally(client, add_chart):
+    """Issue #29: Flask-AppBuilder turns STARTS_WITH into ILIKE '<value>%', where "_" matches any character."""
+    base = unique_name("literal")
+    literal = add_chart("table", f"{base}_a-1")
+    add_chart("table", f"{base}Xa-2")  # matched by the server pattern, not by the literal prefix
+    query_filter = name_filter("slice_name", f"{base}_a", QueryOperator.STARTS_WITH)
+
+    assert [c.id for c in client.charts.find(query_filter, columns=["id"])] == [literal.id]
+    assert [c.id for c in client.charts.find_all(query_filter, columns=["id"], page_size=1)] == [literal.id]
+    assert client.charts.count(query_filter) == 1
 
 
 def test_listing_tolerates_an_unmodeled_viz_type(client, unmodeled_chart, three_tables):

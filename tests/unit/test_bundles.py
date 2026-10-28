@@ -63,11 +63,11 @@ def test_iter_all_requests_a_page_only_when_the_previous_one_was_consumed(monkey
     repository = Datasets(client=None)
     requested = []
 
-    def find(filter, columns, page_size, page, *args):
+    def find_page(filter, columns, page_size, page, *args):
         requested.append(page)
         return list(range(page * page_size, min((page + 1) * page_size, 5)))
 
-    monkeypatch.setattr(repository, "find", find)
+    monkeypatch.setattr(repository, "_find_page", find_page)
     items = repository.iter_all(page_size=2)
 
     assert next(items) == 0 and requested == [0]

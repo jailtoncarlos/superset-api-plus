@@ -251,17 +251,29 @@ class ApiModelFactories(ABC):
             order_column (str, optional): sort column; order_direction "asc" or "desc".
 
         Returns:
-            List[ApiModel]: objects found (UnsupportedObject for types without a model).
+            List[ApiModel]: objects found (UnsupportedObject for types without a model). A text filter whose value
+            holds ``_`` or ``%`` is checked again on the page (see QueryOperator), which may then hold fewer items.
         """
-        # The class of each item comes from its type column (viz_type for charts): a listing restricted to
-        # other columns would leave nothing to choose the class from.
-        if columns and self.TYPE_COLUMN and self.TYPE_COLUMN not in columns:
-            columns = [*columns, self.TYPE_COLUMN]
+        return [item for item in self._find_page(filter, columns, page_size, page, order_column, order_direction)
+                if item is not None]
+
+    def _find_page(self, filter: QueryStringFilter, columns: list[str] | None, page_size: int, page: int,
+                   order_column: str | None, order_direction: str | None) -> list[Any]:
+        """One page of the listing, as the server returns it: None for an item matched only through a LIKE wildcard
+        of a filter value (see QueryStringFilter.matches)."""
+        # The class of each item comes from its type column (viz_type for charts), and the literal check of a
+        # filter with a wildcard needs its column: a listing restricted to other columns would lack them.
+        needed = [self.TYPE_COLUMN] if self.TYPE_COLUMN else []
+        if columns:
+            columns = [*columns, *(c for c in [*needed, *filter.wildcard_columns] if c not in columns)]
         response = self.client.find(self.base_url, filter, columns, page_size, page, order_column, order_direction)
         data_result = response.json()
 
         objects: list[Any] = []
         for data in data_result.get("result"):
+            if not filter.matches(data):
+                objects.append(None)
+                continue
             try:
                 base_class = self.get_base_object(data)
             except UnsupportedTypeError:
@@ -286,9 +298,9 @@ class ApiModelFactories(ABC):
         filter = filter or QueryStringFilter()
         page = 0
         while True:
-            page_objects = self.find(filter, columns, page_size, page, order_column, order_direction)
-            yield from page_objects
-            if len(page_objects) < page_size:
+            page_objects = self._find_page(filter, columns, page_size, page, order_column, order_direction)
+            yield from (item for item in page_objects if item is not None)
+            if len(page_objects) < page_size:  # the server page, before the literal check
                 return
             page += 1
 
@@ -301,6 +313,8 @@ class ApiModelFactories(ABC):
         """
         if filter is None:
             response = self.client.get(self.base_url)
+        elif filter.wildcard_columns:  # the server count includes the names a wildcard matches
+            return sum(1 for _ in self.iter_all(filter, ["id"]))
         else:
             response = self.client.find(self.base_url, filter, ["id"], page_size=1)
         count: int = response.json()["count"]
