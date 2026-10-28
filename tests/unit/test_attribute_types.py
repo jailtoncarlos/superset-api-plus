@@ -27,6 +27,8 @@ FREE_TEXT = {
     # Charts
     "charts.charts.Chart.slice_name": TEXT,
     "charts.charts.Chart.description": TEXT,
+    "charts.explore.DatasetTime.columns": NAME,
+    "charts.explore.DatasetTime.main": NAME,
     "charts.charts.Chart.certified_by": TEXT,
     "charts.charts.Chart.certification_details": TEXT,
     "charts.charts.Chart.changed_on_delta_humanized": "read-only text computed by Superset",

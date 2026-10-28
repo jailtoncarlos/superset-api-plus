@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## Unreleased
+
+### Fixed
+
+* The query context derived for a chart (`ui_query_context()`, `derive_query_context()`) is built from the params
+  normalized as Explore does before buildQuery (`supersetapiplus/charts/explore.py`), so a chart read from Superset
+  with legacy or incomplete params gets the query Explore builds for it: legacy `since`/`until` become the time range
+  (#23); null or absent control values take the control default, e.g. the pie sorted by its metric, the table
+  ordered descending, the row limit of a table, the Tukey statistics of a box plot (#24); stored keys that are not
+  controls of the viz_type are left out, e.g. a leftover `granularity_sqla` that turned a table column into epoch
+  milliseconds (#25); a legacy `granularity_sqla` becomes the x axis (#26). The 32 example charts whose copy returned
+  other data than the original now return the same data. The `form_data` of the context stays the params.
+
 ## 2.0.3 (2026-10-28)
 
 ### Added
