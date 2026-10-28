@@ -4,6 +4,10 @@
 
 ### Fixed
 
+* A chart built in code gets, as a new chart in the UI, a TEMPORAL_RANGE filter "No filter" on the default temporal
+  column of its dataset when it has no time filter (`client.charts.add`, `Chart.use_dataset_time`), so a time range
+  native filter of the dashboard applies to it; before, such charts ignored the dashboard time range (#22).
+
 * The query context derived for a chart (`ui_query_context()`, `derive_query_context()`) is built from the params
   normalized as Explore does before buildQuery (`supersetapiplus/charts/explore.py`), so a chart read from Superset
   with legacy or incomplete params gets the query Explore builds for it: legacy `since`/`until` become the time range

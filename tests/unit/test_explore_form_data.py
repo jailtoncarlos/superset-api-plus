@@ -16,7 +16,9 @@ from pathlib import Path
 import pytest
 
 from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.types import FilterOperatorType
 from supersetapiplus.charts.explore import PROBED_KEYS, QUERY_CONTROLS, DatasetTime, explore_form_data
+from supersetapiplus.core.datasource import DataSource
 from tests.integration.test_examples.references import portable
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -127,3 +129,42 @@ def test_controls_explore_takes_from_the_dataset():
     assert explored["temporal_columns_lookup"] == {"day": True, "year": True}
     assert explored["columns"] == ["year"]
     assert explore_form_data(params, {})["temporal_columns_lookup"] == {"stale": True}
+
+
+def new_chart(viz_type: str) -> Chart:
+    chart = Chart.for_viz_type(viz_type).instance(slice_name="new", datasource=DataSource(id=1, type="table"))
+    chart.add_simple_metric("count")
+    return chart
+
+
+def time_filters(chart: Chart) -> list[dict]:
+    return [f for f in json.loads(chart.to_json()["params"])["adhoc_filters"] if f.get("operator") == "TEMPORAL_RANGE"]
+
+
+def test_chart_built_in_code_gets_the_default_time_filter_of_the_dataset():
+    """Issue #22: as a new chart in the UI (datePickerInAdhocFilterMixin), so a dashboard time range applies."""
+    chart = new_chart("pie")
+    chart.add_simple_dimension("campus")
+
+    chart.use_dataset_time(DatasetTime(columns=("day", "created"), main="created"))
+
+    assert [{key: f[key] for key in ("clause", "subject", "operator", "comparator", "expressionType")}
+            for f in time_filters(chart)] == [{"clause": "WHERE", "subject": "created", "operator": "TEMPORAL_RANGE",
+                                               "comparator": "No filter", "expressionType": "SIMPLE"}]
+    assert {"col": "created", "op": "TEMPORAL_RANGE", "val": "No filter"} in chart.ui_query_context()["queries"][0]["filters"]
+
+
+def test_default_time_filter_is_not_added_twice_nor_to_legacy_or_read_charts():
+    with_filter = new_chart("pie")
+    with_filter.add_simple_dimension("campus")
+    with_filter.add_simple_filter("day", "Last week", operator=FilterOperatorType.TEMPORAL_RANGE)
+    legacy = new_chart("cal_heatmap")
+    read = read_chart({"viz_type": "pie", "metric": "count", "groupby": ["a"], "adhoc_filters": []})
+    dataset = DatasetTime(columns=("day",))
+
+    for chart in (with_filter, legacy, read):
+        chart.use_dataset_time(dataset)
+
+    assert [f["comparator"] for f in time_filters(with_filter)] == ["Last week"]
+    assert time_filters(legacy) == []
+    assert json.loads(read.to_json()["params"])["adhoc_filters"] == []

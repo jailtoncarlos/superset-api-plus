@@ -161,6 +161,22 @@ def test_chart_created_in_code_returns_data_from_its_query_context(client, add_c
     assert {value for row in result["data"] for value in row.values()} >= {"North", "South"}
 
 
+def test_chart_built_in_code_gets_the_time_filter_a_dashboard_time_range_applies_to(client, add_chart):
+    """Issue #22: as a new chart in the UI, a chart built in code gets a TEMPORAL_RANGE "No filter" on the dataset's
+    temporal column; a time range given to it (as a dashboard time filter does) filters the data."""
+    chart = add_chart("pie")
+    stored = client.get(client.charts.object_url(chart.id)).json()["result"]
+
+    time_filters = [f for f in json.loads(stored["params"])["adhoc_filters"] if f["operator"] == "TEMPORAL_RANGE"]
+    assert [(f["subject"], f["comparator"]) for f in time_filters] == [("day", "No filter")]
+    context = json.loads(stored["query_context"])
+    for query_filter in context["queries"][0]["filters"]:
+        if query_filter["op"] == "TEMPORAL_RANGE":
+            query_filter["val"] = "2026-01-02 : 2026-01-03"
+    (result, *_) = client.post(client.join_urls(client.charts.base_url, "data"), json=context).json()["result"]
+    assert [row["campus"] for row in result["data"]] == ["South"]
+
+
 def build_with_ui_defaults(viz_type: str, dataset) -> Chart:
     """A chart of each modeled viz_type, built in code on top of the UI defaults of a new chart."""
     importlib.import_module(f"supersetapiplus.charts.{viz_type}")

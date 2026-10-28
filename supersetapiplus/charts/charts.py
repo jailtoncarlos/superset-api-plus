@@ -9,8 +9,8 @@ from pydantic import Field, PrivateAttr
 from typing_extensions import Self
 
 from supersetapiplus.charts.build_query import query_context_for
-from supersetapiplus.charts.explore import DatasetTime, explore_form_data
-from supersetapiplus.charts.filters import filter_comparator
+from supersetapiplus.charts.explore import NO_TIME_RANGE, QUERY_CONTROLS, DatasetTime, explore_form_data
+from supersetapiplus.charts.filters import AdhocFilterClause, filter_comparator
 from supersetapiplus.charts.metric import AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.query_context import QueryContext
@@ -323,9 +323,23 @@ class Chart(ApiModel):
             self.query_context._add_extra_having(sql)
 
     def use_dataset_time(self, dataset: DatasetTime) -> None:
-        """The temporal columns of the chart's dataset, which Explore reads besides the params (temporal dimensions,
-        time grain shown). ``client.charts.add`` and ``save`` set them before sending."""
+        """The temporal columns of the chart's dataset, which Explore reads besides the params (default time filter,
+        temporal dimensions, time grain shown). ``client.charts.add`` and ``save`` set them before sending.
+
+        A chart built in code also gets, as a new chart in the UI, a TEMPORAL_RANGE filter "No filter" on the
+        dataset's default temporal column when it has none (datePickerInAdhocFilterMixin, mixins.tsx): the filter a
+        time range native filter of a dashboard applies to.
+        """
         self._dataset_time = dataset
+        if self.id is not None or self._read_from_superset or not dataset.default:
+            return
+        controls = QUERY_CONTROLS.get(str(self.viz_type), frozenset())
+        filters = self.params.adhoc_filters if isinstance(self.params.adhoc_filters, list) else []
+        if "adhoc_filters" not in controls or "time_range" in controls \
+                or any(_operator(item) == FilterOperatorType.TEMPORAL_RANGE for item in filters):
+            return
+        self.params.adhoc_filters = [*filters, AdhocFilterClause(
+            subject=dataset.default, operator=FilterOperatorType.TEMPORAL_RANGE, comparator=NO_TIME_RANGE)]
 
     def derive_query_context(self, enabled: bool = True) -> None:
         """Rebuild the query_context from params on the next save, as Explore does when the chart is saved.
@@ -415,6 +429,12 @@ class Chart(ApiModel):
         return obj
 
 
+def _operator(adhoc_filter: object) -> object:
+    if isinstance(adhoc_filter, dict):
+        return adhoc_filter.get("operator")
+    return getattr(adhoc_filter, "operator", None)
+
+
 class Charts(ApiModelFactories):
     endpoint = "chart/"
     TYPE_COLUMN = "viz_type"
@@ -423,7 +443,8 @@ class Charts(ApiModelFactories):
         return Chart
 
     def add(self, obj: ApiModel) -> int:
-        """Creates the chart, with the dataset's temporal columns (see :meth:`Chart.use_dataset_time`)."""
+        """Creates the chart; one built in code first gets the dataset's temporal columns (see
+        :meth:`Chart.use_dataset_time`)."""
         self._read_dataset_time(obj)
         return super().add(obj)
 
