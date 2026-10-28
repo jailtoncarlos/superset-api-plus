@@ -45,6 +45,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   - `bin/scripts/extract_ui_defaults.py <version>` → `ui_defaults_<version>/`: the form_data Explore posts
     for a new chart of each supported viz_type (controlPanel defaults); a chart created in code gets the
     same params (`tests/unit/test_ui_defaults.py`, in the `model-attributes` hook)
+  - `bin/scripts/extract_ui_controls.py <version>` → `ui_controls_<version>.json`: which keys read by the
+    buildQuery port are controls of each supported viz_type (Explore leaves the other stored keys out of the
+    form_data); `supersetapiplus/charts/explore.py` holds them (`tests/unit/test_explore_form_data.py`)
   - `bin/scripts/extract_example_layouts.py <version>` → `example_layouts_<version>.json`: the layouts of
     the example dashboards shipped with Superset, which the layout validation must accept
   The excerpts downloaded from the tag record their provenance (tag, commit SHA, source paths); an
