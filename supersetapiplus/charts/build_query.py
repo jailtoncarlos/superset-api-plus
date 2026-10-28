@@ -11,8 +11,20 @@ the same `query_context` the UI would save. Sources (superset-frontend, tag 6.1.
 - the ``buildQuery.ts`` of each plugin listed in :data:`BUILD_QUERY`.
 
 JavaScript ``undefined`` is represented by :data:`UNSET`; keys holding it are dropped from the result, as
-``JSON.stringify`` does. Native and cross filter overrides (``extra_form_data`` other than ``filters`` and
-``adhoc_filters``) are applied by the dashboard at run time and are not part of the saved query context.
+``JSON.stringify`` does. The input is the form_data Explore makes of the params
+(:func:`supersetapiplus.charts.explore.explore_form_data`, which also recomputes ``temporal_columns_lookup`` from
+the dataset).
+
+Accepted divergences from the frontend (issue #28), none of which changes the query of a chart saved from the UI:
+
+- control values missing from the ``choices`` of a control are kept; Explore clears them (``handleMissingChoice``,
+  src/explore/controlUtils/getControlState.ts), with choices that depend on the dataset and on registries the
+  library does not have;
+- metrics and columns are collected in the key order of the params; Explore follows the order of the control
+  panel (``extractQueryFields``). A chart saved from the UI stores its form_data in that order, a chart built in
+  code follows the order of its model fields;
+- native and cross filter overrides (``extra_form_data`` other than ``filters`` and ``adhoc_filters``,
+  ``processExtraFormData``) are applied by the dashboard at run time: the saved query context has none.
 """
 from __future__ import annotations
 
@@ -111,16 +123,31 @@ def remove_duplicates(items: list[Any], key: Callable[..., Any] = lambda item: i
     return result
 
 
+_JS_DECIMAL = re.compile(r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?|[+-]?Infinity")
+_JS_RADIX = {"0x": 16, "0o": 8, "0b": 2}
+
+
 def js_number(value: object) -> Any:
-    """``Number(value)``; NaN for values that are not numbers."""
+    """``Number(value)``: JavaScript numeric literals (decimal, ``Infinity``, ``0x``/``0o``/``0b``), 0 for null and
+    blank text, NaN for anything else."""
+    if value is None:
+        return 0
     if isinstance(value, bool):
         return int(value)
     if isinstance(value, (int, float)):
         return value
-    try:
-        number = float(str(value).strip()) if str(value).strip() else 0.0
-    except ValueError:
+    text = str(value).strip()
+    if not text:
+        return 0
+    radix = _JS_RADIX.get(text[:2].lower())
+    if radix:
+        try:
+            return int(text[2:], radix) if text[2:].isalnum() else math.nan
+        except ValueError:
+            return math.nan
+    if not _JS_DECIMAL.fullmatch(text):
         return math.nan
+    number = float(text.replace("Infinity", "inf"))
     return int(number) if number.is_integer() else number
 
 
@@ -231,7 +258,8 @@ def _parse_orderby(item: Any) -> Any:
 
 
 def _hashable(label: Callable[..., Any]) -> Callable[..., Any]:
-    return lambda item: label(item) if label(item) is not None else id(item)
+    """The hash of ``removeDuplicates(items, getLabel)``: items without a label share one (undefined) hash."""
+    return label
 
 
 def extract_extras(form_data: dict[str, Any]) -> dict[str, Any]:
@@ -251,9 +279,13 @@ def extract_extras(form_data: dict[str, Any]) -> dict[str, Any]:
     return extract
 
 
+UNARY_OPERATORS = ("IS NOT NULL", "IS NULL")  # superset-ui-core query/types/Operator.ts
+
+
 def convert_filter(adhoc_filter: dict[str, Any]) -> dict[str, Any]:
+    """``convertFilter``: a unary operator (IS NULL, IS NOT NULL) has no value."""
     clause = {"col": adhoc_filter.get("subject"), "op": adhoc_filter.get("operator")}
-    if "comparator" in adhoc_filter:
+    if "comparator" in adhoc_filter and adhoc_filter.get("operator") not in UNARY_OPERATORS:
         clause["val"] = adhoc_filter["comparator"]
     return clause
 
@@ -304,10 +336,16 @@ def build_query_object(form_data: dict[str, Any]) -> dict[str, Any]:
         "series_limit_metric": _series_limit_metric(form_data),
         "group_others_when_limit_reached": _coalesce(form_data.get("group_others_when_limit_reached"), False),
         "order_desc": form_data.get("order_desc", True),
-        "url_params": form_data.get("url_params") or {},
+        "url_params": _url_params(form_data),
         "custom_params": form_data.get("custom_params", {}),
     }
     return {**query, "custom_form_data": extra_form_data.get("custom_form_data", {})}
+
+
+def _url_params(form_data: dict[str, Any]) -> Any:
+    """``url_params = {}`` when undefined, then ``url_params || undefined``: a null or empty value is left out."""
+    url_params = form_data.get("url_params", {})
+    return url_params if js_truthy(url_params) else UNSET
 
 
 def _coalesce(value: Any, default: Any) -> Any:
@@ -802,7 +840,10 @@ def _table_paging(form_data: dict[str, Any]) -> dict[str, Any]:
     if _is_download(form_data):
         return {"row_limit": js_number(form_data.get("row_limit") or 0) or 0, "row_offset": 0}
     if form_data.get("server_pagination"):
-        return {"row_limit": form_data.get("server_page_length", UNSET), "row_offset": 0}
+        page_size = form_data.get("server_page_length", UNSET)
+        # row_offset is currentPage * pageSize with currentPage 0: NaN (null) without a page size.
+        offset = math.nan if page_size is UNSET or math.isnan(float(js_number(page_size))) else 0
+        return {"row_limit": page_size, "row_offset": offset}
     return {}
 
 

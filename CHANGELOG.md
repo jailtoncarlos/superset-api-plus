@@ -10,6 +10,10 @@
 
 ### Fixed
 
+* Minor divergences of the buildQuery port from the frontend: a unary filter (IS NULL, IS NOT NULL) has no value,
+  a null `url_params` is left out, items without a label are deduplicated into one, a server-paginated table
+  without a page size has a null row offset, and `js_number` follows JavaScript `Number()` (`0x10` is 16, `inf` is
+  NaN); the remaining ones are declared in `build_query.py` with the reason (#28).
 * A chart built in code gets, as a new chart in the UI, a TEMPORAL_RANGE filter "No filter" on the default temporal
   column of its dataset when it has no time filter (`client.charts.add`, `Chart.use_dataset_time`), so a time range
   native filter of the dashboard applies to it; before, such charts ignored the dashboard time range (#22).
