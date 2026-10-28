@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+* `client.charts.get_chart_data()` emits a `LegacyChartDataWarning` for a legacy viz_type (`cal_heatmap`): Superset
+  6.1.0 renders it through `/superset/explore_json`, and its v1 query context gives one aggregate row, not the
+  calendar; documented in the README and in the model (#27).
+
 ### Fixed
 
 * A chart built in code gets, as a new chart in the UI, a TEMPORAL_RANGE filter "No filter" on the default temporal

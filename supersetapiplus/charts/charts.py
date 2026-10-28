@@ -2,6 +2,7 @@
 import copy
 import importlib
 import logging
+import warnings
 from abc import abstractmethod
 from typing import Any, ClassVar
 
@@ -23,11 +24,22 @@ from supersetapiplus.core.types import DatasourceType
 from supersetapiplus.core.typing import FilterValues, SerializableNotToJson, SerializableOptional
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.layout import LayoutParent
-from supersetapiplus.exceptions import ChartValidationError, NotFound, UnsupportedTypeError, ValidationError
+from supersetapiplus.exceptions import (
+    ChartValidationError,
+    LegacyChartDataWarning,
+    NotFound,
+    UnsupportedTypeError,
+    ValidationError,
+)
 from supersetapiplus.resources.datasets import Datasets
 from supersetapiplus.resources.repository import ApiModelFactories
 
 logger = logging.getLogger(__name__)
+
+# Modeled viz types whose plugin renders through the legacy API (useLegacyApi: true, e.g.
+# legacy-plugin-chart-calendar/src/index.ts): their v1 query context, the one Explore saves, does not compute what
+# the chart shows (cal_heatmap: superset/viz.py CalHeatmapViz buckets the time; the v1 query returns one row).
+LEGACY_API_VIZ_TYPES = frozenset(("cal_heatmap",))
 
 
 def _unsupported_message(viz_type: str) -> str:
@@ -467,6 +479,10 @@ class Charts(ApiModelFactories):
         """
         Chart data computed by Superset from the saved query_context (GET /chart/{pk}/data/).
 
+        For a legacy viz_type (:data:`LEGACY_API_VIZ_TYPES`, e.g. cal_heatmap) the result is not what the chart
+        shows: the chart renders through /superset/explore_json, and its v1 query context gives one aggregate row
+        (a LegacyChartDataWarning is emitted). Reports and alerts on the v1 endpoint have the same limitation.
+
         Args:
             slice_id: chart id.
             dashboard_id: if given, checks that the chart belongs to this dashboard.
@@ -474,8 +490,13 @@ class Charts(ApiModelFactories):
         Returns:
             list[dict]: one item per query of the query_context (`data`, `colnames`, `rowcount`...).
         """
-        if dashboard_id is not None and dashboard_id not in self.dashboard_ids(slice_id):
+        chart = self.client.get(self.client.join_urls(self.base_url, slice_id)).json()["result"]
+        if dashboard_id is not None and dashboard_id not in [int(d["id"]) for d in chart.get("dashboards") or []]:
             raise NotFound(f'Chart {slice_id} does not belong to dashboard {dashboard_id}.')
+        if chart.get("viz_type") in LEGACY_API_VIZ_TYPES:
+            warnings.warn(LegacyChartDataWarning(
+                f"Chart {slice_id} is a {chart['viz_type']} (legacy API): its /chart/{{id}}/data result is not what "
+                "the chart shows."), stacklevel=2)
         url = self.client.join_urls(self.base_url, slice_id, "data/")
         results: list[dict[str, Any]] = self.client.get(url, params={"format": "json", "type": "full"}).json()["result"]
         return results

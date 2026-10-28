@@ -47,10 +47,15 @@ Target: **Superset 6.1.0** (Flask-AppBuilder 5) · Python **3.10–3.14**.
 | `bubble_v2` | `charts.bubble_v2.BubbleChart` | metrics fill `x`, `y`, `size`; dimensions fill `entity`, `series` |
 | `histogram_v2` | `charts.histogram_v2.HistogramChart` | `set_column()`; no metric; optional dimensions |
 | `box_plot` | `charts.box_plot.BoxPlotChart` | `add_distribute_across()` |
-| `cal_heatmap` | `charts.cal_heatmap.CalHeatmapChart` | legacy plugin; set `granularity_sqla` |
+| `cal_heatmap` | `charts.cal_heatmap.CalHeatmapChart` | legacy plugin; set `granularity_sqla`; `get_chart_data()` is not the calendar (see below) |
 
 Other viz types are listed as read-only `UnsupportedObject` items, and `get()` on them raises
 `UnsupportedTypeError`.
+
+`cal_heatmap` is a legacy chart in Superset 6.1.0: it renders through `/superset/explore_json`, not through the
+query context. The query context the library saves is the one Explore saves, but `/api/v1/chart/data` answers it
+with one aggregate row, so `client.charts.get_chart_data()` (which emits a `LegacyChartDataWarning`), reports and
+alerts built on that endpoint do not reproduce the calendar. This is a limitation of Superset.
 
 ---
 

@@ -10,6 +10,7 @@ from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.exceptions import (
     BadRequestError,
+    LegacyChartDataWarning,
     MultipleFound,
     NotFound,
     ResourceNotFoundError,
@@ -217,6 +218,18 @@ def test_every_modeled_viz_type_built_on_ui_defaults_returns_data(client, datase
     rows = [row for result in results for row in result["data"]]
     assert rows, f"{viz_type}: no rows"
     assert client.charts.get(chart.id).params.to_dict() == chart.params.to_dict()
+
+
+def test_chart_data_of_a_legacy_chart_warns_that_it_is_not_what_the_chart_shows(client, dataset, cleanup):
+    """Issue #27: cal_heatmap renders through /superset/explore_json; the v1 query context Explore saves (the default
+    buildQuery) gives one aggregate row on /chart/{id}/data, not the calendar."""
+    chart = build_with_ui_defaults("cal_heatmap", dataset)
+    cleanup.chart(client.charts.add(chart))
+
+    with pytest.warns(LegacyChartDataWarning, match="legacy API"):
+        (result, *_) = client.charts.get_chart_data(chart.id)
+
+    assert result["rowcount"] == 1
 
 
 # --- Export and import -----------------------------------------------------------------------
