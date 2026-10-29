@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## 2.1.0 (2026-10-29)
 
 ### Added
 
@@ -12,15 +12,16 @@
 
 * `find`, `find_all` and `count` match a `_` or `%` in the value of a STARTS_WITH, ENDS_WITH or CONTAINS filter
   literally: Flask-AppBuilder turns them into ILIKE patterns without an ESCAPE clause, so the server results are
-  checked again (case-insensitive, as ILIKE); a prefix such as `zz_test_` no longer matches `zzXtestY...` (#29).
+  checked again (case-insensitive, as ILIKE); a prefix such as `zz_test_` no longer matches `zzXtestY...`, and
+  `find_one` reads the pages until it finds two matches or the listing ends (#29).
 * Minor divergences of the buildQuery port from the frontend: a unary filter (IS NULL, IS NOT NULL) has no value,
   a null `url_params` is left out, items without a label are deduplicated into one, a server-paginated table
   without a page size has a null row offset, and `js_number` follows JavaScript `Number()` (`0x10` is 16, `inf` is
   NaN); the remaining ones are declared in `build_query.py` with the reason (#28).
-* A chart built in code gets, as a new chart in the UI, a TEMPORAL_RANGE filter "No filter" on the default temporal
-  column of its dataset when it has no time filter (`client.charts.add`, `Chart.use_dataset_time`), so a time range
-  native filter of the dashboard applies to it; before, such charts ignored the dashboard time range (#22).
-
+* A chart built in code gets, as a new chart in the UI, a TEMPORAL_RANGE filter when it has no time filter
+  (`client.charts.add`, `Chart.use_dataset_time`): its legacy `granularity_sqla` and `time_range` when both are set,
+  else "No filter" on the default temporal column of its dataset; so a time range native filter of the dashboard
+  applies to it; before, such charts ignored the dashboard time range (#22).
 * The query context derived for a chart (`ui_query_context()`, `derive_query_context()`) is built from the params
   normalized as Explore does before buildQuery (`supersetapiplus/charts/explore.py`), so a chart read from Superset
   with legacy or incomplete params gets the query Explore builds for it: legacy `since`/`until` become the time range
