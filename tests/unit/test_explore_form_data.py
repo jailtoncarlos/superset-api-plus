@@ -154,6 +154,25 @@ def test_chart_built_in_code_gets_the_default_time_filter_of_the_dataset():
     assert {"col": "created", "op": "TEMPORAL_RANGE", "val": "No filter"} in chart.ui_query_context()["queries"][0]["filters"]
 
 
+def test_default_time_filter_keeps_the_legacy_time_column_and_range():
+    """A chart built in code with granularity_sqla and time_range gets them as its time filter, as the UI does
+    (datePickerInAdhocFilterMixin), not "No filter" on the dataset column: the query keeps the requested range."""
+    chart = new_chart("pie")
+    chart.add_simple_dimension("campus")
+    chart.params.extra_fields.update(granularity_sqla="ds", time_range="Last week")
+    legacy_since = new_chart("pie")
+    legacy_since.add_simple_dimension("campus")
+    legacy_since.params.extra_fields.update(granularity_sqla="ds", since="2026-01-01", until="2026-02-01")
+    dataset = DatasetTime(columns=("ds", "created"), main="created")
+
+    for each in (chart, legacy_since):
+        each.use_dataset_time(dataset)
+
+    assert [(f["subject"], f["comparator"]) for f in time_filters(chart)] == [("ds", "Last week")]
+    assert {"col": "ds", "op": "TEMPORAL_RANGE", "val": "Last week"} in chart.ui_query_context()["queries"][0]["filters"]
+    assert [(f["subject"], f["comparator"]) for f in time_filters(legacy_since)] == [("ds", "2026-01-01 : 2026-02-01")]
+
+
 def test_default_time_filter_is_not_added_twice_nor_to_legacy_or_read_charts():
     with_filter = new_chart("pie")
     with_filter.add_simple_dimension("campus")

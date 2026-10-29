@@ -10,7 +10,13 @@ from pydantic import Field, PrivateAttr
 from typing_extensions import Self
 
 from supersetapiplus.charts.build_query import query_context_for
-from supersetapiplus.charts.explore import NO_TIME_RANGE, QUERY_CONTROLS, DatasetTime, explore_form_data
+from supersetapiplus.charts.explore import (
+    NO_TIME_RANGE,
+    QUERY_CONTROLS,
+    DatasetTime,
+    explore_form_data,
+    update_time_range,
+)
 from supersetapiplus.charts.filters import AdhocFilterClause, filter_comparator
 from supersetapiplus.charts.metric import AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
@@ -338,20 +344,34 @@ class Chart(ApiModel):
         """The temporal columns of the chart's dataset, which Explore reads besides the params (default time filter,
         temporal dimensions, time grain shown). ``client.charts.add`` and ``save`` set them before sending.
 
-        A chart built in code also gets, as a new chart in the UI, a TEMPORAL_RANGE filter "No filter" on the
-        dataset's default temporal column when it has none (datePickerInAdhocFilterMixin, mixins.tsx): the filter a
-        time range native filter of a dashboard applies to.
+        A chart built in code also gets, as a new chart in the UI, a TEMPORAL_RANGE filter when it has none
+        (datePickerInAdhocFilterMixin, mixins.tsx): the filter a time range native filter of a dashboard applies to.
+        It is the legacy time column and range of the params when both are set, else "No filter" on the dataset's
+        default temporal column.
         """
         self._dataset_time = dataset
-        if self.id is not None or self._read_from_superset or not dataset.default:
+        if self.id is not None or self._read_from_superset:
             return
         controls = QUERY_CONTROLS.get(str(self.viz_type), frozenset())
         filters = self.params.adhoc_filters if isinstance(self.params.adhoc_filters, list) else []
         if "adhoc_filters" not in controls or "time_range" in controls \
                 or any(_operator(item) == FilterOperatorType.TEMPORAL_RANGE for item in filters):
             return
-        self.params.adhoc_filters = [*filters, AdhocFilterClause(
-            subject=dataset.default, operator=FilterOperatorType.TEMPORAL_RANGE, comparator=NO_TIME_RANGE)]
+        subject, comparator = self._legacy_time_range() or (dataset.default, NO_TIME_RANGE)
+        if subject:
+            self.params.adhoc_filters = [*filters, AdhocFilterClause(
+                subject=subject, operator=FilterOperatorType.TEMPORAL_RANGE, comparator=comparator)]
+
+    def _legacy_time_range(self) -> tuple[str, str] | None:
+        """The legacy time column and range of the params (``since``/``until`` read as ``time_range``)."""
+        values = {key: self.params.extra_fields.get(key, getattr(self.params, key, None))
+                  for key in ("granularity_sqla", "time_range", "since", "until")}
+        legacy = {key: value for key, value in values.items() if value is not None}
+        update_time_range(legacy)
+        column, time_range = legacy.get("granularity_sqla"), legacy.get("time_range")
+        if isinstance(column, str) and column and isinstance(time_range, str) and time_range:
+            return column, time_range
+        return None
 
     def derive_query_context(self, enabled: bool = True) -> None:
         """Rebuild the query_context from params on the next save, as Explore does when the chart is saved.
