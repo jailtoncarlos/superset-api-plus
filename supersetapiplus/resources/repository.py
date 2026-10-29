@@ -1,5 +1,6 @@
 """Repositories: CRUD of each REST resource over the HTTP client (search, read, write, export/import)."""
 import io
+import itertools
 import json
 import logging
 import os.path
@@ -341,7 +342,9 @@ class ApiModelFactories(ABC):
         Returns:
             ApiModel: the object found.
         """
-        objects = self.find(filter, columns)
+        # Up to two matches across the pages: the literal check of a filter with a wildcard may leave a page
+        # without the match the next page holds.
+        objects = list(itertools.islice(self.iter_all(filter, columns), 2))
         if len(objects) == 0:
             raise NotFound(f"No {self.get_base_object().__name__} found")
         if len(objects) > 1:

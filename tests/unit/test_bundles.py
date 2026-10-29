@@ -2,9 +2,12 @@
 import io
 import zipfile
 
+import pytest
 import yaml
 
 from supersetapiplus.datasets import Datasets
+from supersetapiplus.exceptions import MultipleFound
+from supersetapiplus.query_string import QueryStringFilter
 from supersetapiplus.resources.repository import merge_bundles
 from supersetapiplus.services.bundle_import import _in_import_order, _object_bundle, _read_bundle
 
@@ -73,3 +76,21 @@ def test_iter_all_requests_a_page_only_when_the_previous_one_was_consumed(monkey
     assert next(items) == 0 and requested == [0]
     assert list(items) == [1, 2, 3, 4] and requested == [0, 1, 2]
     assert repository.find_all(page_size=2) == [0, 1, 2, 3, 4]
+
+
+
+def test_find_one_looks_past_a_page_emptied_by_the_literal_check(monkeypatch):
+    """A filter with a wildcard: the first server page may hold only names the wildcard matched (None after the
+    literal check) while the match is on the next page, and a second match may come later still."""
+    repository = Datasets(client=None)
+    later = [["match"], ["other"]]
+
+    def find_page(filter, columns, page_size, page, *args):
+        return [None] * page_size if page == 0 else later[page - 1] + [None] * (page_size - 1)
+
+    monkeypatch.setattr(repository, "_find_page", find_page)
+    with pytest.raises(MultipleFound):
+        repository.find_one(QueryStringFilter())
+
+    later[1] = []
+    assert repository.find_one(QueryStringFilter()) == "match"
