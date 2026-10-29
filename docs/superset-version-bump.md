@@ -31,12 +31,14 @@ python bin/scripts/extract_example_layouts.py <v> > tests/fixtures/example_layou
 ```
 
 With the test stack on the new version (`docker compose -p superset-api-plus up -d --build`,
-`SUPERSET_LOAD_EXAMPLES=1`, and Playwright with Chromium for the last two):
+`SUPERSET_LOAD_EXAMPLES=1`, and Playwright with Chromium for all but the first):
 
 ```bash
 python bin/scripts/extract_ui_references.py <v>    # ui_references_<v>/
 python bin/scripts/extract_query_contexts.py <v>   # ui_query_contexts_<v>/ (Explore's chart/data requests)
 python bin/scripts/extract_ui_defaults.py <v>      # ui_defaults_<v>/ (form_data of a new chart)
+python bin/scripts/extract_ui_controls.py <v>      # ui_controls_<v>.json (controls read by buildQuery)
+python bin/scripts/extract_example_query_contexts.py <v>  # example_query_contexts_<v>.json (example charts)
 ```
 
 Point the tests at the new files (the version appears in the fixture names the tests load) and diff each

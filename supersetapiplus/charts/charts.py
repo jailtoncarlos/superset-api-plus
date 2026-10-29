@@ -2,6 +2,7 @@
 import copy
 import importlib
 import logging
+import warnings
 from abc import abstractmethod
 from typing import Any, ClassVar
 
@@ -9,7 +10,14 @@ from pydantic import Field, PrivateAttr
 from typing_extensions import Self
 
 from supersetapiplus.charts.build_query import query_context_for
-from supersetapiplus.charts.filters import filter_comparator
+from supersetapiplus.charts.explore import (
+    NO_TIME_RANGE,
+    QUERY_CONTROLS,
+    DatasetTime,
+    explore_form_data,
+    update_time_range,
+)
+from supersetapiplus.charts.filters import AdhocFilterClause, filter_comparator
 from supersetapiplus.charts.metric import AdhocMetricColumn, OrderBy
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.query_context import QueryContext
@@ -22,10 +30,22 @@ from supersetapiplus.core.types import DatasourceType
 from supersetapiplus.core.typing import FilterValues, SerializableNotToJson, SerializableOptional
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.layout import LayoutParent
-from supersetapiplus.exceptions import ChartValidationError, NotFound, UnsupportedTypeError, ValidationError
+from supersetapiplus.exceptions import (
+    ChartValidationError,
+    LegacyChartDataWarning,
+    NotFound,
+    UnsupportedTypeError,
+    ValidationError,
+)
+from supersetapiplus.resources.datasets import Datasets
 from supersetapiplus.resources.repository import ApiModelFactories
 
 logger = logging.getLogger(__name__)
+
+# Modeled viz types whose plugin renders through the legacy API (useLegacyApi: true, e.g.
+# legacy-plugin-chart-calendar/src/index.ts): their v1 query context, the one Explore saves, does not compute what
+# the chart shows (cal_heatmap: superset/viz.py CalHeatmapViz buckets the time; the v1 query returns one row).
+LEGACY_API_VIZ_TYPES = frozenset(("cal_heatmap",))
 
 
 def _unsupported_message(viz_type: str) -> str:
@@ -102,6 +122,8 @@ class Chart(ApiModel):
     _derive_query_context: bool = False
     # Keep builder ordering when the caller overrides the UI's default ordering.
     _preserve_query_orderby: bool = False
+    # Temporal columns of the dataset, set by the repository before a save (see explore_form_data).
+    _dataset_time: DatasetTime | None = None
 
 
     @classmethod
@@ -318,6 +340,39 @@ class Chart(ApiModel):
         if self.query_context is not None:
             self.query_context._add_extra_having(sql)
 
+    def use_dataset_time(self, dataset: DatasetTime) -> None:
+        """The temporal columns of the chart's dataset, which Explore reads besides the params (default time filter,
+        temporal dimensions, time grain shown). ``client.charts.add`` and ``save`` set them before sending.
+
+        A chart built in code also gets, as a new chart in the UI, a TEMPORAL_RANGE filter when it has none
+        (datePickerInAdhocFilterMixin, mixins.tsx): the filter a time range native filter of a dashboard applies to.
+        It is the legacy time column and range of the params when both are set, else "No filter" on the dataset's
+        default temporal column.
+        """
+        self._dataset_time = dataset
+        if self.id is not None or self._read_from_superset:
+            return
+        controls = QUERY_CONTROLS.get(str(self.viz_type), frozenset())
+        filters = self.params.adhoc_filters if isinstance(self.params.adhoc_filters, list) else []
+        if "adhoc_filters" not in controls or "time_range" in controls \
+                or any(_operator(item) == FilterOperatorType.TEMPORAL_RANGE for item in filters):
+            return
+        subject, comparator = self._legacy_time_range() or (dataset.default, NO_TIME_RANGE)
+        if subject:
+            self.params.adhoc_filters = [*filters, AdhocFilterClause(
+                subject=subject, operator=FilterOperatorType.TEMPORAL_RANGE, comparator=comparator)]
+
+    def _legacy_time_range(self) -> tuple[str, str] | None:
+        """The legacy time column and range of the params (``since``/``until`` read as ``time_range``)."""
+        values = {key: self.params.extra_fields.get(key, getattr(self.params, key, None))
+                  for key in ("granularity_sqla", "time_range", "since", "until")}
+        legacy = {key: value for key, value in values.items() if value is not None}
+        update_time_range(legacy)
+        column, time_range = legacy.get("granularity_sqla"), legacy.get("time_range")
+        if isinstance(column, str) and column and isinstance(time_range, str) and time_range:
+            return column, time_range
+        return None
+
     def derive_query_context(self, enabled: bool = True) -> None:
         """Rebuild the query_context from params on the next save, as Explore does when the chart is saved.
 
@@ -330,14 +385,27 @@ class Chart(ApiModel):
     def ui_query_context(self) -> dict[str, Any]:
         """Query context the Superset UI derives from the current params (frontend buildQuery, 6.1.0).
 
-        The dataset is the chart's (`datasource_id`/`datasource_type`), as in the form_data Superset gives Explore
-        (``Slice.form_data``, models/slice.py): `params.datasource` may be stale, e.g. in charts imported from
-        another instance.
+        The queries are built from the form_data Explore makes of the params (:func:`explore_form_data`: legacy
+        params migrated, control defaults, keys that are not controls left out); the ``form_data`` of the context
+        stays the params, so what Superset stored reads back the same. The dataset is the chart's
+        (`datasource_id`/`datasource_type`), as in the form_data Superset gives Explore (``Slice.form_data``,
+        models/slice.py): `params.datasource` may be stale, e.g. in charts imported from another instance.
         """
         form_data = self.params.to_dict()
         if isinstance(self.datasource_id, int) and self.datasource_type:
             form_data["datasource"] = f"{self.datasource_id}__{self.datasource_type}"
-        return query_context_for(form_data)
+        explored = explore_form_data(form_data, self._control_defaults(), self._dataset_time)
+        context = query_context_for(explored)
+        # Keys a plugin adds to the form_data for its query (raw tables: include_time) are kept.
+        context["form_data"] = {**form_data, **{key: value for key, value in context["form_data"].items()
+                                                if key not in explored}}
+        return context
+
+    @classmethod
+    def _control_defaults(cls) -> dict[str, Any]:
+        """The params of a new chart of this type: the control defaults of the UI (test_ui_defaults.py)."""
+        defaults: dict[str, Any] = cls._default_option_class()().to_dict()
+        return defaults
 
     def _derived_query_context(self) -> QueryContext:
         template = type(self).model_fields['query_context'].get_default(call_default_factory=True)
@@ -393,6 +461,12 @@ class Chart(ApiModel):
         return obj
 
 
+def _operator(adhoc_filter: object) -> object:
+    if isinstance(adhoc_filter, dict):
+        return adhoc_filter.get("operator")
+    return getattr(adhoc_filter, "operator", None)
+
+
 class Charts(ApiModelFactories):
     endpoint = "chart/"
     TYPE_COLUMN = "viz_type"
@@ -400,9 +474,34 @@ class Charts(ApiModelFactories):
     def _default_object_class(self) -> type[ApiModel]:
         return Chart
 
+    def add(self, obj: ApiModel) -> int:
+        """Creates the chart; one built in code first gets the dataset's temporal columns (see
+        :meth:`Chart.use_dataset_time`)."""
+        self._read_dataset_time(obj)
+        return super().add(obj)
+
+    def save(self, obj: ApiModel) -> None:
+        self._read_dataset_time(obj)
+        super().save(obj)
+
+    def _read_dataset_time(self, obj: ApiModel) -> None:
+        """The temporal columns of the dataset of a chart whose query_context is derived on send."""
+        if not isinstance(obj, Chart) or not obj._derive_query_context or obj.datasource_type != DatasourceType.TABLE \
+                or not isinstance(obj.datasource_id, int):
+            return
+        url = self.client.join_urls(self.client.base_url, Datasets.endpoint, obj.datasource_id)
+        dataset = self.client.get(url).json()["result"]
+        obj.use_dataset_time(DatasetTime(
+            columns=tuple(c["column_name"] for c in dataset.get("columns") or [] if c.get("is_dttm")),
+            main=dataset.get("main_dttm_col")))
+
     def get_chart_data(self, slice_id: int, dashboard_id: int | None = None) -> list[dict[str, Any]]:
         """
         Chart data computed by Superset from the saved query_context (GET /chart/{pk}/data/).
+
+        For a legacy viz_type (:data:`LEGACY_API_VIZ_TYPES`, e.g. cal_heatmap) the result is not what the chart
+        shows: the chart renders through /superset/explore_json, and its v1 query context gives one aggregate row
+        (a LegacyChartDataWarning is emitted). Reports and alerts on the v1 endpoint have the same limitation.
 
         Args:
             slice_id: chart id.
@@ -411,8 +510,13 @@ class Charts(ApiModelFactories):
         Returns:
             list[dict]: one item per query of the query_context (`data`, `colnames`, `rowcount`...).
         """
-        if dashboard_id is not None and dashboard_id not in self.dashboard_ids(slice_id):
+        chart = self.client.get(self.client.join_urls(self.base_url, slice_id)).json()["result"]
+        if dashboard_id is not None and dashboard_id not in [int(d["id"]) for d in chart.get("dashboards") or []]:
             raise NotFound(f'Chart {slice_id} does not belong to dashboard {dashboard_id}.')
+        if chart.get("viz_type") in LEGACY_API_VIZ_TYPES:
+            warnings.warn(LegacyChartDataWarning(
+                f"Chart {slice_id} is a {chart['viz_type']} (legacy API): its /chart/{{id}}/data result is not what "
+                "the chart shows."), stacklevel=2)
         url = self.client.join_urls(self.base_url, slice_id, "data/")
         results: list[dict[str, Any]] = self.client.get(url, params={"format": "json", "type": "full"}).json()["result"]
         return results

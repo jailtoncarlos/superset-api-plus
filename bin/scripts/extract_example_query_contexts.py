@@ -1,8 +1,10 @@
 """Capture the frontend queries of every modeled chart on the Superset example dashboards.
 
 Unlike extract_query_contexts.py (one representative per viz_type), this captures each example chart,
-identified by its stable export UUID. Requires the test stack with SUPERSET_LOAD_EXAMPLES=1, Playwright
-and Chromium (CHROME_PATH selects the browser). It never calls the library's query builder or saves charts.
+identified by its stable export UUID, with the params stored for it and the temporal columns of its dataset
+(the input Explore normalizes before building the query; instance ids left out). Requires the test stack with
+SUPERSET_LOAD_EXAMPLES=1, Playwright and Chromium (CHROME_PATH selects the browser). It never calls the library's
+query builder or saves charts.
 
 Usage:
     SUPERSET_URL=... SUPERSET_USERNAME=... SUPERSET_PASSWORD=... CHROME_PATH=... \\
@@ -36,6 +38,13 @@ def read_only_chart_request(route) -> None:
     else:
         # Observe POST /chart/data but never send it (it too can persist a context for slice_id).
         route.abort()
+
+
+def dataset_time(client: SupersetClient, source: dict) -> dict:
+    """The temporal columns of the chart's dataset and its main one, which Explore reads besides the params."""
+    dataset = client.get(client.join_urls(client.datasets.base_url, source["datasource_id"])).json()["result"]
+    return {"columns": [c["column_name"] for c in dataset["columns"] if c.get("is_dttm")],
+            "main": dataset.get("main_dttm_col")}
 
 
 def example_charts(client: SupersetClient, version: str) -> dict[int, dict]:
@@ -77,8 +86,10 @@ def main(version: str) -> None:
             query = portable(query)
             query["datasource"].pop("id", None)
             query["form_data"] = {k: v for k, v in query["form_data"].items() if k not in INSTANCE_FIELDS}
+            params = portable({k: v for k, v in json.loads(source["params"]).items() if k not in INSTANCE_FIELDS})
             captured[source["uuid"]] = {"slice_name": source["slice_name"], "viz_type": source["viz_type"],
-                                        "params_sha256": params_fingerprint(source), "query_context": query}
+                                        "params_sha256": params_fingerprint(source), "params": params,
+                                        "dataset_time": dataset_time(client, source), "query_context": query}
             print(f"Captured {len(captured)}/{len(charts)}: {source['slice_name']}", file=sys.stderr)
         browser.close()
     for pk, source in charts.items():
@@ -86,8 +97,10 @@ def main(version: str) -> None:
         if any(current.get(field) != source.get(field) for field in ("params", "query_context")):
             raise SystemExit(f"Explore changed the original chart {source['slice_name']!r}; no captures written")
     target = ROOT / "tests" / "fixtures" / f"example_query_contexts_{version}.json"
+    # Key order as captured: Explore orders form_data by control panel, and buildQuery collects metrics and
+    # columns in that order (extractQueryFields), so sorting the keys would change the reference queries.
     target.write_text(json.dumps({"version": version, "source": "Explore POST /api/v1/chart/data",
-                                  "charts": captured}, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
+                                  "charts": captured}, ensure_ascii=False, indent=1) + "\n",
                       encoding="utf-8")
 
 

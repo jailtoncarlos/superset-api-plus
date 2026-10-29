@@ -186,6 +186,11 @@ class LayoutWarning(UserWarning):
     """A dashboard layout read from Superset breaks a rule of the dashboard renderer; it is sent as read."""
 
 
+class LegacyChartDataWarning(UserWarning):
+    """The chart data of a legacy viz_type (rendered through /superset/explore_json, e.g. cal_heatmap) computed from
+    its v1 query context: Superset answers it, but it is not what the chart shows."""
+
+
 class DashboardValidationError(ValidationError):
     """
     Validation error for dashboard configuration issues.

@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## Unreleased
+
+### Added
+
+* `client.charts.get_chart_data()` emits a `LegacyChartDataWarning` for a legacy viz_type (`cal_heatmap`): Superset
+  6.1.0 renders it through `/superset/explore_json`, and its v1 query context gives one aggregate row, not the
+  calendar; documented in the README and in the model (#27).
+
+### Fixed
+
+* `find`, `find_all` and `count` match a `_` or `%` in the value of a STARTS_WITH, ENDS_WITH or CONTAINS filter
+  literally: Flask-AppBuilder turns them into ILIKE patterns without an ESCAPE clause, so the server results are
+  checked again (case-insensitive, as ILIKE); a prefix such as `zz_test_` no longer matches `zzXtestY...` (#29).
+* Minor divergences of the buildQuery port from the frontend: a unary filter (IS NULL, IS NOT NULL) has no value,
+  a null `url_params` is left out, items without a label are deduplicated into one, a server-paginated table
+  without a page size has a null row offset, and `js_number` follows JavaScript `Number()` (`0x10` is 16, `inf` is
+  NaN); the remaining ones are declared in `build_query.py` with the reason (#28).
+* A chart built in code gets, as a new chart in the UI, a TEMPORAL_RANGE filter "No filter" on the default temporal
+  column of its dataset when it has no time filter (`client.charts.add`, `Chart.use_dataset_time`), so a time range
+  native filter of the dashboard applies to it; before, such charts ignored the dashboard time range (#22).
+
+* The query context derived for a chart (`ui_query_context()`, `derive_query_context()`) is built from the params
+  normalized as Explore does before buildQuery (`supersetapiplus/charts/explore.py`), so a chart read from Superset
+  with legacy or incomplete params gets the query Explore builds for it: legacy `since`/`until` become the time range
+  (#23); null or absent control values take the control default, e.g. the pie sorted by its metric, the table
+  ordered descending, the row limit of a table, the Tukey statistics of a box plot (#24); stored keys that are not
+  controls of the viz_type are left out, e.g. a leftover `granularity_sqla` that turned a table column into epoch
+  milliseconds (#25); a legacy `granularity_sqla` becomes the x axis (#26). The 32 example charts whose copy returned
+  other data than the original now return the same data. The `form_data` of the context stays the params.
+
 ## 2.0.3 (2026-10-28)
 
 ### Added

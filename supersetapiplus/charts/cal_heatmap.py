@@ -24,6 +24,10 @@ class CalHeatmapOption(Option):
 
     Legacy plugin: the backend (superset/viz.py CalHeatmapViz) reads domain_granularity and
     subdomain_granularity. The time column is granularity_sqla (the UI proposes the dataset's main one).
+
+    The chart renders through /superset/explore_json (useLegacyApi). Its query_context is the one Explore saves (the
+    default buildQuery), but Superset 6.1.0 answers it on /api/v1/chart/data with one aggregate row, not the calendar:
+    ``client.charts.get_chart_data()`` (which warns), reports and alerts do not reproduce what the chart shows.
     """
     viz_type: ChartType = Field(default_factory=lambda: ChartType.CAL_HEATMAP)
     # The plugin has no dimension control: groupby is absent.

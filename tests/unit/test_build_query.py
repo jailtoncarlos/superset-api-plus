@@ -6,6 +6,7 @@ buildQuery and the queries it produced. The other tests cover operators the exam
 expected values follow the TypeScript sources cited in supersetapiplus/charts/build_query.py.
 """
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -402,3 +403,52 @@ def test_pivot_dimension_added_in_code_is_a_row_and_reaches_the_query():
     params = json.loads(chart.to_json()["params"])
     assert params["groupbyRows"] == ["campus"] and "groupby" not in params
     assert json.loads(chart.to_json()["query_context"])["queries"][0]["columns"] == ["campus"]
+
+
+# --- issue #28: minor divergences of the port -----------------------------------------------------
+
+def test_unary_filter_has_no_value():
+    """convertFilter.ts: IS NULL and IS NOT NULL send no val, even when the adhoc filter keeps a comparator."""
+    adhoc = [{"expressionType": "SIMPLE", "clause": "WHERE", "subject": "a", "operator": op, "comparator": "x"}
+             for op in ("IS NULL", "IS NOT NULL", "==")]
+
+    filters = bq.query_context_for({**BASE, "metrics": ["count"], "adhoc_filters": adhoc})["queries"][0]["filters"]
+
+    assert filters == [{"col": "a", "op": "IS NULL"}, {"col": "a", "op": "IS NOT NULL"}, {"col": "a", "op": "==", "val": "x"}]
+
+
+@pytest.mark.parametrize("form_data, expected", [({}, {}), ({"url_params": None}, "<absent>"),
+                                                 ({"url_params": {"a": "1"}}, {"a": "1"})])
+def test_url_params_follow_build_query_object(form_data, expected):
+    """buildQueryObject.ts: ``url_params = {}`` when undefined, then ``url_params || undefined``."""
+    query = bq.query_context_for({**BASE, "metrics": ["count"], **form_data})["queries"][0]
+
+    assert query.get("url_params", "<absent>") == expected
+
+
+def test_items_without_a_label_are_deduplicated_into_one():
+    """removeDuplicates(items, getColumnLabel): the items whose label is undefined share one hash."""
+    unlabeled = [{"expressionType": "SQL", "sqlExpression": None}, {"expressionType": "SQL", "sqlExpression": None}]
+
+    assert bq.remove_duplicates([*unlabeled, "a"], bq._hashable(bq.column_label)) == [unlabeled[0], "a"]
+
+
+def test_server_pagination_without_a_page_size_has_no_row_offset():
+    """plugin-chart-table buildQuery.ts: row_offset is currentPage * pageSize, NaN (null) without a page size."""
+    base = {**BASE, "query_mode": "raw", "all_columns": ["a"], "server_pagination": True}
+
+    without = bq.query_context_for(base)["queries"][0]
+    with_size = bq.query_context_for({**base, "server_page_length": 20})["queries"][0]
+
+    assert (without["row_offset"], "row_limit" in without) == (None, False)
+    assert (with_size["row_offset"], with_size["row_limit"]) == (0, 20)
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("12", 12), (" 1.5 ", 1.5), ("1e3", 1000), ("", 0), (None, 0), (True, 1), ("0x10", 16), ("0b11", 3),
+    ("Infinity", math.inf), ("-Infinity", -math.inf), ("inf", "NaN"), ("1_000", "NaN"), ("12px", "NaN"), ("0x", "NaN"),
+])
+def test_js_number_is_the_javascript_number(value, expected):
+    result = bq.js_number(value)
+
+    assert (math.isnan(result) and expected == "NaN") or result == expected
