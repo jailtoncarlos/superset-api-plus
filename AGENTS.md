@@ -123,7 +123,8 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   (fails when `uv.lock` is out of date), the unit tests with the lowest direct dependency versions on 3.10 and
   3.14, the integration tests against the compose stack, the example dashboard tests against the stack with the
   examples loaded (job `examples`, in parallel), and pre-commit on the PR diff. A weekly job (`superset-drift.yaml`) compares the newest Superset release and master with the
-  pinned excerpts and fails when the newest release differs (`docs/superset-version-bump.md`, step 0). CI/CD changes require explicit authorization from the maintainer.
+  pinned excerpts and fails when the newest release differs (`docs/superset-version-bump.md`, step 0). Each job is described in `docs/ci-pipeline.md`. CI/CD changes require explicit authorization from the maintainer.
+- The layout of the test suite, its fixtures and how to run each part are in `docs/testing.md`.
 - Every bug fix comes with a test that fails before the fix. Prefer tests of the public contract
   (results observed on the server) over implementation details.
 - **Server behavior is tested against the real Superset**, in `tests/integration` (one module per area:

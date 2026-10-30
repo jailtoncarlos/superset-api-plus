@@ -249,6 +249,9 @@ Old module paths keep working with a `DeprecationWarning` (see the [CHANGELOG](C
 
 ## Development Setup
 
+The test suites are described in [docs/testing.md](docs/testing.md) and the GitHub Actions workflows in
+[docs/ci-pipeline.md](docs/ci-pipeline.md).
+
 Dependencies are declared only in `pyproject.toml` (runtime `dependencies` and the `dev`, `test` and `graph`
 extras) and locked in `uv.lock`. With [uv](https://docs.astral.sh/uv/):
 
