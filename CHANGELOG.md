@@ -1,6 +1,11 @@
 # CHANGELOG
 
-## Unreleased
+## 2.1.1 (2026-10-31)
+
+### Documentation
+
+* `docs/ci-pipeline.md` describes each GitHub Actions workflow and job, and `docs/testing.md` the test suites,
+  their fixtures and how to run each part; both are linked from the README and AGENTS.md (#34).
 
 ### Fixed
 
