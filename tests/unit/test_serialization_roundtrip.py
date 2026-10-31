@@ -10,7 +10,7 @@ import json
 import pytest
 
 from supersetapiplus.charts.charts import Chart
-from supersetapiplus.exceptions import ValidationError
+from supersetapiplus.exceptions import NullQueryContextDatasourceWarning, ValidationError
 
 DATASOURCE = "1__table"
 
@@ -298,3 +298,31 @@ def test_raw_table_read_with_metrics_left_in_params_derives_its_query_context():
     assert query_context["queries"][0]["columns"] == ["name", "platform"]
     assert not query_context["queries"][0].get("metrics")
     assert json.loads(chart.to_json()["params"])["metrics"] == ["count"]  # params written back as read
+
+
+def table_read_with_query_context_datasource(datasource: dict) -> Chart:
+    params = {"viz_type": "table", "datasource": "32__table", "query_mode": "aggregate", "groupby": ["a"],
+              "metrics": ["count"]}
+    query_context = {"datasource": datasource, "queries": [{"columns": ["a"], "metrics": ["count"]}],
+                     "form_data": params}
+    return Chart.for_viz_type("table").from_json(
+        {"id": 1, "slice_name": "t", "viz_type": "table", "datasource_id": 32, "datasource_type": "table",
+         "params": json.dumps(params), "query_context": json.dumps(query_context)})
+
+
+@pytest.mark.parametrize("datasource", [{"id": None, "type": "table"}, {"id": None, "type": None}, {"id": 32, "type": None}])
+def test_null_query_context_datasource_of_a_saved_chart_is_filled_from_the_chart(datasource):
+    """Issue #36: charts imported through Superset 6.0.0rc1 store query_context.datasource.id = null. Superset cannot
+    process them (int(None) in query_context_factory.py: GET /dashboard/{id}/datasets answers 422), so the library fills
+    the null from datasource_id/datasource_type instead of writing it back, and saving the chart repairs it."""
+    with pytest.warns(NullQueryContextDatasourceWarning, match="chart 1"):
+        chart = table_read_with_query_context_datasource(datasource)
+
+    assert dumped(chart, "query_context")["datasource"] == {"id": 32, "type": "table"}
+
+
+def test_valid_query_context_datasource_of_a_saved_chart_is_written_back_as_read(recwarn):
+    chart = table_read_with_query_context_datasource({"id": 7, "type": "table"})
+
+    assert dumped(chart, "query_context")["datasource"] == {"id": 7, "type": "table"}
+    assert not [w for w in recwarn if issubclass(w.category, NullQueryContextDatasourceWarning)]
