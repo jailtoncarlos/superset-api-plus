@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Unreleased
+
+### Fixed
+
+* A chart read from Superset whose `query_context` points to a null datasource id or type (charts imported through
+  Superset 6.0.0rc1) gets the chart's `datasource_id`/`datasource_type` there, with a
+  `NullQueryContextDatasourceWarning`, so saving it through the library repairs it; before, the null was written
+  back, and Superset answers 422 to `GET /api/v1/dashboard/<id>/datasets` for a dashboard with such a chart (its
+  native filters show "Error loading chart datasources"). A non-null id is kept as read (#36).
+
 ## 2.1.0 (2026-10-29)
 
 ### Added

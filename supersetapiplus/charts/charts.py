@@ -34,6 +34,7 @@ from supersetapiplus.exceptions import (
     ChartValidationError,
     LegacyChartDataWarning,
     NotFound,
+    NullQueryContextDatasourceWarning,
     UnsupportedTypeError,
     ValidationError,
 )
@@ -165,6 +166,26 @@ class Chart(ApiModel):
             if isinstance(self.query_context, ApiModel):
                 self.query_context.datasource.id = self.datasource_id
                 self.query_context.form_data = copy.deepcopy(self.params)
+
+    def _repair_query_context_datasource(self) -> None:
+        """Chart read from Superset: a null query_context datasource id or type gets datasource_id/datasource_type.
+
+        Superset cannot process the null (int(None) in common/query_context_factory.py, so GET
+        /dashboard/{id}/datasets answers 422): the one exception to writing back what was read. A non-null id that
+        differs from datasource_id is kept as read.
+        """
+        datasource = self.query_context.datasource if self.query_context is not None else None
+        if self.id is None or self.datasource_id is None or not isinstance(datasource, DataSource):
+            return
+        if datasource.id is not None and datasource.type is not None:
+            return
+        warnings.warn(NullQueryContextDatasourceWarning(
+            f"chart {self.id}: query_context datasource {{'id': {datasource.id}, 'type': {datasource.type}}} filled "
+            f"from the chart datasource {self.datasource_id}__{self.datasource_type}"), stacklevel=3)
+        if datasource.id is None:
+            datasource.id = self.datasource_id
+        if datasource.type is None:
+            datasource.type = self.datasource_type
 
     def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
@@ -457,6 +478,7 @@ class Chart(ApiModel):
             obj.datasource_type = DatasourceType(datasource_type)
 
         obj._fill_datasource()
+        obj._repair_query_context_datasource()
         obj._derive_query_context = obj.id is None
         return obj
 

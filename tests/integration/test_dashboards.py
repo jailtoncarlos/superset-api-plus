@@ -1,4 +1,6 @@
 """Dashboards against the real Superset: writing, chart association, layout and native filters."""
+import json
+
 import pytest
 
 from supersetapiplus.charts.build_query import query_context_for
@@ -8,7 +10,13 @@ from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.resources.css_templates import CssTemplate
 from supersetapiplus.dashboards.native_filters import FilterType
-from supersetapiplus.exceptions import DashboardValidationError, NotFound, ResourceNotFoundError
+from supersetapiplus.exceptions import (
+    DashboardValidationError,
+    NotFound,
+    NullQueryContextDatasourceWarning,
+    ResourceNotFoundError,
+    UnprocessableEntityError,
+)
 from supersetapiplus.query_string import QueryOperator
 
 from .conftest import URL, name_filter, new_chart, unique_name
@@ -62,6 +70,26 @@ def test_attach_charts_associates_every_chart_in_the_layout(client, add_chart, a
     assert client.dashboards.attach_charts(dashboard) == [c.id for c in charts]
     assert sorted(c.id for c in client.dashboards.get(dashboard.id).get_charts()) == sorted(c.id for c in charts)
 
+
+
+def test_saving_a_chart_read_with_a_null_query_context_datasource_repairs_the_dashboard_datasets(
+        client, add_chart, add_dashboard):
+    """Issue #36: a chart whose stored query_context points to datasource id null (charts imported through Superset
+    6.0.0rc1) makes the dashboard datasets endpoint fail; saved through the library, the chart is repaired."""
+    chart, dashboard = add_chart(), add_dashboard()
+    client.charts.add_to_dashboard(chart, dashboard.id)
+    context = json.loads(client.get(client.charts.object_url(chart.id)).json()["result"]["query_context"])
+    context["datasource"]["id"] = None
+    client.put(client.charts.object_url(chart.id), json={"query_context": json.dumps(context)})
+    datasets_url = client.join_urls(client.dashboards.object_url(dashboard.id), "datasets")
+    with pytest.raises(UnprocessableEntityError):
+        client.get(datasets_url)
+
+    with pytest.warns(NullQueryContextDatasourceWarning):
+        stored = client.charts.get(chart.id)
+    stored.save()
+
+    assert [item["id"] for item in client.get(datasets_url).json()["result"]] == [chart.datasource_id]
 
 def test_add_chart_requires_a_saved_dashboard_before_creating_anything(client, dataset):
     dashboard = client.dashboards.get_base_object()(dashboard_title=unique_name("unsaved"))
