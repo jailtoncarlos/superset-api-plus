@@ -12,11 +12,12 @@ from supersetapiplus.resources.css_templates import CssTemplate
 from supersetapiplus.resources.databases import Database
 from supersetapiplus.resources.datasets import Dataset
 from supersetapiplus.resources.saved_queries import SavedQuery
+from supersetapiplus.resources.security import Permission, Role
 
 # What applications import; the modules keep their own paths (e.g. supersetapiplus.charts.charts.Chart).
 __all__ = [
     "Chart", "ChartRef", "CssTemplate", "Dashboard", "DashboardLayout", "DataSource", "Database", "Dataset",
-    "DatasourceType", "QueryOperator", "QueryStringFilter", "SavedQuery", "SupersetClient",
+    "DatasourceType", "Permission", "QueryOperator", "QueryStringFilter", "Role", "SavedQuery", "SupersetClient",
 ]
 
 # The library does not configure application logging (no basicConfig); it only avoids the

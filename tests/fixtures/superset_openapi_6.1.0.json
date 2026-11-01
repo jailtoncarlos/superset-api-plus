@@ -1204,6 +1204,16 @@
    },
    "required": []
   },
+  "RolePermissionPostSchema": {
+   "properties": {
+    "permission_view_menu_ids": {
+     "type": "array"
+    }
+   },
+   "required": [
+    "permission_view_menu_ids"
+   ]
+  },
   "SavedQueryRestApi.post": {
    "properties": {
     "catalog": {
@@ -1283,6 +1293,28 @@
     }
    },
    "required": []
+  },
+  "SupersetRoleApi.post": {
+   "properties": {
+    "name": {
+     "maxLength": 64,
+     "type": "string"
+    }
+   },
+   "required": [
+    "name"
+   ]
+  },
+  "SupersetRoleApi.put": {
+   "properties": {
+    "name": {
+     "maxLength": 64,
+     "type": "string"
+    }
+   },
+   "required": [
+    "name"
+   ]
   }
  },
  "superset_version": "6.1.0"
