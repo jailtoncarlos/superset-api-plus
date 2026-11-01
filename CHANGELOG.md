@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Unreleased
+
+### Added
+
+* Roles and permissions through the Flask-AppBuilder security API: `client.roles` (`Role`: CRUD, search by name,
+  `permissions()` and `set_permissions()`, which replaces the role's list) and `client.permissions` (`Permission`,
+  read from either endpoint, with the display name `can read on Chart` and `find_by_display_names()`), paginated
+  like the other resources (#39).
+
 ## 2.1.1 (2026-10-31)
 
 ### Documentation

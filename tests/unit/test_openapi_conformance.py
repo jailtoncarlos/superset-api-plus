@@ -24,6 +24,7 @@ from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.databases import Database
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.resources.css_templates import CssTemplate
+from supersetapiplus.resources.security import Permission, Role
 from supersetapiplus.saved_queries import SavedQuery
 
 SPEC = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_openapi_6.1.0.json").read_text())
@@ -72,13 +73,14 @@ RESOURCES = {
                      lambda: CssTemplate(template_name="Panel", css=".header { color: #333; }"),
                      {"id": 9, "template_name": "Panel", "css": ".header { color: #333; }",
                       "changed_on_delta_humanized": "now"}),
+    "role": ("SupersetRoleApi", lambda: Role(name="Viewer"), {"id": 9, "name": "Viewer"}),
 }
 
 
 def factory_for(client, resource):
     return {"chart": client.charts, "dashboard": client.dashboards, "dataset": client.datasets,
             "database": client.databases, "saved_query": client.saved_queries,
-            "css_template": client.css_templates}[resource]
+            "css_template": client.css_templates, "role": client.roles}[resource]
 
 
 @pytest.fixture
@@ -162,6 +164,12 @@ ROUTES = [
     ("delete", lambda c: c.charts.base_url), ("delete", lambda c: c.dashboards.base_url),
     ("delete", lambda c: c.datasets.base_url), ("delete", lambda c: c.saved_queries.base_url),
     ("post", lambda c: c.join_urls(c.dashboards.base_url, 9, "copy/")),
+    # roles and permissions
+    ("get", lambda c: c.roles.base_url), ("post", lambda c: c.roles.base_url),
+    ("put", lambda c: f"{c.roles.base_url}9"), ("delete", lambda c: f"{c.roles.base_url}9"),
+    ("get", lambda c: c.join_urls(c.roles.base_url, 9, "permissions/")),
+    ("post", lambda c: c.join_urls(c.roles.base_url, 9, "permissions")),
+    ("get", lambda c: c.permissions.base_url),
 ]
 
 
@@ -189,3 +197,15 @@ def test_fields_declared_in_models_are_the_spec_fields(resource):
 
     assert set(model.POST_FIELDS) == set(SPEC["schemas"][f"{api}.post"]["properties"])
     assert set(model.PUT_FIELDS) == set(SPEC["schemas"][f"{api}.put"]["properties"])
+
+
+def test_role_permissions_replacement_follows_the_schema(client, mock):
+    url = client.join_urls(client.roles.base_url, 9, "permissions")
+    mock.post(url, json={"result": {}})
+
+    client.roles.set_permissions(9, [Permission(id=3, permission_name="can_read", view_menu_name="Chart"), 7])
+
+    assert spec_paths_for(mock.last_request.url)
+    payload = mock.last_request.json()
+    assert violations(payload, SPEC["schemas"]["RolePermissionPostSchema"], check_required=True) == []
+    assert payload == {"permission_view_menu_ids": [3, 7]}

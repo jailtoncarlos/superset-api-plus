@@ -6,7 +6,7 @@ or, with an already downloaded file:
     python bin/scripts/extract_openapi.py <version> /path/to/openapi.json > ...
 
 Keeps every route (methods only) and the create/update schemas of the resources the
-library writes, with properties, types and required fields.
+library writes (and the body schemas of its other requests), with properties, types and required fields.
 """
 import json
 import os
@@ -18,7 +18,9 @@ SPEC_URL = "https://raw.githubusercontent.com/apache/superset/{version}/" + SPEC
 COMMIT_URL = "https://api.github.com/repos/apache/superset/commits/{ref}"
 
 RESOURCES = ["ChartRestApi", "DashboardRestApi", "DatasetRestApi", "DatabaseRestApi", "SavedQueryRestApi",
-             "CssTemplateRestApi"]
+             "CssTemplateRestApi", "SupersetRoleApi"]
+# Body schemas of the other requests the library sends.
+BODY_SCHEMAS = ["RolePermissionPostSchema"]
 
 
 def github_api(url: str) -> urllib.request.Request:
@@ -59,7 +61,8 @@ def main(version: str, path: str | None = None) -> None:
         "paths": {route: sorted(m for m in ops if m in ("get", "post", "put", "delete"))
                   for route, ops in sorted(spec["paths"].items())},
         "schemas": {f"{r}.{op}": schema_subset(schemas[f"{r}.{op}"])
-                    for r in RESOURCES for op in ("post", "put") if f"{r}.{op}" in schemas},
+                    for r in RESOURCES for op in ("post", "put") if f"{r}.{op}" in schemas}
+        | {name: schema_subset(schemas[name]) for name in BODY_SCHEMAS},
     }
     if not path:  # downloaded from the tag: record where the excerpt comes from
         subset["provenance"] = {"repository": "apache/superset", "tag": version, "sha": commit_sha(version),

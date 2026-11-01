@@ -128,6 +128,21 @@ report = client.bundle_import.import_objects("charts.zip", passwords={"warehouse
 report.imported, report.existing, report.failed      # one import per object, databases first
 ```
 
+Roles and permissions (Flask-AppBuilder security API):
+
+```python
+from supersetapiplus import Role
+
+role = Role(name="Viewer")
+client.roles.add(role)
+names = ["can read on Chart", "can read on Dashboard"]  # display names, as in a role file exported from the UI
+role.set_permissions(client.permissions.find_by_display_names(names))  # replaces the whole list
+[p.display_name for p in role.permissions()]
+query = QueryStringFilter()
+query.add("name", QueryOperator.EQUAL, "Public")
+public = client.roles.find_one(query)
+```
+
 ## Creating a chart
 
 ```python

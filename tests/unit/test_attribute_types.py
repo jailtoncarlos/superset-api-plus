@@ -182,6 +182,10 @@ FREE_TEXT = {
         "WhiskerOptions preset, or the custom '<low>/<high> percentiles' of the freeForm control (validated)",
     "resources.css_templates.CssTemplate.template_name": TEXT,
     "resources.css_templates.CssTemplate.css": "CSS text",
+    "resources.security.Role.name": "name of a role of the instance",
+    "resources.security.Permission.permission_name":
+        "name of a permission of the instance (FAB and Superset register new ones: can_read, all_database_access...)",
+    "resources.security.Permission.view_menu_name": "name of a view menu of the instance (a resource, database, ...)",
     # Report of a bundle import: paths of files in the bundle and error messages
     "services.bundle_import.ImportReport.imported": "paths of files in the export bundle",
     "services.bundle_import.ImportReport.existing": "paths of files in the export bundle",
