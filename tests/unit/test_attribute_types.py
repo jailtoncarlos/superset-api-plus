@@ -183,6 +183,10 @@ FREE_TEXT = {
     "resources.css_templates.CssTemplate.template_name": TEXT,
     "resources.css_templates.CssTemplate.css": "CSS text",
     "resources.security.Role.name": "name of a role of the instance",
+    "resources.row_level_security.RowLevelSecurityRule.name": TEXT,
+    "resources.row_level_security.RowLevelSecurityRule.clause": SQL,
+    "resources.row_level_security.RowLevelSecurityRule.group_key": "free label grouping rules (OR within a group)",
+    "resources.row_level_security.RowLevelSecurityRule.description": TEXT,
     "resources.security.Permission.permission_name":
         "name of a permission of the instance (FAB and Superset register new ones: can_read, all_database_access...)",
     "resources.security.Permission.view_menu_name": "name of a view menu of the instance (a resource, database, ...)",

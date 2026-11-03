@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Unreleased
+
+### Added
+
+* Row level security rules: `client.row_level_security` (`RowLevelSecurityRule`: CRUD and search, paginated like
+  the other resources), with `filter_type` typed by `RowLevelSecurityFilterType` (`Regular`/`Base`, from the
+  Superset source) and `tables`/`roles` given as datasets, roles or ids and sent as ids; a rule read from Superset
+  keeps them as read (#42).
+
 ## 2.2.0 (2026-11-01)
 
 ### Added

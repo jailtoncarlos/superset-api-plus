@@ -24,6 +24,8 @@ from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.databases import Database
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.resources.css_templates import CssTemplate
+from supersetapiplus.core.types import RowLevelSecurityFilterType
+from supersetapiplus.resources.row_level_security import RowLevelSecurityRule
 from supersetapiplus.resources.security import Permission, Role
 from supersetapiplus.saved_queries import SavedQuery
 
@@ -74,13 +76,21 @@ RESOURCES = {
                      {"id": 9, "template_name": "Panel", "css": ".header { color: #333; }",
                       "changed_on_delta_humanized": "now"}),
     "role": ("SupersetRoleApi", lambda: Role(name="Viewer"), {"id": 9, "name": "Viewer"}),
+    "row_level_security": ("RLSRestApi",
+                           lambda: RowLevelSecurityRule(name="Rule", filter_type=RowLevelSecurityFilterType.REGULAR,
+                                                        tables=[Dataset(id=4, table_name="t")],
+                                                        roles=[Role(id=3, name="Public")], clause="x <> 'y'"),
+                           {"id": 9, "name": "Rule", "filter_type": "Base", "clause": "x <> 'y'", "group_key": None,
+                            "description": None, "tables": [{"id": 4, "schema": "s", "table_name": "t"}],
+                            "roles": [{"id": 3, "name": "Public"}]}),
 }
 
 
 def factory_for(client, resource):
     return {"chart": client.charts, "dashboard": client.dashboards, "dataset": client.datasets,
             "database": client.databases, "saved_query": client.saved_queries,
-            "css_template": client.css_templates, "role": client.roles}[resource]
+            "css_template": client.css_templates, "role": client.roles,
+            "row_level_security": client.row_level_security}[resource]
 
 
 @pytest.fixture
@@ -170,6 +180,10 @@ ROUTES = [
     ("get", lambda c: c.join_urls(c.roles.base_url, 9, "permissions/")),
     ("post", lambda c: c.join_urls(c.roles.base_url, 9, "permissions")),
     ("get", lambda c: c.permissions.base_url),
+    # row level security
+    ("get", lambda c: c.row_level_security.base_url), ("post", lambda c: c.row_level_security.base_url),
+    ("get", lambda c: f"{c.row_level_security.base_url}9"), ("put", lambda c: f"{c.row_level_security.base_url}9"),
+    ("delete", lambda c: f"{c.row_level_security.base_url}9"), ("delete", lambda c: c.row_level_security.base_url),
 ]
 
 
