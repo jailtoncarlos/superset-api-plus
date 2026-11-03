@@ -67,6 +67,10 @@
    "QUERY_AND_DROPDOWN": "QUERY_AND_DROPDOWN",
    "UNKNOWN": "UNKNOWN"
   },
+  "RowLevelSecurityFilterType": {
+   "BASE": "Base",
+   "REGULAR": "Regular"
+  },
   "SupersetErrorType": {
    "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR": "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR",
    "ASYNC_WORKERS_ERROR": "ASYNC_WORKERS_ERROR",

@@ -25,6 +25,15 @@ class ConfigurationMethod(StringEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
+class RowLevelSecurityFilterType(StringEnum):
+    """Kind of a row level security rule (`superset/utils/core.py` RowLevelSecurityFilterType, Superset 6.1.0).
+
+    A Regular rule applies its clause to the roles listed; a Base rule applies it to every role except those listed.
+    """
+    REGULAR = "Regular"
+    BASE = "Base"
+
+
 class LimitingFactor(StringEnum):
     """What limited a SQL Lab result (`superset/sqllab/limiting_factor.py`, Superset 6.1.0)."""
     QUERY = "QUERY"

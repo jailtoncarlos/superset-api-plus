@@ -29,6 +29,7 @@ BACKEND = [
     ("superset/sqllab/limiting_factor.py", "LimitingFactor"),
     ("superset/utils/core.py", "DatasourceType"),
     ("superset/utils/core.py", "GenericDataType"),
+    ("superset/utils/core.py", "RowLevelSecurityFilterType"),
     ("superset/connectors/sqla/models.py", "DatasourceKind"),
     ("superset/models/core.py", "ConfigurationMethod"),
     ("superset/errors.py", "SupersetErrorType"),

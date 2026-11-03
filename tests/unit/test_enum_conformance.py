@@ -39,6 +39,7 @@ SOURCES = {
     B.DatasourceKind: official(BACKEND, "DatasourceKind"),
     B.LimitingFactor: official(BACKEND, "LimitingFactor"),
     B.ConfigurationMethod: official(BACKEND, "ConfigurationMethod"),
+    B.RowLevelSecurityFilterType: official(BACKEND, "RowLevelSecurityFilterType"),
     B.SupersetErrorType: official(BACKEND, "SupersetErrorType"),
     B.ErrorLevel: official(BACKEND, "ErrorLevel"),
     T.FilterOperatorType: official(BACKEND, "FilterOperator"),

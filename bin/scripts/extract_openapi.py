@@ -18,7 +18,7 @@ SPEC_URL = "https://raw.githubusercontent.com/apache/superset/{version}/" + SPEC
 COMMIT_URL = "https://api.github.com/repos/apache/superset/commits/{ref}"
 
 RESOURCES = ["ChartRestApi", "DashboardRestApi", "DatasetRestApi", "DatabaseRestApi", "SavedQueryRestApi",
-             "CssTemplateRestApi", "SupersetRoleApi"]
+             "CssTemplateRestApi", "SupersetRoleApi", "RLSRestApi"]
 # Body schemas of the other requests the library sends.
 BODY_SCHEMAS = ["RolePermissionPostSchema"]
 

@@ -4,11 +4,12 @@ from supersetapiplus.resources.css_templates import CssTemplate, CssTemplates
 from supersetapiplus.resources.databases import Database, Databases
 from supersetapiplus.resources.datasets import Dataset, Datasets
 from supersetapiplus.resources.repository import ApiModelFactories, Repository, UnsupportedObject
+from supersetapiplus.resources.row_level_security import RowLevelSecurity, RowLevelSecurityRule
 from supersetapiplus.resources.saved_queries import SavedQueries, SavedQuery
 from supersetapiplus.resources.security import Permission, Permissions, Role, Roles
 
 __all__ = [
     "Assets", "Database", "Databases", "Dataset", "Datasets", "ApiModelFactories", "Repository",
     "UnsupportedObject", "SavedQueries", "SavedQuery", "CssTemplate", "CssTemplates",
-    "Permission", "Permissions", "Role", "Roles",
+    "Permission", "Permissions", "Role", "Roles", "RowLevelSecurity", "RowLevelSecurityRule",
 ]

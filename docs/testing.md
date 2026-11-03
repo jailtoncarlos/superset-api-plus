@@ -39,7 +39,7 @@ pytest logs at INFO level on the console (`log_cli` in `[tool.pytest.ini_options
 
 | Area | Modules |
 |---|---|
-| Models and serialization | `test_api_model.py`, `test_serializable_model.py`, `test_serialization_roundtrip.py`, `test_resource_fields.py`, `test_roles_and_permissions.py` |
+| Models and serialization | `test_api_model.py`, `test_serializable_model.py`, `test_serialization_roundtrip.py`, `test_resource_fields.py`, `test_roles_and_permissions.py`, `test_row_level_security.py` |
 | Charts built in code | `test_chart_instance.py`, `test_chart_dimensions.py`, `test_chart_validations.py`, `test_metrics_and_layout.py`, `test_more_chart_types.py` |
 | Query building (buildQuery port and Explore normalization) | `test_build_query.py`, `test_explore_form_data.py`, `test_example_query_references.py` |
 | Dashboard layout and native filters | `test_dashboard.py`, `test_dashboard_layout.py`, `test_layout_builder_presets.py`, `test_layout_validation.py`, `test_item_position.py`, `test_native_filter_defaults.py` |
@@ -89,6 +89,7 @@ browser). An extractor that finds nothing for a symbol fails instead of writing 
 | `test_sql.py` | SQL Lab (`POST /api/v1/sqllab/execute/`) |
 | `test_assets.py` | assets export and import (`/api/v1/assets/`) |
 | `test_roles.py` | roles and their permissions (`/api/v1/security/roles/`, `permissions-resources/`); local test stack only |
+| `test_row_level_security.py` | row level security rules (`/api/v1/rowlevelsecurity/`): CRUD, and the clause filtering the chart data of a user with the rule's role; local test stack only |
 
 ### The test stack
 

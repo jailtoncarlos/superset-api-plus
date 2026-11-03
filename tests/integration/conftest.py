@@ -111,13 +111,14 @@ def new_chart(viz_type: str, dataset: Dataset, slice_name: str | None = None) ->
 
 
 class Cleanup:
-    """Removes, at the end of the test, the dashboards, charts, datasets, CSS templates and roles it created, in
-    this order (a dataset with charts cannot be removed); ignores those already removed."""
+    """Removes, at the end of the test, the row level security rules, dashboards, charts, datasets, CSS templates and
+    roles it created, in this order (a dataset with charts cannot be removed); ignores those already removed."""
 
     def __init__(self, client: SupersetClient):
         self.client, self.charts, self.dashboards, self.datasets = client, [], [], []
         self.css_templates: list[int] = []
         self.roles: list[int] = []
+        self.rls_rules: list[int] = []
 
     def chart(self, chart_id: int) -> int:
         self.charts.append(chart_id)
@@ -139,8 +140,13 @@ class Cleanup:
         self.roles.append(role_id)
         return role_id
 
+    def rls_rule(self, rule_id: int) -> int:
+        self.rls_rules.append(rule_id)
+        return rule_id
+
     def run(self) -> None:
-        for factory, ids in ((self.client.dashboards, self.dashboards), (self.client.charts, self.charts),
+        for factory, ids in ((self.client.row_level_security, self.rls_rules),
+                             (self.client.dashboards, self.dashboards), (self.client.charts, self.charts),
                              (self.client.datasets, self.datasets), (self.client.css_templates, self.css_templates),
                              (self.client.roles, self.roles)):
             for pk in ids:

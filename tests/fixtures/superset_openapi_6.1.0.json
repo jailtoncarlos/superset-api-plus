@@ -1204,6 +1204,78 @@
    },
    "required": []
   },
+  "RLSRestApi.post": {
+   "properties": {
+    "clause": {
+     "type": "string"
+    },
+    "description": {
+     "nullable": true,
+     "type": "string"
+    },
+    "filter_type": {
+     "enum": [
+      "Regular",
+      "Base"
+     ],
+     "type": "string"
+    },
+    "group_key": {
+     "nullable": true,
+     "type": "string"
+    },
+    "name": {
+     "maxLength": 255,
+     "type": "string"
+    },
+    "roles": {
+     "type": "array"
+    },
+    "tables": {
+     "type": "array"
+    }
+   },
+   "required": [
+    "clause",
+    "filter_type",
+    "name",
+    "roles",
+    "tables"
+   ]
+  },
+  "RLSRestApi.put": {
+   "properties": {
+    "clause": {
+     "type": "string"
+    },
+    "description": {
+     "nullable": true,
+     "type": "string"
+    },
+    "filter_type": {
+     "enum": [
+      "Regular",
+      "Base"
+     ],
+     "type": "string"
+    },
+    "group_key": {
+     "nullable": true,
+     "type": "string"
+    },
+    "name": {
+     "maxLength": 255,
+     "type": "string"
+    },
+    "roles": {
+     "type": "array"
+    },
+    "tables": {
+     "type": "array"
+    }
+   },
+   "required": []
+  },
   "RolePermissionPostSchema": {
    "properties": {
     "permission_view_menu_ids": {

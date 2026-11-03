@@ -143,6 +143,20 @@ query.add("name", QueryOperator.EQUAL, "Public")
 public = client.roles.find_one(query)
 ```
 
+Row level security rules (the SQL clause Superset adds to the queries of some roles on some datasets):
+
+```python
+from supersetapiplus import RowLevelSecurityFilterType, RowLevelSecurityRule
+
+rule = RowLevelSecurityRule(
+    name="Public sees active rows", filter_type=RowLevelSecurityFilterType.REGULAR,  # BASE: every role but these
+    tables=[dataset], roles=[public], clause="status = 'active'")  # datasets, roles or their ids
+client.row_level_security.add(rule)
+rule.clause = "status <> 'archived'"
+rule.save()
+client.row_level_security.delete(rule.id)
+```
+
 ## Creating a chart
 
 ```python
