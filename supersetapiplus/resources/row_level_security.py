@@ -5,6 +5,8 @@ from pydantic import Field, field_validator
 
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.types import RowLevelSecurityFilterType
+from supersetapiplus.exceptions import NotFound
+from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 from supersetapiplus.resources.repository import ApiModelFactories
 
 
@@ -51,6 +53,24 @@ class RowLevelSecurityRule(ApiModel):
 class RowLevelSecurity(ApiModelFactories):
     """Repository of row level security rules (`client.row_level_security`): CRUD and search, e.g. by `name`."""
     endpoint = "rowlevelsecurity/"
+
+    def create_or_update(self, rule: RowLevelSecurityRule) -> int:
+        """Create `rule`, or update the rule with its name (Superset keeps rule names unique); returns the rule id.
+
+        Idempotent: running it again with the same rule leaves one rule with the same id and fields. An existing rule
+        is replaced by `rule` (PUT of every field, so a `group_key` or `description` left as None is cleared).
+        `rule.id` is set, so `rule.save()` and `delete(rule.id)` work afterwards.
+        """
+        name_filter = QueryStringFilter()
+        name_filter.add("name", QueryOperator.EQUAL, rule.name)
+        try:
+            existing = self.find_one(name_filter, columns=["id", "name"])
+        except NotFound:
+            return self.add(rule)
+        rule.id = existing.id
+        rule._factory = self
+        self.save(rule)
+        return int(existing.id)
 
     def _default_object_class(self) -> type[ApiModel]:
         return RowLevelSecurityRule

@@ -155,6 +155,9 @@ client.row_level_security.add(rule)
 rule.clause = "status <> 'archived'"
 rule.save()
 client.row_level_security.delete(rule.id)
+
+# Idempotent setup: creates the rule, or replaces the rule with the same name; returns its id
+client.row_level_security.create_or_update(rule)
 ```
 
 ## Creating a chart

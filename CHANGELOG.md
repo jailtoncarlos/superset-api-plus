@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## Unreleased
+
+### Added
+
+* `client.row_level_security.create_or_update(rule)`: creates the rule, or replaces the rule with the same name
+  (Superset keeps rule names unique), and returns its id, so a setup that declares its rules in code can run more
+  than once (#46).
+
 ## 2.3.0 (2026-11-03)
 
 ### Added
