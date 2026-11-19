@@ -1,10 +1,11 @@
-"""Row level security rules (client.row_level_security): CRUD, and the clause applied to the data a role sees."""
+"""Row level security rules (client.row_level_security): CRUD, create or update by name, and the clause applied to
+the data a role sees."""
 import uuid
 
 import pytest
 
 from supersetapiplus.core.types import RowLevelSecurityFilterType
-from supersetapiplus.exceptions import NotFound, ResourceNotFoundError
+from supersetapiplus.exceptions import BadRequestError, NotFound, ResourceNotFoundError
 from supersetapiplus.resources.row_level_security import RowLevelSecurityRule
 from supersetapiplus.resources.security import Role
 
@@ -69,3 +70,47 @@ def test_the_clause_filters_the_data_of_the_role(client, cleanup, dataset, add_c
     rule.clause = "campus <> 'North'"
     rule.save()
     assert campuses(restricted, chart) == ["South"]
+
+
+def test_create_or_update_by_name_is_idempotent(client, cleanup, dataset, restricted_user):
+    role, _ = restricted_user
+    name = unique_name("rule")
+
+    def declared(clause: str) -> RowLevelSecurityRule:
+        return RowLevelSecurityRule(name=name, filter_type=RowLevelSecurityFilterType.REGULAR, tables=[dataset],
+                                    roles=[role], clause=clause, description="declared in code")
+
+    rule_id = cleanup.rls_rule(client.row_level_security.create_or_update(declared("campus <> 'South'")))
+    assert client.row_level_security.create_or_update(declared("campus <> 'South'")) == rule_id, "same rule again"
+    assert client.row_level_security.create_or_update(declared("campus <> 'North'")) == rule_id, "updated in place"
+
+    assert client.row_level_security.count(name_filter("name", name)) == 1
+    saved = client.row_level_security.get(rule_id)
+    assert (saved.clause, saved.description) == ("campus <> 'North'", "declared in code")
+    assert [t["id"] for t in saved.tables] == [dataset.id] and [r["id"] for r in saved.roles] == [role.id]
+
+
+def test_create_or_update_matches_the_whole_name(client, cleanup, dataset, restricted_user):
+    role, _ = restricted_user
+    name = unique_name("rule")
+    longer = RowLevelSecurityRule(name=f"{name}-longer", filter_type=RowLevelSecurityFilterType.BASE,
+                                  tables=[dataset], roles=[role], clause="1 = 1")
+    cleanup.rls_rule(client.row_level_security.add(longer))
+
+    rule = RowLevelSecurityRule(name=name, filter_type=RowLevelSecurityFilterType.BASE, tables=[dataset],
+                                roles=[role], clause="1 = 1")
+    cleanup.rls_rule(client.row_level_security.create_or_update(rule))
+
+    assert rule.id != longer.id and client.row_level_security.get(longer.id).name == f"{name}-longer"
+
+
+def test_superset_keeps_rule_names_unique(client, cleanup, dataset):
+    """create_or_update looks a rule up by name: the server must refuse a second rule with the same name."""
+    def rule() -> RowLevelSecurityRule:
+        return RowLevelSecurityRule(name=name, filter_type=RowLevelSecurityFilterType.BASE, tables=[dataset],
+                                    clause="1 = 1")
+
+    name = unique_name("rule")
+    cleanup.rls_rule(client.row_level_security.add(rule()))
+    with pytest.raises(BadRequestError):
+        cleanup.rls_rule(client.row_level_security.add(rule()))
