@@ -8,7 +8,7 @@ import pytest
 import requests
 
 from supersetapiplus.auth.session import page_auth_type
-from supersetapiplus.client import SupersetClient
+from supersetapiplus.client import TARGET_SERVER_MAJOR, SupersetClient
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.exceptions import (
     ComplexBadRequestError,
@@ -204,7 +204,7 @@ def test_the_server_version_is_read_once_and_another_major_version_is_reported()
     version = client.server_version
     assert re.match(r"\d+\.\d+", version), version
     reported = [w for w in caught if issubclass(w.category, UnsupportedServerVersionWarning)]
-    if version.startswith("7."):
+    if version.startswith(f"{TARGET_SERVER_MAJOR}."):
         assert reported == []
-    else:  # the 6.1 stack until the test stack moves to 7.0
+    else:
         assert len(reported) == 1 and version in str(reported[0].message)

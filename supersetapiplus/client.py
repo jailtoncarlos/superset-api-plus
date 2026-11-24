@@ -48,8 +48,10 @@ from supersetapiplus.transport.http import RequestHandler
 
 logger = logging.getLogger(__name__)
 
-# Major Superset version this line of the library targets (AGENTS.md): 7.0 on main, 6.1 on the 2.x branch.
-TARGET_SERVER_MAJOR = 7
+# Major Superset version this line of the library targets (AGENTS.md): 6 on main (releases 2.x), 7 on the superset-7
+# branch (the migration, released as 3.0.0 after Superset 7.0.0 final).
+TARGET_SERVER_MAJOR = 6
+OTHER_LINE_HINT = "Superset 7 is supported by superset-api-plus 3.x (branch superset-7 until its release)."
 
 
 class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
@@ -168,7 +170,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         if match and int(match.group(1)) != TARGET_SERVER_MAJOR:
             warnings.warn(UnsupportedServerVersionWarning(
                 f"This release of superset-api-plus targets Superset {TARGET_SERVER_MAJOR}.x; the server at {self.host} "
-                f"runs {self._server_version}. For Superset 6.1 use the 2.x releases (branch 2.x)."), stacklevel=3)
+                f"runs {self._server_version}. {OTHER_LINE_HINT}"), stacklevel=3)
 
     def _init_session(self) -> None:
         if self._session is not None:
