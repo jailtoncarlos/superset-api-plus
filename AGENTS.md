@@ -12,7 +12,12 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 
 ## Target and sources of truth
 
-- Target Superset version: **6.1.0** (Flask-AppBuilder 5). Python **>= 3.10**, tested on 3.10 and 3.14.
+- Target Superset version: **7.0** on `main` (to be released as 3.0.0 after Superset 7.0.0 final; work started on
+  `7.0.0rc3`). Superset **6.1.0** is served by the `2.x` branch (releases 2.5.x), which takes 6.1 fixes only. The
+  move is in progress (feature #53, tasks #54–#73; `docs/studies/analysis/2026-11-24-superset-7.0-impact-and-migration.md`):
+  until those tasks land, the excerpts, the buildQuery port and the test stack on `main` are still the 6.1.0 ones.
+  The client reads `GET /version` after login (`client.server_version`) and emits `UnsupportedServerVersionWarning`
+  for another major version. Python **>= 3.10**, tested on 3.10 and 3.14.
 - **Accepted request fields** come from the official OpenAPI specification
   (`components.schemas.{Resource}RestApi.post/.put`). The `/_info` endpoint is **not** a source of
   accepted fields: in 6.1.0 `ChartRestApi` reports `add_columns = edit_columns = ["slice_name"]` while

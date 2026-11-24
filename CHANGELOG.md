@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## Unreleased
+
+### Changed
+
+* `main` targets Superset 7.0 (to be released as 3.0.0 after Superset 7.0.0 final); Superset 6.1 is served by the
+  2.x line, on the `2.x` branch. The migration tasks are tracked in #53 (#54).
+
+### Added
+
+* `client.server_version`: the version the server reports (`GET /version`, `version_string`), read once after the
+  first login, which warns with `UnsupportedServerVersionWarning` when the server's major version is not the one the
+  release targets (#54).
+
 ## 2.5.0 (2026-11-24)
 
 The last release targeting Superset 6.1. The 2.x line continues on the `2.x` branch with fixes for 6.1 only;
