@@ -119,19 +119,13 @@ NUMBERS = [
 ]
 
 # controlPanel control `choices`: (key, file, control name).
+PIVOT_CONTROL_PANEL = "superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx"
 CHOICES = [
-    ("pivot_table_v2.aggregateFunction",
-     "superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx", "aggregateFunction"),
-    ("pivot_table_v2.rowOrder",
-     "superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx", "rowOrder"),
+    ("pivot_table_v2.rowOrder", PIVOT_CONTROL_PANEL, "rowOrder"),
     ("echarts.xAxisLabelRotation", "superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx",
      "xAxisLabelRotation"),
     ("box_plot.whiskerOptions", "superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts",
      "whiskerOptions"),
-    ("cal_heatmap.domain_granularity", "superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts",
-     "domain_granularity"),
-    ("cal_heatmap.subdomain_granularity",
-     "superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts", "subdomain_granularity"),
     ("heatmap_v2.normalize_across", "superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx",
      "normalize_across"),
     ("heatmap_v2.legend_type", "superset-frontend/plugins/plugin-chart-echarts/src/Heatmap/controlPanel.tsx",
@@ -140,6 +134,29 @@ CHOICES = [
      "superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx",
      "rolling_type"),
 ]
+# Controls that Superset 7.0 removed (the pivot table aggregates with the metrics' own aggregation).
+CHOICES_BEFORE_7 = [
+    ("pivot_table_v2.aggregateFunction", PIVOT_CONTROL_PANEL, "aggregateFunction"),
+]
+# The calendar heatmap plugin: `legacy-plugin-chart-calendar` until 6.x, `plugin-chart-calendar` since 7.0.
+CALENDAR_CONTROL_PANEL = "superset-frontend/plugins/{plugin}/src/controlPanel.ts"
+CALENDAR_CONTROLS = [("cal_heatmap.domain_granularity", "domain_granularity"),
+                     ("cal_heatmap.subdomain_granularity", "subdomain_granularity")]
+
+
+def before_7(version: str) -> bool:
+    """Whether a Superset ref is older than 7.0 (a branch name such as `master` counts as the newest layout)."""
+    major = re.match(r"(\d+)\.", version)
+    return bool(major) and int(major.group(1)) < 7
+
+
+def choice_controls(version: str) -> list[tuple[str, str, str]]:
+    """The `CHOICES` entries of a Superset version: controls and plugin paths that changed between versions."""
+    calendar = CALENDAR_CONTROL_PANEL.format(
+        plugin="legacy-plugin-chart-calendar" if before_7(version) else "plugin-chart-calendar")
+    return [*CHOICES, *(CHOICES_BEFORE_7 if before_7(version) else []),
+            *((key, calendar, control) for key, control in CALENDAR_CONTROLS)]
+
 
 # Choices kept in a module constant (`const NAME = [['value', label], ...];`): (key, file, constant).
 ARRAY_CHOICES = [
@@ -361,14 +378,17 @@ MIGRATE_VIZ = "superset/migrations/shared/migrate_viz/processors.py"
 
 @non_empty
 def migrated_viz_types(source: str) -> dict[str, str]:
-    """`source_viz_type` -> `target_viz_type` of the MigrateViz processors (class-level constants)."""
+    """`source_viz_type` -> `target_viz_type` of the MigrateViz processors (class-level constants).
+
+    A processor gated by a feature flag (`requires_feature_flag`, Superset 7.0: `table` -> `ag-grid-table` only with
+    `AG_GRID_TABLE_ENABLED`) does not run by default, so its source viz type is not removed and is left out."""
     pairs = {}
     for node in ast.parse(source).body:
         if not isinstance(node, ast.ClassDef):
             continue
         values = {target.id: item.value.value for item in node.body if isinstance(item, ast.Assign)
                   for target in item.targets if isinstance(target, ast.Name) and isinstance(item.value, ast.Constant)}
-        if "source_viz_type" in values and "target_viz_type" in values:
+        if "source_viz_type" in values and "target_viz_type" in values and not values.get("requires_feature_flag"):
             pairs[values["source_viz_type"]] = values["target_viz_type"]
     return pairs
 
@@ -404,7 +424,7 @@ def main(version: str) -> None:
         "backend": {cls: python_enum(source(file), cls) for file, cls in BACKEND},
         "schemas": {cls: schema_fields(source(file), cls) for file, cls in SCHEMAS},
         "frontend": {name: typescript_enum(source(file), name) for file, name in FRONTEND},
-        "choices": {**{key: control_choices(source(file), control) for key, file, control in CHOICES},
+        "choices": {**{key: control_choices(source(file), control) for key, file, control in choice_controls(version)},
                     **{key: const_choices(source(file), name) for key, file, name in CONST_CHOICES},
                     **{key: array_choices(source(file), name) for key, file, name in ARRAY_CHOICES}},
         "numeric_enums": {name: numeric_enum(source(file), name) for file, name in NUMERIC_ENUMS},

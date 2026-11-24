@@ -13,3 +13,12 @@ Validation: the test stack runs the newest Superset 7.0 release (`7.0.0rc3` toda
 
 * Target: Superset 7.0. `client.server_version` warns (`UnsupportedServerVersionWarning`) on a server whose major
   version is not 7; version `3.0.0.dev0` until the release (#85).
+
+## Added
+
+* Superset 7.0 excerpts `tests/fixtures/superset_openapi_7.0.0rc3.json` and `superset_enums_7.0.0rc3.json`, generated
+  by the extractors from the `7.0.0rc3` tag. The enum extractor reads the calendar plugin from
+  `plugins/plugin-chart-calendar` and drops `pivot_table_v2.aggregateFunction` from 7.0 on, and leaves out of
+  `migrated_viz_types` the migrations behind a feature flag (`table` → `ag-grid-table`); the 6.1.0 excerpts it
+  regenerates are unchanged. The conformance tests still read the 6.1.0 excerpts until the models move to 7.0
+  (#55).
