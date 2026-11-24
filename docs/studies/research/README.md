@@ -2,7 +2,7 @@
 title: "docs/studies/research/ — Research index"
 type: readme
 audience: human+ai-agent
-updated: 2026-10-24
+updated: 2026-11-24
 tldr: "Index of descriptive studies grounded in external sources."
 tags: [studies, research, index]
 related:
@@ -15,3 +15,4 @@ related:
 | Date | Study | Summary | Applied in |
 |---|---|---|---|
 | 2026-10-24 | [Landscape of Apache Superset client libraries, CLIs and MCP servers](./2026-10-24-superset-client-landscape.md) | Nine related projects found on GitHub/PyPI, cloned and inspected at a fixed commit: scope, chart modeling, query_context, layout, native filters, auth, HTTP, tests, license | [analysis/2026-10-24-landscape-impact.md](../analysis/2026-10-24-landscape-impact.md) |
+| 2026-11-24 | [Apache Superset 6.1.0 → 7.0.0rc3: changes that matter to a REST client](./2026-11-24-superset-7.0-changes.md) | Subjects (editors, viewers, RLS subjects), explore_json removal, buildQuery and enum changes, soft delete and versions, JWT in request_loader, CSRF_ERROR, dependency bumps; appendix with every REST path added or removed | [analysis/2026-11-24-superset-7.0-impact-and-migration.md](../analysis/2026-11-24-superset-7.0-impact-and-migration.md) |
