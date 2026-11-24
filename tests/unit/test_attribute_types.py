@@ -201,6 +201,16 @@ FREE_TEXT = {
         "SupersetErrorType (checked in test_enum_conformance.py); str keeps a type added by a newer Superset",
     "exceptions.SupersetError.level":
         "ErrorLevel (checked in test_enum_conformance.py); str keeps a level added by a newer Superset",
+    # Dashboard sizing (dashboards/layout/sizing.py): estimates from the content, never sent to Superset
+    "dashboards.layout.sizing.TableContent.title": "chart title, " + TEXT,
+    "dashboards.layout.sizing.TableContent.labels": "row labels: data of the user's instance",
+    "dashboards.layout.sizing.BarsContent.title": "chart title, " + TEXT,
+    "dashboards.layout.sizing.BarsContent.labels": "bar labels: data of the user's instance",
+    "dashboards.layout.sizing.SizingEstimate.reasons": "explanations written by the library",
+    "dashboards.layout.sizing.SizingProfile.superset_version": "Superset version the profile was calibrated on",
+    "dashboards.layout.sizing.SizingProfile.theme": "name of the theme or CSS the profile was calibrated with",
+    "dashboards.layout.sizing._Block.kind": "markdown block tag (p, li, h1..h6, hr), internal to the parser",
+    "dashboards.layout.sizing._Block.text": "visible text of a markdown block, " + TEXT,
 }
 
 

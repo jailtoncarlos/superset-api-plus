@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added (chart sizing, #77)
+
+* `supersetapiplus.dashboards.layout.sizing`: heights of tables, pivot tables, horizontal bars and markdown
+  estimated from their content (rows and wrapped labels, title, search and pagination, bars and legend, markdown
+  blocks), as a range in grid units (`SizingEstimate`: minimum, recommended, maximum, with the reasons), from a
+  `SizingProfile` of measures per Superset version, theme and viewports; `SizingWarning` for heights that do not fit
+  their content, not a `LayoutWarning`, so it can be filtered on its own (#78).
+
 ### Security
 
 * `beautifulsoup4` is no longer a dependency: session mode reads the login page with the standard library
