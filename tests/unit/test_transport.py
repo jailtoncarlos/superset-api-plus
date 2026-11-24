@@ -71,7 +71,7 @@ def test_async_sql_lab_run_is_reported_as_not_supported():
     with rm.Mocker() as mock:
         mock.post(f"{API}/security/login", json={"access_token": "access", "refresh_token": "refresh"})
         mock.get(f"{API}/security/csrf_token/", json={"result": "csrf"})
-        mock.get(f"{HOST}/version", json={"version_string": "6.1.0"})
+        mock.get(f"{HOST}/version", json={"version_string": "7.0.0"})
         mock.post(f"{API}/sqllab/execute/", status_code=202, json={"status": "running"})
 
         with pytest.raises(NotImplementedError):

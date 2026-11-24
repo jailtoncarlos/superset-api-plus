@@ -98,7 +98,7 @@ def mock():
     with rm.Mocker() as m:
         m.post(f"{API}/security/login", json={"access_token": "t"})
         m.get(f"{API}/security/csrf_token/", json={"result": "c"})
-        m.get(f"{HOST}/version", json={"version_string": "6.1.0"})  # read after login (client.server_version)
+        m.get(f"{HOST}/version", json={"version_string": "7.0.0"})  # read after login (client.server_version)
         m.get(re.compile(rf"{API}/\w+/_info"), json={"add_columns": [], "edit_columns": []})
         yield m
 

@@ -7,8 +7,8 @@
 > A typed Python client for the Apache Superset REST API: search, read and write charts, dashboards,
 > datasets and databases, and build charts and dashboards in code that match what the Superset UI creates.
 
-Target: **Superset 6.1.0** (Flask-AppBuilder 5; releases 2.x) · Superset 7.0 support in progress on the
-`superset-7` branch (3.0.0 after Superset 7.0.0 final) · Python **3.10–3.14**.
+Target of this branch (`superset-7`): **Superset 7.0**, migration in progress, released as 3.0.0 after Superset
+7.0.0 final (see `docs/superset-7-migration.md`) · Superset 6.1: releases 2.x from `main` · Python **3.10–3.14**.
 
 ---
 
