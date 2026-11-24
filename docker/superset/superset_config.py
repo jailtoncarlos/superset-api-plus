@@ -40,3 +40,7 @@ if os.environ.get("SUPERSET_TEST_AUTH_TYPE", "db") == "oauth":
                        "api_base_url": "http://oauth.invalid/", "access_token_url": "http://oauth.invalid/token",
                        "authorize_url": "http://oauth.invalid/authorize"},
     }]
+
+# Superset 7.0: dashboard and chart viewers (Subjects) are behind ENABLE_VIEWERS, off by default; the library models
+# them (T-05), so the test stack turns it on. SOFT_DELETE stays at its default (on), as on a real instance.
+FEATURE_FLAGS = {"ENABLE_VIEWERS": True}
