@@ -1,10 +1,9 @@
-import html
 import json
 import logging
+from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
 
 import requests
-from bs4 import BeautifulSoup
 
 from supersetapiplus.exceptions import SessionLoginError
 from supersetapiplus.transport.http import RequestHandler
@@ -26,12 +25,36 @@ NO_FORM_HINT = (
 )
 
 
+class _LoginPageParser(HTMLParser):
+    """What session mode reads from a Superset page: the ``csrf_token`` input of the login form and the
+    ``data-bootstrap`` attributes (the standard library parser; attribute values come unescaped)."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.csrf_token: str | None = None
+        self.bootstraps: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = dict(attrs)
+        bootstrap = values.get("data-bootstrap")
+        if bootstrap is not None:
+            self.bootstraps.append(bootstrap)
+        if tag == "input" and values.get("name") == "csrf_token" and self.csrf_token is None:
+            self.csrf_token = values.get("value") or ""
+
+
+def _parse(page: str) -> _LoginPageParser:
+    parser = _LoginPageParser()
+    parser.feed(page)
+    parser.close()
+    return parser
+
+
 def page_auth_type(page: str) -> int | None:
     """The AUTH_TYPE Superset declares in the bootstrap data of a page (``common.conf.AUTH_TYPE``), if any."""
-    soup = BeautifulSoup(page, "html.parser")
-    for element in soup.select("[data-bootstrap]"):
+    for bootstrap in _parse(page).bootstraps:
         try:
-            conf = json.loads(html.unescape(str(element.get("data-bootstrap")))).get("common", {}).get("conf", {})
+            conf = json.loads(bootstrap).get("common", {}).get("conf", {})
         except (ValueError, AttributeError):
             continue
         auth_type = conf.get("AUTH_TYPE")
@@ -91,11 +114,9 @@ class SessionAuthMixin:
             raise SessionLoginError(
                 f"The login page {login_page_url} is for {_auth_type_name(auth_type)}, not a username and password "
                 f"form. {NO_FORM_HINT}", auth_type=auth_type)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        csrf_token_input = soup.find("input", {"name": "csrf_token"})
-        if not csrf_token_input or not csrf_token_input.get("value"):
+        csrf_token = _parse(resp.text).csrf_token
+        if not csrf_token:
             raise SessionLoginError(f"CSRF token not found in the login form at {login_page_url}.", auth_type=auth_type)
-        csrf_token = csrf_token_input["value"]
         logger.debug("[SessionAuth] CSRF token extracted.")
 
         # Step 2: Authenticate with credentials and CSRF token

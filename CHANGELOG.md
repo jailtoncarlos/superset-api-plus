@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Security
+
+* `beautifulsoup4` is no longer a dependency: session mode reads the login page with the standard library
+  (`html.parser`). It pulled `soupsieve`, whose fixes for the open advisories need Python >= 3.11.5, so on
+  Python 3.10 the resolver stayed on a vulnerable release. `filelock` (development tools only) is upgraded where
+  the Python version allows (#83).
+
 ### Changed
 
 * `main` targets Superset 7.0 (to be released as 3.0.0 after Superset 7.0.0 final); Superset 6.1 is served by the
