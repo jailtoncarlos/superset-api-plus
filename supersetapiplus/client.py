@@ -50,8 +50,8 @@ logger = logging.getLogger(__name__)
 
 # Major Superset version this line of the library targets (AGENTS.md): 6 on main (releases 2.x), 7 on the superset-7
 # branch (the migration, released as 3.0.0 after Superset 7.0.0 final).
-TARGET_SERVER_MAJOR = 6
-OTHER_LINE_HINT = "Superset 7 is supported by superset-api-plus 3.x (branch superset-7 until its release)."
+TARGET_SERVER_MAJOR = 7
+OTHER_LINE_HINT = "Superset 6.1 is supported by the superset-api-plus 2.x releases (branch main)."
 
 
 class SupersetClient(CSRFSupportMixin, SessionAuthMixin):

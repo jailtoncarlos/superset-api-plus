@@ -12,6 +12,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 
 ## Target and sources of truth
 
+- **This is the `superset-7` branch: it targets Superset 7.0** (validated on the newest release, `7.0.0rc3` today;
+  version `3.0.0.dev0`). Entries for its changes go to `docs/superset-7-migration.md`, not to CHANGELOG.md (which
+  `main` changes on every release), and become the 3.0.0 entry when it is merged into `main`.
 - Target Superset version: **6.1.0** on `main` (Flask-AppBuilder 5; releases 2.x). The migration to Superset
   **7.0** lives on the `superset-7` branch (feature #53, tasks #54–#73;
   `docs/studies/analysis/2026-11-24-superset-7.0-impact-and-migration.md`): the pull requests of those tasks target
