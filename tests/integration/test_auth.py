@@ -1,5 +1,7 @@
 """Authentication against the real Superset: JWT, renewal on 401, session mode (cookie + CSRF)."""
+import re
 import time
+import warnings
 
 import jwt
 import pytest
@@ -13,6 +15,7 @@ from supersetapiplus.exceptions import (
     ResourceNotFoundError,
     SessionLoginError,
     UnauthorizedError,
+    UnsupportedServerVersionWarning,
 )
 
 from .conftest import LOGIN_PATH, PASSWORD, SECRET_KEY, URL, USERNAME, new_client, only_test_stack, unique_name
@@ -189,3 +192,19 @@ def test_session_mode_explains_a_login_page_without_a_password_form():
     with pytest.raises(SessionLoginError, match="AUTH_OAUTH.*login_path") as error:
         client.enable_session_mode()
     assert error.value.auth_type == 4
+
+
+def test_the_server_version_is_read_once_and_another_major_version_is_reported():
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        client = new_client(session_mode=False)
+        client.charts.count()
+        client.enable_session_mode(LOGIN_PATH)  # a second login does not warn again
+
+    version = client.server_version
+    assert re.match(r"\d+\.\d+", version), version
+    reported = [w for w in caught if issubclass(w.category, UnsupportedServerVersionWarning)]
+    if version.startswith("7."):
+        assert reported == []
+    else:  # the 6.1 stack until the test stack moves to 7.0
+        assert len(reported) == 1 and version in str(reported[0].message)

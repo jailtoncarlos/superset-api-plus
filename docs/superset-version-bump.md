@@ -1,6 +1,8 @@
 # Supporting a new Superset version
 
-Checklist for moving the target version (today 6.1.0, see AGENTS.md) to a newer Superset. The library keeps
+Checklist for moving the target version (see AGENTS.md: 7.0 on `main`, move in progress; 6.1.0 on the `2.x`
+branch) to a newer Superset. A new major version that breaks the API gets a major release of the library, and
+the previous line stays on a maintenance branch (`2.x` for 6.1). The library keeps
 checked excerpts of the Superset sources instead of importing Superset; every step below regenerates or
 re-checks one of them. `<v>` is the new version tag.
 

@@ -191,6 +191,11 @@ class LegacyChartDataWarning(UserWarning):
     its v1 query context: Superset answers it, but it is not what the chart shows."""
 
 
+class UnsupportedServerVersionWarning(UserWarning):
+    """The server runs a Superset version this release of the library does not target (see
+    `SupersetClient.server_version`): requests may be rejected or written in a shape the server does not expect."""
+
+
 class NullQueryContextDatasourceWarning(UserWarning):
     """A chart read from Superset whose query_context points to a null datasource id or type: the library fills it from
     the chart's datasource_id/datasource_type, so saving the chart repairs it (Superset cannot process the null)."""

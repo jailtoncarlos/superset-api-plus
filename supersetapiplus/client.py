@@ -12,6 +12,8 @@ Features:
 
 import json
 import logging
+import re
+import warnings
 from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlparse
@@ -30,6 +32,7 @@ from supersetapiplus.exceptions import (
     MissingCredentialsError,
     QueryLimitReached,
     UnauthorizedError,
+    UnsupportedServerVersionWarning,
 )
 from supersetapiplus.query_string import QueryStringFilter
 from supersetapiplus.resources.assets import Assets
@@ -44,6 +47,9 @@ from supersetapiplus.services.dashboard_charts import DashboardCharts
 from supersetapiplus.transport.http import RequestHandler
 
 logger = logging.getLogger(__name__)
+
+# Major Superset version this line of the library targets (AGENTS.md): 7.0 on main, 6.1 on the 2.x branch.
+TARGET_SERVER_MAJOR = 7
 
 
 class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
@@ -87,6 +93,8 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self._refresh_token: str | None = None
         self._csrf_token: str | None = None
         self._login_path = DEFAULT_LOGIN_PATH
+        self._server_version: str | None = None
+        self._server_version_read = False
         self._session_mode = False
 
         # Object wrappers
@@ -131,6 +139,37 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             headers.setdefault("Content-Type", "application/json")
         return headers
 
+    @property
+    def server_version(self) -> str | None:
+        """The Superset version the server reports (``GET /version``, ``version_string``, e.g. ``"7.0.0"``), read once;
+        None when the server does not report it."""
+        if not self._server_version_read:
+            self._read_server_version(self.session)
+        return self._server_version
+
+    def _read_server_version(self, session: requests.Session) -> None:
+        self._server_version_read = True
+        try:
+            response = session.get(self.join_urls(self.host, "version"), verify=self._verify,
+                                   headers={"Accept": "application/json"})
+            response.raise_for_status()
+            version = response.json().get("version_string")
+        except (requests.exceptions.RequestException, ValueError, AttributeError) as error:
+            logger.debug("Superset version not available: %s", error)
+            return
+        self._server_version = version if isinstance(version, str) else None
+
+    def _check_server_version(self, session: requests.Session) -> None:
+        """Warns once, after the first login, when the server's major version is not the one this release targets."""
+        if self._server_version_read:
+            return
+        self._read_server_version(session)
+        match = re.match(r"(\d+)\.", self._server_version or "")
+        if match and int(match.group(1)) != TARGET_SERVER_MAJOR:
+            warnings.warn(UnsupportedServerVersionWarning(
+                f"This release of superset-api-plus targets Superset {TARGET_SERVER_MAJOR}.x; the server at {self.host} "
+                f"runs {self._server_version}. For Superset 6.1 use the 2.x releases (branch 2.x)."), stacklevel=3)
+
     def _init_session(self) -> None:
         if self._session is not None:
             logger.debug('Reusing authenticated session.')
@@ -139,6 +178,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         session = requests.Session()
         session.verify = self._verify
         self.authenticate(session)
+        self._check_server_version(session)
         if self.use_csrf:
             self.enable_csrf(session, self._access_token, verify=self._verify)
         self._session = session
@@ -161,6 +201,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         session = requests.Session()
         session.verify = self._verify
         self.enable_session_auth(session, self.username, self._password, self._login_path)
+        self._check_server_version(session)
         # POST/PUT/DELETE with a cookie require the CSRF token ("The CSRF token is missing." in 6.1.0).
         if self.use_csrf:
             self.enable_csrf(session, verify=self._verify)
