@@ -21,7 +21,7 @@ import requests.adapters
 import requests.exceptions
 
 from supersetapiplus.auth.csrf import CSRFSupportMixin
-from supersetapiplus.auth.session import SessionAuthMixin
+from supersetapiplus.auth.session import DEFAULT_LOGIN_PATH, SessionAuthMixin
 from supersetapiplus.charts.charts import Charts
 from supersetapiplus.core.types import LimitingFactor
 from supersetapiplus.dashboards.dashboards import Dashboards
@@ -86,6 +86,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self._access_token: str | None = None
         self._refresh_token: str | None = None
         self._csrf_token: str | None = None
+        self._login_path = DEFAULT_LOGIN_PATH
         self._session_mode = False
 
         # Object wrappers
@@ -142,13 +143,24 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
             self.enable_csrf(session, self._access_token, verify=self._verify)
         self._session = session
 
-    def enable_session_mode(self) -> requests.Session:
-        """Initializes a cookie-based (non-JWT) authenticated session."""
+    def enable_session_mode(self, login_path: str | None = None) -> requests.Session:
+        """Initializes a cookie-based (non-JWT) authenticated session through the login form.
+
+        Args:
+            login_path: path of the database login form, ``/login/`` by default. An instance whose people log in
+                through OAuth can expose a database login route for service accounts (README, "Instances with OAuth
+                login"); the path is kept for the new logins of an expired session.
+
+        Raises:
+            SessionLoginError: the page has no username and password form, or Superset refused the credentials.
+        """
         if not self.username or self._password is None:
             raise MissingCredentialsError("SupersetClient needs a username and a password to log in.")
+        if login_path is not None:
+            self._login_path = login_path
         session = requests.Session()
         session.verify = self._verify
-        self.enable_session_auth(session, self.username, self._password)
+        self.enable_session_auth(session, self.username, self._password, self._login_path)
         # POST/PUT/DELETE with a cookie require the CSRF token ("The CSRF token is missing." in 6.1.0).
         if self.use_csrf:
             self.enable_csrf(session, verify=self._verify)

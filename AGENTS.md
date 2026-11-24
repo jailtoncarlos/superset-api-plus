@@ -73,7 +73,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   (422 on the dashboard datasets): it gets the chart's `datasource_id`/`datasource_type`, with a
   `NullQueryContextDatasourceWarning`.
 - **Authentication**: instances where the `Public` role has permissions ignore JWT on public endpoints
-  (FAB 5). Use `client.enable_session_mode()` (login form cookie + `X-CSRFToken`/`Referer`). In JWT mode
+  (FAB 5). Use `client.enable_session_mode()` (login form cookie + `X-CSRFToken`/`Referer`); on an instance with
+  OAuth login, through a database login route for service accounts (`enable_session_mode(login_path=...)`, README
+  "Instances with OAuth login"; the test stack has one, and runs in OAuth mode with `SUPERSET_TEST_AUTH_TYPE=oauth`). In JWT mode
   a rejected token renews it once with the refresh token: a 401, or the 422 `{"msg": ...}` that
   flask-jwt-extended returns for a malformed token (both raise `UnauthorizedError` with the server `msg`).
   In session mode a 401 (expired or lost session cookie) logs in again through the form. A 400 whose SIP-40

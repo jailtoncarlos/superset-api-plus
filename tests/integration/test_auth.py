@@ -3,11 +3,22 @@ import time
 
 import jwt
 import pytest
+import requests
 
+from supersetapiplus.auth.session import page_auth_type
+from supersetapiplus.client import SupersetClient
 from supersetapiplus.dashboards.dashboards import Dashboard
-from supersetapiplus.exceptions import ComplexBadRequestError, ResourceNotFoundError, UnauthorizedError
+from supersetapiplus.exceptions import (
+    ComplexBadRequestError,
+    ResourceNotFoundError,
+    SessionLoginError,
+    UnauthorizedError,
+)
 
-from .conftest import SECRET_KEY, new_client, unique_name
+from .conftest import LOGIN_PATH, PASSWORD, SECRET_KEY, URL, USERNAME, new_client, only_test_stack, unique_name
+
+# The database login route for service accounts of the test stack (docker/superset/superset_config.py).
+SERVICE_LOGIN_PATH = "/service-login/login/"
 
 
 def write_and_delete_a_dashboard(client) -> None:
@@ -136,7 +147,45 @@ def test_enable_session_mode_wins_after_the_jwt_session_was_used():
     jwt_session = client.session
     client.charts.count()
 
-    client.enable_session_mode()
+    client.enable_session_mode(LOGIN_PATH)
 
     assert client.session is not jwt_session and "Authorization" not in client.session.headers
     write_and_delete_a_dashboard(client)
+
+
+@only_test_stack  # the service route exists in the test stack configuration
+def test_session_mode_logs_in_through_another_login_path_and_keeps_it_for_new_logins():
+    client = SupersetClient(URL, USERNAME, PASSWORD, verify=URL.startswith("https"))
+    paths = []
+    login = client.enable_session_auth
+
+    def recorded_login(session, username, password, login_path="/login/"):
+        paths.append(login_path)
+        login(session, username, password, login_path)
+
+    client.enable_session_auth = recorded_login
+    client.enable_session_mode(login_path=SERVICE_LOGIN_PATH)
+    write_and_delete_a_dashboard(client)
+
+    client.session.cookies.clear()  # lost session: the 401 logs in again, through the same route
+    assert client.charts.count() >= 0
+    assert paths == [SERVICE_LOGIN_PATH, SERVICE_LOGIN_PATH]
+
+
+def test_session_mode_says_when_superset_refuses_the_password():
+    client = SupersetClient(URL, USERNAME, f"{PASSWORD}-wrong", verify=URL.startswith("https"))
+
+    with pytest.raises(SessionLoginError, match="refused the session login"):
+        client.enable_session_mode(LOGIN_PATH)
+
+
+def test_session_mode_explains_a_login_page_without_a_password_form():
+    """On an instance whose people log in through OAuth, /login/ lists the providers and does not take a POST."""
+    page = requests.get(f"{URL}/login/", headers={"Accept": "text/html"}, verify=URL.startswith("https")).text
+    if page_auth_type(page) in (None, 1, 2):
+        pytest.skip("the instance logs in through a password form (run the stack with SUPERSET_TEST_AUTH_TYPE=oauth)")
+    client = SupersetClient(URL, USERNAME, PASSWORD, verify=URL.startswith("https"))
+
+    with pytest.raises(SessionLoginError, match="AUTH_OAUTH.*login_path") as error:
+        client.enable_session_mode()
+    assert error.value.auth_type == 4

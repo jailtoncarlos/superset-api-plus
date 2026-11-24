@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## Unreleased
+
+### Added
+
+* `enable_session_mode(login_path=...)`: session mode logs in through a database login form at another path, kept
+  for the new logins of an expired session. An instance whose people log in through OAuth can expose such a route
+  for service accounts; the README ("Instances with OAuth login") shows the configuration and the limits of the JWT
+  mode there (#43).
+* `SessionLoginError` (a `RuntimeError`): session mode says when the login page is not a username and password form
+  (it reads the `AUTH_TYPE` the page declares, or the 405 of the POST) and when Superset refuses the credentials,
+  which used to surface later as a 405 `ComplexBadRequestError` or a 401 "Missing Authorization Header" (#43).
+
+### Tests
+
+* The test stack exposes the service login route and runs in OAuth mode with `SUPERSET_TEST_AUTH_TYPE=oauth`
+  (its image now includes `authlib`); the integration suite logs in through `SUPERSET_LOGIN_PATH` (#43).
+
 ## 2.4.0 (2026-11-19)
 
 ### Added

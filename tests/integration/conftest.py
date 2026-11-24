@@ -9,7 +9,8 @@ Test stack (docker-compose.yml, configured by the .env copied from .env.example)
     docker compose -p superset-api-plus down -v
 
 Another instance: set SUPERSET_URL, SUPERSET_USERNAME, SUPERSET_PASSWORD and, for the tests that
-register a database, SUPERSET_TEST_DATABASE_URI (URI as seen by the Superset server).
+register a database, SUPERSET_TEST_DATABASE_URI (URI as seen by the Superset server); SUPERSET_LOGIN_PATH when the
+database login form is not at /login/ (e.g. the test stack with SUPERSET_TEST_AUTH_TYPE=oauth).
 
 The tests create their own objects (prefix "zz-superset-api-plus-test") and remove them at the end.
 """
@@ -36,6 +37,9 @@ ENABLED = bool(os.getenv("SUPERSET_URL") or os.getenv("SUPERSET_INTEGRATION"))
 URL = config("SUPERSET_URL", default=f"http://127.0.0.1:{os.getenv('SUPERSET_TEST_PORT', '8089')}")
 USERNAME = config("SUPERSET_USERNAME", "SUPERSET_ADMIN_USERNAME")
 PASSWORD = config("SUPERSET_PASSWORD", "SUPERSET_ADMIN_PASSWORD")
+# Path of the login form of session mode: the test stack in OAuth mode (SUPERSET_TEST_AUTH_TYPE=oauth) is logged in
+# through its service route, /service-login/login/.
+LOGIN_PATH = config("SUPERSET_LOGIN_PATH")
 # Secret of the test stack: signs the expired token of the JWT renewal test.
 SECRET_KEY = os.getenv("SUPERSET_SECRET_KEY")
 DATABASE_URI = config("SUPERSET_TEST_DATABASE_URI") or (
@@ -74,7 +78,7 @@ def name_filter(column: str, value: str, operator: QueryOperator = QueryOperator
 def new_client(session_mode: bool = True, username: str | None = None, password: str | None = None) -> SupersetClient:
     client = SupersetClient(URL, username or USERNAME, password or PASSWORD, verify=URL.startswith("https"))
     if session_mode:
-        client.enable_session_mode()
+        client.enable_session_mode(LOGIN_PATH)
     return client
 
 

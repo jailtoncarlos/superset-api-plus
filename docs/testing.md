@@ -118,6 +118,8 @@ host may be shared with other projects: never run `docker system/image/volume pr
 | `SUPERSET_TEST_DATABASE_URI` | database the tests register (default: the stack Postgres, from `POSTGRES_*`) |
 | `SUPERSET_SECRET_KEY` | secret of the stack; signs the expired token of the JWT renewal test |
 | `SUPERSET_LOAD_EXAMPLES=1` | the stack loads the example dashboards (needed by `test_examples`) |
+| `SUPERSET_TEST_AUTH_TYPE=oauth` | the stack logs people in through OAuth (placeholder provider); set `SUPERSET_LOGIN_PATH=/service-login/login/` so the suite logs in through the service route |
+| `SUPERSET_LOGIN_PATH` | path of the database login form of session mode (default `/login/`) |
 | `SUPERSET_EXAMPLES_REQUIRED=1` | `test_examples` fails instead of skipping when the examples are not loaded |
 
 Without `SUPERSET_INTEGRATION` or `SUPERSET_URL` (and credentials), every test under `tests/integration` is
