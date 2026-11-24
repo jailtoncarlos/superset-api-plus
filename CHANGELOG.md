@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Security
+
+* `beautifulsoup4` is no longer a dependency: session mode reads the login page with the standard library
+  (`html.parser`). It pulled `soupsieve`, whose fixes for the open advisories need Python >= 3.11.5, so on
+  Python 3.10 the resolver stayed on a vulnerable release. `filelock` (development tools only) is upgraded where
+  the Python version allows (#83).
+
 ### Added
 
 * `client.server_version`: the version the server reports (`GET /version`, `version_string`), read once after the
