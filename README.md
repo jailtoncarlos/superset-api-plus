@@ -21,7 +21,7 @@ Target: **Superset 6.1.0** (Flask-AppBuilder 5) · Python **3.10–3.14**.
 - **Dashboards**: layout builder (tabs, rows, markdown, charts) that writes `position_json` as the editor
   does, native filters with dependencies and chart scopes, chart association.
 - **Both authentication modes**: JWT, and the login-form session (cookie + CSRF) needed by instances whose
-  `Public` role has permissions.
+  `Public` role has permissions, also on instances with OAuth login (through a service login route).
 - **Conformance checked in CI and pre-commit** against the OpenAPI specification and the Superset source
   (enums, controlPanel choices, UI defaults), and integration tests against a real Superset.
 
@@ -82,6 +82,45 @@ token. Errors keep the Superset SIP-40 fields typed (`error.superset_errors`: me
 TLS certificates are verified by default (`verify=False` only for development). Timeouts and retries come
 from `SUPERSET_API_PLUS_*` environment variables (see [Configuration](#configuration-through-environment-variables)).
 The client never prompts for credentials: without them, login raises `MissingCredentialsError`.
+
+### Instances with OAuth login
+
+Session mode logs in through the database (or LDAP) login form. On an instance whose people log in through
+OAuth (`AUTH_TYPE = AUTH_OAUTH`), `/login/` lists the providers and refuses the form (405), so
+`enable_session_mode()` raises `SessionLoginError` saying so; a refused password raises it too. Two ways for an
+automation with a local user (created with a password, e.g. `superset fab create-admin`):
+
+- **JWT** (no session mode) works as long as the `Public` role holds no permissions. When it does, Flask-AppBuilder
+  skips the token on every endpoint `Public` can reach: reads see what `Public` sees and writes run as an anonymous
+  user (a dashboard POST fails with 500).
+- **A database login route for service accounts**, next to the OAuth login, in the instance's `superset_config.py`;
+  the client logs in through it:
+
+```python
+# superset_config.py of the instance
+from flask_appbuilder.security.views import AuthDBView
+from superset.security import SupersetSecurityManager
+
+
+class ServiceLoginView(AuthDBView):
+    route_base = "/service-login"  # the form at /service-login/login/
+
+
+class SecurityManager(SupersetSecurityManager):
+    def register_views(self) -> None:
+        super().register_views()
+        self.appbuilder.add_view_no_menu(ServiceLoginView())
+
+
+CUSTOM_SECURITY_MANAGER = SecurityManager
+```
+
+```python
+client.enable_session_mode(login_path="/service-login/login/")  # kept for the new logins of an expired session
+```
+
+The route accepts any local user with a password, so keep those accounts few and their passwords strong; people
+without a local password (OAuth users) cannot use it.
 
 ## Searching and reading
 

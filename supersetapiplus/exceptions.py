@@ -224,3 +224,13 @@ class UnboundModelError(RuntimeError):
 
 class MissingCredentialsError(ValueError):
     """The client has no username or password to log in (the library never prompts for them)."""
+
+
+class SessionLoginError(RuntimeError):
+    """The session login through the login form failed: the page has no form for a username and password (an
+    instance with ``AUTH_OAUTH``, for example), or Superset refused the credentials. ``auth_type`` is the
+    ``AUTH_TYPE`` the login page declares, when it declares one."""
+
+    def __init__(self, message: str, auth_type: int | None = None) -> None:
+        super().__init__(message)
+        self.auth_type = auth_type
