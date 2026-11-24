@@ -62,6 +62,11 @@ class ErrorLevel(StrEnum):
 class MigrateBar(MigrateViz):
     source_viz_type = "bar"
     target_viz_type = "echarts_timeseries_bar"
+
+class MigrateTableChart(MigrateViz):
+    source_viz_type = "table"
+    target_viz_type = "ag-grid-table"
+    requires_feature_flag = "AG_GRID_TABLE_ENABLED"
 '''
 
 
@@ -82,7 +87,26 @@ def test_typescript_symbols_are_extracted(function, args, expected):
 def test_choices_and_python_symbols_are_extracted():
     assert extract.control_choices(CONTROL_PANEL_TS, "legendType") == ["scroll", "plain"]
     assert extract.python_enum(PYTHON, "ErrorLevel") == {"INFO": "info"}
+    # Superset 7.0: a processor behind a feature flag does not run by default, so `table` is not a removed type.
     assert extract.migrated_viz_types(PYTHON) == {"bar": "echarts_timeseries_bar"}
+
+
+@pytest.mark.parametrize("version", ["6.1.0", "6.0.0"])
+def test_choices_before_superset_7_read_the_legacy_calendar_and_the_pivot_aggregate_function(version):
+    controls = {key: path for key, path, _ in extract.choice_controls(version)}
+    assert controls["cal_heatmap.domain_granularity"].endswith("/legacy-plugin-chart-calendar/src/controlPanel.ts")
+    assert controls["pivot_table_v2.aggregateFunction"].endswith("/plugin-chart-pivot-table/src/plugin/controlPanel.tsx")
+
+
+@pytest.mark.parametrize("version", ["7.0.0rc3", "7.0.0", "master"])
+def test_choices_since_superset_7_read_the_moved_calendar_plugin_without_the_removed_control(version):
+    """7.0 moved the calendar to `plugins/plugin-chart-calendar` and removed `aggregateFunction` of the pivot table:
+    the old paths and control would fail the extraction (404, choices not found)."""
+    controls = {key: path for key, path, _ in extract.choice_controls(version)}
+    assert controls["cal_heatmap.subdomain_granularity"] == (
+        "superset-frontend/plugins/plugin-chart-calendar/src/controlPanel.ts")
+    assert "pivot_table_v2.aggregateFunction" not in controls
+    assert "pivot_table_v2.rowOrder" in controls
 
 
 @pytest.mark.parametrize("function, args", [
