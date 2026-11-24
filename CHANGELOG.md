@@ -2,22 +2,23 @@
 
 ## Unreleased
 
-### Changed
-
-* `main` targets Superset 7.0 (to be released as 3.0.0 after Superset 7.0.0 final); Superset 6.1 is served by the
-  2.x line, on the `2.x` branch. The migration tasks are tracked in #53 (#54).
-
 ### Added
 
 * `client.server_version`: the version the server reports (`GET /version`, `version_string`), read once after the
   first login, which warns with `UnsupportedServerVersionWarning` when the server's major version is not the one the
-  release targets (#54).
+  release targets: 6 for the 2.x releases from `main` (#54, #85).
+
+### Changed
+
+* Superset 7.0 support is developed on the `superset-7` branch, kept in sync with `main`, and will be released as
+  3.0.0 after Superset 7.0.0 final; `main` keeps targeting Superset 6.1 and the 2.x releases (#85).
 
 ## 2.5.0 (2026-11-24)
 
-The last release targeting Superset 6.1. The 2.x line continues on the `2.x` branch with fixes for 6.1 only;
-`main` moves to Superset 7.0 and will be released as 3.0.0 after Superset 7.0.0 final
-(`docs/studies/analysis/2026-11-24-superset-7.0-impact-and-migration.md`, #53).
+Superset 7.0 support will come in 3.0.0 (`docs/studies/analysis/2026-11-24-superset-7.0-impact-and-migration.md`,
+#53). The note first published with this release said that `main` would move to 7.0 and 6.1 would continue on a
+`2.x` branch; that was corrected in #85: `main` keeps targeting 6.1 and the 2.x releases, and the migration lives
+on the `superset-7` branch.
 
 ### Added
 
