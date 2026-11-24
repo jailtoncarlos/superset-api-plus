@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## Unreleased
+## 2.5.0 (2026-11-24)
+
+The last release targeting Superset 6.1. The 2.x line continues on the `2.x` branch with fixes for 6.1 only;
+`main` moves to Superset 7.0 and will be released as 3.0.0 after Superset 7.0.0 final
+(`docs/studies/analysis/2026-11-24-superset-7.0-impact-and-migration.md`, #53).
 
 ### Added
 
