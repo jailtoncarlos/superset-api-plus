@@ -282,3 +282,16 @@ def test_filters_added_after_the_layout_was_taken_count():
     assert layout.vertical_filter_bar is True
     auto = layout.add_markdown(TEXT, width=4, height="auto")
     assert auto.meta["height"] == estimate_markdown(TEXT, PROFILE, Layout(columns=4)).recommended_units
+
+
+def test_every_builder_path_of_a_dashboard_follows_its_filter_bar():
+    dashboard = Dashboard(dashboard_title="Direct")  # no filters: no bar
+    direct = dashboard.position_json.add_markdown(TEXT, width=4, height="auto")  # no prior access to .position
+    full_width = estimate_markdown(TEXT, PROFILE, Layout(columns=4, vertical_filter_bar=False)).recommended_units
+    assert direct.meta["height"] == full_width
+    dashboard.position_json = DashboardLayout.empty("Replaced")  # an assigned layout follows the dashboard too
+    dashboard.json_metadata.add_native_filter("Region", dataset=1, column="region")
+    assert dashboard.position_json.vertical_filter_bar is True
+    dashboard.position.sizing = "strict"
+    dashboard.position.add_markdown(TEXT, width=4, height="auto")
+    dashboard.to_dict(convert_to_json=True)  # sized and checked with the same bar: no SizingError
