@@ -280,7 +280,8 @@ def test_export_and_import_a_chart(client, add_chart, cleanup, tmp_path):
     assert len(imported) == 1
 
 
-def test_a_label_wrapped_in_sql_is_wrapped_as_the_sizing_formulas_wrap_it(client, dataset, cleanup):
+@pytest.mark.parametrize("chars", [12, 300])  # 300: above the PostgreSQL repetition limit of 255
+def test_a_label_wrapped_in_sql_is_wrapped_as_the_sizing_formulas_wrap_it(client, dataset, cleanup, chars):
     """wrap_label_sql through a chart's adhoc column: Superset 6.1 rewrites the chart SQL (sqlglot), and the data
     must still be the lines of wrap_label, each prefixed with two spaces."""
     texts = {"North": "The northern   campus, with a label long enough to wrap in several lines",
@@ -288,9 +289,9 @@ def test_a_label_wrapped_in_sql_is_wrapped_as_the_sizing_formulas_wrap_it(client
     case = "case when campus = 'North' then '{North}' else '{South}' end".format(**texts)
     chart = new_chart("table", dataset)
     chart.params.groupby = chart.query_context.form_data.groupby = []
-    chart.add_custom_dimension("wrapped", sql_expression=wrap_label_sql(case, 12))
+    chart.add_custom_dimension("wrapped", sql_expression=wrap_label_sql(case, chars))
     cleanup.chart(client.charts.add(chart))
 
     (result, *_) = client.charts.get_chart_data(chart.id)
     assert sorted(row["wrapped"] for row in result["data"]) == sorted(
-        "\n".join(f"  {line}" for line in wrap_label(text, 12)) for text in texts.values())
+        "\n".join(f"  {line}" for line in wrap_label(text, chars)) for text in texts.values())

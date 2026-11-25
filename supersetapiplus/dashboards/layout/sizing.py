@@ -230,6 +230,21 @@ def wrap_label(text: str, chars: int) -> list[str]:
     return [line for line in lines if line] or [text]
 
 
+#: The largest bound of a regular expression repetition in PostgreSQL (``{m,n}`` with n above it is an error).
+POSTGRESQL_REPETITION_LIMIT = 255
+
+
+def _line_pattern(chars: int) -> str:
+    """``.{1,chars}`` for PostgreSQL: one bounded run of up to 255 characters, then optional runs of the rest."""
+    chars = max(1, chars)
+    runs = [f".{{1,{min(chars, POSTGRESQL_REPETITION_LIMIT)}}}"]
+    rest = chars - POSTGRESQL_REPETITION_LIMIT
+    while rest > 0:
+        runs.append(f".{{0,{min(rest, POSTGRESQL_REPETITION_LIMIT)}}}")
+        rest -= POSTGRESQL_REPETITION_LIMIT
+    return "".join(runs)
+
+
 def wrap_label_sql(expression: str, chars: int, dialect: str = "postgresql") -> str:
     """SQL expression of the label `expression` wrapped as :func:`wrap_label` wraps it, for the query of a chart that
     shows wrapped labels (e.g. horizontal bars sized with ``BarsContent``): whitespace collapsed, lines of up to
@@ -238,12 +253,13 @@ def wrap_label_sql(expression: str, chars: int, dialect: str = "postgresql") -> 
     Each line starts with two spaces: Superset 6.1 reserves a few px less than the longest label for the bar axis
     labels and clips the first letter. Written for Superset 6.1, which rewrites a chart's SQL (sqlglot): the newline
     is ``chr(10)`` (an ``E'...'`` string loses the backreference) and the pattern uses ``[[:space:]]``, no backslash
-    before a letter. Only PostgreSQL is supported.
+    before a letter. Only PostgreSQL is supported. PostgreSQL bounds a regular expression repetition at 255, so a
+    wider line is matched as one bounded run of up to 255 characters followed by optional runs of the rest.
     """
     if dialect != "postgresql":
         raise ValueError(f"wrap_label_sql supports the postgresql dialect, not {dialect!r}")
     collapsed = f"btrim(regexp_replace({expression}, '[[:space:]]+', ' ', 'g'))"
-    wrapped = f"rtrim(regexp_replace({collapsed}, '(.{{1,{max(1, int(chars))}}})( +|$)', '\\1' || chr(10), 'g'), chr(10))"
+    wrapped = f"rtrim(regexp_replace({collapsed}, '({_line_pattern(int(chars))})( +|$)', '\\1' || chr(10), 'g'), chr(10))"
     return f"replace('  ' || {wrapped}, chr(10), chr(10) || '  ')"
 
 

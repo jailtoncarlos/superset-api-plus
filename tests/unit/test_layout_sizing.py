@@ -291,3 +291,9 @@ def test_the_sql_of_a_wrapped_label_avoids_what_superset_6_1_rewrites():
     assert "{1,12}" in expression and expression.startswith("replace('  ' || ")
     with pytest.raises(ValueError, match="postgresql"):
         sizing.wrap_label_sql("name", 12, dialect="mysql")
+
+
+def test_a_line_wider_than_the_postgresql_repetition_limit_is_split_in_bounded_runs():
+    assert "(.{1,255}.{0,45})" in sizing.wrap_label_sql("name", 300)
+    assert "(.{1,255}.{0,255}.{0,90})" in sizing.wrap_label_sql("name", 600)
+    assert all(int(bound) <= 255 for bound in re.findall(r"\{\d+,(\d+)\}", sizing.wrap_label_sql("name", 1000)))
