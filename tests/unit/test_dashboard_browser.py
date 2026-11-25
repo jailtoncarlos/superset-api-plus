@@ -65,7 +65,7 @@ class FakeBrowser:
     """A stand-in for playwright.sync_api: records the cookies and the selector waited for, draws nothing."""
 
     def __init__(self):
-        self.cookies, self.selectors, self.launched = [], [], False
+        self.cookies, self.selectors, self.launched, self.contexts, self.timeouts = [], [], False, [], []
 
     def sync_playwright(self):
         fake = self
@@ -80,11 +80,12 @@ class FakeBrowser:
 
     def launch(self, **kwargs):
         self.launched = True
-        page = SimpleNamespace(goto=lambda *a, **k: None, wait_for_selector=lambda s, **k: self.selectors.append(s),
+        page = SimpleNamespace(goto=lambda url, timeout: self.timeouts.append(timeout),
+                               wait_for_selector=lambda s, **k: self.selectors.append(s),
                                wait_for_load_state=lambda *a, **k: None, wait_for_timeout=lambda *a: None,
                                evaluate=lambda script, *args: [] if args else None)
         context = SimpleNamespace(add_cookies=self.cookies.extend, new_page=lambda: page, close=lambda: None)
-        return SimpleNamespace(new_context=lambda **kwargs: context, close=lambda: None)
+        return SimpleNamespace(new_context=lambda **kwargs: self.contexts.append(kwargs) or context, close=lambda: None)
 
 
 def client_with_layout(layout: dict, renew: bool = False) -> SimpleNamespace:
@@ -135,3 +136,22 @@ def test_a_dashboard_without_components_is_reported_empty_without_opening_a_brow
     empty["GRID_ID"] = {**empty["GRID_ID"], "children": []}
     assert DashboardBrowserCheck(client_with_layout(empty)).check(1).components == ()
     assert not fake_browser.launched
+
+
+def test_the_browser_follows_the_tls_verification_of_the_client(fake_browser):
+    DashboardBrowserCheck(client_with_layout(MARKDOWN_ONLY)).check(1)
+    insecure = client_with_layout(MARKDOWN_ONLY)
+    insecure.session.verify = False  # SupersetClient(..., verify=False): e.g. a self-signed certificate
+    DashboardBrowserCheck(insecure).check(1)
+    checked = [context["ignore_https_errors"] for context in fake_browser.contexts]
+    assert checked == [False] * len(PROFILE.viewports) + [True] * len(PROFILE.viewports)
+
+
+def test_the_browser_timeout_comes_from_the_call_or_the_environment(fake_browser, monkeypatch):
+    from supersetapiplus.services import dashboard_browser
+
+    monkeypatch.setattr(dashboard_browser, "BROWSER_TIMEOUT", 300)  # SUPERSET_API_PLUS_BROWSER_TIMEOUT=300
+    DashboardBrowserCheck(client_with_layout(MARKDOWN_ONLY)).check(1)
+    DashboardBrowserCheck(client_with_layout(MARKDOWN_ONLY)).check(1, timeout=45)
+    assert set(fake_browser.timeouts[:len(PROFILE.viewports)]) == {300_000}
+    assert set(fake_browser.timeouts[len(PROFILE.viewports):]) == {45_000}

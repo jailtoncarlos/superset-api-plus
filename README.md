@@ -377,7 +377,9 @@ each viewport of the profile, with the client's session (`client.enable_session_
 and markdown block drawn whether its content scrolls, the empty space below a table or pivot table, the thickness of
 horizontal bars and whether its title is clipped, against the profile's tolerances (`scrolls=` as in `check`). It
 needs the `browser` extra and a Chromium (`CHROME_PATH`, or the one Playwright installs). Superset draws only the
-tabs open when the dashboard loads: components in other tabs are reported as not shown.
+tabs open when the dashboard loads: components in other tabs are reported as not shown. Each wait (opening the
+dashboard, its charts drawn) may take `SUPERSET_API_PLUS_BROWSER_TIMEOUT` seconds (default 120, or `timeout=`), and
+the browser verifies TLS certificates as the client does (`verify=False` ignores certificate errors).
 
 ```bash
 pip install "superset-api-plus[browser]" && playwright install chromium

@@ -239,12 +239,13 @@ class DashboardSizing:
         return SizingReport(dashboard_id, tuple(items), layout)
 
     def check_in_browser(self, dashboard_id: int, profile: SizingProfile | None = None,
-                         scrolls: Collection[int | str] = (), chrome_path: str | None = None) -> BrowserReport:
+                         scrolls: Collection[int | str] = (), chrome_path: str | None = None,
+                         timeout: float | None = None) -> BrowserReport:
         """Opens the dashboard in Chromium on each viewport of the profile and reports, for each component drawn,
         whether it scrolls, the empty space below tables, the bar thickness and clipped titles, against the
         profile's tolerances (optional extra ``browser``; needs ``client.enable_session_mode()``). See
         :mod:`supersetapiplus.services.dashboard_browser`."""
-        return DashboardBrowserCheck(self.client).check(dashboard_id, profile, scrolls, chrome_path)
+        return DashboardBrowserCheck(self.client).check(dashboard_id, profile, scrolls, chrome_path, timeout)
 
     def _check_component(self, component_id: str, data: dict[str, Any], profile: SizingProfile,
                          max_rows: int | None, filter_bar: bool, width: int | None = None,

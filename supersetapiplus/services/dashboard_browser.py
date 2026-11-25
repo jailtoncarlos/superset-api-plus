@@ -22,8 +22,11 @@ from supersetapiplus.dashboards.dashboards import Dashboards
 from supersetapiplus.dashboards.layout import DashboardLayout
 from supersetapiplus.dashboards.layout.sizing import ChartShape, SizingProfile, calibrated_profile, chart_shape
 from supersetapiplus.exceptions import UnsupportedTypeError
+from supersetapiplus.transport.http import _number_from_env
 
-TIMEOUT_MS = 120_000
+#: Seconds each browser wait may take (opening the dashboard, its charts drawn), tunable without code changes;
+#: each call still accepts an explicit timeout.
+BROWSER_TIMEOUT = _number_from_env("SUPERSET_API_PLUS_BROWSER_TIMEOUT", 120)
 # Long enough to draw every chart at once (the dashboard may render only the charts in view).
 VIEWPORT_HEIGHT = 4000
 
@@ -208,7 +211,7 @@ class DashboardBrowserCheck:
         self.client = client
 
     def check(self, dashboard_id: int, profile: SizingProfile | None = None, scrolls: Collection[int | str] = (),
-              chrome_path: str | None = None) -> BrowserReport:
+              chrome_path: str | None = None, timeout: float | None = None) -> BrowserReport:
         """Opens the dashboard on each viewport of the profile and measures each component.
 
         Args:
@@ -216,6 +219,10 @@ class DashboardBrowserCheck:
             profile: the viewports and tolerances (default: the calibrated profile of the target Superset version).
             scrolls: components that scroll by design, by chart id or component id (their scrolling is not reported).
             chrome_path: the Chromium executable (default: ``CHROME_PATH``, else the one installed by Playwright).
+            timeout: seconds each wait may take (default: ``SUPERSET_API_PLUS_BROWSER_TIMEOUT``, else 120).
+
+        The browser verifies TLS certificates as the client does: a client created with ``verify=False`` (e.g. a
+        self-signed certificate) opens the dashboard ignoring certificate errors.
         """
         if not self.client.session.cookies.get_dict():
             raise ValueError("the browser check opens the dashboard with the client's session cookie: call "
@@ -234,6 +241,8 @@ class DashboardBrowserCheck:
         url = self.client.host.rstrip("/")
         # Read after the API reads above, which renew the session when it expired.
         cookies = self.client.session.cookies.get_dict()
+        wait_ms = (timeout if timeout is not None else BROWSER_TIMEOUT) * 1000
+        insecure = self.client.session.verify is False
         items: list[BrowserComponent] = []
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path=chrome_path or os.getenv("CHROME_PATH") or None,
@@ -241,14 +250,13 @@ class DashboardBrowserCheck:
             try:
                 for viewport in profile.viewports:
                     context = browser.new_context(viewport={"width": viewport, "height": VIEWPORT_HEIGHT},
-                                                  device_scale_factor=1)
+                                                  device_scale_factor=1, ignore_https_errors=insecure)
                     context.add_cookies([{"name": name, "value": value, "url": url}
                                          for name, value in cookies.items()])
                     page = context.new_page()
-                    page.goto(f"{url}/superset/dashboard/{dashboard_id}/", timeout=TIMEOUT_MS)
-                    page.wait_for_selector(".dashboard-component-chart-holder, .dashboard-markdown",
-                                           timeout=TIMEOUT_MS)
-                    page.wait_for_load_state("networkidle", timeout=TIMEOUT_MS)
+                    page.goto(f"{url}/superset/dashboard/{dashboard_id}/", timeout=wait_ms)
+                    page.wait_for_selector(".dashboard-component-chart-holder, .dashboard-markdown", timeout=wait_ms)
+                    page.wait_for_load_state("networkidle", timeout=wait_ms)
                     page.evaluate("document.fonts.ready.then(() => document.fonts.status)")
                     page.wait_for_timeout(2000)  # chart animations
                     drawn = page.evaluate(MEASURE_JS, bars)
