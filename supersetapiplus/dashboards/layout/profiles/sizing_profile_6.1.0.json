@@ -112,7 +112,7 @@
   ]
  },
  "provenance": {
-  "chromium": "151.0.7922.71",
+  "chromium": "158.0.8127.18",
   "dataset": "birth_names",
   "date": "2026-11-25",
   "font": "Inter, Helvetica, Arial, sans-serif",
@@ -159,6 +159,10 @@
    "table": {
     "fits_one_unit_below": false,
     "min_units": 51
+   },
+   "totals": {
+    "fits_one_unit_below": false,
+    "min_units": 55
    }
   },
   "viewports": [

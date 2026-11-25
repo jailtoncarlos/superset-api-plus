@@ -1,10 +1,13 @@
 """Calibrate the chart sizing measures (supersetapiplus.dashboards.layout.sizing.SizingProfile) in a browser.
 
-The script builds a calibration dashboard on the public example dataset ``birth_names`` (tables, a pivot table,
+The script builds a calibration dashboard on the public example dataset ``birth_names`` (tables, one with a totals
+row, a pivot table,
 horizontal bars, a markdown block and a native filter, so the vertical filter bar is shown), opens it in Chromium on
 each viewport and measures what the sizing formulas need: the chart frame and title, the table header, rows, footer,
 search box and pagination, the pivot table, the bar band and axes (read from the chart canvas) and the markdown
-styles. The dashboard and its charts are removed at the end, also when the script fails.
+styles. The profile is then checked on that dashboard: each table, pivot table and the markdown block must fit at
+its estimated height, the table with a totals row (``show_totals``) counted with that row as one more row. The
+dashboard and its charts are removed at the end, also when the script fails.
 
 Some values are choices, not measures (``POLICY``): the empty space tolerated below a chart, the bar thickness that
 reads well, the characters per line of the bar labels (wrapped by the consumer) and the label column width the
@@ -271,6 +274,8 @@ def calibration_charts(dataset_id: int) -> dict[str, tuple[Chart, int]]:
         "long_title": (new_chart("table", dataset_id, LONG_TITLE, "gender"), 4),
         "table": (new_chart("table", dataset_id, "table", "name", row_limit=TABLE_ROWS), 12),
         "narrow_table": (new_chart("table", dataset_id, "narrow table", "name", row_limit=TABLE_ROWS), 6),
+        # The totals row is drawn below the body (tfoot) and takes its height: verified as one more row.
+        "totals": (new_chart("table", dataset_id, "totals", "name", row_limit=TABLE_ROWS, show_totals=True), 12),
         "search": (new_chart("table", dataset_id, "search", "name", row_limit=TABLE_ROWS * 3, include_search=True,
                              server_pagination=True, server_page_length=TABLE_ROWS), 12),
         "pivot": (new_chart("pivot_table_v2", dataset_id, "pivot", "name", row_limit=TABLE_ROWS * 2), 12),
@@ -324,7 +329,8 @@ def open_dashboard(page: Page, url: str, dashboard_id: int, titles: dict[str, st
 def estimates(profile: SizingProfile, by_viewport: dict[int, dict[str, Any]], titles: dict[str, str]) -> dict[str, int]:
     """The minimum height, in grid units, the profile gives each table, pivot table and the markdown block."""
     charts = by_viewport[min(by_viewport)]["charts"]
-    rows = {key: len(chart["rows"]) for key, chart in charts.items() if "rows" in chart}
+    # The totals row is not in tbody: counted as one more row, as the sizing check does (services.dashboard_sizing).
+    rows = {key: len(chart["rows"]) + (key == "totals") for key, chart in charts.items() if "rows" in chart}
     widths = {"long_title": 4, "narrow_table": 6}
     units = {key: estimate_table(TableContent(rows=count, title=titles[key], search=key == "search",
                                               pagination=key == "search"),
