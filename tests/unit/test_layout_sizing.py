@@ -2,6 +2,7 @@
 measure profile, no HTTP; the calibrated profiles (dashboards/layout/profiles/sizing_profile_<version>.json of the
 package, written and checked in a browser by bin/scripts/calibrate_sizing.py) are validated offline."""
 import json
+import re
 import tracemalloc
 from pathlib import Path
 
@@ -319,3 +320,18 @@ def test_a_clamped_title_stops_the_header_growing():
     assert clamped == PROFILE.frame.padding + 2 * PROFILE.frame.title_line < unclamped
     assert estimate_table(TableContent(rows=2, title=title), _with("frame", title_max_lines=2), narrow).min_units \
         < estimate_table(TableContent(rows=2, title=title), PROFILE, narrow).min_units
+
+
+def test_the_sql_of_a_wrapped_label_avoids_what_superset_6_1_rewrites():
+    expression = sizing.wrap_label_sql("name", 12)
+    assert "chr(10)" in expression and "E'" not in expression
+    assert not re.search(r"\\[A-Za-z]", expression)  # no backslash before a letter (only the \1 backreference)
+    assert "{1,12}" in expression and expression.startswith("replace('  ' || ")
+    with pytest.raises(ValueError, match="postgresql"):
+        sizing.wrap_label_sql("name", 12, dialect="mysql")
+
+
+def test_a_line_wider_than_the_postgresql_repetition_limit_is_split_in_bounded_runs():
+    assert "(.{1,255}.{0,45})" in sizing.wrap_label_sql("name", 300)
+    assert "(.{1,255}.{0,255}.{0,90})" in sizing.wrap_label_sql("name", 600)
+    assert all(int(bound) <= 255 for bound in re.findall(r"\{\d+,(\d+)\}", sizing.wrap_label_sql("name", 1000)))

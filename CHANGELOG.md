@@ -29,6 +29,9 @@
 * Sizing: `FrameMeasures.title_max_lines` bounds the title lines of a theme that clamps chart titles. Measured on
   Superset 6.1.0 with the default theme, titles are not clamped (a title wrapped in 5 lines shows them all), so the
   calibrated value and the default are None; the calibration measures it on a title of 4 or more lines (#110).
+* Sizing: `wrap_label_sql(expression, chars, dialect="postgresql")` returns the SQL expression that wraps a label as
+  `wrap_label` does, each line prefixed with two spaces, written for Superset 6.1 (`chr(10)`, no `E'...'` string, no
+  backslash before a letter). A word longer than a line stays whole (#107).
 * Sizing: a `ChartRef` can declare what it draws (`ChartRef(..., shape=ChartShape.PIVOT_TABLE)`), so
   `add_chart(..., height="auto")` sizes a pivot table placed by reference with the pivot table formula, as the same
   chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its
