@@ -87,19 +87,24 @@ class GridMeasures(_Measures):
 
 
 class FrameMeasures(_Measures):
-    """What a chart takes besides its content: padding, and the header with the title wrapped at the chart width."""
+    """What a chart takes besides its content: padding, and the header with the title wrapped at the chart width.
+    ``title_max_lines`` is where a theme or CSS clamps the title (the header stops growing); None when it does not,
+    as measured on Superset 6.1 with the default theme (a title wrapped in 5 lines shows them all)."""
     padding: float = Field(ge=0)
     min_header: float = Field(ge=0)
     title_line: float = Field(gt=0)
     title_char: float = Field(gt=0)
     title_controls: float = Field(ge=0)
+    title_max_lines: int | None = Field(default=None, ge=1)
 
 
 class TableMeasures(_Measures):
     """Table (``table``): a row is ``row`` px with one line of text and grows by ``text_line`` per extra line of its
     label. ``label_chars`` is the characters per line of the label column when its width is fixed (``columnWidth``)
     at ``label_column_width`` px (None in a profile that does not record it), ``unfixed_label_chars`` when Superset
-    chooses it (narrowest viewport)."""
+    chooses it (narrowest viewport). Superset widens an unfixed label column on larger screens:
+    ``unfixed_label_chars_by_viewport`` holds its characters per line on each viewport (a viewport left out uses
+    ``unfixed_label_chars``), so the empty space on the widest one is not underestimated."""
     header: float = Field(ge=0)
     narrow_header: float = Field(ge=0)
     row: float = Field(gt=0)
@@ -111,6 +116,13 @@ class TableMeasures(_Measures):
     unfixed_label_chars: float = Field(gt=0)
     min_label_lines: int = Field(default=1, ge=1)
     label_column_width: float | None = Field(default=None, gt=0)
+    unfixed_label_chars_by_viewport: dict[int, float] = Field(default_factory=dict)
+
+    def label_line_chars(self, fixed_width: bool, viewport: int) -> tuple[float, int]:
+        """(characters per line, minimum lines) of the label column on `viewport`."""
+        if fixed_width:
+            return self.label_chars, self.min_label_lines
+        return self.unfixed_label_chars_by_viewport.get(viewport, self.unfixed_label_chars), 1
 
 
 class PivotTableMeasures(_Measures):
@@ -125,15 +137,28 @@ class PivotTableMeasures(_Measures):
 
 class BarMeasures(_Measures):
     """Horizontal bars: ``band`` px per bar (the category band), more when the longest label needs more lines
-    (``label_line`` px each, plus ``label_padding``); ``min_band``/``max_band`` bound the thickness that reads well."""
+    (``label_line`` px each, plus ``label_padding``); ``min_band``/``max_band`` bound the thickness that reads well.
+    The visible bar takes ``bar_share`` of its band (measured; ECharts draws the bar inside the category band), so a
+    bar ``t`` px thick has a band of ``t / bar_share`` px: :meth:`with_thickness` takes the bounds as thicknesses."""
     band: float = Field(gt=0)
     min_band: float = Field(gt=0)
     max_band: float = Field(gt=0)
+    bar_share: float | None = Field(default=None, gt=0, le=1)
     axes_and_legend: float = Field(ge=0)
     axes_without_legend: float = Field(ge=0)
     label_chars: float = Field(gt=0)
     label_line: float = Field(gt=0)
     label_padding: float = Field(ge=0)
+
+    def with_thickness(self, bar: float | None = None, min_bar: float | None = None,
+                       max_bar: float | None = None) -> BarMeasures:
+        """These measures with the band bounds given as the visible bar thickness, in px (``bar``: the recommended
+        thickness; ``min_bar``/``max_bar``: the range that reads well), converted with ``bar_share``."""
+        if self.bar_share is None:
+            raise ValueError("the sizing profile does not record the bar/band ratio (BarMeasures.bar_share)")
+        given = {"band": bar, "min_band": min_bar, "max_band": max_bar}
+        return self.model_validate({**self.model_dump(), **{
+            name: round(value / self.bar_share, 1) for name, value in given.items() if value is not None}})
 
 
 class TextStyle(_Measures):
@@ -273,6 +298,8 @@ def frame_px(title: str, columns: int, viewport: int, profile: SizingProfile, ve
     frame = profile.frame
     usable = width_px(columns, viewport, profile, vertical_filter_bar) - frame.title_controls
     lines = label_lines(title, usable / frame.title_char)
+    if frame.title_max_lines is not None:
+        lines = min(lines, frame.title_max_lines)
     return frame.padding + max(frame.min_header, lines * frame.title_line)
 
 
@@ -344,13 +371,15 @@ def estimate_table(content: TableContent, profile: SizingProfile, layout: Layout
     reasons: list[str] = []
     rows, cap = _visible_rows(content.rows, max_rows, reasons)
     table = profile.table
-    chars, min_lines = ((table.label_chars, table.min_label_lines) if content.fixed_label_width
-                        else (table.unfixed_label_chars, 1))
-    body = sum(_row_heights(rows, content.labels, table.row, table.text_line, chars, cap, min_lines))
     header = table.header if layout.columns >= GRID_COLUMN_COUNT else table.narrow_header
     extras = table.footer + (table.search if content.search else 0) + (table.pagination if content.pagination else 0)
+
+    def body(viewport: int) -> float:
+        chars, min_lines = table.label_line_chars(content.fixed_label_width, viewport)
+        return sum(_row_heights(rows, content.labels, table.row, table.text_line, chars, cap, min_lines))
+
     needed = {viewport: frame_px(content.title, layout.columns, viewport, profile, layout.vertical_filter_bar)
-              + header + body + extras for viewport in profile.viewports}
+              + header + body(viewport) + extras for viewport in profile.viewports}
     return _range(needed, profile, profile.max_empty, reasons)
 
 
