@@ -365,6 +365,7 @@ _LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(.*)$")
 _HTML_BREAK = re.compile(r"<br\s*/?>", re.I)
 _HTML_TAG = re.compile(r"<[^>]+>")
 _LINK = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
+_IMAGE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
 _EMPHASIS = re.compile(r"(\*\*|__|\*|_|`)")
 _BOLD = re.compile(r"(\*\*|__)(.+?)\1")
 
@@ -393,8 +394,8 @@ def _markdown_blocks(markdown: str) -> list[_Block]:
     def close() -> None:
         nonlocal bold
         if paragraph:
-            hard_break = any(part.endswith("\n") for part in paragraph)
-            text = "".join(paragraph).rstrip("\n") if hard_break else " ".join(part.strip() for part in paragraph)
+            # A soft break renders as a space, a hard one (two trailing spaces or <br>) as a new line.
+            text = "".join(part if part.endswith("\n") else part + " " for part in paragraph).rstrip()
             blocks.append(_Block("p", text, bold))
             paragraph.clear()
             bold = 0
@@ -406,7 +407,8 @@ def _markdown_blocks(markdown: str) -> list[_Block]:
         if _RULE.match(line):
             blocks.append(_Block("hr"))
         elif heading:
-            blocks.append(_Block(f"h{len(heading.group(1))}", _visible_text(heading.group(2))))
+            blocks.append(_Block(f"h{len(heading.group(1))}", _visible_text(heading.group(2)),
+                                 _bold_chars(heading.group(2))))
         elif item:
             blocks.append(_Block("li", _visible_text(item.group(1)), _bold_chars(item.group(1))))
         elif line.strip() and (visible := _visible_text(line)):
@@ -446,20 +448,22 @@ def markdown_px(markdown: str, columns: int, viewport: int, profile: SizingProfi
             lines, with_bold = _text_lines(block, style, width, measures)
             height, top, bottom = style.line * lines + measures.bold_extra_line * with_bold, style.margin_top, \
                 style.margin_bottom
-        if block.kind == "li" and previous != "li":
+        if (block.kind == "li") != (previous == "li"):  # entering or leaving a list: its margin applies
             top = max(top, measures.list_margin)
         total += max(pending_margin, top) + height
-        pending_margin = measures.list_margin if block.kind == "li" else bottom
+        pending_margin = bottom
         previous = block.kind
+    if previous == "li":
+        pending_margin = max(pending_margin, measures.list_margin)
     return 2 * measures.padding + total + pending_margin
 
 
 def estimate_markdown(markdown: str, profile: SizingProfile, layout: Layout = FULL_WIDTH) -> SizingEstimate:
-    """Height of a markdown component; text with HTML other than ``<br>`` (tables, images) is not measurable and
-    gets the grid minimum with a reason."""
+    """Height of a markdown component; text with an image (markdown or HTML) or other HTML than ``<br>`` (tables) is
+    not measurable and gets the grid minimum with a reason."""
     reasons: list[str] = []
-    if _HTML_TAG.search(_HTML_BREAK.sub("", markdown or "")):
-        reasons.append("markdown with HTML other than <br>: not estimated")
+    if _HTML_TAG.search(_HTML_BREAK.sub("", markdown or "")) or _IMAGE.search(markdown or ""):
+        reasons.append("markdown with an image or HTML other than <br>: not estimated")
         return SizingEstimate(GRID_MIN_ROW_UNITS, GRID_MIN_ROW_UNITS, GRID_MAX_ROW_UNITS, tuple(reasons), True)
     needed = {viewport: markdown_px(markdown, layout.columns, viewport, profile, layout.vertical_filter_bar)
               for viewport in profile.viewports}

@@ -167,3 +167,28 @@ def test_profiles_reject_invalid_measures():
 
 def test_sizing_warning_is_not_a_layout_warning():
     assert issubclass(SizingWarning, UserWarning) and not issubclass(SizingWarning, LayoutWarning)
+
+
+def test_list_margins_apply_only_at_the_list_boundaries():
+    # 16 + 16 padding, 14 px list margin above and below, three items of 22 px with no margin between them.
+    assert sizing.markdown_px("- a\n- b\n- c", 12, 1366, PROFILE) == pytest.approx(32 + 14 + 3 * 22 + 14)
+    # Leaving the list: the next paragraph starts after the list margin.
+    assert sizing.markdown_px("- a\n\nText", 12, 1366, PROFILE) == pytest.approx(32 + 14 + 22 + 14 + 22 + 8)
+
+
+def test_markdown_images_are_left_unestimated_like_html_images():
+    estimate = estimate_markdown("A chart:\n\n![plot](https://example.com/plot.png)", PROFILE)
+    assert estimate.approximate and any("image" in reason for reason in estimate.reasons)
+    assert not estimate_markdown("A [link](https://example.com)", PROFILE).approximate
+
+
+def test_soft_breaks_keep_a_space_in_a_paragraph_with_a_hard_break():
+    assert [block.text for block in sizing._markdown_blocks("one\ntwo  \nthree")] == ["one two\nthree"]
+    assert [block.text for block in sizing._markdown_blocks("one<br>two<br>three")] == ["one\ntwo\nthree"]
+
+
+def test_bold_text_counts_in_headings_as_in_paragraphs():
+    heading = "# **" + " ".join(["bold"] * 40) + "**"
+    assert sizing._markdown_blocks(heading)[0].bold == len(" ".join(["bold"] * 40))
+    wide_bold = PROFILE.model_copy(update={"markdown": PROFILE.markdown.model_copy(update={"bold_width": 2.0})})
+    assert sizing.markdown_px(heading, 12, 1366, wide_bold) > sizing.markdown_px(heading, 12, 1366, PROFILE)
