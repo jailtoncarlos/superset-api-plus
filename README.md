@@ -342,6 +342,15 @@ component ids): a height below their content is not reported for them, more empt
 report = client.dashboard_sizing.check(dashboard_id, max_rows=15, scrolls={chart_id, "CHART-free-text"})
 ```
 
+`report.adjusted_layout()` returns a copy of the layout with the recommended height of each component that does
+not fit; nothing is written until it is saved:
+
+```python
+dashboard = client.dashboards.get(dashboard_id)
+dashboard.position_json = report.adjusted_layout()
+dashboard.save()
+```
+
 The measures (chart frame, table rows, bar band, markdown styles) come from a profile calibrated in Chromium for
 Superset 6.1.0 with the default theme on 1366 and 1920 px screens (`bin/scripts/calibrate_sizing.py`). An instance
 with its own theme or CSS needs its own profile: `layout.sizing_profile = profile`.

@@ -2,6 +2,8 @@
 check against Superset is in tests/integration (test_dashboards.py and every example dashboard)."""
 import importlib
 
+import pytest
+
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.dashboards.layout.sizing import ChartShape, SizingEstimate, calibrated_profile
@@ -170,3 +172,19 @@ def test_empty_space_is_still_reported_on_components_that_scroll_by_design(monke
     service, _ = _dashboard_with_two_tables(monkeypatch, rows=2, height=100)
     report = service.check(1, warn=False, scrolls={1, 2})
     assert all("empty space" in str(item.problem) for item in report.components)
+
+
+def test_the_adjusted_layout_gets_the_recommended_height_of_each_component_that_does_not_fit(monkeypatch):
+    service, (first, second) = _dashboard_with_two_tables(monkeypatch, rows=40, height=30)
+    report = service.check(1, warn=False, scrolls={1})  # the first one scrolls by design: not adjusted
+    adjusted = report.adjusted_layout()
+    assert adjusted.components[first]["meta"]["height"] == 30
+    assert adjusted.components[second]["meta"]["height"] == report.components[1].estimate.recommended_units > 30
+    assert report.layout.components[second]["meta"]["height"] == 30  # the read layout is unchanged
+    assert {key: value for key, value in adjusted.model_dump().items() if key != second} == {
+        key: value for key, value in report.layout.model_dump().items() if key != second}
+
+
+def test_a_report_without_its_layout_cannot_be_adjusted():
+    with pytest.raises(ValueError, match="no layout"):
+        SizingReport(1).adjusted_layout()

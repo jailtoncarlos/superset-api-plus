@@ -11,6 +11,9 @@
 * The calibration (`bin/scripts/calibrate_sizing.py`) checks a table with a totals row: measured in Chromium on
   Superset 6.1.0, the totals row is drawn below the body and takes the height of one more row, as the sizing check
   counts it (#119).
+* Sizing check of a saved dashboard: `SizingReport.adjusted_layout()` returns a copy of the checked layout with the
+  recommended height of each component that does not fit, without writing; save it as the dashboard's
+  `position_json` to apply it (#111).
 * Sizing: `TableChart.fix_label_column_width(column, profile=None)` fixes the label column width
   (`column_config[column].columnWidth`) to the width the sizing profile was calibrated with, recorded in the profile
   as `table.label_column_width` (560 px in the 6.1.0 profile; optional in custom profiles) (#108).
