@@ -1,5 +1,6 @@
 """Dashboards against the real Superset: writing, chart association, layout and native filters."""
 import json
+import warnings
 
 import pytest
 
@@ -162,6 +163,15 @@ def test_sizing_check_of_a_saved_dashboard_reports_without_writing(client, datas
     assert sum(item.shape == "markdown" and item.problem is None for item in report.components) == 1
     after = client.get(client.join_urls(client.dashboards.base_url, dashboard.id)).json()["result"]
     assert (after["changed_on"], after["position_json"]) == (before["changed_on"], before["position_json"])
+
+    adjusted = report.adjusted_layout()  # built without writing; applied here to a test dashboard
+    table_id = by_title["Campus table"].component_id
+    assert adjusted.components[table_id]["meta"]["height"] == by_title["Campus table"].estimate.recommended_units
+    dashboard.position_json = adjusted
+    dashboard.save()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SizingWarning)
+        assert client.dashboard_sizing.check(dashboard.id).problems == []
 
 
 def test_content_that_does_not_match_the_chart_is_refused_before_creating_it(client, dataset, add_dashboard):
