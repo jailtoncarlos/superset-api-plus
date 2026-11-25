@@ -225,3 +225,10 @@ def test_bars_above_the_maximum_say_the_chart_is_sized_for_it():
     estimate = estimate_horizontal_bars(BarsContent(bars=40), PROFILE, max_rows=15)
     assert estimate.recommended_units == estimate_horizontal_bars(BarsContent(bars=15), PROFILE).recommended_units
     assert any("sized for the maximum" in reason for reason in estimate.reasons)
+
+
+def test_setext_headings_and_nested_lists_follow_commonmark():
+    assert [(b.kind, b.text) for b in sizing._markdown_blocks("Title\n=====\n\nSub\n---\n\ntext")] == \
+        [("h1", "Title"), ("h2", "Sub"), ("p", "text")]
+    nested = sizing._markdown_blocks("- a\n  - b\n- c")
+    assert [(b.kind, b.text, b.depth) for b in nested] == [("li", "a", 1), ("li", "b", 2), ("li", "c", 1)]

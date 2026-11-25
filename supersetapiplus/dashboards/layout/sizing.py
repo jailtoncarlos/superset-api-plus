@@ -25,6 +25,8 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+from markdown_it import MarkdownIt
+from markdown_it.token import Token
 from pydantic import BaseModel, ConfigDict, Field
 
 from supersetapiplus.core.enums import StringEnum
@@ -366,25 +368,13 @@ def estimate_horizontal_bars(content: BarsContent, profile: SizingProfile, layou
 
 # ------------------------------------------------------------------------------------------------------- markdown
 
-_HEADING = re.compile(r"^(#{1,6})\s+(.*)$")
-_RULE = re.compile(r"^\s*([-_*])(\s*\1){2,}\s*$")
-_LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(.*)$")
+# Superset renders dashboard markdown with react-markdown (CommonMark) and remark-gfm (tables, strikethrough),
+# raw HTML through rehype-raw (superset-ui-core SafeMarkdown): markdown-it-py follows the same CommonMark rules.
+_MARKDOWN = MarkdownIt("commonmark").enable(["table", "strikethrough"])
 _HTML_BREAK = re.compile(r"<br\s*/?>", re.I)
-_HTML_TAG = re.compile(r"<[^>]+>")
-_LINK = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
-_IMAGE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
-_CODE_FENCE = re.compile(r"^\s*(```|~~~)", re.M)
-_TABLE_RULE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$", re.M)
-_EMPHASIS = re.compile(r"(\*\*|__|\*|_|`)")
-_BOLD = re.compile(r"(\*\*|__)(.+?)\1")
-
-
-def _visible_text(text: str) -> str:
-    return _EMPHASIS.sub("", _HTML_TAG.sub("", _LINK.sub(r"\1", text))).strip()
-
-
-def _bold_chars(text: str) -> int:
-    return sum(len(_visible_text(match.group(2))) for match in _BOLD.finditer(text))
+# Blocks whose rendered height the text cannot tell.
+_UNMEASURABLE_BLOCKS = {"fence": "a code block", "code_block": "a code block", "table_open": "a table",
+                        "html_block": "HTML other than <br>"}
 
 
 @dataclass
@@ -392,70 +382,74 @@ class _Block:
     kind: str  # "p", "li", "h1".."h6" or "hr"
     text: str = ""
     bold: int = 0
-    # Bold characters of each line of `text` (split at its newlines), when the block has hard breaks.
+    # Bold characters of each line of `text` (split at its newlines: hard breaks and <br>).
     line_bold: tuple[int, ...] = ()
+    depth: int = 0  # list nesting of a list item
 
 
-def _segments(text: str) -> list[tuple[str, int]]:
-    """(visible text, bold characters) of each line of `text` split at its <br> tags."""
-    return [(_visible_text(segment), _bold_chars(segment)) for segment in _HTML_BREAK.split(text)]
+@dataclass
+class _Inline:
+    """The rendered lines of an inline token, with the bold characters of each, and what cannot be measured."""
+    lines: list[str] = field(default_factory=lambda: [""])
+    bold: list[int] = field(default_factory=lambda: [0])
+    strong: int = 0
+    problems: list[str] = field(default_factory=list)
+
+    def add(self, text: str) -> None:
+        self.lines[-1] += text
+        self.bold[-1] += len(text) if self.strong else 0
+
+    def new_line(self) -> None:
+        self.lines.append("")
+        self.bold.append(0)
 
 
-def _lines_block(kind: str, text: str) -> _Block:
-    """A heading or list item: its <br> tags break it in lines, with the bold characters of each."""
-    segments = _segments(text)
-    return _Block(kind, "\n".join(visible for visible, _ in segments), sum(bold for _, bold in segments),
-                  tuple(bold for _, bold in segments))
+def _inline(token: Token) -> _Inline:
+    """Walk the children of an inline token: text, soft breaks (a space), hard breaks and <br> (a new line), bold."""
+    inline = _Inline()
+    for child in token.children or []:
+        if child.type in ("text", "code_inline"):
+            inline.add(child.content)
+        elif child.type == "softbreak":
+            inline.add(" ")
+        elif child.type == "hardbreak" or child.type == "html_inline" and _HTML_BREAK.fullmatch(child.content.strip()):
+            inline.new_line()
+        elif child.type in ("strong_open", "strong_close"):
+            inline.strong += 1 if child.type == "strong_open" else -1
+        elif child.type == "image":
+            inline.problems.append("an image")
+        elif child.type == "html_inline":
+            inline.problems.append("HTML other than <br>")
+    return inline
 
 
-def _paragraph_block(parts: list[tuple[str, int]]) -> _Block:
-    """A paragraph from its source lines (visible text, ending with a newline at a hard break; bold characters): a
-    soft break renders as a space, a hard one (two trailing spaces or <br>) as a new line, and the bold characters
-    are kept per rendered line."""
-    text = "".join(part if part.endswith("\n") else part + " " for part, _ in parts).rstrip()
-    line_bold, current = [], 0
-    for part, part_bold in parts:
-        current += part_bold
-        if part.endswith("\n"):
-            line_bold.append(current)
-            current = 0
-    line_bold.append(current)
-    return _Block("p", text, sum(line_bold), tuple(line_bold[:text.count("\n") + 1]))
-
-
-def _paragraph_parts(line: str) -> list[tuple[str, int]]:
-    """The parts a source line adds to a paragraph: each <br> ends one with a hard break (a newline), and so do two
-    trailing spaces at the end of the line."""
-    segments = _segments(line)
-    last = len(segments) - 1
-    return [(visible + ("\n" if index < last or line.endswith("  ") else ""), bold)
-            for index, (visible, bold) in enumerate(segments) if visible or index < last]
+def _parse_markdown(markdown: str) -> tuple[list[_Block], list[str]]:
+    """The measurable blocks of the markdown, in order, and what in it cannot be measured (images, code blocks,
+    tables, HTML other than <br>)."""
+    blocks: list[_Block] = []
+    problems: list[str] = []
+    tokens = _MARKDOWN.parse(markdown or "")
+    depth = 0
+    for index, token in enumerate(tokens):
+        if token.type in _UNMEASURABLE_BLOCKS:
+            problems.append(_UNMEASURABLE_BLOCKS[token.type])
+        elif token.type in ("bullet_list_open", "ordered_list_open", "bullet_list_close", "ordered_list_close"):
+            depth += 1 if token.type.endswith("_open") else -1
+        elif token.type == "hr":
+            blocks.append(_Block("hr"))
+        elif token.type == "inline" and index and tokens[index - 1].type in ("heading_open", "paragraph_open"):
+            opener = tokens[index - 1]
+            kind = opener.tag if opener.type == "heading_open" else ("li" if depth else "p")
+            inline = _inline(token)
+            problems.extend(inline.problems)
+            lines = [line.strip() for line in inline.lines]
+            blocks.append(_Block(kind, "\n".join(lines), sum(inline.bold), tuple(inline.bold), depth))
+    return blocks, problems
 
 
 def _markdown_blocks(markdown: str) -> list[_Block]:
-    """Blocks of the markdown in order; consecutive lines form a paragraph (two trailing spaces break the line)."""
-    blocks: list[_Block] = []
-    paragraph: list[tuple[str, int]] = []  # (visible text, ending with a newline at a hard break; bold characters)
-
-    def close() -> None:
-        if paragraph:
-            blocks.append(_paragraph_block(paragraph))
-            paragraph.clear()
-
-    for line in (markdown or "").replace("\r", "").split("\n"):
-        heading, item = _HEADING.match(line.strip()), _LIST_ITEM.match(line)
-        if not line.strip() or _RULE.match(line) or heading or item:
-            close()
-        if _RULE.match(line):
-            blocks.append(_Block("hr"))
-        elif heading:
-            blocks.append(_lines_block(f"h{len(heading.group(1))}", heading.group(2)))
-        elif item:
-            blocks.append(_lines_block("li", item.group(1)))
-        elif line.strip():
-            paragraph.extend(_paragraph_parts(line))
-    close()
-    return blocks
+    """The measurable blocks of the markdown, in order."""
+    return _parse_markdown(markdown)[0]
 
 
 def _text_lines(block: _Block, style: TextStyle, width: float, markdown: MarkdownMeasures) -> tuple[int, int]:
@@ -486,7 +480,7 @@ def markdown_px(markdown: str, columns: int, viewport: int, profile: SizingProfi
             height, top, bottom = measures.rule_height, measures.rule_margin, measures.rule_margin
         else:
             style = measures.styles[block.kind]
-            width = usable - (measures.list_indent if block.kind == "li" else 0)
+            width = usable - measures.list_indent * block.depth
             lines, with_bold = _text_lines(block, style, width, measures)
             height, top, bottom = style.line * lines + measures.bold_extra_line * with_bold, style.margin_top, \
                 style.margin_bottom
@@ -504,10 +498,9 @@ def estimate_markdown(markdown: str, profile: SizingProfile, layout: Layout = FU
     """Height of a markdown component; text with an image (markdown or HTML), a fenced code block, a table (markdown
     or HTML) or other HTML than ``<br>`` is not measurable and gets the grid minimum with a reason."""
     reasons: list[str] = []
-    text = markdown or ""
-    if any(pattern.search(text) for pattern in (_IMAGE, _CODE_FENCE, _TABLE_RULE)) or \
-            _HTML_TAG.search(_HTML_BREAK.sub("", text)):
-        reasons.append("markdown with an image, a code block, a table or HTML other than <br>: not estimated")
+    problems = _parse_markdown(markdown)[1]
+    if problems:
+        reasons.append(f"markdown with {', '.join(sorted(set(problems)))}: not estimated")
         return SizingEstimate(GRID_MIN_ROW_UNITS, GRID_MIN_ROW_UNITS, GRID_MAX_ROW_UNITS, tuple(reasons), True)
     needed = {viewport: markdown_px(markdown, layout.columns, viewport, profile, layout.vertical_filter_bar)
               for viewport in profile.viewports}

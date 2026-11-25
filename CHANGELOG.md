@@ -9,6 +9,9 @@
   blocks), as a range in grid units (`SizingEstimate`: minimum, recommended, maximum, with the reasons), from a
   `SizingProfile` of measures per Superset version, theme and viewports; `SizingWarning` for heights that do not fit
   their content, not a `LayoutWarning`, so it can be filtered on its own (#78).
+* New runtime dependency: `markdown-it-py>=3.0.0` parses the markdown measured by the sizing estimates with the
+  CommonMark rules Superset renders it with (react-markdown and remark-gfm); Airflow 3.3 already ships it as a
+  dependency of `rich` (#78).
 
 ### Security
 

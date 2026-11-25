@@ -211,6 +211,8 @@ FREE_TEXT = {
     "dashboards.layout.sizing.SizingProfile.theme": "name of the theme or CSS the profile was calibrated with",
     "dashboards.layout.sizing._Block.kind": "markdown block tag (p, li, h1..h6, hr), internal to the parser",
     "dashboards.layout.sizing._Block.text": "visible text of a markdown block, " + TEXT,
+    "dashboards.layout.sizing._Inline.lines": "rendered lines of a markdown block, " + TEXT,
+    "dashboards.layout.sizing._Inline.problems": "what cannot be measured in a markdown block, written by the library",
 }
 
 
