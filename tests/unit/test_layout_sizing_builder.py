@@ -7,6 +7,7 @@ import pytest
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.core.datasource import DataSource
+from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.layout import ChartRef, DashboardLayout
 from supersetapiplus.dashboards.layout.sizing import (
     BarsContent,
@@ -226,3 +227,71 @@ def test_a_title_changed_after_placing_the_chart_is_checked():
     placed.meta["sliceNameOverride"] = LONG_TITLE
     with pytest.raises(SizingError, match="below the content's minimum"):
         sent(layout)
+
+
+# Twelve paragraphs that wrap in one line more on a 4-column block when the vertical filter bar narrows the grid.
+TEXT = "\n\n".join(" ".join(["word"] * 9) for _ in range(12))
+
+
+def dashboard_with_filters(orientation: str | None) -> Dashboard:
+    dashboard = Dashboard(dashboard_title="Filters")
+    dashboard.json_metadata.add_native_filter("Region", dataset=1, column="region")
+    if orientation:
+        dashboard.json_metadata.filter_bar_orientation = orientation
+    return dashboard
+
+
+def full_width_minimum(text: str, columns: int) -> int:
+    return estimate_markdown(text, PROFILE, Layout(columns=columns, vertical_filter_bar=False)).min_units
+
+
+def test_a_dashboard_with_the_filter_bar_on_top_is_sized_on_the_full_grid_width():
+    dashboard = dashboard_with_filters("HORIZONTAL")
+    dashboard.position.sizing = "strict"
+    height = full_width_minimum(TEXT, 4)
+    assert height < estimate_markdown(TEXT, PROFILE, Layout(columns=4)).min_units  # the bar matters here
+    dashboard.position.add_markdown(TEXT, width=4, height=height)
+    dashboard.to_dict(convert_to_json=True)  # no SizingError: the grid is not narrowed by a vertical bar
+    auto = dashboard.position.add_markdown(TEXT, width=4, height="auto")
+    assert auto.meta["height"] == estimate_markdown(TEXT, PROFILE, Layout(columns=4, vertical_filter_bar=False)) \
+        .recommended_units
+
+
+def test_the_vertical_filter_bar_narrows_the_grid_when_the_dashboard_shows_it():
+    dashboard = dashboard_with_filters(None)  # vertical, the default
+    dashboard.position.sizing = "strict"
+    assert dashboard.position.vertical_filter_bar
+    dashboard.position.add_markdown(TEXT, width=4, height=full_width_minimum(TEXT, 4))
+    with pytest.raises(SizingError):
+        dashboard.to_dict(convert_to_json=True)
+
+
+def test_without_native_filters_there_is_no_filter_bar_and_the_user_can_force_it():
+    dashboard = Dashboard(dashboard_title="No filters")
+    assert dashboard.position.vertical_filter_bar is False
+    dashboard.position.vertical_filter_bar = True
+    assert dashboard.position.vertical_filter_bar is True
+    assert DashboardLayout.empty().vertical_filter_bar  # a layout on its own assumes the bar
+
+
+def test_filters_added_after_the_layout_was_taken_count():
+    dashboard = Dashboard(dashboard_title="Built in steps")
+    layout = dashboard.reset_layout()  # taken before the filters exist
+    assert layout.vertical_filter_bar is False
+    dashboard.json_metadata.add_native_filter("Region", dataset=1, column="region")
+    assert layout.vertical_filter_bar is True
+    auto = layout.add_markdown(TEXT, width=4, height="auto")
+    assert auto.meta["height"] == estimate_markdown(TEXT, PROFILE, Layout(columns=4)).recommended_units
+
+
+def test_every_builder_path_of_a_dashboard_follows_its_filter_bar():
+    dashboard = Dashboard(dashboard_title="Direct")  # no filters: no bar
+    direct = dashboard.position_json.add_markdown(TEXT, width=4, height="auto")  # no prior access to .position
+    full_width = estimate_markdown(TEXT, PROFILE, Layout(columns=4, vertical_filter_bar=False)).recommended_units
+    assert direct.meta["height"] == full_width
+    dashboard.position_json = DashboardLayout.empty("Replaced")  # an assigned layout follows the dashboard too
+    dashboard.json_metadata.add_native_filter("Region", dataset=1, column="region")
+    assert dashboard.position_json.vertical_filter_bar is True
+    dashboard.position.sizing = "strict"
+    dashboard.position.add_markdown(TEXT, width=4, height="auto")
+    dashboard.to_dict(convert_to_json=True)  # sized and checked with the same bar: no SizingError

@@ -200,8 +200,7 @@ class DashboardSizing:
         dashboard = self.client.dashboards.get(dashboard_id)
         layout: DashboardLayout = dashboard.position_json
         metadata = dashboard.json_metadata
-        filter_bar = isinstance(metadata, Metadata) and bool(metadata.native_filter_configuration) and \
-            str(metadata.filter_bar_orientation or "VERTICAL") == "VERTICAL"
+        filter_bar = isinstance(metadata, Metadata) and metadata.shows_vertical_filter_bar()
         items = []
         for component_id in _in_layout_order(layout):
             data = layout.components[component_id]

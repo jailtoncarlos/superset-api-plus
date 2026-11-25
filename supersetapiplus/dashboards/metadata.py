@@ -78,6 +78,12 @@ class Metadata(ApiModel):
     # Filter id -> chart ids in scope, for filters restricted to some charts (excluded = the others).
     _filter_charts: dict[str, list[int]] = PrivateAttr(default_factory=dict)
 
+    def shows_vertical_filter_bar(self) -> bool:
+        """Whether the dashboard shows the native filter bar beside the grid (narrowing it): it has native filters
+        and the default (vertical) orientation."""
+        return bool(self.native_filter_configuration) and \
+            str(self.filter_bar_orientation or FilterBarOrientation.VERTICAL) == FilterBarOrientation.VERTICAL
+
     def clear_native_filters(self) -> None:
         self.native_filter_configuration = []
         self._library_filter_ids = set()

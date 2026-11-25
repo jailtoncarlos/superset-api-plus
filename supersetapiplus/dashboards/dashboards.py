@@ -62,6 +62,12 @@ class Dashboard(ApiModel):
     def model_post_init(self, context: Any) -> None:
         super().model_post_init(context)
         self._charts_slice_names: list[str] = []
+        self._bind_layout()
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        super().__setattr__(name, value)
+        if name == "position_json":  # every layout this dashboard holds follows its filter bar (see _bind_layout)
+            self._bind_layout()
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> Self:
@@ -88,6 +94,17 @@ class Dashboard(ApiModel):
         """Replaces the layout with an empty one (root, grid and title header); returns the new layout."""
         self.position_json = DashboardLayout.empty(self.dashboard_title)
         return self.position_json
+
+    def _bind_layout(self) -> None:
+        """The layout's sizing estimates follow whether this dashboard shows the vertical native filter bar. Bound
+        when the dashboard is built and whenever ``position_json`` is assigned, so every builder path
+        (``position_json``, ``position``, ``reset_layout()``) sizes with it."""
+        if isinstance(self.position_json, DashboardLayout):
+            self.position_json.follow_dashboard_filter_bar(self._shows_vertical_filter_bar)
+
+    def _shows_vertical_filter_bar(self) -> bool:
+        """Read at each estimate: the json_metadata as it is now (filters added after the layout was taken count)."""
+        return isinstance(self.json_metadata, Metadata) and self.json_metadata.shows_vertical_filter_bar()
 
     def to_dict(self, columns: list[str] | None = None, convert_to_json: bool = False) -> dict[str, Any]:
         # Native filter scopes (chartsInScope/tabsInScope) are derived from the layout, as the editor does.

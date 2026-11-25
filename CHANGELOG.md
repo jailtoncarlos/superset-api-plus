@@ -4,6 +4,11 @@
 
 ### Fixed
 
+* Sizing: `height="auto"` and the check when the layout is sent assumed the vertical native filter bar beside the
+  grid. They now follow the dashboard: the bar narrows the grid only when the dashboard has native filters with the
+  default (vertical) orientation, so markdown sized for a dashboard with the bar on top, or without filters, is no
+  longer flagged. `position_json.vertical_filter_bar` forces the value; `Metadata.shows_vertical_filter_bar()`
+  tells it (#102).
 * Sizing check of a saved dashboard (`client.dashboard_sizing.check`): the table label, whose wrapping makes rows
   taller, was always the first result column. It is now the column with a fixed `columnWidth`, else the first
   dimension (`groupby`, or `all_columns` in raw mode), else the first column (#103).
