@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import warnings
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any, Literal, TypeAlias
 
@@ -145,7 +146,8 @@ class DashboardLayout(ApiModel):
     # Whether the grid shares the screen with the vertical native filter bar: set by the user, else by the
     # dashboard (from its json_metadata), else assumed (the narrower grid, the safe side for heights).
     _vertical_filter_bar: bool | None = PrivateAttr(default=None)
-    _dashboard_filter_bar: bool | None = PrivateAttr(default=None)
+    # Asked at each estimate (not copied): filters added to the dashboard after the layout was taken count.
+    _dashboard_filter_bar: Callable[[], bool] | None = PrivateAttr(default=None)
 
     @property
     def created_by_library(self) -> bool:
@@ -179,18 +181,21 @@ class DashboardLayout(ApiModel):
     def vertical_filter_bar(self) -> bool:
         """Whether the sizing estimates leave room for the vertical native filter bar beside the grid. Set it to
         force a value; otherwise a dashboard sets it from its ``json_metadata`` (native filters with the default,
-        vertical, orientation) when its layout is used or sent, and a layout on its own assumes the bar."""
-        for value in (self._vertical_filter_bar, self._dashboard_filter_bar):
-            if value is not None:
-                return value
+        vertical, orientation), read at each estimate, and a layout on its own assumes the bar. Add the native
+        filters before placing components with ``height="auto"``: their height is computed when they are placed."""
+        if self._vertical_filter_bar is not None:
+            return self._vertical_filter_bar
+        if self._dashboard_filter_bar is not None:
+            return self._dashboard_filter_bar()
         return True
 
     @vertical_filter_bar.setter
     def vertical_filter_bar(self, value: bool | None) -> None:
         self._vertical_filter_bar = value
 
-    def follow_dashboard_filter_bar(self, shown: bool) -> None:
-        """Called by the dashboard with whether it shows the vertical filter bar (see :attr:`vertical_filter_bar`)."""
+    def follow_dashboard_filter_bar(self, shown: Callable[[], bool]) -> None:
+        """Called by the dashboard with how to tell whether it shows the vertical filter bar, asked at each estimate
+        (see :attr:`vertical_filter_bar`)."""
         self._dashboard_filter_bar = shown
 
     # --- construction and serialization -----------------------------------------------------
