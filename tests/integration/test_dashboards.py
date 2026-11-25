@@ -438,3 +438,15 @@ def test_browser_check_reports_what_the_dashboard_shows(client, dataset, add_das
     assert not any(item.component_id == long.id and item.problems for item in tolerated.components)
     after = client.get(client.join_urls(client.dashboards.base_url, dashboard.id)).json()["result"]
     assert (after["changed_on"], after["position_json"]) == (before["changed_on"], before["position_json"])
+
+
+def test_browser_check_of_a_dashboard_with_only_markdown(client, add_dashboard, chromium):
+    """Markdown blocks are not always inside a chart holder: a dashboard with only markdown is measured."""
+    dashboard = add_dashboard()
+    note = dashboard.position_json.add_markdown("## Notes\n\nOnly text here.", width=6, height="auto")
+    dashboard.save()
+
+    report = client.dashboard_sizing.check_in_browser(dashboard.id)
+
+    assert [(item.component_id, item.shown, item.problems) for item in report.components] == [
+        (note.id, True, ())] * len(calibrated_profile().viewports)

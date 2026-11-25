@@ -217,8 +217,7 @@ class DashboardBrowserCheck:
             scrolls: components that scroll by design, by chart id or component id (their scrolling is not reported).
             chrome_path: the Chromium executable (default: ``CHROME_PATH``, else the one installed by Playwright).
         """
-        cookies = self.client.session.cookies.get_dict()
-        if not cookies:
+        if not self.client.session.cookies.get_dict():
             raise ValueError("the browser check opens the dashboard with the client's session cookie: call "
                              "client.enable_session_mode() first")
         try:
@@ -229,8 +228,12 @@ class DashboardBrowserCheck:
         profile = profile or calibrated_profile()
         layout: DashboardLayout = self.client.dashboards.get(dashboard_id).position_json
         placed = _placed(layout, self._shapes(layout))
+        if not placed:  # nothing to measure: the dashboard draws no chart or markdown block
+            return BrowserReport(dashboard_id)
         bars = [item.chart_id for item in placed if item.shape is ChartShape.HORIZONTAL_BARS]
         url = self.client.host.rstrip("/")
+        # Read after the API reads above, which renew the session when it expired.
+        cookies = self.client.session.cookies.get_dict()
         items: list[BrowserComponent] = []
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path=chrome_path or os.getenv("CHROME_PATH") or None,
@@ -243,7 +246,8 @@ class DashboardBrowserCheck:
                                          for name, value in cookies.items()])
                     page = context.new_page()
                     page.goto(f"{url}/superset/dashboard/{dashboard_id}/", timeout=TIMEOUT_MS)
-                    page.wait_for_selector(".dashboard-component-chart-holder", timeout=TIMEOUT_MS)
+                    page.wait_for_selector(".dashboard-component-chart-holder, .dashboard-markdown",
+                                           timeout=TIMEOUT_MS)
                     page.wait_for_load_state("networkidle", timeout=TIMEOUT_MS)
                     page.evaluate("document.fonts.ready.then(() => document.fonts.status)")
                     page.wait_for_timeout(2000)  # chart animations
