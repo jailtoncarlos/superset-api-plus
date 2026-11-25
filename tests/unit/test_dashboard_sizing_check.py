@@ -119,3 +119,22 @@ def test_bars_of_a_legacy_chart_are_counted_on_its_migrated_x_axis():
     params = chart.explore_params()
     result = {"data": [{"month": f"2026-{m:02d}", "count": m} for m in range(1, 13)]}
     assert _bars_content(params, result, "").bars == 12
+
+
+WIDE = {"rowcount": 2, "colnames": ["region", "campus", "count"],
+        "data": [{"region": "North", "campus": "A campus name long enough to wrap", "count": 1},
+                 {"region": "South", "campus": "Another campus", "count": 2}]}
+
+
+def test_the_label_is_the_column_with_a_fixed_width_even_when_it_is_not_the_first():
+    content = _table_content({"column_config": {"campus": {"columnWidth": 300}}}, WIDE, "")
+    assert content.labels == ["A campus name long enough to wrap", "Another campus"]
+    assert content.fixed_label_width
+
+
+def test_without_a_fixed_width_the_label_is_the_first_dimension():
+    params = {"groupby": [{"label": "campus", "sqlExpression": "campus"}, "region"]}
+    assert _table_content(params, WIDE, "").labels[0] == "A campus name long enough to wrap"
+    raw = {"query_mode": "raw", "all_columns": ["campus", "region"]}
+    assert _table_content(raw, WIDE, "").labels[0] == "A campus name long enough to wrap"
+    assert _table_content({}, WIDE, "").labels == ["North", "South"]  # nothing known: the first column

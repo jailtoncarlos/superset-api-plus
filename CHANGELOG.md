@@ -12,6 +12,9 @@
 * Sizing: a chart or markdown inside a COLUMN was estimated at its own width, while Superset draws it at the
   column's width (a chart nested deeper is at most as wide as its nearest column). `height="auto"`, the check when
   the layout is sent and `client.dashboard_sizing.check` now use that width (`position_json.rendered_width()`) (#104).
+* Sizing check of a saved dashboard (`client.dashboard_sizing.check`): the table label, whose wrapping makes rows
+  taller, was always the first result column. It is now the column with a fixed `columnWidth`, else the first
+  dimension (`groupby`, or `all_columns` in raw mode), else the first column (#103).
 
 ## 2.6.0 (2026-11-25)
 
