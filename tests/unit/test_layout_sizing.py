@@ -200,3 +200,28 @@ def test_bold_text_is_counted_on_its_own_hard_broken_line():
     markdown = "x" * 141 + "  \n**" + "y" * 10 + "**"
     wide_bold = PROFILE.model_copy(update={"markdown": PROFILE.markdown.model_copy(update={"bold_width": 2.0})})
     assert sizing.markdown_px(markdown, 12, 1366, wide_bold) == sizing.markdown_px(markdown, 12, 1366, PROFILE)
+
+
+def test_the_minimum_bar_band_keeps_the_height_the_wrapped_labels_need():
+    # Labels of 2 lines need 2 * 12 + 8 = 32 px per bar: above min_band (26), below the profile's band (44).
+    two_lines = [" ".join(["word"] * 25)]  # 124 characters: 2 lines of 85
+    estimate = estimate_horizontal_bars(BarsContent(bars=10, labels=two_lines), PROFILE)
+    assert estimate.min_units == to_units(35 + 28 + 10 * 32 + 85)
+
+
+def test_html_breaks_stay_inside_their_block():
+    blocks = sizing._markdown_blocks("# One<br>Two\n- a<br>b\n\nx<br>**yy**")
+    assert [(block.kind, block.text) for block in blocks] == [("h1", "One\nTwo"), ("li", "a\nb"), ("p", "x\nyy")]
+    assert blocks[2].line_bold == (0, 2)
+
+
+@pytest.mark.parametrize("markdown", ["```\ncode\n```", "| a | b |\n|---|---|\n| 1 | 2 |"])
+def test_code_blocks_and_markdown_tables_are_left_unestimated(markdown):
+    estimate = estimate_markdown(markdown, PROFILE)
+    assert estimate.approximate and estimate.reasons
+
+
+def test_bars_above_the_maximum_say_the_chart_is_sized_for_it():
+    estimate = estimate_horizontal_bars(BarsContent(bars=40), PROFILE, max_rows=15)
+    assert estimate.recommended_units == estimate_horizontal_bars(BarsContent(bars=15), PROFILE).recommended_units
+    assert any("sized for the maximum" in reason for reason in estimate.reasons)

@@ -259,15 +259,17 @@ def _row_heights(rows: int, labels: Sequence[str], row: float, text_line: float,
     return sorted(heights, reverse=True)[:max_rows]
 
 
-def _visible_rows(rows: int | None, max_rows: int | None, reasons: list[str]) -> tuple[int, int]:
-    """(rows to measure, cap) with the reason when the content is unknown or above the cap."""
+def _visible_rows(rows: int | None, max_rows: int | None, reasons: list[str],
+                  above_cap: str = "the table scrolls") -> tuple[int, int]:
+    """(rows to measure, cap) with the reason when the content is unknown or above the cap (`above_cap` says what
+    happens then)."""
     cap = max_rows if max_rows is not None else GRID_MAX_ROW_UNITS
     if rows is None:
         reasons.append(f"row count unknown: sized for {cap} rows" if max_rows is not None
                        else "row count unknown and no max_rows: sized for one row")
         return (cap if max_rows is not None else 1), cap
     if rows > cap:
-        reasons.append(f"{rows} rows above the maximum of {cap}: the table scrolls")
+        reasons.append(f"{rows} rows above the maximum of {cap}: {above_cap}")
     return max(0, rows), cap
 
 
@@ -326,11 +328,16 @@ class BarsContent:
     legend: bool = True
 
 
-def band_px(labels: Sequence[str], profile: SizingProfile) -> float:
-    """Px of each bar's band: the profile's, or more when the longest label wraps in more lines than fit in it."""
+def label_band_px(labels: Sequence[str], profile: SizingProfile) -> float:
+    """Px a bar's band needs for the longest label, wrapped in lines (never squeezed)."""
     bars = profile.bars
     lines = max([label_lines(label, bars.label_chars) for label in labels] or [1])
-    return max(bars.band, lines * bars.label_line + bars.label_padding)
+    return lines * bars.label_line + bars.label_padding
+
+
+def band_px(labels: Sequence[str], profile: SizingProfile) -> float:
+    """Px of each bar's band: the profile's, or more when the longest label wraps in more lines than fit in it."""
+    return max(profile.bars.band, label_band_px(labels, profile))
 
 
 def estimate_horizontal_bars(content: BarsContent, profile: SizingProfile, layout: Layout = FULL_WIDTH,
@@ -338,7 +345,7 @@ def estimate_horizontal_bars(content: BarsContent, profile: SizingProfile, layou
     """Height of horizontal bars: frame + bars × band + axes (and legend). The range is the band thickness that
     reads well (``min_band`` to ``max_band``); the recommended height uses the profile's band."""
     reasons: list[str] = []
-    count, cap = _visible_rows(content.bars, max_rows, reasons)
+    count, cap = _visible_rows(content.bars, max_rows, reasons, "the chart is sized for the maximum")
     count = max(1, min(count, cap))
     bars = profile.bars
     axes = bars.axes_and_legend if content.legend else bars.axes_without_legend
@@ -350,7 +357,7 @@ def estimate_horizontal_bars(content: BarsContent, profile: SizingProfile, layou
         return frame_px(content.title, layout.columns, viewport, profile, layout.vertical_filter_bar) + \
             count * per_bar + axes
 
-    low = to_units(height(profile.narrowest, max(bars.min_band, band if band > bars.band else bars.min_band)))
+    low = to_units(height(profile.narrowest, max(bars.min_band, label_band_px(content.labels, profile))))
     recommended = to_units(height(profile.narrowest, band))
     high = max(recommended, to_units(height(profile.widest, max(bars.max_band, band))))
     return SizingEstimate(min_units=min(low, recommended), recommended_units=recommended, max_units=high,
@@ -366,6 +373,8 @@ _HTML_BREAK = re.compile(r"<br\s*/?>", re.I)
 _HTML_TAG = re.compile(r"<[^>]+>")
 _LINK = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
 _IMAGE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+_CODE_FENCE = re.compile(r"^\s*(```|~~~)", re.M)
+_TABLE_RULE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$", re.M)
 _EMPHASIS = re.compile(r"(\*\*|__|\*|_|`)")
 _BOLD = re.compile(r"(\*\*|__)(.+?)\1")
 
@@ -387,6 +396,18 @@ class _Block:
     line_bold: tuple[int, ...] = ()
 
 
+def _segments(text: str) -> list[tuple[str, int]]:
+    """(visible text, bold characters) of each line of `text` split at its <br> tags."""
+    return [(_visible_text(segment), _bold_chars(segment)) for segment in _HTML_BREAK.split(text)]
+
+
+def _lines_block(kind: str, text: str) -> _Block:
+    """A heading or list item: its <br> tags break it in lines, with the bold characters of each."""
+    segments = _segments(text)
+    return _Block(kind, "\n".join(visible for visible, _ in segments), sum(bold for _, bold in segments),
+                  tuple(bold for _, bold in segments))
+
+
 def _paragraph_block(parts: list[tuple[str, int]]) -> _Block:
     """A paragraph from its source lines (visible text, ending with a newline at a hard break; bold characters): a
     soft break renders as a space, a hard one (two trailing spaces or <br>) as a new line, and the bold characters
@@ -402,6 +423,15 @@ def _paragraph_block(parts: list[tuple[str, int]]) -> _Block:
     return _Block("p", text, sum(line_bold), tuple(line_bold[:text.count("\n") + 1]))
 
 
+def _paragraph_parts(line: str) -> list[tuple[str, int]]:
+    """The parts a source line adds to a paragraph: each <br> ends one with a hard break (a newline), and so do two
+    trailing spaces at the end of the line."""
+    segments = _segments(line)
+    last = len(segments) - 1
+    return [(visible + ("\n" if index < last or line.endswith("  ") else ""), bold)
+            for index, (visible, bold) in enumerate(segments) if visible or index < last]
+
+
 def _markdown_blocks(markdown: str) -> list[_Block]:
     """Blocks of the markdown in order; consecutive lines form a paragraph (two trailing spaces break the line)."""
     blocks: list[_Block] = []
@@ -412,19 +442,18 @@ def _markdown_blocks(markdown: str) -> list[_Block]:
             blocks.append(_paragraph_block(paragraph))
             paragraph.clear()
 
-    for line in _HTML_BREAK.sub("  \n", markdown or "").replace("\r", "").split("\n"):
+    for line in (markdown or "").replace("\r", "").split("\n"):
         heading, item = _HEADING.match(line.strip()), _LIST_ITEM.match(line)
         if not line.strip() or _RULE.match(line) or heading or item:
             close()
         if _RULE.match(line):
             blocks.append(_Block("hr"))
         elif heading:
-            blocks.append(_Block(f"h{len(heading.group(1))}", _visible_text(heading.group(2)),
-                                 _bold_chars(heading.group(2))))
+            blocks.append(_lines_block(f"h{len(heading.group(1))}", heading.group(2)))
         elif item:
-            blocks.append(_Block("li", _visible_text(item.group(1)), _bold_chars(item.group(1))))
-        elif line.strip() and (visible := _visible_text(line)):
-            paragraph.append((visible + ("\n" if line.endswith("  ") else ""), _bold_chars(line)))
+            blocks.append(_lines_block("li", item.group(1)))
+        elif line.strip():
+            paragraph.extend(_paragraph_parts(line))
     close()
     return blocks
 
@@ -472,11 +501,13 @@ def markdown_px(markdown: str, columns: int, viewport: int, profile: SizingProfi
 
 
 def estimate_markdown(markdown: str, profile: SizingProfile, layout: Layout = FULL_WIDTH) -> SizingEstimate:
-    """Height of a markdown component; text with an image (markdown or HTML) or other HTML than ``<br>`` (tables) is
-    not measurable and gets the grid minimum with a reason."""
+    """Height of a markdown component; text with an image (markdown or HTML), a fenced code block, a table (markdown
+    or HTML) or other HTML than ``<br>`` is not measurable and gets the grid minimum with a reason."""
     reasons: list[str] = []
-    if _HTML_TAG.search(_HTML_BREAK.sub("", markdown or "")) or _IMAGE.search(markdown or ""):
-        reasons.append("markdown with an image or HTML other than <br>: not estimated")
+    text = markdown or ""
+    if any(pattern.search(text) for pattern in (_IMAGE, _CODE_FENCE, _TABLE_RULE)) or \
+            _HTML_TAG.search(_HTML_BREAK.sub("", text)):
+        reasons.append("markdown with an image, a code block, a table or HTML other than <br>: not estimated")
         return SizingEstimate(GRID_MIN_ROW_UNITS, GRID_MIN_ROW_UNITS, GRID_MAX_ROW_UNITS, tuple(reasons), True)
     needed = {viewport: markdown_px(markdown, layout.columns, viewport, profile, layout.vertical_filter_bar)
               for viewport in profile.viewports}
