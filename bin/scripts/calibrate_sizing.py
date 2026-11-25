@@ -40,9 +40,10 @@ import math
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from playwright.sync_api import Page, sync_playwright
+if TYPE_CHECKING:
+    from playwright.sync_api import Page
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -399,6 +400,15 @@ def bar_measures(chart: dict[str, Any]) -> tuple[float, float]:
     return band, mean([end - start for start, end in runs]) / band
 
 
+def title_growth(frame: dict[str, Any], long_title: dict[str, Any], title_line: float) -> int:
+    """Title lines the long title header adds to the one-line header: a whole number, 0 when a theme clamps titles
+    at one line (then title_max_lines measures 1)."""
+    extra_lines = (long_title["header"] - frame["header"]) / title_line
+    if extra_lines < -0.1 or abs(extra_lines - round(extra_lines)) > 0.1:
+        raise RuntimeError(f"the long title header grows by {extra_lines:.2f} title lines, not a whole number >= 0")
+    return round(extra_lines)
+
+
 def title_max_lines(frame: dict[str, Any], clamped: dict[str, Any], title: str, title_line: float) -> int | None:
     """The lines a chart title is clamped at: those the clamped title header shows, when fewer than its text wraps
     in; None when it shows them all (no clamp)."""
@@ -415,9 +425,7 @@ def profile_from(version: str, by_viewport: dict[int, dict[str, Any]], titles: d
     charts = narrowest["charts"]
     frame, long_title, table = charts["frame"], charts["long_title"], charts["table"]
     title_line = round(frame["title_line"], 1)
-    extra_lines = (long_title["header"] - frame["header"]) / title_line
-    if extra_lines < 1 or abs(extra_lines - round(extra_lines)) > 0.1:
-        raise RuntimeError(f"the long title header grows by {extra_lines:.2f} title lines, not a whole number >= 1")
+    title_growth(frame, long_title, title_line)
     frame_total = frame["holder"] - frame["chart"]
     label_column = POLICY["table_label_column_width"] - table["cell_padding"]
     pivot = charts["pivot"]
@@ -530,6 +538,8 @@ def main(argv: list[str] | None = None) -> None:
     try:
         save_dashboard(client, dashboard, layout, dataset.id)
         by_viewport = {}
+        from playwright.sync_api import sync_playwright  # only to measure: the profile logic is tested without it
+
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path=os.getenv("CHROME_PATH") or None,
                                                  ignore_default_args=["--hide-scrollbars"])
