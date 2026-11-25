@@ -324,3 +324,17 @@ def test_every_builder_path_of_a_dashboard_follows_its_filter_bar():
     dashboard.position.sizing = "strict"
     dashboard.position.add_markdown(TEXT, width=4, height="auto")
     dashboard.to_dict(convert_to_json=True)  # sized and checked with the same bar: no SizingError
+
+
+def test_a_cyclic_layout_does_not_hang_the_width_and_is_reported_by_the_validation():
+    layout = DashboardLayout.empty()
+    row = layout.add_row()
+    component = layout.add_chart(chart("table", 1), parent=row, width=6, height="auto", content=TableContent(rows=3))
+    other = layout.add_row()
+    # Rows inside each other, out of the grid: a cycle without a COLUMN above the chart.
+    layout.components["GRID_ID"]["children"] = []
+    layout.components[row.id]["children"].append(other.id)
+    layout.components[other.id]["children"].append(row.id)
+    assert layout.rendered_width(component.id) == 6
+    with pytest.raises(NodePositionValidationError):
+        sent(layout)

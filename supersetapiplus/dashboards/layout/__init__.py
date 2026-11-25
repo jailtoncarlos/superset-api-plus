@@ -298,11 +298,13 @@ class DashboardLayout(ApiModel):
         if container.get("type") == "COLUMN":
             return int((container.get("meta") or {}).get("width") or GRID_MIN_COLUMN_COUNT)
         if component_type == "CHART":
+            seen = {container_id}  # a cyclic layout (invalid, reported by the validation) must not hang the walk
             ancestor = self._parent_of(container_id)
-            while ancestor is not None:
+            while ancestor is not None and ancestor not in seen:
                 data = self.components.get(ancestor) or {}
                 if data.get("type") == "COLUMN":
                     return min(width, int((data.get("meta") or {}).get("width") or GRID_MIN_COLUMN_COUNT))
+                seen.add(ancestor)
                 ancestor = self._parent_of(ancestor)
         return width
 
