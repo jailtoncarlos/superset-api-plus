@@ -2,11 +2,6 @@
 
 ## Unreleased
 
-### Fixed
-
-* The server version request made after the first login (`client.server_version`) uses the configured timeouts
-  (`SUPERSET_API_PLUS_TIMEOUT_CONNECT`/`_READ`); a server that did not answer `/version` hung the login (#91).
-
 ### Security
 
 * `beautifulsoup4` is no longer a dependency: session mode reads the login page with the standard library
@@ -19,11 +14,24 @@
 * `client.server_version`: the version the server reports (`GET /version`, `version_string`), read once after the
   first login, which warns with `UnsupportedServerVersionWarning` when the server's major version is not the one the
   release targets: 6 for the 2.x releases from `main` (#54, #85).
+* `supersetapiplus.dashboards.layout.sizing`: heights of tables, pivot tables, horizontal bars and markdown
+  estimated from their content (rows and wrapped labels, title, search and pagination, bars and legend, markdown
+  blocks), as a range in grid units (`SizingEstimate`: minimum, recommended, maximum, with the reasons), from a
+  `SizingProfile` of measures per Superset version, theme and viewports; `SizingWarning` for heights that do not fit
+  their content, not a `LayoutWarning`, so it can be filtered on its own (#78).
+* New runtime dependency: `markdown-it-py>=3.0.0` parses the markdown measured by the sizing estimates with the
+  CommonMark rules Superset renders it with (react-markdown and remark-gfm); Airflow 3.3 already ships it as a
+  dependency of `rich` (#78).
 
 ### Changed
 
 * Superset 7.0 support is developed on the `superset-7` branch, kept in sync with `main`, and will be released as
   3.0.0 after Superset 7.0.0 final; `main` keeps targeting Superset 6.1 and the 2.x releases (#85).
+
+### Fixed
+
+* The server version request made after the first login (`client.server_version`) uses the configured timeouts
+  (`SUPERSET_API_PLUS_TIMEOUT_CONNECT`/`_READ`); a server that did not answer `/version` hung the login (#91).
 
 ## 2.5.0 (2026-11-24)
 
