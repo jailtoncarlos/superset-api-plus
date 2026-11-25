@@ -20,7 +20,8 @@ Target of this branch (`superset-7`): **Superset 7.0**, migration in progress, r
 - **Lossless round trip.** Reading an object and saving it back neither loses nor adds data: unmodeled keys
   are preserved and absent keys stay absent.
 - **Dashboards**: layout builder (tabs, rows, markdown, charts) that writes `position_json` as the editor
-  does, native filters with dependencies and chart scopes, chart association.
+  does, native filters with dependencies and chart scopes, chart association, and chart heights sized from the
+  content (rows, bars, markdown text) with measures calibrated in a browser.
 - **Both authentication modes**: JWT, and the login-form session (cookie + CSRF) needed by instances whose
   `Public` role has permissions, also on instances with OAuth login (through a service login route).
 - **Conformance checked in CI and pre-commit** against the OpenAPI specification and the Superset source
@@ -289,6 +290,36 @@ to be saved; a layout read from Superset is saved as read, with a `LayoutWarning
 `client.dashboard_charts.add_chart(dashboard, chart, ...)` places a chart and associates it in one call;
 `client.dashboards.copy()` copies a dashboard; `delete_many()` removes several objects at once. Dashboards
 read from Superset are written back as read: only filters created by the library get recomputed scopes.
+
+### Sizing charts to their content
+
+A chart's height on a dashboard is fixed: a table with few rows leaves empty space below it, one with many rows
+scrolls, and horizontal bars get thinner as they get more numerous. Give the layout what the chart shows and it
+picks the height:
+
+```python
+from supersetapiplus.dashboards.layout.sizing import BarsContent, TableContent
+
+layout.add_chart(table, "Sales by region", parent=row, width=6, height="auto",
+                 content=TableContent(rows=8, labels=regions), max_rows=15)   # above 15 rows the table scrolls
+layout.add_chart(bars, "Top products", parent=row, width=6, height="auto",
+                 content=BarsContent(bars=10, labels=products))
+layout.add_markdown("## Notes\n\nFigures of the last quarter.", width=12, height="auto")
+```
+
+Tables and pivot tables (`TableContent`: rows, labels, title, search box, pagination) and horizontal bars
+(`BarsContent`: bars, labels, legend) are covered; the content stays in the library and is never written to
+`position_json`. When the layout is sent, the components placed with their content (and every markdown block)
+are checked against it: `layout.sizing = "warn"` (default) emits a `SizingWarning` when a height cuts the content
+or leaves too much empty space, `"strict"` raises `SizingError` (pivot tables, whose estimate is approximate, only
+warn) and `"off"` skips the check.
+
+`client.dashboard_sizing.check(dashboard_id)` checks a dashboard already saved, without writing: it reads the
+data each table, pivot table and bar chart shows and returns a report (`report.problems`, `report.summary()`).
+
+The measures (chart frame, table rows, bar band, markdown styles) come from a profile calibrated in Chromium for
+Superset 6.1.0 with the default theme on 1366 and 1920 px screens (`bin/scripts/calibrate_sizing.py`). An instance
+with its own theme or CSS needs its own profile: `layout.sizing_profile = profile`.
 
 ## Errors
 

@@ -1,6 +1,11 @@
 # CHANGELOG
 
-## Unreleased
+## 2.6.0 (2026-11-25)
+
+Chart sizing from the content (#77): heights of tables, pivot tables, horizontal bars and markdown estimated from
+what they show, with measures calibrated in a browser for Superset 6.1.0, in the layout builder (`height="auto"`
+and a check when the layout is sent) and as a read-only check of a saved dashboard. Still targets Superset 6.1;
+the migration to 7.0 continues on the `superset-7` branch (3.0.0).
 
 ### Security
 
