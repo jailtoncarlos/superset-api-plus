@@ -352,8 +352,25 @@ dashboard.save()
 ```
 
 The measures (chart frame, table rows, bar band, markdown styles) come from a profile calibrated in Chromium for
-Superset 6.1.0 with the default theme on 1366 and 1920 px screens (`bin/scripts/calibrate_sizing.py`). An instance
-with its own theme or CSS needs its own profile: `layout.sizing_profile = profile`.
+Superset 6.1.0 with the default theme on 1366 and 1920 px screens (`bin/scripts/calibrate_sizing.py`). Measured
+there: a table's label column left to Superset widens on the larger screen (`table.unfixed_label_chars_by_viewport`),
+chart titles are not clamped (`frame.title_max_lines` is None: a long title wraps in as many lines as it needs) and
+a horizontal bar takes 0.669 of its category band (`bars.bar_share`). Bar bounds can be given as the visible bar
+thickness, converted with that ratio:
+
+```python
+profile = calibrated_profile()
+profile = profile.model_copy(update={"bars": profile.bars.with_thickness(bar=30, min_bar=24, max_bar=40)})
+layout.sizing_profile = profile
+```
+
+An instance with its own theme or CSS needs its own profile, calibrated with the CSS of its dashboards and written
+outside the package, then loaded and set on the layout (`layout.sizing_profile = profile`) or passed to
+`client.dashboard_sizing.check(..., profile=profile)`:
+
+```bash
+python bin/scripts/calibrate_sizing.py 6.1.0 --css dashboard.css --output sizing_profile.json
+```
 
 ## Errors
 
