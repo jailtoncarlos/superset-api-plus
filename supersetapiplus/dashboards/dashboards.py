@@ -93,8 +93,12 @@ class Dashboard(ApiModel):
 
     def _sync_filter_bar(self) -> None:
         """The layout's sizing estimates follow whether this dashboard shows the vertical native filter bar."""
-        if isinstance(self.position_json, DashboardLayout) and isinstance(self.json_metadata, Metadata):
-            self.position_json.follow_dashboard_filter_bar(self.json_metadata.shows_vertical_filter_bar())
+        if isinstance(self.position_json, DashboardLayout):
+            self.position_json.follow_dashboard_filter_bar(self._shows_vertical_filter_bar)
+
+    def _shows_vertical_filter_bar(self) -> bool:
+        """Read at each estimate: the json_metadata as it is now (filters added after the layout was taken count)."""
+        return isinstance(self.json_metadata, Metadata) and self.json_metadata.shows_vertical_filter_bar()
 
     def to_dict(self, columns: list[str] | None = None, convert_to_json: bool = False) -> dict[str, Any]:
         # Native filter scopes (chartsInScope/tabsInScope) are derived from the layout, as the editor does.

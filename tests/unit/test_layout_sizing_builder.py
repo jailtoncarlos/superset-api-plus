@@ -272,3 +272,13 @@ def test_without_native_filters_there_is_no_filter_bar_and_the_user_can_force_it
     dashboard.position.vertical_filter_bar = True
     assert dashboard.position.vertical_filter_bar is True
     assert DashboardLayout.empty().vertical_filter_bar  # a layout on its own assumes the bar
+
+
+def test_filters_added_after_the_layout_was_taken_count():
+    dashboard = Dashboard(dashboard_title="Built in steps")
+    layout = dashboard.reset_layout()  # taken before the filters exist
+    assert layout.vertical_filter_bar is False
+    dashboard.json_metadata.add_native_filter("Region", dataset=1, column="region")
+    assert layout.vertical_filter_bar is True
+    auto = layout.add_markdown(TEXT, width=4, height="auto")
+    assert auto.meta["height"] == estimate_markdown(TEXT, PROFILE, Layout(columns=4)).recommended_units
