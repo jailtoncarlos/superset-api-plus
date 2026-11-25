@@ -99,8 +99,11 @@ jobs:
           version: "0.12.2"
           python-version: "3.12"
 
-      - name: Install the project (uv.lock)
-        run: uv sync --locked --extra test
+      - name: Install the project (uv.lock) with the browser extra
+        run: uv sync --locked --extra test --extra browser
+
+      - name: Install Chromium for the browser check tests
+        run: uv run --locked --extra test --extra browser playwright install --with-deps chromium
 
       - name: Start the Superset test stack
         run: |
@@ -111,7 +114,8 @@ jobs:
       - name: Run integration tests
         env:
           SUPERSET_INTEGRATION: "1"
-        run: uv run --locked --extra test pytest -v tests/integration
+          SUPERSET_BROWSER_REQUIRED: "1"  # the browser check tests fail instead of skipping without Chromium
+        run: uv run --locked --extra test --extra browser pytest -v tests/integration
 
       - name: Superset logs
         if: failure()
@@ -135,8 +139,11 @@ jobs:
           version: "0.12.2"
           python-version: "3.12"
 
-      - name: Install the project (uv.lock)
-        run: uv sync --locked --extra test
+      - name: Install the project (uv.lock) with the browser extra
+        run: uv sync --locked --extra test --extra browser
+
+      - name: Install Chromium for the browser check tests
+        run: uv run --locked --extra test --extra browser playwright install --with-deps chromium
 
       - name: Start the Superset test stack with the examples
         run: |
@@ -148,7 +155,8 @@ jobs:
         env:
           SUPERSET_INTEGRATION: "1"
           SUPERSET_EXAMPLES_REQUIRED: "1"  # a stack without the examples fails instead of skipping
-        run: uv run --locked --extra test pytest -v tests/integration/test_examples -W always::UserWarning
+          SUPERSET_BROWSER_REQUIRED: "1"  # the browser check tests fail instead of skipping without Chromium
+        run: uv run --locked --extra test --extra browser pytest -v tests/integration/test_examples -W always::UserWarning
 
       - name: Superset logs
         if: failure()

@@ -78,9 +78,15 @@ Starts the compose stack configured by `.env.example` (Superset 6.1.0 and Postgr
 cp .env.example .env
 docker compose -p superset-api-plus up -d --build
 timeout 600 bash -c 'until curl -sf http://127.0.0.1:8089/health >/dev/null; do sleep 5; done'
-SUPERSET_INTEGRATION=1 uv run --locked --extra test pytest -v tests/integration
+uv run --locked --extra test --extra browser playwright install --with-deps chromium
+SUPERSET_INTEGRATION=1 SUPERSET_BROWSER_REQUIRED=1 \
+  uv run --locked --extra test --extra browser pytest -v tests/integration
 docker compose -p superset-api-plus down -v
 ```
+
+The job installs the `browser` extra (Playwright) and Chromium, so the browser check tests
+(`client.dashboard_sizing.check_in_browser`) run; `SUPERSET_BROWSER_REQUIRED=1` makes them fail instead of skipping
+when the browser cannot be launched.
 
 On failure the job prints the last 200 lines of the Superset logs; the stack is always stopped and its volumes
 removed. Timeout: 30 minutes.
@@ -94,12 +100,14 @@ minutes; the health wait goes up to 20 minutes):
 sed 's/^SUPERSET_LOAD_EXAMPLES=.*/SUPERSET_LOAD_EXAMPLES=1/' .env.example > .env
 docker compose -p superset-api-plus up -d --build
 timeout 1200 bash -c 'until curl -sf http://127.0.0.1:8089/health >/dev/null; do sleep 10; done'
-SUPERSET_INTEGRATION=1 SUPERSET_EXAMPLES_REQUIRED=1 \
-  uv run --locked --extra test pytest -v tests/integration/test_examples -W always::UserWarning
+uv run --locked --extra test --extra browser playwright install --with-deps chromium
+SUPERSET_INTEGRATION=1 SUPERSET_EXAMPLES_REQUIRED=1 SUPERSET_BROWSER_REQUIRED=1 \
+  uv run --locked --extra test --extra browser pytest -v tests/integration/test_examples -W always::UserWarning
 docker compose -p superset-api-plus down -v
 ```
 
-`SUPERSET_EXAMPLES_REQUIRED=1` makes a stack that did not load the examples fail instead of skipping.
+`SUPERSET_EXAMPLES_REQUIRED=1` makes a stack that did not load the examples fail instead of skipping, and
+`SUPERSET_BROWSER_REQUIRED=1` does the same for the browser check of every example dashboard.
 `-W always::UserWarning` keeps every `NotCoveredWarning` (charts of a viz_type the library does not model) and
 `KnownDivergenceWarning` (charts with an open issue, `known_divergences.py`) in the warnings summary, which is
 where to read what the library does not cover yet. Logs on failure, stack always stopped, timeout 30 minutes.
