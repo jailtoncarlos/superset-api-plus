@@ -240,3 +240,10 @@ def test_loose_list_items_keep_the_paragraph_spacing():
     assert [b.loose for b in sizing._markdown_blocks(loose)] == [True] * 3
     # Each loose item is a paragraph: 8 px of paragraph margin between items (the last one collapses with the list's).
     assert sizing.markdown_px(loose, 12, 1366, PROFILE) == pytest.approx(sizing.markdown_px(tight, 12, 1366, PROFILE) + 2 * 8)
+
+
+def test_two_consecutive_lists_keep_the_list_margin_between_them():
+    # A bullet list then an ordered list: 32 padding + 14 + 22 + 14 (between the lists) + 22 + 14.
+    assert sizing.markdown_px("- a\n\n1. b", 12, 1366, PROFILE) == pytest.approx(118)
+    # Items of the same list still get no margin between them.
+    assert sizing.markdown_px("- a\n- b", 12, 1366, PROFILE) == pytest.approx(32 + 14 + 2 * 22 + 14)
