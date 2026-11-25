@@ -30,34 +30,33 @@ BROWSER_TIMEOUT = _number_from_env("SUPERSET_API_PLUS_BROWSER_TIMEOUT", 120)
 # Long enough to draw every chart at once (the dashboard may render only the charts in view).
 VIEWPORT_HEIGHT = 4000
 
-# Measures of each chart and markdown holder: chart id (None for markdown), title, whether some content scrolls,
-# the empty px below a table or pivot table, the bar runs of a canvas (y ranges of the saturated pixels on a vertical
-# line through the plot: bars in a saturated color, as grid and axis lines are grey) and whether the title is
-# clipped.
-MEASURE_JS = """(horizontalBars) => {
+# Measures of each layout component drawn, by component id (null when not drawn): title, whether some content
+# scrolls, the empty px below a table or pivot table, the bar runs of a canvas (y ranges of the saturated pixels on
+# a vertical line through the plot: bars in a saturated color, as grid and axis lines are grey) and whether the title
+# is clipped. Superset draws an element with the component id for each component drawn (none in a closed tab): the
+# markdown block itself, or an anchor beside the chart holder.
+MEASURE_JS = """({components, horizontalBars}) => {
   const rect = (e) => e.getBoundingClientRect();
-  const out = [];
-  // A chart holder, or the markdown block (which is not always inside a chart holder), in DOM order.
-  const holders = new Set([...document.querySelectorAll('.dashboard-component-chart-holder, .dashboard-markdown')]
-    .map((e) => e.closest('.dashboard-component-chart-holder') || e));
-  holders.forEach((h) => {
-    const slice = h.querySelector('[data-test-chart-id]');
-    const markdown = h.matches('.dashboard-markdown') || h.querySelector('.dashboard-markdown');
-    if (!slice && !markdown) return;
-    const chartId = slice ? Number(slice.getAttribute('data-test-chart-id')) : null;
+  const selector = '.dashboard-component-chart-holder, .dashboard-markdown';
+  const out = {};
+  for (const id of components) {
+    let h = document.getElementById(id);
+    while (h && !(h.matches(selector) || h.querySelector(selector))) h = h.parentElement;
+    if (!h) { out[id] = null; continue; }
+    if (!h.matches(selector)) h = h.querySelector(selector);
     const title = h.querySelector('.header-title');
     const scrolls = [...h.querySelectorAll('*')].some((e) => ['auto', 'scroll'].includes(getComputedStyle(e).overflowY)
       && e.scrollHeight > e.clientHeight + 1);
     const clipped = !!title && (title.scrollWidth > title.clientWidth + 1
       || title.scrollHeight > title.clientHeight + 1);
-    const item = {chartId, title: title ? title.textContent.trim() : null, scrolls, empty: null, bars: null, clipped};
+    const item = {title: title ? title.textContent.trim() : null, scrolls, empty: null, bars: null, clipped};
     const content = [...h.querySelectorAll('.superset-chart-table table, .dt-pagination, .pvtTable')];
     const chart = h.querySelector('.dashboard-chart');
     if (content.length && chart && !scrolls) {
       item.empty = rect(chart).bottom - Math.max(...content.map((e) => rect(e).bottom));
     }
     const canvas = h.querySelector('canvas');
-    if (canvas && horizontalBars.includes(chartId)) {
+    if (canvas && horizontalBars.includes(id)) {
       const ratio = canvas.height / rect(canvas).height;
       const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
       const x = Math.round(canvas.width * 0.2);
@@ -75,8 +74,8 @@ MEASURE_JS = """(horizontalBars) => {
       }
       item.bars = runs;
     }
-    out.push(item);
-  });
+    out[id] = item;
+  }
   return out;
 }"""
 
@@ -197,25 +196,6 @@ def _bar_px(runs: list[float] | None) -> float | None:
     return sum(runs) / len(runs) if runs else None
 
 
-def _match(placed: list[_Placed], drawn: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """The measures of each placed component: charts by chart id (in order when a chart is placed twice), markdown in
-    order when every markdown component is drawn (with tabs, Superset draws only the open ones)."""
-    by_chart: dict[int, list[dict[str, Any]]] = {}
-    for measures in drawn:
-        if measures["chartId"] is not None:
-            by_chart.setdefault(measures["chartId"], []).append(measures)
-    markdown = [measures for measures in drawn if measures["chartId"] is None]
-    placed_markdown = [component for component in placed if component.shape is ChartShape.MARKDOWN]
-    matched: dict[str, dict[str, Any]] = {}
-    if len(markdown) == len(placed_markdown):
-        matched.update({component.component_id: measures
-                        for component, measures in zip(placed_markdown, markdown, strict=True)})
-    for component in placed:
-        if component.chart_id is not None and by_chart.get(component.chart_id):
-            matched[component.component_id] = by_chart[component.chart_id].pop(0)
-    return matched
-
-
 class DashboardBrowserCheck:
     """Browser check of saved dashboards (see the module docstring); it never writes."""
 
@@ -249,7 +229,8 @@ class DashboardBrowserCheck:
         placed = _placed(layout, self._shapes(layout))
         if not placed:  # nothing to measure: the dashboard draws no chart or markdown block
             return BrowserReport(dashboard_id)
-        bars = [item.chart_id for item in placed if item.shape is ChartShape.HORIZONTAL_BARS]
+        components = [item.component_id for item in placed]
+        bars = [item.component_id for item in placed if item.shape is ChartShape.HORIZONTAL_BARS]
         url = self.client.host.rstrip("/")
         # Read after the API reads above, which renew the session when it expired.
         cookies = self.client.session.cookies.get_dict()
@@ -271,7 +252,7 @@ class DashboardBrowserCheck:
                     page.wait_for_load_state("networkidle", timeout=wait_ms)
                     page.evaluate("document.fonts.ready.then(() => document.fonts.status)")
                     page.wait_for_timeout(2000)  # chart animations
-                    drawn = page.evaluate(MEASURE_JS, bars)
+                    drawn = page.evaluate(MEASURE_JS, {"components": components, "horizontalBars": bars})
                     items += self._components(placed, drawn, viewport, profile, scrolls)
                     context.close()
             finally:
@@ -293,12 +274,12 @@ class DashboardBrowserCheck:
         return shapes
 
     @staticmethod
-    def _components(placed: list[_Placed], drawn: list[dict[str, Any]], viewport: int, profile: SizingProfile,
-                    scrolls: Collection[int | str]) -> list[BrowserComponent]:
-        matched = _match(placed, drawn)
+    def _components(placed: list[_Placed], drawn: dict[str, dict[str, Any] | None], viewport: int,
+                    profile: SizingProfile, scrolls: Collection[int | str]) -> list[BrowserComponent]:
+        """The components with their measures (by component id: a chart placed twice is told apart)."""
         found = []
         for item in placed:
-            measured = matched.get(item.component_id)
+            measured = drawn.get(item.component_id)
             if measured is None:
                 found.append(BrowserComponent(item.component_id, item.title, viewport, shown=False))
                 continue

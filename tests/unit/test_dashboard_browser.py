@@ -11,7 +11,6 @@ from supersetapiplus.services.dashboard_browser import (
     BrowserComponent,
     BrowserReport,
     DashboardBrowserCheck,
-    _match,
     _Placed,
     _problems,
 )
@@ -23,7 +22,7 @@ NOTE = _Placed("MARKDOWN-c", "markdown MARKDOWN-c", None, ChartShape.MARKDOWN)
 
 
 def measured(**values):
-    return {"chartId": None, "title": None, "scrolls": False, "empty": None, "bars": None, "clipped": False, **values}
+    return {"title": None, "scrolls": False, "empty": None, "bars": None, "clipped": False, **values}
 
 
 def test_each_measure_is_checked_against_the_tolerance_of_the_profile():
@@ -39,12 +38,17 @@ def test_each_measure_is_checked_against_the_tolerance_of_the_profile():
     assert _problems(BARS, measured(), PROFILE, False, thin)[0].startswith(f"bars {thin:.0f} px thick, outside")
 
 
-def test_charts_are_matched_by_chart_id_and_markdown_in_order_when_all_are_drawn():
-    drawn = [measured(chartId=2, title="Bars"), measured(), measured(chartId=1, title="Table")]
-    assert _match([TABLE, BARS, NOTE], drawn) == {"CHART-a": drawn[2], "CHART-b": drawn[0], "MARKDOWN-c": drawn[1]}
-    other_note = _Placed("MARKDOWN-d", "markdown MARKDOWN-d", None, ChartShape.MARKDOWN)
-    # Two markdown blocks placed, one drawn (the other in a closed tab): which one is unknown, none is matched.
-    assert "MARKDOWN-c" not in _match([TABLE, NOTE, other_note], drawn)
+def test_a_chart_placed_twice_is_measured_where_each_placement_is_drawn():
+    """Measures come by layout component id: a chart placed in a closed tab and again in an open one is reported not
+    shown where it is hidden, and a scrolls= exemption by component id applies to that placement only."""
+    hidden, visible = _Placed("CHART-hidden", "Table", 42, ChartShape.TABLE), _Placed("CHART-shown", "Table", 42,
+                                                                                       ChartShape.TABLE)
+    drawn = {"CHART-hidden": None, "CHART-shown": measured(title="Table", scrolls=True)}
+    items = DashboardBrowserCheck._components([hidden, visible], drawn, 1366, PROFILE, {"CHART-shown"})
+    assert [(item.component_id, item.shown, item.problems) for item in items] == [
+        ("CHART-hidden", False, ()), ("CHART-shown", True, ())]
+    reported = DashboardBrowserCheck._components([hidden, visible], drawn, 1366, PROFILE, {"CHART-hidden"})
+    assert reported[1].problems == ("the content scrolls",)
 
 
 def test_the_report_lists_problems_and_what_was_not_shown():
@@ -83,7 +87,7 @@ class FakeBrowser:
         page = SimpleNamespace(goto=lambda url, timeout: self.timeouts.append(timeout),
                                wait_for_selector=lambda s, **k: self.selectors.append(s),
                                wait_for_load_state=lambda *a, **k: None, wait_for_timeout=lambda *a: None,
-                               evaluate=lambda script, *args: [] if args else None)
+                               evaluate=lambda script, *args: {} if args else None)
         context = SimpleNamespace(add_cookies=self.cookies.extend, new_page=lambda: page, close=lambda: None)
         return SimpleNamespace(new_context=lambda **kwargs: self.contexts.append(kwargs) or context, close=lambda: None)
 
@@ -158,9 +162,9 @@ def test_the_browser_timeout_comes_from_the_call_or_the_environment(fake_browser
 
 
 def test_bars_whose_thickness_cannot_be_measured_are_noted_not_reported_fine():
-    grey = DashboardBrowserCheck._components([BARS], [measured(chartId=2, title="Bars", bars=[])], 1366, PROFILE, ())
+    grey = DashboardBrowserCheck._components([BARS], {"CHART-b": measured(title="Bars", bars=[])}, 1366, PROFILE, ())
     assert grey[0].problems == () and grey[0].notes[0].startswith("bar thickness not measured")
     assert BrowserReport(1, tuple(grey)).summary() == f"Bars @ 1366 px: ok ({grey[0].notes[0]})"
-    blue = DashboardBrowserCheck._components([BARS], [measured(chartId=2, title="Bars", bars=[30, 30])], 1366, PROFILE,
-                                             ())
+    blue = DashboardBrowserCheck._components([BARS], {"CHART-b": measured(title="Bars", bars=[30, 30])}, 1366,
+                                             PROFILE, ())
     assert (blue[0].bar_px, blue[0].notes) == (30, ())

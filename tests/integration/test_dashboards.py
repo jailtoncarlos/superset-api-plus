@@ -450,3 +450,29 @@ def test_browser_check_of_a_dashboard_with_only_markdown(client, add_dashboard, 
 
     assert [(item.component_id, item.shown, item.problems) for item in report.components] == [
         (note.id, True, ())] * len(calibrated_profile().viewports)
+
+
+def test_browser_check_tells_apart_a_chart_placed_in_a_closed_and_an_open_tab(client, dataset, add_dashboard,
+                                                                              cleanup, chromium):
+    """The same chart in a closed tab (earlier in the layout) and in an open one: the hidden placement is reported
+    not shown and the drawn one measured; Superset draws only the first tab of each tab group."""
+    dashboard = add_dashboard()
+    chart = new_chart("table", dataset)
+    cleanup.chart(client.charts.add(chart))
+    layout = dashboard.position_json
+    first = layout.add_tabs()
+    layout.add_markdown("## Open tab", parent=layout.add_tab("Open", parent=first), width=6, height=20)
+    hidden = layout.add_chart(chart, "Table", parent=layout.add_row(parent=layout.add_tab("Closed", parent=first)),
+                              width=6, height=40)
+    shown = layout.add_chart(chart, "Table", parent=layout.add_row(parent=layout.add_tab("Open", parent=layout.add_tabs())),
+                             width=6, height=40)
+    dashboard.save()
+    client.dashboards.attach_charts(client.dashboards.get(dashboard.id))
+
+    report = client.dashboard_sizing.check_in_browser(dashboard.id)
+
+    for item in report.components:
+        if item.component_id == hidden.id:
+            assert not item.shown
+        elif item.component_id == shown.id:
+            assert item.shown and item.scrolls is False
