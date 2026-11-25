@@ -73,3 +73,33 @@ def test_a_pivot_with_its_metrics_on_rows_shows_one_row_per_metric():
     assert _pivot_content(params, RESULT, "").rows == 6  # 2 regions x 3 metrics
     assert _pivot_content({**params, "groupbyRows": []}, RESULT, "").rows == 3
     assert _pivot_content({**params, "metricsLayout": "COLUMNS"}, RESULT, "").rows == 2
+
+
+def test_the_page_size_follows_the_table_plugin():
+    # page_length stored as text (as in some example charts) is a number for Superset
+    assert _table_content({"page_length": "5"}, RESULT, "").rows == 5
+    assert _table_content({"page_length": "5"}, RESULT, "").pagination
+    # without page_length, pagination starts above 5000 cells (200 rows per page)
+    big = {"rowcount": 3000, "colnames": ["a", "b"], "data": []}
+    assert (_table_content({}, big, "").rows, _table_content({}, big, "").pagination) == (200, True)
+    assert _table_content({"page_length": 0}, RESULT, "").pagination is False
+
+
+def test_a_table_with_totals_shows_one_more_row():
+    assert _table_content({"show_totals": True}, RESULT, "").rows == 13
+    assert _table_content({"show_totals": True, "query_mode": "raw"}, RESULT, "").rows == 12
+
+
+def test_a_transposed_pivot_shows_its_column_dimensions_as_rows():
+    params = {"groupbyRows": ["region"], "groupbyColumns": ["campus"], "transposePivot": True}
+    assert _pivot_content(params, RESULT, "").rows == 12
+    assert _pivot_content({**params, "transposePivot": False}, RESULT, "").rows == 2
+
+
+def test_pivot_subtotals_add_a_row_per_partial_key():
+    params = {"groupbyRows": ["region", "campus"], "rowSubTotals": True}
+    assert _pivot_content(params, RESULT, "").rows == 12 + 2  # 12 leaves and a subtotal per region
+
+
+def test_a_pivot_without_row_dimensions_shows_the_totals_row():
+    assert _pivot_content({"groupbyColumns": ["region"]}, RESULT, "").rows == 1

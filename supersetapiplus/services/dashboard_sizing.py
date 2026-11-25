@@ -102,29 +102,56 @@ def _distinct(rows: list[dict[str, Any]], columns: list[str]) -> list[tuple[str,
     return list(seen)
 
 
+def _page_size(params: dict[str, Any], rows: int, columns: int) -> int:
+    """Rows per page, 0 without pagination (getPageSize and pageSize in the table plugin's transformProps.ts, 6.1.0):
+    the server page length with server pagination, else page_length as a number or numeric text, else 200 when the
+    result has more than 5000 cells."""
+    if params.get("server_pagination"):
+        page: object = params.get("server_page_length")
+    else:
+        page = params.get("page_length")
+        if page is None:
+            return 200 if rows * columns > 5000 else 0
+    try:
+        return max(0, int(float(str(page)))) if page not in ("", None) else 0
+    except ValueError:
+        return 0
+
+
 def _table_content(params: dict[str, Any], result: dict[str, Any], title: str) -> TableContent:
-    """Rows and labels (first column) of a table, with its search box and pagination."""
-    rows = int(result.get("rowcount") or len(result.get("data") or []))
+    """Rows and labels (first column) of a table, with its search box, pagination (one page shown) and totals row
+    (``show_totals`` in aggregate mode, a row below the data)."""
+    data = result.get("data") or []
+    rows = int(result.get("rowcount") or len(data))
     names = result.get("colnames") or []
     label = names[0] if names else None
-    page = params.get("server_page_length") if params.get("server_pagination") else params.get("page_length")
-    pagination = isinstance(page, int) and page > 0
-    if isinstance(page, int) and page > 0:
+    page = _page_size(params, rows, len(names))
+    if page and rows:
         rows = min(rows, page)
+    labels = [str(row.get(label, "")) for row in data[:rows]] if label else []
+    if params.get("show_totals") and params.get("query_mode", "aggregate") == "aggregate":
+        rows += 1
     config = (params.get("column_config") or {}).get(label) or {}
-    labels = [str(row.get(label, "")) for row in (result.get("data") or [])[:rows]] if label else []
     return TableContent(rows=rows, labels=labels, title=title, fixed_label_width=bool(config.get("columnWidth")),
-                        search=bool(params.get("include_search")), pagination=pagination)
+                        search=bool(params.get("include_search")), pagination=bool(page and rows))
 
 
 def _pivot_content(params: dict[str, Any], result: dict[str, Any], title: str) -> TableContent:
-    """Rows of a pivot table: the distinct values of its row dimensions, times the metrics when they are laid out on
-    rows (``metricsLayout: ROWS``), plus the totals row; labeled by the last row dimension."""
-    columns = [name for name in map(_column_name, params.get("groupbyRows") or []) if name]
-    keys = _distinct(result.get("data") or [], columns) if columns else [()]
-    per_key = max(1, len(params.get("metrics") or [])) if params.get("metricsLayout") == "ROWS" else 1
-    totals = 1 if params.get("colTotals") else 0
-    return TableContent(rows=len(keys) * per_key + totals, labels=[key[-1] for key in keys if key], title=title)
+    """Rows of a pivot table as PivotTableChart.tsx and react-pivottable (6.1.0) lay them out: the distinct values of
+    the row dimensions (the column ones when ``transposePivot``), with the metric as one more dimension when the
+    metrics are on rows (first, or last with ``combineMetric``), a subtotal row per partial key
+    (``rowSubTotals``) and the totals row (``colTotals``, or no row dimension); labeled by the last dimension."""
+    dimensions = params.get("groupbyColumns" if params.get("transposePivot") else "groupbyRows") or []
+    columns = [name for name in map(_column_name, dimensions) if name]
+    keys = _distinct(result.get("data") or [], columns) if columns else []
+    if params.get("metricsLayout") == "ROWS":
+        metrics = [name for name in map(_column_name, params.get("metrics") or []) if name] or ["metric"]
+        keys = [(*key, metric) if params.get("combineMetric") else (metric, *key)
+                for key in keys or [()] for metric in metrics]
+    width = max((len(key) for key in keys), default=0)
+    subtotals = len({key[:size] for key in keys for size in range(1, width)}) if params.get("rowSubTotals") else 0
+    totals = 1 if params.get("colTotals") or width == 0 else 0
+    return TableContent(rows=len(keys) + subtotals + totals, labels=[key[-1] for key in keys if key], title=title)
 
 
 def _bars_content(params: dict[str, Any], result: dict[str, Any], title: str) -> BarsContent:
