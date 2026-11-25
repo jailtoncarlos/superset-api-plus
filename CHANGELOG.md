@@ -31,6 +31,12 @@
   content: `position_json.sizing = "warn"` (default, `SizingWarning`), `"strict"` (`SizingError`; pivot tables,
   whose estimate is approximate, only warn) or `"off"`; `position_json.sizing_profile` sets the measures of an
   instance with its own theme (#80).
+* `client.dashboard_sizing.check(dashboard_id, profile=None, max_rows=None)`: sizing check of a saved dashboard.
+  It reads the layout and, for each table, pivot table and horizontal bars chart, the data the chart shows (the
+  query the UI builds from its params, on `/api/v1/chart/data`), estimates each height against its content
+  (markdown from its text) and returns a `SizingReport` (`problems`, `summary()`), with a `SizingWarning` per
+  component that does not fit. It never writes. Tables with more than two columns are marked approximate: only the
+  label column's wrapping is known (#81).
 * New runtime dependency: `markdown-it-py>=3.0.0` parses the markdown measured by the sizing estimates with the
   CommonMark rules Superset renders it with (react-markdown and remark-gfm); Airflow 3.3 already ships it as a
   dependency of `rich` (#78).

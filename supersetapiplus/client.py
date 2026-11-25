@@ -44,6 +44,7 @@ from supersetapiplus.resources.saved_queries import SavedQueries
 from supersetapiplus.resources.security import Permissions, Roles
 from supersetapiplus.services.bundle_import import BundleImport
 from supersetapiplus.services.dashboard_charts import DashboardCharts
+from supersetapiplus.services.dashboard_sizing import DashboardSizing
 from supersetapiplus.transport.http import TIMEOUT_CONNECT, TIMEOUT_READ, RequestHandler
 
 logger = logging.getLogger(__name__)
@@ -112,6 +113,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self.row_level_security = self.row_level_security_cls(self)
         # Operations across resources (charts and dashboards together).
         self.dashboard_charts = DashboardCharts(self)
+        self.dashboard_sizing = DashboardSizing(self)
         self.bundle_import = BundleImport(self)
 
     @property

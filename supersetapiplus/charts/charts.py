@@ -412,15 +412,25 @@ class Chart(ApiModel):
         (`datasource_id`/`datasource_type`), as in the form_data Superset gives Explore (``Slice.form_data``,
         models/slice.py): `params.datasource` may be stale, e.g. in charts imported from another instance.
         """
-        form_data = self.params.to_dict()
-        if isinstance(self.datasource_id, int) and self.datasource_type:
-            form_data["datasource"] = f"{self.datasource_id}__{self.datasource_type}"
+        form_data = self._form_data()
         explored = explore_form_data(form_data, self._control_defaults(), self._dataset_time)
         context = query_context_for(explored)
         # Keys a plugin adds to the form_data for its query (raw tables: include_time) are kept.
         context["form_data"] = {**form_data, **{key: value for key, value in context["form_data"].items()
                                                 if key not in explored}}
         return context
+
+    def explore_params(self) -> dict[str, Any]:
+        """The params as Explore and the chart plugin see them (:func:`explore_form_data`: legacy params migrated,
+        e.g. ``granularity_sqla`` into ``x_axis``, control defaults for null or absent values, keys that are not
+        controls left out): what :meth:`ui_query_context` builds its queries from."""
+        return explore_form_data(self._form_data(), self._control_defaults(), self._dataset_time)
+
+    def _form_data(self) -> dict[str, Any]:
+        form_data: dict[str, Any] = self.params.to_dict()
+        if isinstance(self.datasource_id, int) and self.datasource_type:
+            form_data["datasource"] = f"{self.datasource_id}__{self.datasource_type}"
+        return form_data
 
     @classmethod
     def _control_defaults(cls) -> dict[str, Any]:
