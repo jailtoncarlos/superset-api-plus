@@ -230,6 +230,23 @@ def wrap_label(text: str, chars: int) -> list[str]:
     return [line for line in lines if line] or [text]
 
 
+def wrap_label_sql(expression: str, chars: int, dialect: str = "postgresql") -> str:
+    """SQL expression of the label `expression` wrapped as :func:`wrap_label` wraps it, for the query of a chart that
+    shows wrapped labels (e.g. horizontal bars sized with ``BarsContent``): whitespace collapsed, lines of up to
+    `chars` characters split at word boundaries (a longer word stays whole), joined by a newline.
+
+    Each line starts with two spaces: Superset 6.1 reserves a few px less than the longest label for the bar axis
+    labels and clips the first letter. Written for Superset 6.1, which rewrites a chart's SQL (sqlglot): the newline
+    is ``chr(10)`` (an ``E'...'`` string loses the backreference) and the pattern uses ``[[:space:]]``, no backslash
+    before a letter. Only PostgreSQL is supported.
+    """
+    if dialect != "postgresql":
+        raise ValueError(f"wrap_label_sql supports the postgresql dialect, not {dialect!r}")
+    collapsed = f"btrim(regexp_replace({expression}, '[[:space:]]+', ' ', 'g'))"
+    wrapped = f"rtrim(regexp_replace({collapsed}, '(.{{1,{max(1, int(chars))}}})( +|$)', '\\1' || chr(10), 'g'), chr(10))"
+    return f"replace('  ' || {wrapped}, chr(10), chr(10) || '  ')"
+
+
 def label_lines(text: str, chars: float) -> int:
     """Lines of text the label takes in a column of `chars` characters per line."""
     return len(wrap_label(text, max(1, int(chars))))

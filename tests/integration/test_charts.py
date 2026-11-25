@@ -8,6 +8,7 @@ import pytest
 from supersetapiplus.resources.repository import UnsupportedObject
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
+from supersetapiplus.dashboards.layout.sizing import wrap_label, wrap_label_sql
 from supersetapiplus.exceptions import (
     BadRequestError,
     LegacyChartDataWarning,
@@ -277,3 +278,19 @@ def test_export_and_import_a_chart(client, add_chart, cleanup, tmp_path):
     for item in imported:  # the import may assign a new id
         cleanup.chart(item.id)
     assert len(imported) == 1
+
+
+def test_a_label_wrapped_in_sql_is_wrapped_as_the_sizing_formulas_wrap_it(client, dataset, cleanup):
+    """wrap_label_sql through a chart's adhoc column: Superset 6.1 rewrites the chart SQL (sqlglot), and the data
+    must still be the lines of wrap_label, each prefixed with two spaces."""
+    texts = {"North": "The northern   campus, with a label long enough to wrap in several lines",
+             "South": "A Supercalifragilisticexpialidocious word longer than a line"}
+    case = "case when campus = 'North' then '{North}' else '{South}' end".format(**texts)
+    chart = new_chart("table", dataset)
+    chart.params.groupby = chart.query_context.form_data.groupby = []
+    chart.add_custom_dimension("wrapped", sql_expression=wrap_label_sql(case, 12))
+    cleanup.chart(client.charts.add(chart))
+
+    (result, *_) = client.charts.get_chart_data(chart.id)
+    assert sorted(row["wrapped"] for row in result["data"]) == sorted(
+        "\n".join(f"  {line}" for line in wrap_label(text, 12)) for text in texts.values())

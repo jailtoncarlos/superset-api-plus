@@ -2,6 +2,7 @@
 measure profile, no HTTP; the calibrated profiles (dashboards/layout/profiles/sizing_profile_<version>.json of the
 package, written and checked in a browser by bin/scripts/calibrate_sizing.py) are validated offline."""
 import json
+import re
 import tracemalloc
 from pathlib import Path
 
@@ -281,3 +282,12 @@ def test_calibrated_profile_is_valid_and_records_its_provenance(path):
     verification = provenance["verification"]
     assert {"table", "narrow_table", "long_title", "search", "pivot", "markdown"} <= set(verification)
     assert all(entry["min_units"] >= sizing.GRID_MIN_ROW_UNITS for entry in verification.values())
+
+
+def test_the_sql_of_a_wrapped_label_avoids_what_superset_6_1_rewrites():
+    expression = sizing.wrap_label_sql("name", 12)
+    assert "chr(10)" in expression and "E'" not in expression
+    assert not re.search(r"\\[A-Za-z]", expression)  # no backslash before a letter (only the \1 backreference)
+    assert "{1,12}" in expression and expression.startswith("replace('  ' || ")
+    with pytest.raises(ValueError, match="postgresql"):
+        sizing.wrap_label_sql("name", 12, dialect="mysql")
