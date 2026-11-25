@@ -1,0 +1,169 @@
+{
+ "profile": {
+  "bars": {
+   "axes_and_legend": 95,
+   "axes_without_legend": 76,
+   "band": 44.8,
+   "label_chars": 85,
+   "label_line": 12,
+   "label_padding": 8,
+   "max_band": 59.7,
+   "min_band": 38.8
+  },
+  "frame": {
+   "min_header": 25.1,
+   "padding": 44.0,
+   "title_char": 7.85,
+   "title_controls": 62,
+   "title_line": 25.1
+  },
+  "grid": {
+   "page_margin": 47,
+   "vertical_filter_bar": 260
+  },
+  "markdown": {
+   "bold_extra_line": 0,
+   "bold_width": 1.018,
+   "char_width_em": 0.486,
+   "list_indent": 40,
+   "list_margin": 14,
+   "padding": 16,
+   "rule_height": 2,
+   "rule_margin": 7,
+   "styles": {
+    "h1": {
+     "font": 28,
+     "line": 39.2,
+     "margin_bottom": 12,
+     "margin_top": 12
+    },
+    "h2": {
+     "font": 20,
+     "line": 28,
+     "margin_bottom": 8,
+     "margin_top": 12
+    },
+    "h3": {
+     "font": 16,
+     "line": 22.4,
+     "margin_bottom": 4,
+     "margin_top": 8
+    },
+    "h4": {
+     "font": 16,
+     "line": 22.4,
+     "margin_bottom": 4,
+     "margin_top": 8
+    },
+    "h5": {
+     "font": 16,
+     "line": 22.4,
+     "margin_bottom": 4,
+     "margin_top": 8
+    },
+    "h6": {
+     "font": 12,
+     "line": 16.8,
+     "margin_bottom": 4,
+     "margin_top": 8
+    },
+    "li": {
+     "font": 14,
+     "line": 22,
+     "margin_bottom": 0,
+     "margin_top": 0
+    },
+    "p": {
+     "font": 14,
+     "line": 22,
+     "margin_bottom": 8,
+     "margin_top": 0
+    }
+   },
+   "wrap_slack_chars": 4
+  },
+  "markdown_margin_units": 1,
+  "max_empty": 96,
+  "max_empty_pivot_table": 280,
+  "pivot_table": {
+   "footer": 41,
+   "header": 78.4,
+   "label_chars": 86,
+   "row": 25.8,
+   "text_line": 16.8
+  },
+  "superset_version": "6.1.0",
+  "table": {
+   "footer": 16,
+   "header": 29.4,
+   "label_chars": 94,
+   "min_label_lines": 1,
+   "narrow_header": 29.4,
+   "pagination": 58,
+   "row": 29.3,
+   "search": 41.1,
+   "text_line": 18.9,
+   "unfixed_label_chars": 79
+  },
+  "theme": "default",
+  "viewports": [
+   1366,
+   1920
+  ]
+ },
+ "provenance": {
+  "chromium": "151.0.7922.71",
+  "dataset": "birth_names",
+  "date": "2026-11-25",
+  "font": "Inter, Helvetica, Arial, sans-serif",
+  "policy": {
+   "bar_label_chars": 85,
+   "bar_label_padding": 8,
+   "bar_thickness": 30,
+   "markdown_margin_units": 1,
+   "markdown_wrap_slack_chars": 4,
+   "max_bar_thickness": 40,
+   "max_empty": 96,
+   "max_empty_pivot_table": 280,
+   "min_bar_thickness": 26,
+   "table_label_column_width": 560
+  },
+  "script": "bin/scripts/calibrate_sizing.py",
+  "superset_version": "6.1.0",
+  "theme": "default",
+  "verification": {
+   "frame": {
+    "fits_one_unit_below": false,
+    "min_units": 22
+   },
+   "long_title": {
+    "fits_one_unit_below": true,
+    "min_units": 32
+   },
+   "markdown": {
+    "fits_one_unit_below": false,
+    "min_units": 55
+   },
+   "narrow_table": {
+    "fits_one_unit_below": false,
+    "min_units": 51
+   },
+   "pivot": {
+    "fits_one_unit_below": true,
+    "min_units": 89
+   },
+   "search": {
+    "fits_one_unit_below": true,
+    "min_units": 64
+   },
+   "table": {
+    "fits_one_unit_below": false,
+    "min_units": 51
+   }
+  },
+  "viewports": [
+   1366,
+   1920
+  ]
+ }
+}

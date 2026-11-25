@@ -1,6 +1,9 @@
 """Heights estimated from the content (supersetapiplus.dashboards.layout.sizing): pure arithmetic on a synthetic
-measure profile, no HTTP. The calibrated profiles and their check in a browser come with the calibration script."""
+measure profile, no HTTP; the calibrated profiles (tests/fixtures/sizing_profile_<version>.json, written and checked in a
+browser by bin/scripts/calibrate_sizing.py) are validated offline."""
+import json
 import tracemalloc
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -247,3 +250,34 @@ def test_two_consecutive_lists_keep_the_list_margin_between_them():
     assert sizing.markdown_px("- a\n\n1. b", 12, 1366, PROFILE) == pytest.approx(118)
     # Items of the same list still get no margin between them.
     assert sizing.markdown_px("- a\n- b", 12, 1366, PROFILE) == pytest.approx(32 + 14 + 2 * 22 + 14)
+
+
+# ------------------------------------------------------------------------------------------- calibrated profiles
+
+PROFILES = sorted((Path(__file__).parents[1] / "fixtures").glob("sizing_profile_*.json"))
+
+
+def test_a_calibrated_profile_exists_for_the_target_version():
+    assert [path.name for path in PROFILES] == ["sizing_profile_6.1.0.json"]
+
+
+@pytest.mark.parametrize("path", PROFILES, ids=lambda path: path.stem)
+def test_calibrated_profile_is_valid_and_records_its_provenance(path):
+    data = json.loads(path.read_text(encoding="utf-8"))
+    profile = SizingProfile.model_validate(data["profile"])
+    provenance = data["provenance"]
+    version = path.stem.removeprefix("sizing_profile_")
+    assert profile.superset_version == provenance["superset_version"] == version
+    assert list(profile.viewports) == provenance["viewports"]
+    assert profile.theme == provenance["theme"] == "default"
+    assert provenance["chromium"] and provenance["font"] and provenance["dataset"]
+    # The values chosen, not measured, are the ones written in the profile.
+    policy = provenance["policy"]
+    assert (profile.max_empty, profile.max_empty_pivot_table, profile.markdown_margin_units,
+            profile.markdown.wrap_slack_chars, profile.bars.label_chars) == \
+        (policy["max_empty"], policy["max_empty_pivot_table"], policy["markdown_margin_units"],
+         policy["markdown_wrap_slack_chars"], policy["bar_label_chars"])
+    # Checked in the browser on the calibration dashboard: every estimated minimum fits (the script fails otherwise).
+    verification = provenance["verification"]
+    assert {"table", "narrow_table", "long_title", "search", "pivot", "markdown"} <= set(verification)
+    assert all(entry["min_units"] >= sizing.GRID_MIN_ROW_UNITS for entry in verification.values())
