@@ -1,6 +1,12 @@
 # CHANGELOG
 
-## Unreleased
+## 2.7.0 (2026-11-25)
+
+Improvements of the chart sizing found when the consumer evaluated 2.6.0 and 2.6.1 (#101): components that scroll
+by design in the saved-dashboard check (#119), the shape of a chart placed by reference (#117), the adjusted layout
+from the check (#111), the label column width of the profile (#108), the unfixed label column per viewport (#105),
+bar bounds as thickness (#106), calibration with an instance's CSS (#109), title clamps (#110), the SQL of a wrapped
+label (#107) and an optional browser check of a dashboard (#112).
 
 ### Added
 

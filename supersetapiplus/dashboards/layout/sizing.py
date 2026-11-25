@@ -89,7 +89,10 @@ class GridMeasures(_Measures):
 class FrameMeasures(_Measures):
     """What a chart takes besides its content: padding, and the header with the title wrapped at the chart width.
     ``title_max_lines`` is where a theme or CSS clamps the title (the header stops growing); None when it does not,
-    as measured on Superset 6.1 with the default theme (a title wrapped in 5 lines shows them all)."""
+    as measured on Superset 6.1 with the default theme: a title wrapped in 5 lines shows them all. Superset 6.1
+    declares ``-webkit-line-clamp: 2`` on ``.header-title`` (``SliceHeader/index.tsx``), but the title sits in a
+    block ``<div>`` (the tooltip wrapper), and the clamp does not apply to it. Read the source, then measure: the
+    calibration finds the clamp if a version makes it effective."""
     padding: float = Field(ge=0)
     min_header: float = Field(ge=0)
     title_line: float = Field(gt=0)
