@@ -403,3 +403,76 @@ def test_css_template_created_found_by_name_updated_and_applied_to_a_dashboard(c
     dashboard.css = stored.css
     dashboard.save()
     assert client.dashboards.get(dashboard.id).css == stored.css
+
+
+def test_browser_check_reports_what_the_dashboard_shows(client, dataset, add_dashboard, cleanup, chromium):
+    """client.dashboard_sizing.check_in_browser on each viewport of the profile: a table sized to its content and a
+    short markdown block pass; a table far too tall leaves empty space; markdown taller than its block scrolls,
+    unless it scrolls by design. Nothing is written."""
+    dashboard = add_dashboard()
+    sized, tall = new_chart("table", dataset), new_chart("table", dataset)
+    try:
+        dashboard.add_chart(sized, "Sized table", width=12, height="auto", content=TableContent(rows=2))
+        dashboard.add_chart(tall, "Tall table", width=6, height=100)
+    finally:
+        for chart in (sized, tall):
+            if chart.id:
+                cleanup.chart(chart.id)
+    note = dashboard.position_json.add_markdown("## Notes\n\nTwo campuses.", width=12, height="auto")
+    long = dashboard.position_json.add_markdown("## Long\n\n" + "A line of text that goes on. " * 80, width=4,
+                                                height=20)
+    dashboard.save()
+    before = client.get(client.join_urls(client.dashboards.base_url, dashboard.id)).json()["result"]
+
+    report = client.dashboard_sizing.check_in_browser(dashboard.id)
+
+    profile = calibrated_profile()
+    assert {item.viewport for item in report.components} == set(profile.viewports)
+    by_title = {}
+    for item in report.components:
+        by_title.setdefault(item.title, []).append(item)
+    assert all(item.shown and item.problems == () for item in by_title["Sized table"] + by_title[f"markdown {note.id}"])
+    assert all("empty below the content" in " ".join(item.problems) for item in by_title["Tall table"])
+    assert all(item.problems == ("the content scrolls",) for item in by_title[f"markdown {long.id}"])
+    tolerated = client.dashboard_sizing.check_in_browser(dashboard.id, scrolls={long.id})
+    assert not any(item.component_id == long.id and item.problems for item in tolerated.components)
+    after = client.get(client.join_urls(client.dashboards.base_url, dashboard.id)).json()["result"]
+    assert (after["changed_on"], after["position_json"]) == (before["changed_on"], before["position_json"])
+
+
+def test_browser_check_of_a_dashboard_with_only_markdown(client, add_dashboard, chromium):
+    """Markdown blocks are not always inside a chart holder: a dashboard with only markdown is measured."""
+    dashboard = add_dashboard()
+    note = dashboard.position_json.add_markdown("## Notes\n\nOnly text here.", width=6, height="auto")
+    dashboard.save()
+
+    report = client.dashboard_sizing.check_in_browser(dashboard.id)
+
+    assert [(item.component_id, item.shown, item.problems) for item in report.components] == [
+        (note.id, True, ())] * len(calibrated_profile().viewports)
+
+
+def test_browser_check_tells_apart_a_chart_placed_in_a_closed_and_an_open_tab(client, dataset, add_dashboard,
+                                                                              cleanup, chromium):
+    """The same chart in a closed tab (earlier in the layout) and in an open one: the hidden placement is reported
+    not shown and the drawn one measured; Superset draws only the first tab of each tab group."""
+    dashboard = add_dashboard()
+    chart = new_chart("table", dataset)
+    cleanup.chart(client.charts.add(chart))
+    layout = dashboard.position_json
+    first = layout.add_tabs()
+    layout.add_markdown("## Open tab", parent=layout.add_tab("Open", parent=first), width=6, height=20)
+    hidden = layout.add_chart(chart, "Table", parent=layout.add_row(parent=layout.add_tab("Closed", parent=first)),
+                              width=6, height=40)
+    shown = layout.add_chart(chart, "Table", parent=layout.add_row(parent=layout.add_tab("Open", parent=layout.add_tabs())),
+                             width=6, height=40)
+    dashboard.save()
+    client.dashboards.attach_charts(client.dashboards.get(dashboard.id))
+
+    report = client.dashboard_sizing.check_in_browser(dashboard.id)
+
+    for item in report.components:
+        if item.component_id == hidden.id:
+            assert not item.shown
+        elif item.component_id == shown.id:
+            assert item.shown and item.scrolls is False

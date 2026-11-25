@@ -88,6 +88,18 @@ def client():
 
 
 @pytest.fixture(scope="session")
+def chromium():
+    """Skips the test when Playwright (extra ``browser``) or its Chromium is not installed: the CI installs no browser.
+    ``CHROME_PATH`` selects the executable."""
+    sync_api = pytest.importorskip("playwright.sync_api")
+    try:
+        with sync_api.sync_playwright() as playwright:
+            playwright.chromium.launch(executable_path=os.getenv("CHROME_PATH") or None).close()
+    except Exception as error:  # noqa: BLE001 (any launch failure means no usable browser)
+        pytest.skip(f"Chromium cannot be launched: {error}")
+
+
+@pytest.fixture(scope="session")
 def database(client):
     if not DATABASE_URI:
         pytest.skip("set SUPERSET_TEST_DATABASE_URI or the stack POSTGRES_USER/POSTGRES_PASSWORD")
