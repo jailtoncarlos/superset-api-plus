@@ -385,6 +385,8 @@ class _Block:
     # Bold characters of each line of `text` (split at its newlines: hard breaks and <br>).
     line_bold: tuple[int, ...] = ()
     depth: int = 0  # list nesting of a list item
+    # An item of a loose list (items separated by blank lines): rendered as a paragraph, with its margins.
+    loose: bool = False
 
 
 @dataclass
@@ -443,7 +445,9 @@ def _parse_markdown(markdown: str) -> tuple[list[_Block], list[str]]:
             inline = _inline(token)
             problems.extend(inline.problems)
             lines = [line.strip() for line in inline.lines]
-            blocks.append(_Block(kind, "\n".join(lines), sum(inline.bold), tuple(inline.bold), depth))
+            # In a tight list the paragraph token is hidden (no <p> rendered); in a loose one it is a paragraph.
+            loose = kind == "li" and not opener.hidden
+            blocks.append(_Block(kind, "\n".join(lines), sum(inline.bold), tuple(inline.bold), depth, loose))
     return blocks, problems
 
 
@@ -484,6 +488,9 @@ def markdown_px(markdown: str, columns: int, viewport: int, profile: SizingProfi
             lines, with_bold = _text_lines(block, style, width, measures)
             height, top, bottom = style.line * lines + measures.bold_extra_line * with_bold, style.margin_top, \
                 style.margin_bottom
+            if block.loose:  # a loose list item is a paragraph inside the item
+                paragraph = measures.styles["p"]
+                top, bottom = max(top, paragraph.margin_top), max(bottom, paragraph.margin_bottom)
         if (block.kind == "li") != (previous == "li"):  # entering or leaving a list: its margin applies
             top = max(top, measures.list_margin)
         total += max(pending_margin, top) + height

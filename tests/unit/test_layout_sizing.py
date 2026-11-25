@@ -232,3 +232,11 @@ def test_setext_headings_and_nested_lists_follow_commonmark():
         [("h1", "Title"), ("h2", "Sub"), ("p", "text")]
     nested = sizing._markdown_blocks("- a\n  - b\n- c")
     assert [(b.kind, b.text, b.depth) for b in nested] == [("li", "a", 1), ("li", "b", 2), ("li", "c", 1)]
+
+
+def test_loose_list_items_keep_the_paragraph_spacing():
+    tight, loose = "- a\n- b\n- c", "- a\n\n- b\n\n- c"
+    assert [b.loose for b in sizing._markdown_blocks(tight)] == [False] * 3
+    assert [b.loose for b in sizing._markdown_blocks(loose)] == [True] * 3
+    # Each loose item is a paragraph: 8 px of paragraph margin between items (the last one collapses with the list's).
+    assert sizing.markdown_px(loose, 12, 1366, PROFILE) == pytest.approx(sizing.markdown_px(tight, 12, 1366, PROFILE) + 2 * 8)
