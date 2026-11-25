@@ -184,3 +184,24 @@ def test_another_profile_can_be_given():
     component = layout.add_chart(chart("table", 1), width=12, height="auto", content=content)
     assert component.meta["height"] == estimate_table(content, roomy).recommended_units
     assert component.meta["height"] > estimate_table(content, PROFILE).recommended_units
+
+
+def test_a_removed_chart_leaves_no_content_behind_for_a_component_with_its_id():
+    layout = DashboardLayout.empty()
+    layout.sizing = "strict"
+    table = chart("table", 1)
+    layout.add_chart(table, width=12, height="auto", content=TableContent(rows=30), id="CHART-a")
+    layout.remove_chart(table)
+    layout.add_chart(chart("table", 2), width=12, height=8, id="CHART-a")  # placed without content: not checked
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SizingWarning)
+        sent(layout)
+
+
+def test_markdown_edited_after_placing_it_is_checked_against_its_current_text():
+    layout = DashboardLayout.empty()
+    layout.sizing = "strict"
+    component = layout.add_markdown("A short line.", width=6, height="auto")
+    component.meta["code"] = "\n\n".join(f"Paragraph {i} of a much longer text." for i in range(20))
+    with pytest.raises(SizingError, match="below the content's minimum"):
+        sent(layout)

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import copy
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Literal, TypeAlias
 
 import shortuuid
@@ -238,6 +238,9 @@ class DashboardLayout(ApiModel):
             height, width = meta.get("height"), meta.get("width")
             if not isinstance(height, int) or not isinstance(width, int):
                 continue
+            code = meta.get("code")
+            if hint.shape is ChartShape.MARKDOWN and isinstance(code, str):
+                hint = replace(hint, content=code)  # the current text, also when edited after placing it
             estimate = self._estimate(hint, width)
             problem = estimate.problem(height)
             if problem:
@@ -385,7 +388,7 @@ class DashboardLayout(ApiModel):
         if units is not None:
             meta["height"] = units
         component = self._add("MARKDOWN", self._row_for(parent, width), meta, id)
-        self._sizing_hints[component.id] = hint
+        self._set_hint(component.id, hint)
         return component
 
     def add_column(self, parent: LayoutParent = None, width: int = DEFAULT_CHART_WIDTH,
@@ -424,8 +427,7 @@ class DashboardLayout(ApiModel):
         if title and title != chart.slice_name:
             meta["sliceNameOverride"] = title
         component = self._add("CHART", self._row_for(parent, width), meta, id)
-        if hint is not None:
-            self._sizing_hints[component.id] = hint
+        self._set_hint(component.id, hint)
         return component
 
     def add_chart_grid(self, charts: list[SavedChart], columns: int = 2, parent: LayoutParent = None,
@@ -471,6 +473,7 @@ class DashboardLayout(ApiModel):
             parent_id = next((cid for cid, data in self.components.items()
                               if component_id in (data.get("children") or [])), None)
             del self.components[component_id]
+            self._sizing_hints.pop(component_id, None)
             if parent_id is None:
                 return
             siblings = self.components[parent_id]["children"]
@@ -478,6 +481,13 @@ class DashboardLayout(ApiModel):
             if siblings or self.components[parent_id]["type"] not in ("ROW", "COLUMN"):
                 return
             component_id = parent_id
+
+    def _set_hint(self, component_id: str, hint: _SizingHint | None) -> None:
+        """The content of a new component; none clears what an earlier component with the same id left."""
+        if hint is None:
+            self._sizing_hints.pop(component_id, None)
+        else:
+            self._sizing_hints[component_id] = hint
 
     def _row_for(self, parent: LayoutParent, width: int) -> str:
         """Charts and markdown live in a ROW or COLUMN; inside a grid or tab, reuse its last row with room."""
