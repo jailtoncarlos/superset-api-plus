@@ -1,6 +1,6 @@
 """Heights estimated from the content (supersetapiplus.dashboards.layout.sizing): pure arithmetic on a synthetic
-measure profile, no HTTP; the calibrated profiles (tests/fixtures/sizing_profile_<version>.json, written and checked in a
-browser by bin/scripts/calibrate_sizing.py) are validated offline."""
+measure profile, no HTTP; the calibrated profiles (dashboards/layout/profiles/sizing_profile_<version>.json of the
+package, written and checked in a browser by bin/scripts/calibrate_sizing.py) are validated offline."""
 import json
 import tracemalloc
 from pathlib import Path
@@ -254,7 +254,7 @@ def test_two_consecutive_lists_keep_the_list_margin_between_them():
 
 # ------------------------------------------------------------------------------------------- calibrated profiles
 
-PROFILES = sorted((Path(__file__).parents[1] / "fixtures").glob("sizing_profile_*.json"))
+PROFILES = sorted((Path(sizing.__file__).parent / "profiles").glob("sizing_profile_*.json"))
 
 
 def test_a_calibrated_profile_exists_for_the_target_version():

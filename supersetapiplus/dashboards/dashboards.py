@@ -7,7 +7,8 @@ from typing_extensions import Self
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.references import SavedChart
 from supersetapiplus.core.typing import SerializableOptional
-from supersetapiplus.dashboards.layout import DashboardLayout, LayoutParent
+from supersetapiplus.dashboards.layout import DashboardLayout, Height, LayoutParent
+from supersetapiplus.dashboards.layout.sizing import BarsContent, TableContent
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.exceptions import DashboardValidationError, UnsupportedTypeError
@@ -97,17 +98,19 @@ class Dashboard(ApiModel):
                 self.json_metadata.update_native_filter_scopes(self.position_json)
         return super().to_dict(columns, convert_to_json)
 
-    def add_chart(self, chart: SavedChart, title: str, parent: LayoutParent = None, height: int = 50, width: int = 4,
-                  id: str | None = None) -> None:
+    def add_chart(self, chart: SavedChart, title: str, parent: LayoutParent = None, height: Height = 50, width: int = 4,
+                  id: str | None = None, content: TableContent | BarsContent | None = None,
+                  max_rows: int | None = None) -> None:
         """Places the chart in the layout and associates it with this dashboard in Superset (see DashboardCharts).
 
-        The dashboard must be saved (have an id); a chart without an id is created first.
+        The dashboard must be saved (have an id); a chart without an id is created first. `content`, `max_rows` and
+        ``height="auto"`` size it from its content (DashboardLayout.add_chart).
         """
         if not self.id:
             raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the '
                                            'client.dashboards.add([this-dashboard]) method.')
         self._repository().client.dashboard_charts.add_chart(self, chart, title, parent, height=height, width=width,
-                                                             id=id)
+                                                             id=id, content=content, max_rows=max_rows)
 
     @property
     def colors(self) -> dict[str, str]:

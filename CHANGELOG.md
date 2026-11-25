@@ -19,10 +19,17 @@
   blocks), as a range in grid units (`SizingEstimate`: minimum, recommended, maximum, with the reasons), from a
   `SizingProfile` of measures per Superset version, theme and viewports; `SizingWarning` for heights that do not fit
   their content, not a `LayoutWarning`, so it can be filtered on its own (#78).
-* `bin/scripts/calibrate_sizing.py` and `tests/fixtures/sizing_profile_6.1.0.json`: the sizing measures of
-  Superset 6.1.0 with the default theme on 1366 and 1920 px, taken in Chromium on a calibration dashboard built on
-  the public examples and checked on it (each table, pivot table and markdown block fits at its estimated minimum height), with
-  the provenance and the values chosen rather than measured (#79).
+* `bin/scripts/calibrate_sizing.py` and the profile it writes, shipped with the package
+  (`dashboards/layout/profiles/sizing_profile_6.1.0.json`, loaded by `sizing.calibrated_profile()`): the sizing
+  measures of Superset 6.1.0 with the default theme on 1366 and 1920 px, taken in Chromium on a calibration
+  dashboard built on the public examples and checked on it (each table, pivot table and markdown block fits at its
+  estimated minimum height), with the provenance and the values chosen rather than measured (#79, #80).
+* Layout builder sized from the content: `add_chart(..., content=TableContent(...) | BarsContent(...),
+  height="auto", max_rows=...)` (also on `dashboard.add_chart`) and `add_markdown(..., height="auto")` take the
+  recommended height of the content; the content is kept by the library, never written to `position_json`. When
+  the layout is sent, the heights of those components are checked against their content: `position_json.sizing =
+  "warn"` (default, `SizingWarning`), `"strict"` (`SizingError`; pivot tables, whose estimate is approximate, only
+  warn) or `"off"`; `position_json.sizing_profile` sets the measures of an instance with its own theme (#80).
 * New runtime dependency: `markdown-it-py>=3.0.0` parses the markdown measured by the sizing estimates with the
   CommonMark rules Superset renders it with (react-markdown and remark-gfm); Airflow 3.3 already ships it as a
   dependency of `rich` (#78).

@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 import supersetapiplus
-from supersetapiplus.dashboards.layout.sizing import ChartShape
+from supersetapiplus.dashboards.layout.sizing import ChartShape, SizingMode
 from supersetapiplus import query_string as Q
 from supersetapiplus.charts import types as T
 from supersetapiplus.core import types as B
@@ -125,6 +125,7 @@ LIBRARY_ONLY = {
     T.SqlMapType: "deprecated: a column type is free text (native database type); kept for old imports",
     IP.PositionType: "placement option of the legacy layout builder; never sent to Superset",
     ChartShape: "what the sizing formulas measure (dashboards/layout/sizing.py); never sent to Superset",
+    SizingMode: "check mode of the layout before it is sent (position_json.sizing); never sent to Superset",
 }
 
 

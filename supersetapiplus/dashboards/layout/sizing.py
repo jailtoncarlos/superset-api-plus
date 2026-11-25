@@ -20,10 +20,13 @@ left on the widest one, and ``recommended_units`` the height to use.
 """
 from __future__ import annotations
 
+import functools
+import json
 import math
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from importlib import resources
 
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
@@ -47,6 +50,15 @@ class ChartShape(StringEnum):
     PIVOT_TABLE = "pivot_table"
     HORIZONTAL_BARS = "horizontal_bars"
     MARKDOWN = "markdown"
+
+
+class SizingMode(StringEnum):
+    """What the layout does, when sent, with a component whose height does not fit its content (a library choice,
+    not a Superset value): nothing, a :class:`~supersetapiplus.exceptions.SizingWarning`, or a
+    :class:`~supersetapiplus.exceptions.SizingError` (approximate estimates, e.g. pivot tables, only warn)."""
+    OFF = "off"
+    WARN = "warn"
+    STRICT = "strict"
 
 
 def chart_shape(params: dict[str, object]) -> ChartShape | None:
@@ -515,3 +527,37 @@ def estimate_markdown(markdown: str, profile: SizingProfile, layout: Layout = FU
     needed = {viewport: markdown_px(markdown, layout.columns, viewport, profile, layout.vertical_filter_bar)
               for viewport in profile.viewports}
     return _range(needed, profile, profile.max_empty, reasons, margin_units=profile.markdown_margin_units)
+
+
+# ------------------------------------------------------------------------------------------- calibrated profiles
+
+#: Superset version whose calibrated profile is used when none is given (the target of this release line).
+DEFAULT_PROFILE_VERSION = "6.1.0"
+
+
+@functools.cache
+def calibrated_profile(version: str = DEFAULT_PROFILE_VERSION) -> SizingProfile:
+    """The profile calibrated in a browser for `version` with the default theme (``profiles/`` of this package,
+    written by ``bin/scripts/calibrate_sizing.py``). An instance with its own theme or CSS needs its own profile."""
+    path = resources.files(__package__).joinpath("profiles").joinpath(f"sizing_profile_{version}.json")
+    if not path.is_file():
+        raise ValueError(f"no calibrated sizing profile for Superset {version}")
+    return SizingProfile.model_validate(json.loads(path.read_text(encoding="utf-8"))["profile"])
+
+
+#: What a sized component holds: the content of a table, pivot table or horizontal bars, or the markdown text.
+Content = TableContent | BarsContent | str
+
+
+def estimate(shape: ChartShape, content: Content, profile: SizingProfile, layout: Layout = FULL_WIDTH,
+             max_rows: int | None = None) -> SizingEstimate:
+    """The estimate of the formula of `shape` (``content`` must be the matching type)."""
+    if shape is ChartShape.MARKDOWN and isinstance(content, str):
+        return estimate_markdown(content, profile, layout)
+    if shape is ChartShape.HORIZONTAL_BARS and isinstance(content, BarsContent):
+        return estimate_horizontal_bars(content, profile, layout, max_rows)
+    if shape is ChartShape.TABLE and isinstance(content, TableContent):
+        return estimate_table(content, profile, layout, max_rows)
+    if shape is ChartShape.PIVOT_TABLE and isinstance(content, TableContent):
+        return estimate_pivot_table(content, profile, layout, max_rows)
+    raise TypeError(f"{type(content).__name__} is not the content of a {shape} component")

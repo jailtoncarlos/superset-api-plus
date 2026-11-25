@@ -20,7 +20,8 @@ Usage:
     SUPERSET_URL=... SUPERSET_USERNAME=... SUPERSET_PASSWORD=... \\
         python bin/scripts/calibrate_sizing.py 6.1.0 [--viewports 1366,1920]
 
-Output: tests/fixtures/sizing_profile_<version>.json (``provenance`` and ``profile``).
+Output: supersetapiplus/dashboards/layout/profiles/sizing_profile_<version>.json (``provenance`` and ``profile``),
+shipped with the package: ``sizing.calibrated_profile()`` loads it.
 """
 from __future__ import annotations
 
@@ -512,7 +513,7 @@ def main(argv: list[str] | None = None) -> None:
     if problems:
         raise SystemExit("the measured profile does not predict the heights:\n" + "\n".join(problems))
 
-    target = ROOT / "tests" / "fixtures" / f"sizing_profile_{args.version}.json"
+    target = ROOT / "supersetapiplus" / "dashboards" / "layout" / "profiles" / f"sizing_profile_{args.version}.json"
     write_json(target, {
         "provenance": {
             "superset_version": args.version, "chromium": chromium, "viewports": viewports, "theme": "default",
