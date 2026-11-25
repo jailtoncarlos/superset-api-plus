@@ -19,6 +19,10 @@
   blocks), as a range in grid units (`SizingEstimate`: minimum, recommended, maximum, with the reasons), from a
   `SizingProfile` of measures per Superset version, theme and viewports; `SizingWarning` for heights that do not fit
   their content, not a `LayoutWarning`, so it can be filtered on its own (#78).
+* `bin/scripts/calibrate_sizing.py` and `tests/fixtures/sizing_profile_6.1.0.json`: the sizing measures of
+  Superset 6.1.0 with the default theme on 1366 and 1920 px, taken in Chromium on a calibration dashboard built on
+  the public examples and checked on it (each table, pivot table and markdown block fits at its estimated minimum height), with
+  the provenance and the values chosen rather than measured (#79).
 * New runtime dependency: `markdown-it-py>=3.0.0` parses the markdown measured by the sizing estimates with the
   CommonMark rules Superset renders it with (react-markdown and remark-gfm); Airflow 3.3 already ships it as a
   dependency of `rich` (#78).
