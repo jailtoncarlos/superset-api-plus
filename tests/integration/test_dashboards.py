@@ -18,6 +18,7 @@ from supersetapiplus.exceptions import (
     NullQueryContextDatasourceWarning,
     ResourceNotFoundError,
     SizingError,
+    SizingWarning,
     UnprocessableEntityError,
 )
 from supersetapiplus.query_string import QueryOperator
@@ -131,6 +132,36 @@ def test_charts_sized_from_their_content_are_stored_without_the_content(client, 
     with pytest.raises(SizingError):
         dashboard.save()
     assert client.dashboards.get(dashboard.id).position_json.components_of_type("CHART")[0].meta["height"] == expected
+
+
+def test_sizing_check_of_a_saved_dashboard_reports_without_writing(client, dataset, add_dashboard, cleanup):
+    dashboard = add_dashboard()
+    table, bars = new_chart("table", dataset), new_chart("echarts_timeseries_bar", dataset)
+    bars.params.groupby = bars.query_context.form_data.groupby = []  # the categories are the x axis
+    bars.set_x_axis("campus")
+    bars.params.orientation = bars.query_context.form_data.orientation = "horizontal"
+    try:
+        dashboard.add_chart(table, "Campus table", width=6, height=100)  # two rows: far too tall
+        dashboard.add_chart(bars, "Campus bars", width=6, height="auto",
+                            content=BarsContent(bars=2, labels=["North", "South"]))
+    finally:
+        for chart in (table, bars):
+            if chart.id:
+                cleanup.chart(chart.id)
+    dashboard.position_json.add_markdown("## Notes\n\nTwo campuses.", width=12, height="auto")
+    dashboard.save()
+    before = client.get(client.join_urls(client.dashboards.base_url, dashboard.id)).json()["result"]
+
+    with pytest.warns(SizingWarning, match="Campus table: height 100 leaves more empty space"):
+        report = client.dashboard_sizing.check(dashboard.id)
+
+    by_title = {item.title: item for item in report.components}
+    assert [item.title for item in report.problems] == ["Campus table"]
+    assert by_title["Campus table"].estimate.max_units < 100
+    assert by_title["Campus bars"].problem is None and by_title["Campus bars"].shape == "horizontal_bars"
+    assert sum(item.shape == "markdown" and item.problem is None for item in report.components) == 1
+    after = client.get(client.join_urls(client.dashboards.base_url, dashboard.id)).json()["result"]
+    assert (after["changed_on"], after["position_json"]) == (before["changed_on"], before["position_json"])
 
 
 def test_content_that_does_not_match_the_chart_is_refused_before_creating_it(client, dataset, add_dashboard):

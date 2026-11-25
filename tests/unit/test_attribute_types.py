@@ -213,6 +213,10 @@ FREE_TEXT = {
     "dashboards.layout.sizing._Block.text": "visible text of a markdown block, " + TEXT,
     "dashboards.layout.sizing._Inline.lines": "rendered lines of a markdown block, " + TEXT,
     "dashboards.layout.sizing._Inline.problems": "what cannot be measured in a markdown block, written by the library",
+    "services.dashboard_sizing.ComponentSizing.component_id": "id of a position_json component (instance data)",
+    "services.dashboard_sizing.ComponentSizing.title": "chart title shown on the dashboard (instance data)",
+    "services.dashboard_sizing.ComponentSizing.problem": "explanation written by the library",
+    "services.dashboard_sizing.ComponentSizing.skipped": "explanation written by the library",
 }
 
 
