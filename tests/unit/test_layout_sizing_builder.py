@@ -205,3 +205,24 @@ def test_markdown_edited_after_placing_it_is_checked_against_its_current_text():
     component.meta["code"] = "\n\n".join(f"Paragraph {i} of a much longer text." for i in range(20))
     with pytest.raises(SizingError, match="below the content's minimum"):
         sent(layout)
+
+
+LONG_TITLE = "A title long enough to wrap in several lines on a chart only three grid columns wide"
+
+
+def test_the_title_measured_is_the_one_the_chart_shows():
+    layout = DashboardLayout.empty()
+    content = TableContent(rows=3)  # no title in the content
+    placed = layout.add_chart(chart("table", 1), LONG_TITLE, width=3, height="auto", content=content)
+    expected = estimate_table(TableContent(rows=3, title=LONG_TITLE), PROFILE, Layout(columns=3)).recommended_units
+    assert placed.meta["height"] == expected
+    assert expected > estimate_table(content, PROFILE, Layout(columns=3)).recommended_units
+
+
+def test_a_title_changed_after_placing_the_chart_is_checked():
+    layout = DashboardLayout.empty()
+    layout.sizing = "strict"
+    placed = layout.add_chart(chart("table", 1), "Short", width=3, height="auto", content=TableContent(rows=3))
+    placed.meta["sliceNameOverride"] = LONG_TITLE
+    with pytest.raises(SizingError, match="below the content's minimum"):
+        sent(layout)

@@ -238,9 +238,12 @@ class DashboardLayout(ApiModel):
             height, width = meta.get("height"), meta.get("width")
             if not isinstance(height, int) or not isinstance(width, int):
                 continue
-            code = meta.get("code")
+            # What the component shows now, also when edited after placing it: the markdown text, the chart title.
+            code, title = meta.get("code"), meta.get("sliceNameOverride") or meta.get("sliceName")
             if hint.shape is ChartShape.MARKDOWN and isinstance(code, str):
-                hint = replace(hint, content=code)  # the current text, also when edited after placing it
+                hint = replace(hint, content=code)
+            elif isinstance(hint.content, TableContent | BarsContent) and isinstance(title, str):
+                hint = replace(hint, content=replace(hint.content, title=title))
             estimate = self._estimate(hint, width)
             problem = estimate.problem(height)
             if problem:
@@ -248,10 +251,13 @@ class DashboardLayout(ApiModel):
         return found
 
     def chart_height(self, chart: SavedChart, height: Height, width: int,
-                     content: TableContent | BarsContent | None = None,
-                     max_rows: int | None = None) -> tuple[_SizingHint | None, int]:
+                     content: TableContent | BarsContent | None = None, max_rows: int | None = None,
+                     title: str | None = None) -> tuple[_SizingHint | None, int]:
         """The content hint and grid units of a chart placed with these options; raises
-        NodePositionValidationError as :meth:`add_chart` would (e.g. to check before creating the chart)."""
+        NodePositionValidationError as :meth:`add_chart` would (e.g. to check before creating the chart). The title
+        measured is the one shown: `title`, else the chart name (not ``content.title``)."""
+        if content is not None:
+            content = replace(content, title=title or chart.slice_name)
         hint = None if content is None else _SizingHint(_shape_of(chart, content), content, max_rows)
         units = self._height(height, hint, width)
         assert units is not None  # a chart always has a height
@@ -410,7 +416,8 @@ class DashboardLayout(ApiModel):
         With ``skip_existing=True`` a chart already in the layout is not placed again: its component is returned.
         `content` describes a table, pivot table or horizontal bars chart (rows or bars, labels, title): with it,
         ``height="auto"`` gives the height its content needs (at most `max_rows` rows or bars are shown), and the
-        height is checked when the layout is sent (:attr:`sizing`). The content is kept by the library, never
+        height is checked when the layout is sent (:attr:`sizing`). The title measured is the one the chart shows
+        (`title`, else its name), whatever ``content.title`` says. The content is kept by the library, never
         written to ``position_json``.
         """
         chart_id = chart.id
@@ -419,7 +426,7 @@ class DashboardLayout(ApiModel):
         existing = self._chart_components(chart_id) if skip_existing else []
         if existing:
             return existing[0]
-        hint, units = self.chart_height(chart, height, width, content, max_rows)
+        hint, units = self.chart_height(chart, height, width, content, max_rows, title)
         meta: dict[str, Any] = {"chartId": chart_id, "sliceName": chart.slice_name, "width": width, "height": units}
         uuid = getattr(chart, "uuid", None)
         if uuid:
