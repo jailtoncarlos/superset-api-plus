@@ -44,7 +44,7 @@ from supersetapiplus.resources.saved_queries import SavedQueries
 from supersetapiplus.resources.security import Permissions, Roles
 from supersetapiplus.services.bundle_import import BundleImport
 from supersetapiplus.services.dashboard_charts import DashboardCharts
-from supersetapiplus.transport.http import RequestHandler
+from supersetapiplus.transport.http import TIMEOUT_CONNECT, TIMEOUT_READ, RequestHandler
 
 logger = logging.getLogger(__name__)
 
@@ -152,8 +152,10 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
     def _read_server_version(self, session: requests.Session) -> None:
         self._server_version_read = True
         try:
+            # The configured timeouts, as every request of the HTTP layer; not through RequestHandler, which logs a
+            # failure as an error: the version is a best-effort check (a server without /version is fine).
             response = session.get(self.join_urls(self.host, "version"), verify=self._verify,
-                                   headers={"Accept": "application/json"})
+                                   headers={"Accept": "application/json"}, timeout=(TIMEOUT_CONNECT, TIMEOUT_READ))
             response.raise_for_status()
             version = response.json().get("version_string")
         except (requests.exceptions.RequestException, ValueError, AttributeError) as error:
