@@ -121,6 +121,7 @@ host may be shared with other projects: never run `docker system/image/volume pr
 | `SUPERSET_TEST_AUTH_TYPE=oauth` | the stack logs people in through OAuth (placeholder provider); set `SUPERSET_LOGIN_PATH=/service-login/login/` so the suite logs in through the service route |
 | `SUPERSET_LOGIN_PATH` | path of the database login form of session mode (default `/login/`) |
 | `SUPERSET_EXAMPLES_REQUIRED=1` | `test_examples` fails instead of skipping when the examples are not loaded |
+| `SUPERSET_BROWSER_REQUIRED=1` | the browser check tests fail instead of skipping when Playwright (extra `browser`) or Chromium is missing; `CHROME_PATH` selects the browser |
 
 Without `SUPERSET_INTEGRATION` or `SUPERSET_URL` (and credentials), every test under `tests/integration` is
 skipped. Tests that create users (marker `only_test_stack`) are skipped when `SUPERSET_URL` points to another
