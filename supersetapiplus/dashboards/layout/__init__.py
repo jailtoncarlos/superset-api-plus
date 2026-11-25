@@ -257,8 +257,8 @@ class DashboardLayout(ApiModel):
         found = []
         for component_id, hint in self._sizing_hints.items():
             meta = self.components.get(component_id, {}).get("meta", {})
-            height, width = meta.get("height"), meta.get("width")
-            if not isinstance(height, int) or not isinstance(width, int):
+            height, width = meta.get("height"), self.rendered_width(component_id)
+            if not isinstance(height, int) or width is None:
                 continue
             # What the component shows now, also when edited after placing it: the markdown text, the chart title.
             code, title = meta.get("code"), meta.get("sliceNameOverride") or meta.get("sliceName")
@@ -272,16 +272,51 @@ class DashboardLayout(ApiModel):
                 found.append((component_id, estimate, problem))
         return found
 
+    def rendered_width(self, component_id: str) -> int | None:
+        """Grid columns a chart or markdown component is drawn on, as the dashboard renderer does (Superset 6.1):
+        inside a COLUMN it takes the column's width (ChartHolder.tsx, Markdown.tsx), and a chart nested deeper is at
+        most as wide as its nearest column. None when the component has no width."""
+        data = self.components.get(component_id) or {}
+        width = (data.get("meta") or {}).get("width")
+        if not isinstance(width, int):
+            return None
+        parent = self._parent_of(component_id)
+        return width if parent is None else self._width_in(parent, width, str(data.get("type")))
+
+    def _parent_of(self, component_id: str) -> str | None:
+        return next((cid for cid, data in self.components.items() if component_id in (data.get("children") or [])),
+                    None)
+
+    def _width_in(self, container_id: str, width: int, component_type: str) -> int:
+        """Rendered width of a `component_type` of `width` columns placed in `container_id` (see rendered_width)."""
+        container = self.components.get(container_id) or {}
+        if container.get("type") == "COLUMN":
+            return int((container.get("meta") or {}).get("width") or GRID_MIN_COLUMN_COUNT)
+        if component_type == "CHART":
+            ancestor = self._parent_of(container_id)
+            while ancestor is not None:
+                data = self.components.get(ancestor) or {}
+                if data.get("type") == "COLUMN":
+                    return min(width, int((data.get("meta") or {}).get("width") or GRID_MIN_COLUMN_COUNT))
+                ancestor = self._parent_of(ancestor)
+        return width
+
+    def _placement_width(self, parent: LayoutParent, width: int, component_type: str) -> int:
+        """Rendered width of a component about to be placed in `parent` (a row, a column or a grid or tab, where it
+        gets a new row), without changing the layout."""
+        return self._width_in(self._resolve(parent or GRID_ID), width, component_type)
+
     def chart_height(self, chart: SavedChart, height: Height, width: int,
                      content: TableContent | BarsContent | None = None, max_rows: int | None = None,
-                     title: str | None = None) -> tuple[_SizingHint | None, int]:
+                     title: str | None = None, parent: LayoutParent = None) -> tuple[_SizingHint | None, int]:
         """The content hint and grid units of a chart placed with these options; raises
         NodePositionValidationError as :meth:`add_chart` would (e.g. to check before creating the chart). The title
-        measured is the one shown: `title`, else the chart name (not ``content.title``)."""
+        measured is the one shown: `title`, else the chart name (not ``content.title``); the width, the one it is
+        drawn on in `parent` (:meth:`rendered_width`)."""
         if content is not None:
             content = replace(content, title=title or chart.slice_name)
         hint = None if content is None else _SizingHint(_shape_of(chart, content), content, max_rows)
-        units = self._height(height, hint, width)
+        units = self._height(height, hint, self._placement_width(parent, width, "CHART"))
         assert units is not None  # a chart always has a height
         _check_size(width, units)
         return hint, units
@@ -410,7 +445,7 @@ class DashboardLayout(ApiModel):
         """Markdown block; ``height=None`` omits the height from ``meta``, as some exports do, and ``"auto"`` sizes
         it from the text. Its height is checked against the text when the layout is sent (:attr:`sizing`)."""
         hint = _SizingHint(ChartShape.MARKDOWN, code)
-        units = self._height(height, hint, width)
+        units = self._height(height, hint, self._placement_width(parent, width, "MARKDOWN"))
         _check_size(width, units)
         meta: dict[str, Any] = {"code": code, "width": width}
         if units is not None:
@@ -448,7 +483,7 @@ class DashboardLayout(ApiModel):
         existing = self._chart_components(chart_id) if skip_existing else []
         if existing:
             return existing[0]
-        hint, units = self.chart_height(chart, height, width, content, max_rows, title)
+        hint, units = self.chart_height(chart, height, width, content, max_rows, title, parent)
         meta: dict[str, Any] = {"chartId": chart_id, "sliceName": chart.slice_name, "width": width, "height": units}
         uuid = getattr(chart, "uuid", None)
         if uuid:

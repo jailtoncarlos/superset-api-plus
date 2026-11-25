@@ -9,6 +9,9 @@
   default (vertical) orientation, so markdown sized for a dashboard with the bar on top, or without filters, is no
   longer flagged. `position_json.vertical_filter_bar` forces the value; `Metadata.shows_vertical_filter_bar()`
   tells it (#102).
+* Sizing: a chart or markdown inside a COLUMN was estimated at its own width, while Superset draws it at the
+  column's width (a chart nested deeper is at most as wide as its nearest column). `height="auto"`, the check when
+  the layout is sent and `client.dashboard_sizing.check` now use that width (`position_json.rendered_width()`) (#104).
 
 ## 2.6.0 (2026-11-25)
 

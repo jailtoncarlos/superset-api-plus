@@ -272,3 +272,34 @@ def test_without_native_filters_there_is_no_filter_bar_and_the_user_can_force_it
     dashboard.position.vertical_filter_bar = True
     assert dashboard.position.vertical_filter_bar is True
     assert DashboardLayout.empty().vertical_filter_bar  # a layout on its own assumes the bar
+
+
+def test_markdown_and_charts_inside_a_column_are_sized_at_the_column_width():
+    layout = DashboardLayout.empty()
+    column = layout.add_column(parent=layout.add_row(), width=4)
+    # Placed 12 wide would fail (a component is at most as wide as its column): the builder keeps it within, and a
+    # layout read from Superset may carry a wider meta width; either way the column's width is what is drawn.
+    markdown = layout.add_markdown(TEXT, parent=column, width=4, height="auto")
+    narrow = estimate_markdown(TEXT, PROFILE, Layout(columns=4)).recommended_units
+    assert markdown.meta["height"] == narrow
+    markdown.meta["width"] = 12  # as stored by an editor that left a stale width
+    assert layout.rendered_width(markdown.id) == 4
+    layout.sizing = "strict"
+    sent(layout)  # checked at the column width (4), where the height fits
+
+
+def test_a_chart_nested_below_a_column_is_at_most_as_wide_as_it():
+    layout = DashboardLayout.empty()
+    column = layout.add_column(parent=layout.add_row(), width=6)
+    inner = layout.add_row(parent=column)
+    component = layout.add_chart(chart("table", 1), parent=inner, width=6, height="auto", content=TableContent(rows=3))
+    component.meta["width"] = 12
+    assert layout.rendered_width(component.id) == 6
+
+
+def test_a_markdown_narrower_than_its_column_is_drawn_and_sized_at_the_column_width():
+    layout = DashboardLayout.empty()
+    column = layout.add_column(parent=layout.add_row(), width=6)
+    markdown = layout.add_markdown(TEXT, parent=column, width=3, height="auto")
+    assert layout.rendered_width(markdown.id) == 6
+    assert markdown.meta["height"] == estimate_markdown(TEXT, PROFILE, Layout(columns=6)).recommended_units
