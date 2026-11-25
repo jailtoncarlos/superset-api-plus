@@ -281,3 +281,41 @@ def test_calibrated_profile_is_valid_and_records_its_provenance(path):
     verification = provenance["verification"]
     assert {"table", "narrow_table", "long_title", "search", "pivot", "markdown"} <= set(verification)
     assert all(entry["min_units"] >= sizing.GRID_MIN_ROW_UNITS for entry in verification.values())
+
+
+def _with(section: str, **values) -> SizingProfile:
+    """PROFILE with `values` set on one of its measure sections."""
+    data = PROFILE.model_dump()
+    data[section].update(values)
+    return SizingProfile.model_validate(data)
+
+
+def test_an_unfixed_label_column_widens_on_larger_screens_and_lowers_only_the_upper_bound():
+    content = TableContent(rows=10, labels=[f"Label number {i} with words enough to wrap" for i in range(10)])
+    same = estimate_table(content, PROFILE)
+    widened = estimate_table(content, _with("table", unfixed_label_chars_by_viewport={1366: 26, 1920: 60}))
+    assert widened.min_units == same.min_units  # the narrowest viewport is unchanged
+    assert widened.max_units < same.max_units  # fewer lines on the widest one: less height before empty space
+    fixed = TableContent(rows=10, labels=content.labels, fixed_label_width=True)
+    assert estimate_table(fixed, _with("table", unfixed_label_chars_by_viewport={1920: 60})) == estimate_table(
+        fixed, PROFILE)  # a fixed width column does not widen
+
+
+def test_bar_bounds_can_be_given_as_the_visible_bar_thickness():
+    bars = _with("bars", bar_share=0.5).bars
+    thick = bars.with_thickness(bar=30, min_bar=20, max_bar=40)
+    assert (thick.band, thick.min_band, thick.max_band) == (60, 40, 80)
+    assert bars.with_thickness(min_bar=25).model_dump() == {**bars.model_dump(), "min_band": 50}
+    with pytest.raises(ValueError, match="bar/band ratio"):
+        PROFILE.bars.with_thickness(bar=30)  # a profile without the ratio
+
+
+def test_a_clamped_title_stops_the_header_growing():
+    title = "A title long enough to wrap in many lines on a narrow chart of a dashboard " * 3
+    narrow = Layout(columns=3)
+    unclamped = sizing.frame_px(title, 3, 1366, PROFILE)
+    clamped = sizing.frame_px(title, 3, 1366, _with("frame", title_max_lines=2))
+    assert PROFILE.frame.title_max_lines is None  # Superset 6.1 with the default theme shows every line
+    assert clamped == PROFILE.frame.padding + 2 * PROFILE.frame.title_line < unclamped
+    assert estimate_table(TableContent(rows=2, title=title), _with("frame", title_max_lines=2), narrow).min_units \
+        < estimate_table(TableContent(rows=2, title=title), PROFILE, narrow).min_units
