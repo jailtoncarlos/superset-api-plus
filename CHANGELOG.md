@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## Unreleased
+
+### Fixed
+
+* Sizing check of a saved dashboard (`client.dashboard_sizing.check`): the table label, whose wrapping makes rows
+  taller, was always the first result column. It is now the column with a fixed `columnWidth`, else the first
+  dimension (`groupby`, or `all_columns` in raw mode), else the first column (#103).
+
 ## 2.6.0 (2026-11-25)
 
 Chart sizing from the content (#77): heights of tables, pivot tables, horizontal bars and markdown estimated from
