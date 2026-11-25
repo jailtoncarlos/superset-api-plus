@@ -63,7 +63,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
     form_data); `supersetapiplus/charts/explore.py` holds them (`tests/unit/test_explore_form_data.py`)
   - `bin/scripts/extract_example_layouts.py <version>` → `example_layouts_<version>.json`: the layouts of
     the example dashboards shipped with Superset, which the layout validation must accept
-  - `bin/scripts/calibrate_sizing.py <version>` → `sizing_profile_<version>.json`: the chart sizing measures
+  - `bin/scripts/calibrate_sizing.py <version>` →
+    `supersetapiplus/dashboards/layout/profiles/sizing_profile_<version>.json` (package data, not a test fixture:
+    `height="auto"` and the sizing check use it): the chart sizing measures
     (`dashboards/layout/sizing.py`) taken in Chromium on a calibration dashboard built on the examples, checked on
     that dashboard before writing, with provenance (Chromium version, viewports, theme, font) and the values chosen,
     not measured (`POLICY`)
@@ -123,6 +125,10 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   Before sending, the layout is checked against the renderer rules (`dashboards/layout/validation.py`, port of
   `isValidChild.ts`): a layout built by the library must be valid (and its `parents` match the tree); a
   layout read from Superset is sent as read, with a `LayoutWarning` (Superset itself saves stale `parents`).
+  Components placed with their content (`add_chart(content=...)`, `add_markdown`) may take `height="auto"` and
+  are checked against it when sent (`position_json.sizing`: `warn` by default, `strict`, `off`;
+  `dashboards/layout/sizing.py`, measures from the calibrated profile shipped in `dashboards/layout/profiles/`).
+  The content is kept by the library (private attribute), never written to `position_json`.
 - **Chart ↔ dashboard association** is done with `Charts.add_to_dashboard` / `Dashboards.attach_charts`
   (PUT of `dashboards` on the chart); `chart.save()` does not send `dashboards`.
 

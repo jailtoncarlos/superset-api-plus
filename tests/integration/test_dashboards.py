@@ -7,14 +7,17 @@ from supersetapiplus.charts.build_query import query_context_for
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.dashboards.dashboards import Dashboard
+from supersetapiplus.dashboards.layout.sizing import BarsContent, Layout, TableContent, calibrated_profile, estimate_table
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.resources.css_templates import CssTemplate
 from supersetapiplus.dashboards.native_filters import FilterType
 from supersetapiplus.exceptions import (
     DashboardValidationError,
+    NodePositionValidationError,
     NotFound,
     NullQueryContextDatasourceWarning,
     ResourceNotFoundError,
+    SizingError,
     UnprocessableEntityError,
 )
 from supersetapiplus.query_string import QueryOperator
@@ -98,6 +101,44 @@ def test_add_chart_requires_a_saved_dashboard_before_creating_anything(client, d
 
     with pytest.raises(DashboardValidationError):
         dashboard.add_chart(new_chart("table", dataset, prefix), "Title")
+    assert charts_named(client, prefix) == 0
+
+
+def test_charts_sized_from_their_content_are_stored_without_the_content(client, dataset, add_dashboard, cleanup):
+    dashboard = add_dashboard()
+    dashboard.position_json.sizing = "strict"
+    chart = new_chart("table", dataset)
+    content = TableContent(rows=6, labels=["North", "South", "East", "West", "Center", "Islands"], title="Campus")
+
+    try:
+        dashboard.add_chart(chart, "Campus", width=6, height="auto", content=content)
+    finally:
+        if chart.id:
+            cleanup.chart(chart.id)
+    dashboard.position_json.add_markdown("## Notes\n\nRows by campus.", width=6, height="auto")
+    dashboard.save()
+
+    stored = client.dashboards.get(dashboard.id)
+    assert stored.position_json.to_dict() == dashboard.position_json.to_dict()
+    [component] = stored.position_json.components_of_type("CHART")
+    expected = estimate_table(content, calibrated_profile(), Layout(columns=6)).recommended_units
+    assert component.meta["height"] == expected
+    assert "North" not in json.dumps(stored.position_json.to_dict())
+
+    # A height changed to one that cuts the content is refused before anything is sent.
+    component = dashboard.position_json.components_of_type("CHART")[0]
+    component.meta["height"] = 5
+    with pytest.raises(SizingError):
+        dashboard.save()
+    assert client.dashboards.get(dashboard.id).position_json.components_of_type("CHART")[0].meta["height"] == expected
+
+
+def test_content_that_does_not_match_the_chart_is_refused_before_creating_it(client, dataset, add_dashboard):
+    dashboard = add_dashboard()
+    prefix = unique_name("mismatch")
+
+    with pytest.raises(NodePositionValidationError, match="BarsContent"):
+        dashboard.add_chart(new_chart("table", dataset, prefix), "Title", height="auto", content=BarsContent(bars=3))
     assert charts_named(client, prefix) == 0
 
 

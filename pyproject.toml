@@ -33,7 +33,7 @@ dependencies = [
 include = ["supersetapiplus*"]
 
 [tool.setuptools.package-data]
-supersetapiplus = ["py.typed"]
+supersetapiplus = ["py.typed", "dashboards/layout/profiles/*.json"]
 
 [project.optional-dependencies]
 dev = [
