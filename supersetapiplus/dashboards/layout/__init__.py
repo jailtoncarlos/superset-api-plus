@@ -84,10 +84,15 @@ _ALLOWED_CHILDREN = {
 
 @dataclass(frozen=True)
 class ChartRef:
-    """Reference to a chart already saved in Superset, for placing it in a layout without loading it."""
+    """Reference to a chart already saved in Superset, for placing it in a layout without loading it.
+
+    ``shape``: what the chart draws, for ``add_chart(..., height="auto")``, which has no params to read it from:
+    ``ChartShape.PIVOT_TABLE`` sizes a pivot table with its formula. Without it, the content decides (a table for
+    ``TableContent``, horizontal bars for ``BarsContent``)."""
     id: int
     slice_name: str
     uuid: str | None = None
+    shape: ChartShape | None = None
 
 
 @dataclass(frozen=True)
@@ -614,18 +619,24 @@ class DashboardLayout(ApiModel):
 
 
 def _shape_of(chart: SavedChart, content: TableContent | BarsContent) -> ChartShape:
-    """The sizing formula of a chart: from its params when it has them (a library Chart), else from the content
-    (a ChartRef: tables and horizontal bars; place a pivot table with the chart itself)."""
+    """The sizing formula of a chart: from its params when it has them (a library Chart), else from the shape a
+    ChartRef declares, else from the content (a table for TableContent, horizontal bars for BarsContent)."""
     params = getattr(chart, "params", None)
-    if params is None:
-        return ChartShape.HORIZONTAL_BARS if isinstance(content, BarsContent) else ChartShape.TABLE
-    viz_type = str(getattr(params, "viz_type", "") or "")
-    shape = sizing.chart_shape({"viz_type": viz_type, "orientation": str(getattr(params, "orientation", "") or "")})
+    if params is not None:
+        viz_type = str(getattr(params, "viz_type", "") or "")
+        shape = sizing.chart_shape({"viz_type": viz_type,
+                                    "orientation": str(getattr(params, "orientation", "") or "")})
+        kind = f"a {viz_type} chart"
+    else:
+        shape = getattr(chart, "shape", None)
+        if shape is None:
+            return ChartShape.HORIZONTAL_BARS if isinstance(content, BarsContent) else ChartShape.TABLE
+        kind = f"a {shape} chart"
     expected = (ChartShape.HORIZONTAL_BARS,) if isinstance(content, BarsContent) else (ChartShape.TABLE,
                                                                                        ChartShape.PIVOT_TABLE)
     if shape is None or shape not in expected:
         raise NodePositionValidationError(
-            f"{type(content).__name__} describes {' or '.join(map(str, expected))}, not a {viz_type} chart"
+            f"{type(content).__name__} describes {' or '.join(map(str, expected))}, not {kind}"
             + ("" if shape else " (the sizing formulas cover tables, pivot tables and horizontal bars)") + ".")
     return shape
 

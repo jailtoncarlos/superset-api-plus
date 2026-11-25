@@ -11,6 +11,15 @@
 * The calibration (`bin/scripts/calibrate_sizing.py`) checks a table with a totals row: measured in Chromium on
   Superset 6.1.0, the totals row is drawn below the body and takes the height of one more row, as the sizing check
   counts it (#119).
+* Sizing: a `ChartRef` can declare what it draws (`ChartRef(..., shape=ChartShape.PIVOT_TABLE)`), so
+  `add_chart(..., height="auto")` sizes a pivot table placed by reference with the pivot table formula, as the same
+  chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its
+  content (#117).
+
+### Documentation
+
+* README: the vertical native filter bar in the sizing estimates; add the native filters before placing components
+  with `height="auto"`, or set `layout.vertical_filter_bar` when the layout is built before them (#118).
 
 ## 2.6.1 (2026-11-25)
 
