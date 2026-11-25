@@ -196,7 +196,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   below it (`import-layers` hook): `client.py` (facade) → `services/` (operations across resources, e.g.
   `DashboardCharts`) → `charts/` → `dashboards/` (`layout/`, `native_filters`, `metadata`) → `resources/`
   (repositories and the dataset, database, saved query and asset models) → `auth/` → `transport/` (HTTP) →
-  `core/` (models, fields, enums and masking; no HTTP). Old module paths are compatibility modules that warn
+  `core/` (models, fields, enums and masking; no HTTP). The services today: `DashboardCharts`
+  (`client.dashboard_charts`), `DashboardSizing` (`client.dashboard_sizing`, read-only check of the heights of a
+  saved dashboard) and `BundleImport`. Old module paths are compatibility modules that warn
   on import; `supersetapiplus.datasets`, `.databases`, `.saved_queries` and `.assets` stay public paths.
 - Dependency management is **uv** (issue #319): `pyproject.toml` is the single source, `uv.lock` pins the
   development and CI environment. Runtime dependency floors must stay at or below the constraints of the
