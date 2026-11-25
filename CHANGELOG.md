@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## Unreleased
+## 2.6.1 (2026-11-25)
+
+Fixes of the chart sizing found when the consumer evaluated 2.6.0 against its own calculation (#100).
 
 ### Fixed
 
