@@ -21,10 +21,14 @@ Requires the test stack with the public examples (SUPERSET_LOAD_EXAMPLES=1) and 
 
 Usage:
     SUPERSET_URL=... SUPERSET_USERNAME=... SUPERSET_PASSWORD=... \\
-        python bin/scripts/calibrate_sizing.py 6.1.0 [--viewports 1366,1920]
+        python bin/scripts/calibrate_sizing.py 6.1.0 [--viewports 1366,1920] [--css dashboard.css] \\
+        [--output my_profile.json]
 
 Output: supersetapiplus/dashboards/layout/profiles/sizing_profile_<version>.json (``provenance`` and ``profile``),
-shipped with the package: ``sizing.calibrated_profile()`` loads it.
+shipped with the package: ``sizing.calibrated_profile()`` loads it. An instance whose dashboards use their own CSS
+calibrates its own profile with ``--css`` (applied to the calibration dashboard; the file name becomes the profile's
+``theme`` and the CSS is recorded in the provenance) and ``--output`` (written outside the package); load it with
+``SizingProfile.model_validate(json.load(file)["profile"])``.
 """
 from __future__ import annotations
 
@@ -36,9 +40,10 @@ import math
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from playwright.sync_api import Page, sync_playwright
+if TYPE_CHECKING:
+    from playwright.sync_api import Page
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -55,6 +60,7 @@ from supersetapiplus.dashboards.layout.sizing import (  # noqa: E402
     estimate_markdown,
     estimate_pivot_table,
     estimate_table,
+    label_lines,
 )
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter  # noqa: E402
 
@@ -67,6 +73,9 @@ VIEWPORT_HEIGHT = 4000
 SAMPLE_TEXT = ("The quick brown fox jumps over the lazy dog while five boxing wizards jump quickly and "
                "a sphinx of black quartz judges my vow")
 LONG_TITLE = "A chart title long enough to wrap in two lines on the narrowest chart of the calibration dashboard"
+# Long enough to wrap in more lines than Superset shows (it clamps chart titles): measures that limit.
+CLAMPED_TITLE = ("A chart title so long that it wraps in four or more lines on a narrow chart, more than the "
+                 "dashboard shows for a title")
 TABLE_ROWS = 10
 BARS = 10
 MARKDOWN = """# Heading 1
@@ -272,6 +281,7 @@ def calibration_charts(dataset_id: int) -> dict[str, tuple[Chart, int]]:
     charts: dict[str, tuple[Chart, int]] = {
         "frame": (new_chart("table", dataset_id, "frame", "gender"), 12),
         "long_title": (new_chart("table", dataset_id, LONG_TITLE, "gender"), 4),
+        "clamped_title": (new_chart("table", dataset_id, CLAMPED_TITLE, "gender"), 4),
         "table": (new_chart("table", dataset_id, "table", "name", row_limit=TABLE_ROWS), 12),
         "narrow_table": (new_chart("table", dataset_id, "narrow table", "name", row_limit=TABLE_ROWS), 6),
         # The totals row is drawn below the body (tfoot) and takes its height: verified as one more row.
@@ -331,7 +341,7 @@ def estimates(profile: SizingProfile, by_viewport: dict[int, dict[str, Any]], ti
     charts = by_viewport[min(by_viewport)]["charts"]
     # The totals row is not in tbody: counted as one more row, as the sizing check does (services.dashboard_sizing).
     rows = {key: len(chart["rows"]) + (key == "totals") for key, chart in charts.items() if "rows" in chart}
-    widths = {"long_title": 4, "narrow_table": 6}
+    widths = {"long_title": 4, "clamped_title": 4, "narrow_table": 6}
     units = {key: estimate_table(TableContent(rows=count, title=titles[key], search=key == "search",
                                               pagination=key == "search"),
                                  profile, Layout(columns=widths.get(key, 12))).min_units
@@ -390,14 +400,32 @@ def bar_measures(chart: dict[str, Any]) -> tuple[float, float]:
     return band, mean([end - start for start, end in runs]) / band
 
 
-def profile_from(version: str, by_viewport: dict[int, dict[str, Any]]) -> dict[str, Any]:
+def title_growth(frame: dict[str, Any], long_title: dict[str, Any], title_line: float) -> int:
+    """Title lines the long title header adds to the one-line header: a whole number, 0 when a theme clamps titles
+    at one line (then title_max_lines measures 1)."""
+    extra_lines = (long_title["header"] - frame["header"]) / title_line
+    if extra_lines < -0.1 or abs(extra_lines - round(extra_lines)) > 0.1:
+        raise RuntimeError(f"the long title header grows by {extra_lines:.2f} title lines, not a whole number >= 0")
+    return round(extra_lines)
+
+
+def title_max_lines(frame: dict[str, Any], clamped: dict[str, Any], title: str, title_line: float) -> int | None:
+    """The lines a chart title is clamped at: those the clamped title header shows, when fewer than its text wraps
+    in; None when it shows them all (no clamp)."""
+    shown = 1 + (clamped["header"] - frame["header"]) / title_line
+    if abs(shown - round(shown)) > 0.1:
+        raise RuntimeError(f"the clamped title header shows {shown:.2f} title lines, not a whole number")
+    wrapped = label_lines(title, clamped["title_area"] / frame["title_char"])
+    return round(shown) if round(shown) < wrapped else None
+
+
+def profile_from(version: str, by_viewport: dict[int, dict[str, Any]], titles: dict[str, str],
+                 theme: str = "default") -> dict[str, Any]:
     narrowest = by_viewport[min(by_viewport)]
     charts = narrowest["charts"]
     frame, long_title, table = charts["frame"], charts["long_title"], charts["table"]
     title_line = round(frame["title_line"], 1)
-    extra_lines = (long_title["header"] - frame["header"]) / title_line
-    if extra_lines < 1 or abs(extra_lines - round(extra_lines)) > 0.1:
-        raise RuntimeError(f"the long title header grows by {extra_lines:.2f} title lines, not a whole number >= 1")
+    title_growth(frame, long_title, title_line)
     frame_total = frame["holder"] - frame["chart"]
     label_column = POLICY["table_label_column_width"] - table["cell_padding"]
     pivot = charts["pivot"]
@@ -412,7 +440,7 @@ def profile_from(version: str, by_viewport: dict[int, dict[str, Any]]) -> dict[s
             raise RuntimeError(f"heights differ on {viewport} px: the profile assumes they do not")
     return {
         "superset_version": version,
-        "theme": "default",
+        "theme": theme,
         "viewports": sorted(by_viewport),
         "grid": {
             "page_margin": round(narrowest["viewport"] - frame["width"] - narrowest["filter_bar"], 1),
@@ -425,6 +453,7 @@ def profile_from(version: str, by_viewport: dict[int, dict[str, Any]]) -> dict[s
             "title_line": title_line,
             "title_char": round(frame["title_char"], 2),
             "title_controls": round(frame["width"] - frame["title_area"], 1),
+            "title_max_lines": title_max_lines(frame, charts["clamped_title"], titles["clamped_title"], title_line),
         },
         "table": {
             "header": round(table["thead"], 1),
@@ -438,6 +467,10 @@ def profile_from(version: str, by_viewport: dict[int, dict[str, Any]]) -> dict[s
             "label_chars": math.floor(label_column / table["cell_char"]),
             "label_column_width": POLICY["table_label_column_width"],
             "unfixed_label_chars": math.floor((table["first_column"] - table["cell_padding"]) / table["cell_char"]),
+            # Superset widens an unfixed label column on larger screens.
+            "unfixed_label_chars_by_viewport": {
+                str(viewport): math.floor((measured["charts"]["table"]["first_column"] - table["cell_padding"])
+                                          / table["cell_char"]) for viewport, measured in by_viewport.items()},
             "min_label_lines": 1,
         },
         "pivot_table": {
@@ -451,6 +484,7 @@ def profile_from(version: str, by_viewport: dict[int, dict[str, Any]]) -> dict[s
             "band": round(POLICY["bar_thickness"] / bar_share, 1),
             "min_band": round(POLICY["min_bar_thickness"] / bar_share, 1),
             "max_band": round(POLICY["max_bar_thickness"] / bar_share, 1),
+            "bar_share": round(bar_share, 3),
             "axes_and_legend": math.ceil(plot),
             "axes_without_legend": math.ceil(charts["bars_without_legend"]["chart"] - BARS * without_legend_band),
             "label_chars": POLICY["bar_label_chars"],
@@ -480,6 +514,10 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("version", help="Superset version of the instance, e.g. 6.1.0")
     parser.add_argument("--viewports", default="1366,1920", help="screen widths in px (default: 1366,1920)")
     parser.add_argument("--raw", type=Path, help="also write the raw browser measures to this file")
+    parser.add_argument("--css", type=Path, help="CSS of the instance's dashboards, applied to the calibration "
+                        "dashboard (its file name becomes the profile's theme)")
+    parser.add_argument("--output", type=Path, help="where to write the profile (default: the package profile "
+                        "of the version, supersetapiplus/dashboards/layout/profiles/sizing_profile_<version>.json)")
     args = parser.parse_args(argv)
     viewports = sorted(int(width) for width in args.viewports.split(","))
     url = os.environ["SUPERSET_URL"].rstrip("/")
@@ -494,10 +532,14 @@ def main(argv: list[str] | None = None) -> None:
     layout = calibration_charts(dataset.id)
     charts = {key: chart for key, (chart, _) in layout.items()}
     titles = {key: chart.slice_name for key, chart in charts.items()}
-    dashboard = Dashboard(dashboard_title=PREFIX)
+    css = args.css.read_text(encoding="utf-8") if args.css else None
+    theme = args.css.stem if args.css else "default"
+    dashboard = Dashboard(dashboard_title=PREFIX, css=css)
     try:
         save_dashboard(client, dashboard, layout, dataset.id)
         by_viewport = {}
+        from playwright.sync_api import sync_playwright  # only to measure: the profile logic is tested without it
+
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path=os.getenv("CHROME_PATH") or None,
                                                  ignore_default_args=["--hide-scrollbars"])
@@ -510,7 +552,7 @@ def main(argv: list[str] | None = None) -> None:
                 by_viewport[viewport] = open_dashboard(pages[viewport], url, dashboard.id, titles)
             if args.raw:
                 write_json(args.raw, by_viewport)
-            profile = profile_from(args.version, by_viewport)
+            profile = profile_from(args.version, by_viewport, titles, theme)
             units = estimates(SizingProfile.model_validate(profile), by_viewport, titles)
             problems, fits_below = verify(client, pages[viewports[0]], url, dashboard, charts, titles, units)
             chromium = browser.version
@@ -520,10 +562,13 @@ def main(argv: list[str] | None = None) -> None:
     if problems:
         raise SystemExit("the measured profile does not predict the heights:\n" + "\n".join(problems))
 
-    target = ROOT / "supersetapiplus" / "dashboards" / "layout" / "profiles" / f"sizing_profile_{args.version}.json"
+    target = args.output or (ROOT / "supersetapiplus" / "dashboards" / "layout" / "profiles"
+                             / f"sizing_profile_{args.version}.json")
     write_json(target, {
         "provenance": {
-            "superset_version": args.version, "chromium": chromium, "viewports": viewports, "theme": "default",
+            "superset_version": args.version, "chromium": chromium, "viewports": viewports, "theme": theme,
+            # The CSS applied to the calibration dashboard (--css), None for the default theme.
+            "css": css,
             "font": by_viewport[viewports[0]]["font"], "dataset": DATASET, "policy": POLICY,
             "script": "bin/scripts/calibrate_sizing.py",
             # Check of the profile on the calibration dashboard (narrowest viewport): the estimated minimum height

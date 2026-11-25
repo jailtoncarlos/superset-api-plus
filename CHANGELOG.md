@@ -17,6 +17,18 @@
 * Sizing: `TableChart.fix_label_column_width(column, profile=None)` fixes the label column width
   (`column_config[column].columnWidth`) to the width the sizing profile was calibrated with, recorded in the profile
   as `table.label_column_width` (560 px in the 6.1.0 profile; optional in custom profiles) (#108).
+* Sizing: an unfixed table label column widens on larger screens; the profile records its characters per line on
+  each viewport (`TableMeasures.unfixed_label_chars_by_viewport`, 79 and 124 on 1366 and 1920 px), so the upper
+  bound of a table without a fixed label width reflects the widest viewport. The minimum is unchanged (#105).
+* Sizing: bar bounds as the visible bar thickness: the profile records the measured bar/band ratio
+  (`BarMeasures.bar_share`, 0.669) and `BarMeasures.with_thickness(bar=, min_bar=, max_bar=)` converts thicknesses
+  to bands (#106).
+* Calibration: `bin/scripts/calibrate_sizing.py --css FILE --output PATH` calibrates a profile with the CSS of an
+  instance's dashboards (recorded in the provenance; the file name becomes the profile's theme) and writes it
+  outside the package (#109).
+* Sizing: `FrameMeasures.title_max_lines` bounds the title lines of a theme that clamps chart titles. Measured on
+  Superset 6.1.0 with the default theme, titles are not clamped (a title wrapped in 5 lines shows them all), so the
+  calibrated value and the default are None; the calibration measures it on a title of 4 or more lines (#110).
 * Sizing: a `ChartRef` can declare what it draws (`ChartRef(..., shape=ChartShape.PIVOT_TABLE)`), so
   `add_chart(..., height="auto")` sizes a pivot table placed by reference with the pivot table formula, as the same
   chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its

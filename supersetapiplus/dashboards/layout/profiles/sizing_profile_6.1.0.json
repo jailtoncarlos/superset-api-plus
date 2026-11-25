@@ -4,6 +4,7 @@
    "axes_and_legend": 95,
    "axes_without_legend": 76,
    "band": 44.8,
+   "bar_share": 0.669,
    "label_chars": 85,
    "label_line": 12,
    "label_padding": 8,
@@ -15,7 +16,8 @@
    "padding": 44.0,
    "title_char": 7.85,
    "title_controls": 62,
-   "title_line": 25.1
+   "title_line": 25.1,
+   "title_max_lines": null
   },
   "grid": {
    "page_margin": 47,
@@ -104,7 +106,11 @@
    "row": 29.3,
    "search": 41.1,
    "text_line": 18.9,
-   "unfixed_label_chars": 79
+   "unfixed_label_chars": 79,
+   "unfixed_label_chars_by_viewport": {
+    "1366": 79,
+    "1920": 124
+   }
   },
   "theme": "default",
   "viewports": [
@@ -114,6 +120,7 @@
  },
  "provenance": {
   "chromium": "158.0.8127.18",
+  "css": null,
   "dataset": "birth_names",
   "date": "2026-11-25",
   "font": "Inter, Helvetica, Arial, sans-serif",
@@ -133,6 +140,10 @@
   "superset_version": "6.1.0",
   "theme": "default",
   "verification": {
+   "clamped_title": {
+    "fits_one_unit_below": true,
+    "min_units": 35
+   },
    "frame": {
     "fits_one_unit_below": false,
     "min_units": 22
