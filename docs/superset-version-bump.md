@@ -41,7 +41,7 @@ python bin/scripts/extract_query_contexts.py <v>   # ui_query_contexts_<v>/ (Exp
 python bin/scripts/extract_ui_defaults.py <v>      # ui_defaults_<v>/ (form_data of a new chart)
 python bin/scripts/extract_ui_controls.py <v>      # ui_controls_<v>.json (controls read by buildQuery)
 python bin/scripts/extract_example_query_contexts.py <v>  # example_query_contexts_<v>.json (example charts)
-python bin/scripts/calibrate_sizing.py <v>         # sizing_profile_<v>.json (chart sizing measures)
+python bin/scripts/calibrate_sizing.py <v>         # dashboards/layout/profiles/sizing_profile_<v>.json (package)
 ```
 
 The sizing calibration builds a dashboard on `birth_names`, measures it in Chromium (scrollbars shown) on 1366 and

@@ -182,6 +182,11 @@ class NodePositionValidationError(ValidationError):
         super().__init__(message, solution)
 
 
+class SizingError(NodePositionValidationError):
+    """With ``position_json.sizing = "strict"``, a component placed with its content has a height that does not fit
+    it (supersetapiplus.dashboards.layout.sizing); raised before the layout is sent."""
+
+
 class LayoutWarning(UserWarning):
     """A dashboard layout read from Superset breaks a rule of the dashboard renderer; it is sent as read."""
 
