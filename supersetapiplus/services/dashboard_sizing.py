@@ -10,7 +10,7 @@ estimated from their text. It never writes: the result is a :class:`SizingReport
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import dataclass, field, replace
 from typing import Any, Protocol
 
@@ -51,7 +51,9 @@ class _Client(Protocol):
 @dataclass(frozen=True)
 class ComponentSizing:
     """The check of one chart or markdown component: its shape (None for charts the formulas do not cover), the
-    estimate and the problem when its height does not fit, or why it was not checked (``skipped``)."""
+    estimate and the problem when its height does not fit, or why it was not checked (``skipped``).
+    ``scrolls``: the component may scroll by design (``check(scrolls=...)``), so a height below its content is not a
+    problem; more empty space than tolerated still is."""
     component_id: str
     title: str
     shape: ChartShape | None
@@ -60,6 +62,7 @@ class ComponentSizing:
     estimate: SizingEstimate | None = None
     problem: str | None = None
     skipped: str | None = None
+    scrolls: bool = False
 
 
 @dataclass(frozen=True)
@@ -82,6 +85,7 @@ class SizingReport:
             span = f"{item.estimate.min_units}-{item.estimate.max_units} (recommended {item.estimate.recommended_units})"
             lines.append(f"{item.title}: height {item.height}, content {span}"
                          + (f": {item.problem}" if item.problem else ": ok")
+                         + (" [scrolls by design]" if item.scrolls else "")
                          + (" [approximate]" if item.estimate.approximate else ""))
         return "\n".join(lines)
 
@@ -187,7 +191,7 @@ class DashboardSizing:
         self.client = client
 
     def check(self, dashboard_id: int, profile: SizingProfile | None = None, max_rows: int | None = None,
-              warn: bool = True) -> SizingReport:
+              warn: bool = True, scrolls: Collection[int | str] = ()) -> SizingReport:
         """Checks each chart and markdown component of the dashboard against its content.
 
         Args:
@@ -195,6 +199,9 @@ class DashboardSizing:
             profile: the measures (default: the calibrated profile of the target Superset version, default theme).
             max_rows: rows (or bars) above which a table stops growing and scrolls; None: every row counts.
             warn: emit a SizingWarning for each component whose height does not fit.
+            scrolls: components that scroll by design, by chart id or component id (e.g. a table whose rows depend
+                on the data, or a free text table of fixed height): a height below their content is not reported;
+                more empty space than tolerated still is.
         """
         profile = profile or calibrated_profile()
         dashboard = self.client.dashboards.get(dashboard_id)
@@ -204,16 +211,19 @@ class DashboardSizing:
         items = []
         for component_id in _in_layout_order(layout):
             data = layout.components[component_id]
+            scroll = component_id in scrolls or (data.get("meta") or {}).get("chartId") in scrolls
             item = self._check_component(component_id, data, profile, max_rows, filter_bar,
-                                         layout.rendered_width(component_id))
+                                         layout.rendered_width(component_id), scroll)
             if item.problem and warn:
                 warnings.warn(f"{item.title}: {item.problem}", SizingWarning, stacklevel=2)
             items.append(item)
         return SizingReport(dashboard_id, tuple(items))
 
     def _check_component(self, component_id: str, data: dict[str, Any], profile: SizingProfile,
-                         max_rows: int | None, filter_bar: bool, width: int | None = None) -> ComponentSizing:
-        """`width`: the grid columns the component is drawn on (DashboardLayout.rendered_width), default its own."""
+                         max_rows: int | None, filter_bar: bool, width: int | None = None,
+                         scrolls: bool = False) -> ComponentSizing:
+        """`width`: the grid columns the component is drawn on (DashboardLayout.rendered_width), default its own;
+        `scrolls`: the component scrolls by design (only more empty space than tolerated is a problem)."""
         meta = data.get("meta") or {}
         width, height = width or meta.get("width"), meta.get("height")
         if data.get("type") == "MARKDOWN":
@@ -234,7 +244,8 @@ class DashboardSizing:
             # Only the label column's wrapping is known: other text columns may wrap too in a narrow chart.
             result = replace(result, approximate=True, reasons=(
                 *result.reasons, f"{columns} columns: rows may be taller where columns other than the label wrap"))
-        return ComponentSizing(component_id, title, shape, width, height, result, result.problem(height))
+        problem = None if scrolls and height < result.min_units else result.problem(height)
+        return ComponentSizing(component_id, title, shape, width, height, result, problem, scrolls=scrolls)
 
     def _chart_content(self, chart_id: object, title: str) -> tuple[ChartShape | None, Content | str, int]:
         """The shape, content and number of data columns of a chart, or (shape, why it is not checked, 0)."""
