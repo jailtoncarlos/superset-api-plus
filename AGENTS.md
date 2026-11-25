@@ -60,6 +60,10 @@ institutional GitLab and is written in Portuguese; that does not change the lang
     form_data); `supersetapiplus/charts/explore.py` holds them (`tests/unit/test_explore_form_data.py`)
   - `bin/scripts/extract_example_layouts.py <version>` → `example_layouts_<version>.json`: the layouts of
     the example dashboards shipped with Superset, which the layout validation must accept
+  - `bin/scripts/calibrate_sizing.py <version>` → `sizing_profile_<version>.json`: the chart sizing measures
+    (`dashboards/layout/sizing.py`) taken in Chromium on a calibration dashboard built on the examples, checked on
+    that dashboard before writing, with provenance (Chromium version, viewports, theme, font) and the values chosen,
+    not measured (`POLICY`)
   The excerpts downloaded from the tag record their provenance (tag, commit SHA, source paths); an
   extractor that finds nothing for a symbol fails instead of writing an empty set (`tests/unit/test_extractors.py`),
   and every key of the enum excerpt must be named by some test or module (`test_enum_conformance.py`).
