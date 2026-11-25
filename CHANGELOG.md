@@ -4,6 +4,13 @@
 
 ### Added
 
+* Sizing check of a saved dashboard: `client.dashboard_sizing.check(..., scrolls=...)` takes the components that
+  scroll by design (chart ids or component ids), such as tables whose rows depend on the data or free text tables of
+  fixed height. A height below their content is no longer reported for them; more empty space than tolerated still
+  is, and the report marks them (`ComponentSizing.scrolls`) (#119).
+* The calibration (`bin/scripts/calibrate_sizing.py`) checks a table with a totals row: measured in Chromium on
+  Superset 6.1.0, the totals row is drawn below the body and takes the height of one more row, as the sizing check
+  counts it (#119).
 * Sizing: a `ChartRef` can declare what it draws (`ChartRef(..., shape=ChartShape.PIVOT_TABLE)`), so
   `add_chart(..., height="auto")` sizes a pivot table placed by reference with the pivot table formula, as the same
   chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its

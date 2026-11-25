@@ -330,6 +330,13 @@ layout.vertical_filter_bar = True   # or: force it (False: filters on top, or no
 
 `client.dashboard_sizing.check(dashboard_id)` checks a dashboard already saved, without writing: it reads the
 data each table, pivot table and bar chart shows and returns a report (`report.problems`, `report.summary()`).
+A table's totals row (`show_totals`) takes the height of one more row. Components that scroll by design, such as a
+table whose rows depend on the data or a free text table of fixed height, are listed in `scrolls` (chart ids or
+component ids): a height below their content is not reported for them, more empty space than tolerated still is.
+
+```python
+report = client.dashboard_sizing.check(dashboard_id, max_rows=15, scrolls={chart_id, "CHART-free-text"})
+```
 
 The measures (chart frame, table rows, bar band, markdown styles) come from a profile calibrated in Chromium for
 Superset 6.1.0 with the default theme on 1366 and 1920 px screens (`bin/scripts/calibrate_sizing.py`). An instance

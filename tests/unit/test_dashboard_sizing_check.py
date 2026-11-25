@@ -138,3 +138,35 @@ def test_without_a_fixed_width_the_label_is_the_first_dimension():
     raw = {"query_mode": "raw", "all_columns": ["campus", "region"]}
     assert _table_content(raw, WIDE, "").labels[0] == "A campus name long enough to wrap"
     assert _table_content({}, WIDE, "").labels == ["North", "South"]  # nothing known: the first column
+
+
+def _dashboard_with_two_tables(monkeypatch, rows: int, height: int):
+    """A service whose dashboard has two tables of `rows` rows and `height` units (charts 1 and 2), content stubbed."""
+    from types import SimpleNamespace
+
+    from supersetapiplus.dashboards.layout import ChartRef, DashboardLayout
+    from supersetapiplus.dashboards.layout.sizing import TableContent
+
+    layout = DashboardLayout.empty()
+    components = [layout.add_chart(ChartRef(chart_id, f"Table {chart_id}"), width=12, height=height)
+                  for chart_id in (1, 2)]
+    dashboard = SimpleNamespace(position_json=layout, json_metadata=None)
+    service = DashboardSizing(client=SimpleNamespace(dashboards=SimpleNamespace(get=lambda dashboard_id: dashboard)))
+    monkeypatch.setattr(service, "_chart_content",
+                        lambda chart_id, title: (ChartShape.TABLE, TableContent(rows=rows, title=title), 2))
+    return service, [component.id for component in components]
+
+
+def test_components_that_scroll_by_design_are_not_reported_below_their_content(monkeypatch):
+    service, (first, second) = _dashboard_with_two_tables(monkeypatch, rows=40, height=30)
+    assert len(service.check(1, warn=False).problems) == 2
+    for scrolls in ({1}, {first}):  # by chart id or by component id
+        report = service.check(1, warn=False, scrolls=scrolls)
+        assert [item.component_id for item in report.problems] == [second]
+        assert report.components[0].scrolls and "[scrolls by design]" in report.summary().splitlines()[0]
+
+
+def test_empty_space_is_still_reported_on_components_that_scroll_by_design(monkeypatch):
+    service, _ = _dashboard_with_two_tables(monkeypatch, rows=2, height=100)
+    report = service.check(1, warn=False, scrolls={1, 2})
+    assert all("empty space" in str(item.problem) for item in report.components)
