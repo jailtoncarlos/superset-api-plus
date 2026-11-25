@@ -255,7 +255,7 @@ def _row_heights(rows: int, labels: Sequence[str], row: float, text_line: float,
     """Px of each visible row: rows with a known label grow with its wrapped lines (at least `min_lines`); the
     others take one line. Above `max_rows` the tallest `max_rows` remain (the table stops growing and scrolls)."""
     heights = [row + text_line * (max(min_lines, label_lines(label, chars)) - 1) for label in labels[:rows]]
-    heights += [row] * (rows - len(heights))
+    heights += [row] * max(0, min(rows, max_rows) - len(heights))
     return sorted(heights, reverse=True)[:max_rows]
 
 

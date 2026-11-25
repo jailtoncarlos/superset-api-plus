@@ -1,5 +1,7 @@
 """Heights estimated from the content (supersetapiplus.dashboards.layout.sizing): pure arithmetic on a synthetic
 measure profile, no HTTP. The calibrated profiles and their check in a browser come with the calibration script."""
+import tracemalloc
+
 import pytest
 from pydantic import ValidationError
 
@@ -95,6 +97,27 @@ def test_table_rows_are_capped_and_unknown_rows_use_the_cap():
     assert any("scrolls" in reason for reason in capped.reasons)
     unknown = estimate_table(TableContent(rows=None), PROFILE, max_rows=15)
     assert unknown.min_units == capped.min_units and any("unknown" in reason for reason in unknown.reasons)
+
+
+@pytest.mark.parametrize("estimate", [estimate_table, estimate_pivot_table])
+@pytest.mark.parametrize("labels", [(), ("word " * 40,)])
+def test_capped_table_memory_is_bounded_for_large_row_counts(estimate, labels):
+    tracemalloc.start()
+    try:
+        estimate(TableContent(rows=1_000_000, labels=labels), PROFILE, max_rows=15)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    # A million row pointers take several MB; sizing 15 visible rows should stay well below 1 MB.
+    assert peak < 1_000_000
+
+
+@pytest.mark.parametrize("estimate, expected_units", [(estimate_table, 32), (estimate_pivot_table, 38)])
+def test_capped_tables_keep_the_tallest_labels_beyond_the_cap(estimate, expected_units):
+    labels = ["short"] * 15 + ["word " * 20, "word " * 40]
+    result = estimate(TableContent(rows=20, labels=labels, fixed_label_width=True), PROFILE, max_rows=2)
+    # The last two labels wrap to two and three lines: 255.5 px for a table, 301 px for a pivot table.
+    assert (result.min_units, result.recommended_units) == (expected_units, expected_units)
 
 
 def test_a_narrower_table_has_a_taller_header_and_a_long_title_wraps():
