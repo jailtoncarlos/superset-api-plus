@@ -263,8 +263,8 @@ def new_chart(viz_type: str, dataset_id: int, title: str, dimension: str | None 
     return chart
 
 
-def build_dashboard(client: SupersetClient, dataset_id: int) -> tuple[Dashboard, dict[str, Chart], dict[str, str]]:
-    """The calibration dashboard: each chart with its width in grid columns; returns the titles by key."""
+def calibration_charts(dataset_id: int) -> dict[str, tuple[Chart, int]]:
+    """The charts of the calibration dashboard (not saved yet), each with its width in grid columns."""
     charts: dict[str, tuple[Chart, int]] = {
         "frame": (new_chart("table", dataset_id, "frame", "gender"), 12),
         "long_title": (new_chart("table", dataset_id, LONG_TITLE, "gender"), 4),
@@ -281,18 +281,28 @@ def build_dashboard(client: SupersetClient, dataset_id: int) -> tuple[Dashboard,
     for key in ("bars", "bars_without_legend"):
         charts[key][0].set_x_axis("state")
         set_params(charts[key][0], orientation="horizontal")
-    dashboard = Dashboard(dashboard_title=PREFIX)
+    return charts
+
+
+def save_dashboard(client: SupersetClient, dashboard: Dashboard, charts: dict[str, tuple[Chart, int]],
+                   dataset_id: int) -> None:
+    """Creates the dashboard and its charts in Superset; each object gets its id as soon as it is created, so the
+    caller can remove what was created when a later step fails."""
     client.dashboards.add(dashboard)
-    titles = {}
-    for key, (chart, width) in charts.items():
-        title = chart.slice_name
-        row = dashboard.position.add_row()
-        dashboard.add_chart(chart, title, parent=row, width=width, height=60)
-        titles[key] = title
+    for chart, width in charts.values():
+        dashboard.add_chart(chart, chart.slice_name, parent=dashboard.position.add_row(), width=width, height=60)
     dashboard.position.add_markdown(MARKDOWN, parent=dashboard.position.add_row(), width=12, height=80)
     dashboard.json_metadata.add_native_filter("Gender", dataset=dataset_id, column="gender")
     dashboard.save()
-    return dashboard, {key: chart for key, (chart, _) in charts.items()}, titles
+
+
+def remove(client: SupersetClient, dashboard: Dashboard, charts: dict[str, Chart]) -> None:
+    """Removes the dashboard and the charts that were created (those with an id)."""
+    if dashboard.id:
+        client.dashboards.delete(dashboard.id)
+    for chart in charts.values():
+        if chart.id:
+            client.charts.delete(chart.id)
 
 
 def open_dashboard(page: Page, url: str, dashboard_id: int, titles: dict[str, str]) -> dict[str, Any]:
@@ -473,8 +483,12 @@ def main(argv: list[str] | None = None) -> None:
     dataset_filter.add("table_name", QueryOperator.EQUAL, DATASET)
     dataset = client.datasets.find_one(dataset_filter)
 
-    dashboard, charts, titles = build_dashboard(client, dataset.id)
+    layout = calibration_charts(dataset.id)
+    charts = {key: chart for key, (chart, _) in layout.items()}
+    titles = {key: chart.slice_name for key, chart in charts.items()}
+    dashboard = Dashboard(dashboard_title=PREFIX)
     try:
+        save_dashboard(client, dashboard, layout, dataset.id)
         by_viewport = {}
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path=os.getenv("CHROME_PATH") or None,
@@ -494,9 +508,7 @@ def main(argv: list[str] | None = None) -> None:
             chromium = browser.version
             browser.close()
     finally:
-        client.dashboards.delete(dashboard.id)
-        for chart in charts.values():
-            client.charts.delete(chart.id)
+        remove(client, dashboard, charts)
     if problems:
         raise SystemExit("the measured profile does not predict the heights:\n" + "\n".join(problems))
 
