@@ -36,6 +36,10 @@ include = ["supersetapiplus*"]
 supersetapiplus = ["py.typed", "dashboards/layout/profiles/*.json"]
 
 [project.optional-dependencies]
+# Browser check of a dashboard (client.dashboard_sizing.check_in_browser); then: playwright install chromium.
+browser = [
+  "playwright>=1.49",
+]
 dev = [
   "ipdb>=0.13.13",
   "ipython>=8.39.0",

@@ -29,6 +29,7 @@ from typing import Any, ClassVar
 import pytest
 
 from supersetapiplus.dashboards.dashboards import Dashboard
+from supersetapiplus.dashboards.layout.sizing import calibrated_profile
 from supersetapiplus.exceptions import SizingWarning, UnsupportedTypeError
 
 from ..conftest import Cleanup, unique_name
@@ -251,6 +252,18 @@ class ExampleDashboardChecks:
         assert all(item.estimate is not None for item in sized), [item.skipped for item in sized]
         after = stored(client, client.dashboards, original.id)
         assert (after["changed_on"], after["position_json"]) == (before["changed_on"], before["position_json"])
+
+    def test_browser_check_measures_every_component_drawn(self, client, original, chromium):
+        """check_in_browser on the example dashboard: every chart and markdown component is reported on each
+        viewport, the ones drawn with their measures (the heights of the examples are not the library's concern)."""
+        report = client.dashboard_sizing.check_in_browser(original.id)
+        placed = sorted(cid for cid, data in original.position_json.components.items()
+                        if data.get("type") in ("CHART", "MARKDOWN"))
+        for viewport in calibrated_profile().viewports:
+            items = [item for item in report.components if item.viewport == viewport]
+            assert sorted(item.component_id for item in items) == placed
+            assert any(item.shown for item in items)
+            assert all(item.scrolls is not None for item in items if item.shown)
 
     def test_dashboard_round_trips_without_loss(self, client, original):
         written = original.to_json()

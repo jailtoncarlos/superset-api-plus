@@ -217,6 +217,11 @@ FREE_TEXT = {
     "services.dashboard_sizing.ComponentSizing.title": "chart title shown on the dashboard (instance data)",
     "services.dashboard_sizing.ComponentSizing.problem": "explanation written by the library",
     "services.dashboard_sizing.ComponentSizing.skipped": "explanation written by the library",
+    "services.dashboard_browser.BrowserComponent.component_id": "id of a position_json component (instance data)",
+    "services.dashboard_browser.BrowserComponent.title": "chart title shown on the dashboard (instance data)",
+    "services.dashboard_browser.BrowserComponent.problems": "explanations written by the library",
+    "services.dashboard_browser._Placed.component_id": "id of a position_json component (instance data)",
+    "services.dashboard_browser._Placed.title": "chart title shown on the dashboard (instance data)",
 }
 
 

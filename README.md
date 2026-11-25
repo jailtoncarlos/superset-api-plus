@@ -372,6 +372,22 @@ outside the package, then loaded and set on the layout (`layout.sizing_profile =
 python bin/scripts/calibrate_sizing.py 6.1.0 --css dashboard.css --output sizing_profile.json
 ```
 
+`client.dashboard_sizing.check_in_browser(dashboard_id)` looks at the dashboard itself: it opens it in Chromium on
+each viewport of the profile, with the client's session (`client.enable_session_mode()`), and reports for each chart
+and markdown block drawn whether its content scrolls, the empty space below a table or pivot table, the thickness of
+horizontal bars and whether its title is clipped, against the profile's tolerances (`scrolls=` as in `check`). It
+needs the `browser` extra and a Chromium (`CHROME_PATH`, or the one Playwright installs). Superset draws only the
+tabs open when the dashboard loads: components in other tabs are reported as not shown.
+
+```bash
+pip install "superset-api-plus[browser]" && playwright install chromium
+```
+
+```python
+report = client.dashboard_sizing.check_in_browser(dashboard_id)
+print(report.summary())   # "Sales by region @ 1366 px: 180 px empty below the content (tolerated 112)", ...
+```
+
 ## Errors
 
 HTTP errors are mapped by status, whatever the body format: `UnauthorizedError` (401, also a rejected JWT),
