@@ -67,13 +67,26 @@ class ComponentSizing:
 
 @dataclass(frozen=True)
 class SizingReport:
-    """The checked components of a dashboard, in layout order."""
+    """The checked components of a dashboard, in layout order, and the layout they were read from."""
     dashboard_id: int
     components: tuple[ComponentSizing, ...] = field(default=())
+    layout: DashboardLayout | None = field(default=None, repr=False, compare=False)
 
     @property
     def problems(self) -> list[ComponentSizing]:
         return [component for component in self.components if component.problem]
+
+    def adjusted_layout(self) -> DashboardLayout:
+        """A copy of the checked layout (``position_json``) with the recommended height of each component whose
+        height does not fit its content; the other components and the read layout are unchanged, and nothing is
+        written. To apply it: ``dashboard.position_json = report.adjusted_layout()``, then ``dashboard.save()``."""
+        if self.layout is None:
+            raise ValueError("the report has no layout: build it with client.dashboard_sizing.check")
+        adjusted = DashboardLayout.model_validate(self.layout.model_dump())
+        for item in self.problems:
+            if item.estimate is not None:
+                adjusted.components[item.component_id].setdefault("meta", {})["height"] = item.estimate.recommended_units
+        return adjusted
 
     def summary(self) -> str:
         """One line per component: height, estimated range and the problem or why it was skipped."""
@@ -217,7 +230,7 @@ class DashboardSizing:
             if item.problem and warn:
                 warnings.warn(f"{item.title}: {item.problem}", SizingWarning, stacklevel=2)
             items.append(item)
-        return SizingReport(dashboard_id, tuple(items))
+        return SizingReport(dashboard_id, tuple(items), layout)
 
     def _check_component(self, component_id: str, data: dict[str, Any], profile: SizingProfile,
                          max_rows: int | None, filter_bar: bool, width: int | None = None,

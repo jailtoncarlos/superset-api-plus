@@ -11,6 +11,9 @@
 * The calibration (`bin/scripts/calibrate_sizing.py`) checks a table with a totals row: measured in Chromium on
   Superset 6.1.0, the totals row is drawn below the body and takes the height of one more row, as the sizing check
   counts it (#119).
+* Sizing check of a saved dashboard: `SizingReport.adjusted_layout()` returns a copy of the checked layout with the
+  recommended height of each component that does not fit, without writing; save it as the dashboard's
+  `position_json` to apply it (#111).
 * Sizing: a `ChartRef` can declare what it draws (`ChartRef(..., shape=ChartShape.PIVOT_TABLE)`), so
   `add_chart(..., height="auto")` sizes a pivot table placed by reference with the pivot table formula, as the same
   chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its
