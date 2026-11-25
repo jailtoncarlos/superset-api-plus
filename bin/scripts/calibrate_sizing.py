@@ -436,6 +436,7 @@ def profile_from(version: str, by_viewport: dict[int, dict[str, Any]]) -> dict[s
             "search": round(charts["search"]["search"], 1),
             "pagination": round(charts["search"]["pagination"], 1),
             "label_chars": math.floor(label_column / table["cell_char"]),
+            "label_column_width": POLICY["table_label_column_width"],
             "unfixed_label_chars": math.floor((table["first_column"] - table["cell_padding"]) / table["cell_char"]),
             "min_label_lines": 1,
         },

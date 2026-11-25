@@ -11,6 +11,9 @@
 * The calibration (`bin/scripts/calibrate_sizing.py`) checks a table with a totals row: measured in Chromium on
   Superset 6.1.0, the totals row is drawn below the body and takes the height of one more row, as the sizing check
   counts it (#119).
+* Sizing: `TableChart.fix_label_column_width(column, profile=None)` fixes the label column width
+  (`column_config[column].columnWidth`) to the width the sizing profile was calibrated with, recorded in the profile
+  as `table.label_column_width` (560 px in the 6.1.0 profile; optional in custom profiles) (#108).
 * Sizing: a `ChartRef` can declare what it draws (`ChartRef(..., shape=ChartShape.PIVOT_TABLE)`), so
   `add_chart(..., height="auto")` sizes a pivot table placed by reference with the pivot table formula, as the same
   chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its
