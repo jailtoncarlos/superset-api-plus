@@ -82,12 +82,19 @@ class Dashboard(ApiModel):
         """The layout (`position_json`); a dashboard stored without one gets an empty layout."""
         if not isinstance(self.position_json, DashboardLayout):
             self.position_json = DashboardLayout.empty(self.dashboard_title)
+        self._sync_filter_bar()
         return self.position_json
 
     def reset_layout(self) -> DashboardLayout:
         """Replaces the layout with an empty one (root, grid and title header); returns the new layout."""
         self.position_json = DashboardLayout.empty(self.dashboard_title)
+        self._sync_filter_bar()
         return self.position_json
+
+    def _sync_filter_bar(self) -> None:
+        """The layout's sizing estimates follow whether this dashboard shows the vertical native filter bar."""
+        if isinstance(self.position_json, DashboardLayout) and isinstance(self.json_metadata, Metadata):
+            self.position_json.follow_dashboard_filter_bar(self.json_metadata.shows_vertical_filter_bar())
 
     def to_dict(self, columns: list[str] | None = None, convert_to_json: bool = False) -> dict[str, Any]:
         # Native filter scopes (chartsInScope/tabsInScope) are derived from the layout, as the editor does.
@@ -96,6 +103,7 @@ class Dashboard(ApiModel):
                 self.position_json.set_title(self.dashboard_title)
             if isinstance(self.json_metadata, Metadata):
                 self.json_metadata.update_native_filter_scopes(self.position_json)
+            self._sync_filter_bar()
         return super().to_dict(columns, convert_to_json)
 
     def add_chart(self, chart: SavedChart, title: str, parent: LayoutParent = None, height: Height = 50, width: int = 4,

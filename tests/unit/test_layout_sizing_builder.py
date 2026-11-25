@@ -7,6 +7,7 @@ import pytest
 
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.core.datasource import DataSource
+from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.layout import ChartRef, DashboardLayout
 from supersetapiplus.dashboards.layout.sizing import (
     BarsContent,
@@ -226,3 +227,48 @@ def test_a_title_changed_after_placing_the_chart_is_checked():
     placed.meta["sliceNameOverride"] = LONG_TITLE
     with pytest.raises(SizingError, match="below the content's minimum"):
         sent(layout)
+
+
+# Twelve paragraphs that wrap in one line more on a 4-column block when the vertical filter bar narrows the grid.
+TEXT = "\n\n".join(" ".join(["word"] * 9) for _ in range(12))
+
+
+def dashboard_with_filters(orientation: str | None) -> Dashboard:
+    dashboard = Dashboard(dashboard_title="Filters")
+    dashboard.json_metadata.add_native_filter("Region", dataset=1, column="region")
+    if orientation:
+        dashboard.json_metadata.filter_bar_orientation = orientation
+    return dashboard
+
+
+def full_width_minimum(text: str, columns: int) -> int:
+    return estimate_markdown(text, PROFILE, Layout(columns=columns, vertical_filter_bar=False)).min_units
+
+
+def test_a_dashboard_with_the_filter_bar_on_top_is_sized_on_the_full_grid_width():
+    dashboard = dashboard_with_filters("HORIZONTAL")
+    dashboard.position.sizing = "strict"
+    height = full_width_minimum(TEXT, 4)
+    assert height < estimate_markdown(TEXT, PROFILE, Layout(columns=4)).min_units  # the bar matters here
+    dashboard.position.add_markdown(TEXT, width=4, height=height)
+    dashboard.to_dict(convert_to_json=True)  # no SizingError: the grid is not narrowed by a vertical bar
+    auto = dashboard.position.add_markdown(TEXT, width=4, height="auto")
+    assert auto.meta["height"] == estimate_markdown(TEXT, PROFILE, Layout(columns=4, vertical_filter_bar=False)) \
+        .recommended_units
+
+
+def test_the_vertical_filter_bar_narrows_the_grid_when_the_dashboard_shows_it():
+    dashboard = dashboard_with_filters(None)  # vertical, the default
+    dashboard.position.sizing = "strict"
+    assert dashboard.position.vertical_filter_bar
+    dashboard.position.add_markdown(TEXT, width=4, height=full_width_minimum(TEXT, 4))
+    with pytest.raises(SizingError):
+        dashboard.to_dict(convert_to_json=True)
+
+
+def test_without_native_filters_there_is_no_filter_bar_and_the_user_can_force_it():
+    dashboard = Dashboard(dashboard_title="No filters")
+    assert dashboard.position.vertical_filter_bar is False
+    dashboard.position.vertical_filter_bar = True
+    assert dashboard.position.vertical_filter_bar is True
+    assert DashboardLayout.empty().vertical_filter_bar  # a layout on its own assumes the bar
