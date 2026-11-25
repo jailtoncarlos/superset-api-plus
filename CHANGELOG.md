@@ -31,11 +31,10 @@
   calibrated value and the default are None; the calibration measures it on a title of 4 or more lines (#110).
 * Browser check of a saved dashboard (optional extra `browser`, Playwright):
   `client.dashboard_sizing.check_in_browser(dashboard_id, profile=None, scrolls=(), chrome_path=None, timeout=None)`
-  opens it in
-  Chromium on each viewport of the profile and reports, per component drawn, scrolling, empty space below tables,
-  bar thickness and clipped titles against the profile's tolerances (`BrowserReport`). Each wait takes up to
-  `SUPERSET_API_PLUS_BROWSER_TIMEOUT` seconds (default 120, or `timeout=`); TLS is verified as the client does. It
-  never writes (#112).
+  opens it in Chromium on each viewport of the profile and reports, per component drawn, scrolling, empty space
+  below tables, bar thickness and clipped titles against the profile's tolerances (`BrowserReport`). Each wait takes
+  up to `SUPERSET_API_PLUS_BROWSER_TIMEOUT` seconds (default 120, or `timeout=`); TLS is verified as the client
+  does. It never writes (#112).
 * Sizing: a `ChartRef` can declare what it draws (`ChartRef(..., shape=ChartShape.PIVOT_TABLE)`), so
   `add_chart(..., height="auto")` sizes a pivot table placed by reference with the pivot table formula, as the same
   chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its
