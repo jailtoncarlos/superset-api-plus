@@ -97,8 +97,9 @@ class FrameMeasures(_Measures):
 
 class TableMeasures(_Measures):
     """Table (``table``): a row is ``row`` px with one line of text and grows by ``text_line`` per extra line of its
-    label. ``label_chars`` is the characters per line of the label column when its width is fixed (``columnWidth``),
-    ``unfixed_label_chars`` when Superset chooses it (narrowest viewport)."""
+    label. ``label_chars`` is the characters per line of the label column when its width is fixed (``columnWidth``)
+    at ``label_column_width`` px (None in a profile that does not record it), ``unfixed_label_chars`` when Superset
+    chooses it (narrowest viewport)."""
     header: float = Field(ge=0)
     narrow_header: float = Field(ge=0)
     row: float = Field(gt=0)
@@ -109,6 +110,7 @@ class TableMeasures(_Measures):
     label_chars: float = Field(gt=0)
     unfixed_label_chars: float = Field(gt=0)
     min_label_lines: int = Field(default=1, ge=1)
+    label_column_width: float | None = Field(default=None, gt=0)
 
 
 class PivotTableMeasures(_Measures):

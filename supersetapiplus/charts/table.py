@@ -23,6 +23,7 @@ from supersetapiplus.charts.types import (
 )
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.typing import SerializableOptional
+from supersetapiplus.dashboards.layout.sizing import SizingProfile, calibrated_profile
 from supersetapiplus.exceptions import ValidationError
 
 
@@ -182,6 +183,27 @@ class TableChart(Chart):
         if column_config:
             self.params._add_column_config(label, column_config)
             self.query_context.form_data._add_column_config(label, column_config)
+
+    def fix_label_column_width(self, column: str, profile: SizingProfile | None = None) -> int:
+        """Fixes the width of the label column (``column_config[column].columnWidth``) to the width the sizing
+        profile was calibrated with, so ``TableContent(fixed_label_width=True)`` estimates the rows as drawn.
+
+        Args:
+            column: the label column, as named in the chart data (a dimension name or an adhoc column label).
+            profile: the sizing profile (default: the calibrated profile of the target Superset version).
+
+        Returns the width in px. The other settings of the column are kept; params and form_data get the same value.
+        """
+        width = (profile or calibrated_profile()).table.label_column_width
+        if width is None:
+            raise ValueError("the sizing profile does not record the label column width it was calibrated with "
+                             "(TableMeasures.label_column_width)")
+        for target in (self.params, getattr(self.query_context, "form_data", None)):
+            if not isinstance(target, TableOption):  # e.g. a chart read without a query context
+                continue
+            config = (target.column_config or {}).get(column) or ColumnConfig.from_json({})
+            target._add_column_config(column, config.model_copy(update={"columnWidth": round(width)}))
+        return round(width)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

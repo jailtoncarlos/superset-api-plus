@@ -14,6 +14,9 @@
 * Sizing check of a saved dashboard: `SizingReport.adjusted_layout()` returns a copy of the checked layout with the
   recommended height of each component that does not fit, without writing; save it as the dashboard's
   `position_json` to apply it (#111).
+* Sizing: `TableChart.fix_label_column_width(column, profile=None)` fixes the label column width
+  (`column_config[column].columnWidth`) to the width the sizing profile was calibrated with, recorded in the profile
+  as `table.label_column_width` (560 px in the 6.1.0 profile; optional in custom profiles) (#108).
 * Sizing: a `ChartRef` can declare what it draws (`ChartRef(..., shape=ChartShape.PIVOT_TABLE)`), so
   `add_chart(..., height="auto")` sizes a pivot table placed by reference with the pivot table formula, as the same
   chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its
