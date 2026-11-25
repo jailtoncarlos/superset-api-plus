@@ -118,13 +118,26 @@ def _page_size(params: dict[str, Any], rows: int, columns: int) -> int:
         return 0
 
 
+def _label_column(params: dict[str, Any], names: list[str]) -> str | None:
+    """The column whose text wraps in each row (the label): the one with a fixed ``columnWidth`` in
+    ``column_config``, else the first dimension (``groupby``, or ``all_columns`` in raw mode), else the first column
+    of the result."""
+    config = params.get("column_config") or {}
+    fixed = [name for name in names if (config.get(name) or {}).get("columnWidth")]
+    if fixed:
+        return fixed[0]
+    dimensions = params.get("all_columns") if params.get("query_mode") == "raw" else params.get("groupby")
+    first = next((name for name in map(_column_name, dimensions or []) if name in names), None)
+    return first or (names[0] if names else None)
+
+
 def _table_content(params: dict[str, Any], result: dict[str, Any], title: str) -> TableContent:
-    """Rows and labels (first column) of a table, with its search box, pagination (one page shown) and totals row
-    (``show_totals`` in aggregate mode, a row below the data)."""
+    """Rows and labels (:func:`_label_column`) of a table, with its search box, pagination (one page shown) and
+    totals row (``show_totals`` in aggregate mode, a row below the data)."""
     data = result.get("data") or []
     rows = int(result.get("rowcount") or len(data))
     names = result.get("colnames") or []
-    label = names[0] if names else None
+    label = _label_column(params, names)
     page = _page_size(params, rows, len(names))
     if page and rows:
         rows = min(rows, page)
