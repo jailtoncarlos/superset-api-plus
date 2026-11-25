@@ -33,12 +33,18 @@ from supersetapiplus.dashboards.layout.sizing import (
 )
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.exceptions import BadRequestError, SizingWarning, UnsupportedTypeError
+from supersetapiplus.services.dashboard_browser import BrowserReport, DashboardBrowserCheck
 
 
 class _Client(Protocol):
     """What the service needs from SupersetClient (a protocol: services must not import the client layer)."""
+    host: str
     charts: Charts
     dashboards: Dashboards
+
+    @property
+    def session(self) -> requests.Session:
+        ...
 
     def post(self, url: str, **kwargs: Any) -> requests.Response:
         ...
@@ -231,6 +237,15 @@ class DashboardSizing:
                 warnings.warn(f"{item.title}: {item.problem}", SizingWarning, stacklevel=2)
             items.append(item)
         return SizingReport(dashboard_id, tuple(items), layout)
+
+    def check_in_browser(self, dashboard_id: int, profile: SizingProfile | None = None,
+                         scrolls: Collection[int | str] = (), chrome_path: str | None = None,
+                         timeout: float | None = None) -> BrowserReport:
+        """Opens the dashboard in Chromium on each viewport of the profile and reports, for each component drawn,
+        whether it scrolls, the empty space below tables, the bar thickness and clipped titles, against the
+        profile's tolerances (optional extra ``browser``; needs ``client.enable_session_mode()``). See
+        :mod:`supersetapiplus.services.dashboard_browser`."""
+        return DashboardBrowserCheck(self.client).check(dashboard_id, profile, scrolls, chrome_path, timeout)
 
     def _check_component(self, component_id: str, data: dict[str, Any], profile: SizingProfile,
                          max_rows: int | None, filter_bar: bool, width: int | None = None,
