@@ -97,6 +97,7 @@
    "footer": 16,
    "header": 29.4,
    "label_chars": 94,
+   "label_column_width": 560,
    "min_label_lines": 1,
    "narrow_header": 29.4,
    "pagination": 58,

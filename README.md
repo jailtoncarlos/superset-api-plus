@@ -312,6 +312,9 @@ Tables and pivot tables (`TableContent`: rows, labels, title, search box, pagina
 `position_json`. The formula comes from the chart's params; a `ChartRef` has none, so it is sized as a table
 (`TableContent`) or horizontal bars (`BarsContent`) unless it declares its shape:
 `ChartRef(chart_id, "Enrollments", shape=ChartShape.PIVOT_TABLE)` (`ChartShape` from the same `sizing` module).
+A table's rows grow with the lines of its label. When the label column width is left to Superset, it changes with
+the screen; `table.fix_label_column_width("region")` fixes it to the width the profile was calibrated with, and
+`TableContent(..., fixed_label_width=True)` then estimates the rows as drawn.
 When the layout is sent, the components placed with their content (and every markdown block)
 are checked against it: `layout.sizing = "warn"` (default) emits a `SizingWarning` when a height cuts the content
 or leaves too much empty space, `"strict"` raises `SizingError` (pivot tables, whose estimate is approximate, only
