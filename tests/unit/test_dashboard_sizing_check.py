@@ -66,3 +66,10 @@ def test_a_chart_whose_data_cannot_be_read_is_skipped_not_raised(monkeypatch):
                                     calibrated_profile(), None, False)
     assert (item.shape, item.estimate, item.skipped) == (ChartShape.TABLE, None,
                                                          "the chart data API refused its query (500)")
+
+
+def test_a_pivot_with_its_metrics_on_rows_shows_one_row_per_metric():
+    params = {"groupbyRows": ["region"], "metrics": ["count", "sum__total", "avg__total"], "metricsLayout": "ROWS"}
+    assert _pivot_content(params, RESULT, "").rows == 6  # 2 regions x 3 metrics
+    assert _pivot_content({**params, "groupbyRows": []}, RESULT, "").rows == 3
+    assert _pivot_content({**params, "metricsLayout": "COLUMNS"}, RESULT, "").rows == 2

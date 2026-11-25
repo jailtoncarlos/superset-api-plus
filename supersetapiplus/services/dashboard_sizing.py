@@ -118,11 +118,13 @@ def _table_content(params: dict[str, Any], result: dict[str, Any], title: str) -
 
 
 def _pivot_content(params: dict[str, Any], result: dict[str, Any], title: str) -> TableContent:
-    """Rows of a pivot table: the distinct values of its row dimensions (plus the totals row), labeled by the last."""
+    """Rows of a pivot table: the distinct values of its row dimensions, times the metrics when they are laid out on
+    rows (``metricsLayout: ROWS``), plus the totals row; labeled by the last row dimension."""
     columns = [name for name in map(_column_name, params.get("groupbyRows") or []) if name]
     keys = _distinct(result.get("data") or [], columns) if columns else [()]
+    per_key = max(1, len(params.get("metrics") or [])) if params.get("metricsLayout") == "ROWS" else 1
     totals = 1 if params.get("colTotals") else 0
-    return TableContent(rows=len(keys) + totals, labels=[key[-1] for key in keys if key], title=title)
+    return TableContent(rows=len(keys) * per_key + totals, labels=[key[-1] for key in keys if key], title=title)
 
 
 def _bars_content(params: dict[str, Any], result: dict[str, Any], title: str) -> BarsContent:
