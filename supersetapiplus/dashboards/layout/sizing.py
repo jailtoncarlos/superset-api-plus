@@ -399,7 +399,7 @@ def _markdown_blocks(markdown: str) -> list[_Block]:
             paragraph.clear()
             bold = 0
 
-    for line in _HTML_BREAK.sub("\n", markdown or "").replace("\r", "").split("\n"):
+    for line in _HTML_BREAK.sub("  \n", markdown or "").replace("\r", "").split("\n"):
         heading, item = _HEADING.match(line.strip()), _LIST_ITEM.match(line)
         if not line.strip() or _RULE.match(line) or heading or item:
             close()

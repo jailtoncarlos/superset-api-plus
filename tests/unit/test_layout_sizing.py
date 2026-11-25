@@ -127,6 +127,14 @@ def test_markdown_height_and_html_left_unestimated():
     assert html.approximate and html.reasons
 
 
+@pytest.mark.parametrize("line_break", ["<br>", "<br/>", "<br />", "<BR>", "<Br />", "  \n"])
+def test_markdown_explicit_breaks_preserve_rendered_lines(line_break):
+    estimate = estimate_markdown(line_break.join(["one", "two", "three"]), PROFILE)
+    # 32 px padding + three 22 px lines + 8 px bottom margin = 106 px -> 14 units, plus one margin unit.
+    assert (estimate.min_units, estimate.recommended_units, estimate.max_units) == (14, 15, 26)
+    assert estimate.reasons == () and not estimate.approximate
+
+
 def test_profiles_reject_invalid_measures():
     with pytest.raises(ValidationError):
         SizingProfile.model_validate({**PROFILE.model_dump(), "viewports": []})
