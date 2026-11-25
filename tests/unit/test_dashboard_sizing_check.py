@@ -1,5 +1,9 @@
 """Content of a saved chart read from the chart data result (services.dashboard_sizing): pure logic, no HTTP. The
 check against Superset is in tests/integration (test_dashboards.py and every example dashboard)."""
+import importlib
+
+from supersetapiplus.charts.charts import Chart
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.dashboards.layout.sizing import ChartShape, SizingEstimate, calibrated_profile
 from supersetapiplus.services.dashboard_sizing import (
     ComponentSizing,
@@ -103,3 +107,15 @@ def test_pivot_subtotals_add_a_row_per_partial_key():
 
 def test_a_pivot_without_row_dimensions_shows_the_totals_row():
     assert _pivot_content({"groupbyColumns": ["region"]}, RESULT, "").rows == 1
+
+
+def test_bars_of_a_legacy_chart_are_counted_on_its_migrated_x_axis():
+    importlib.import_module("supersetapiplus.charts.echarts_timeseries_bar")
+    chart = Chart.get_class("echarts_timeseries_bar", "supersetapiplus.charts.echarts_timeseries_bar").instance(
+        slice_name="Monthly", datasource=DataSource(id=1, type="table"))
+    chart.params.orientation = "horizontal"
+    chart.params.granularity_sqla = "month"  # saved before x_axis existed
+    chart.params.x_axis = None
+    params = chart.explore_params()
+    result = {"data": [{"month": f"2026-{m:02d}", "count": m} for m in range(1, 13)]}
+    assert _bars_content(params, result, "").bars == 12

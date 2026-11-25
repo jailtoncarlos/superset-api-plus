@@ -232,7 +232,7 @@ class DashboardSizing:
             return None, f"viz_type without a model ({error})", 0
         if not isinstance(chart, Chart):
             return None, "viz_type without a model", 0
-        params = chart.params.to_dict()
+        params = chart.explore_params()  # as the plugin sees them, e.g. a legacy granularity_sqla as the x axis
         shape = chart_shape(params)
         if shape is None:
             return None, f"{params.get('viz_type')} is not covered by the sizing formulas", 0
