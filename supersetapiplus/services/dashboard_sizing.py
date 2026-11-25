@@ -181,7 +181,8 @@ class DashboardSizing:
         else:
             title = str(meta.get("sliceNameOverride") or meta.get("sliceName") or component_id)
             shape, content, columns = self._chart_content(meta.get("chartId"), title)
-        if shape is None or not isinstance(content, (TableContent, BarsContent, str)):
+        # A chart's reason for not being checked is a str too: only markdown content is text.
+        if shape is None or isinstance(content, str) and shape is not ChartShape.MARKDOWN:
             return ComponentSizing(component_id, title, shape, width, height, skipped=str(content))
         if not isinstance(width, int) or not isinstance(height, int):
             return ComponentSizing(component_id, title, shape, width, height, skipped="no width or height stored")

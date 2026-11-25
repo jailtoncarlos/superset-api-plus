@@ -1,8 +1,9 @@
 """Content of a saved chart read from the chart data result (services.dashboard_sizing): pure logic, no HTTP. The
 check against Superset is in tests/integration (test_dashboards.py and every example dashboard)."""
-from supersetapiplus.dashboards.layout.sizing import ChartShape, SizingEstimate
+from supersetapiplus.dashboards.layout.sizing import ChartShape, SizingEstimate, calibrated_profile
 from supersetapiplus.services.dashboard_sizing import (
     ComponentSizing,
+    DashboardSizing,
     SizingReport,
     _bars_content,
     _pivot_content,
@@ -55,3 +56,13 @@ def test_the_report_lists_problems_and_summarizes_each_component():
         "Regions: height 10, content 30-45 (recommended 31): height 10 is below the content's minimum of 30 units",
         "Map: not checked (deck_scatter is not covered)",
     ]
+
+
+def test_a_chart_whose_data_cannot_be_read_is_skipped_not_raised(monkeypatch):
+    service = DashboardSizing(client=None)
+    monkeypatch.setattr(service, "_chart_content",
+                        lambda chart_id, title: (ChartShape.TABLE, "the chart data API refused its query (500)", 0))
+    item = service._check_component("CHART-a", {"type": "CHART", "meta": {"chartId": 1, "width": 6, "height": 40}},
+                                    calibrated_profile(), None, False)
+    assert (item.shape, item.estimate, item.skipped) == (ChartShape.TABLE, None,
+                                                         "the chart data API refused its query (500)")
