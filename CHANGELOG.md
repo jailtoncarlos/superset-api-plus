@@ -9,6 +9,11 @@
   chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its
   content (#117).
 
+### Documentation
+
+* README: the vertical native filter bar in the sizing estimates; add the native filters before placing components
+  with `height="auto"`, or set `layout.vertical_filter_bar` when the layout is built before them (#118).
+
 ## 2.6.1 (2026-11-25)
 
 Fixes of the chart sizing found when the consumer evaluated 2.6.0 against its own calculation (#100).

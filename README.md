@@ -316,6 +316,18 @@ are checked against it: `layout.sizing = "warn"` (default) emits a `SizingWarnin
 or leaves too much empty space, `"strict"` raises `SizingError` (pivot tables, whose estimate is approximate, only
 warn) and `"off"` skips the check.
 
+The vertical native filter bar takes width from the grid, so text wraps more and charts need more height. The layout
+of a dashboard leaves room for it when the dashboard has native filters shown vertically (the default orientation);
+a layout on its own always does. `height="auto"` is computed when the component is placed, so add the native filters
+first, or set the bar explicitly when the layout is built before them:
+
+```python
+dashboard.json_metadata.add_native_filter("Region", dataset=dataset_id, column="region")  # first the filters
+layout.add_chart(table, "Sales by region", width=6, height="auto", content=TableContent(rows=8, labels=regions))
+
+layout.vertical_filter_bar = True   # or: force it (False: filters on top, or none), then place the components
+```
+
 `client.dashboard_sizing.check(dashboard_id)` checks a dashboard already saved, without writing: it reads the
 data each table, pivot table and bar chart shows and returns a report (`report.problems`, `report.summary()`).
 
