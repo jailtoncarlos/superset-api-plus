@@ -192,3 +192,11 @@ def test_bold_text_counts_in_headings_as_in_paragraphs():
     assert sizing._markdown_blocks(heading)[0].bold == len(" ".join(["bold"] * 40))
     wide_bold = PROFILE.model_copy(update={"markdown": PROFILE.markdown.model_copy(update={"bold_width": 2.0})})
     assert sizing.markdown_px(heading, 12, 1366, wide_bold) > sizing.markdown_px(heading, 12, 1366, PROFILE)
+
+
+def test_bold_text_is_counted_on_its_own_hard_broken_line():
+    # 12 columns on 1366 px: 141 characters per paragraph line. The first line fills one line with plain text; the
+    # second has 10 bold characters. Charging the bold to the first line would wrap it to a second line.
+    markdown = "x" * 141 + "  \n**" + "y" * 10 + "**"
+    wide_bold = PROFILE.model_copy(update={"markdown": PROFILE.markdown.model_copy(update={"bold_width": 2.0})})
+    assert sizing.markdown_px(markdown, 12, 1366, wide_bold) == sizing.markdown_px(markdown, 12, 1366, PROFILE)

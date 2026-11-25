@@ -383,22 +383,34 @@ class _Block:
     kind: str  # "p", "li", "h1".."h6" or "hr"
     text: str = ""
     bold: int = 0
+    # Bold characters of each line of `text` (split at its newlines), when the block has hard breaks.
+    line_bold: tuple[int, ...] = ()
+
+
+def _paragraph_block(parts: list[tuple[str, int]]) -> _Block:
+    """A paragraph from its source lines (visible text, ending with a newline at a hard break; bold characters): a
+    soft break renders as a space, a hard one (two trailing spaces or <br>) as a new line, and the bold characters
+    are kept per rendered line."""
+    text = "".join(part if part.endswith("\n") else part + " " for part, _ in parts).rstrip()
+    line_bold, current = [], 0
+    for part, part_bold in parts:
+        current += part_bold
+        if part.endswith("\n"):
+            line_bold.append(current)
+            current = 0
+    line_bold.append(current)
+    return _Block("p", text, sum(line_bold), tuple(line_bold[:text.count("\n") + 1]))
 
 
 def _markdown_blocks(markdown: str) -> list[_Block]:
     """Blocks of the markdown in order; consecutive lines form a paragraph (two trailing spaces break the line)."""
     blocks: list[_Block] = []
-    paragraph: list[str] = []
-    bold = 0
+    paragraph: list[tuple[str, int]] = []  # (visible text, ending with a newline at a hard break; bold characters)
 
     def close() -> None:
-        nonlocal bold
         if paragraph:
-            # A soft break renders as a space, a hard one (two trailing spaces or <br>) as a new line.
-            text = "".join(part if part.endswith("\n") else part + " " for part in paragraph).rstrip()
-            blocks.append(_Block("p", text, bold))
+            blocks.append(_paragraph_block(paragraph))
             paragraph.clear()
-            bold = 0
 
     for line in _HTML_BREAK.sub("  \n", markdown or "").replace("\r", "").split("\n"):
         heading, item = _HEADING.match(line.strip()), _LIST_ITEM.match(line)
@@ -412,8 +424,7 @@ def _markdown_blocks(markdown: str) -> list[_Block]:
         elif item:
             blocks.append(_Block("li", _visible_text(item.group(1)), _bold_chars(item.group(1))))
         elif line.strip() and (visible := _visible_text(line)):
-            bold += _bold_chars(line)
-            paragraph.append(visible + ("\n" if line.endswith("  ") else ""))
+            paragraph.append((visible + ("\n" if line.endswith("  ") else ""), _bold_chars(line)))
     close()
     return blocks
 
@@ -424,8 +435,10 @@ def _text_lines(block: _Block, style: TextStyle, width: float, markdown: Markdow
     per_line = max(1, int((width - markdown.wrap_slack_chars * char) // char))
     total = with_bold = 0
     remaining = block.bold
-    for part in block.text.split("\n"):
-        bold = min(remaining, len(part))
+    parts = block.text.split("\n")
+    line_bold = block.line_bold if len(block.line_bold) == len(parts) else ()
+    for index, part in enumerate(parts):
+        bold = min(line_bold[index] if line_bold else remaining, len(part))
         remaining -= bold
         total += max(1, math.ceil((len(part) - bold + markdown.bold_width * bold) / per_line))
         with_bold += math.ceil(markdown.bold_width * bold / per_line) if markdown.bold_extra_line else 0
