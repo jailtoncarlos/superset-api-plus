@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+
+* The server version request made after the first login (`client.server_version`) uses the configured timeouts
+  (`SUPERSET_API_PLUS_TIMEOUT_CONNECT`/`_READ`); a server that did not answer `/version` hung the login (#91).
+
 ### Security
 
 * `beautifulsoup4` is no longer a dependency: session mode reads the login page with the standard library
