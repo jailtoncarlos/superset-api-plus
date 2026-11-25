@@ -11,6 +11,7 @@ from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.layout import ChartRef, DashboardLayout
 from supersetapiplus.dashboards.layout.sizing import (
     BarsContent,
+    ChartShape,
     Layout,
     SizingMode,
     TableContent,
@@ -71,6 +72,25 @@ def test_a_chart_ref_is_sized_as_a_table_or_horizontal_bars_by_its_content():
     content = TableContent(rows=3)
     component = layout.add_chart(ChartRef(1, "Saved table"), height="auto", width=6, content=content)
     assert component.meta["height"] == estimate_table(content, PROFILE, Layout(columns=6)).recommended_units
+
+
+def test_a_chart_ref_declaring_a_pivot_table_is_sized_as_the_same_chart_with_its_params():
+    content = TableContent(rows=12, labels=LABELS[:4], title="Pivot")
+    layout = DashboardLayout.empty()
+    by_reference = layout.add_chart(ChartRef(1, "Saved pivot", shape=ChartShape.PIVOT_TABLE), height="auto",
+                                    width=8, content=content)
+    with_params = layout.add_chart(chart("pivot_table_v2", 2), height="auto", width=8, content=content)
+    as_table = layout.add_chart(ChartRef(3, "Saved pivot"), height="auto", width=8, content=content)
+    assert by_reference.meta["height"] == with_params.meta["height"] == estimate_pivot_table(
+        content, PROFILE, Layout(columns=8)).recommended_units
+    assert as_table.meta["height"] == estimate_table(content, PROFILE, Layout(columns=8)).recommended_units
+    assert as_table.meta["height"] != by_reference.meta["height"]  # without the shape: sized as a table
+
+
+def test_the_shape_of_a_chart_ref_must_match_the_content():
+    with pytest.raises(NodePositionValidationError, match="TableContent describes .*, not a horizontal_bars chart"):
+        DashboardLayout.empty().add_chart(ChartRef(1, "Bars", shape=ChartShape.HORIZONTAL_BARS), height="auto",
+                                          content=TableContent(rows=3))
 
 
 def test_the_content_is_kept_by_the_library_and_never_written_to_position_json():

@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Unreleased
+
+### Added
+
+* Sizing: a `ChartRef` can declare what it draws (`ChartRef(..., shape=ChartShape.PIVOT_TABLE)`), so
+  `add_chart(..., height="auto")` sizes a pivot table placed by reference with the pivot table formula, as the same
+  chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its
+  content (#117).
+
 ## 2.6.1 (2026-11-25)
 
 Fixes of the chart sizing found when the consumer evaluated 2.6.0 against its own calculation (#100).
