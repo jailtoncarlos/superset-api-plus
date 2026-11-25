@@ -315,6 +315,15 @@ Tables and pivot tables (`TableContent`: rows, labels, title, search box, pagina
 A table's rows grow with the lines of its label. When the label column width is left to Superset, it changes with
 the screen; `table.fix_label_column_width("region")` fixes it to the width the profile was calibrated with, and
 `TableContent(..., fixed_label_width=True)` then estimates the rows as drawn.
+Bar labels are wrapped by the query, so the chart shows the lines `BarsContent` was sized with:
+`wrap_label_sql(expression, chars)` (from the `sizing` module) returns the PostgreSQL expression that wraps a label
+as `wrap_label` does, for an adhoc column of the chart. It handles two pitfalls of Superset 6.1, which rewrites the
+chart SQL: the newline is `chr(10)` (an `E'...'` string loses the regular expression backreference), and each line
+starts with two spaces (the bar axis reserves a few px less than the longest label and clips its first letter).
+
+```python
+chart.add_custom_dimension("indicator", sql_expression=wrap_label_sql("indicator_name", 85))
+```
 When the layout is sent, the components placed with their content (and every markdown block)
 are checked against it: `layout.sizing = "warn"` (default) emits a `SizingWarning` when a height cuts the content
 or leaves too much empty space, `"strict"` raises `SizingError` (pivot tables, whose estimate is approximate, only
