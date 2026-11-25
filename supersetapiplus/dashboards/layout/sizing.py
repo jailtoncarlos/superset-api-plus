@@ -387,6 +387,7 @@ class _Block:
     depth: int = 0  # list nesting of a list item
     # An item of a loose list (items separated by blank lines): rendered as a paragraph, with its margins.
     loose: bool = False
+    list_id: int = 0  # which top-level list a list item belongs to (consecutive lists keep their margin)
 
 
 @dataclass
@@ -431,11 +432,12 @@ def _parse_markdown(markdown: str) -> tuple[list[_Block], list[str]]:
     blocks: list[_Block] = []
     problems: list[str] = []
     tokens = _MARKDOWN.parse(markdown or "")
-    depth = 0
+    depth = list_id = 0
     for index, token in enumerate(tokens):
         if token.type in _UNMEASURABLE_BLOCKS:
             problems.append(_UNMEASURABLE_BLOCKS[token.type])
         elif token.type in ("bullet_list_open", "ordered_list_open", "bullet_list_close", "ordered_list_close"):
+            list_id += token.type.endswith("_open") and depth == 0  # a new top-level list
             depth += 1 if token.type.endswith("_open") else -1
         elif token.type == "hr":
             blocks.append(_Block("hr"))
@@ -447,7 +449,8 @@ def _parse_markdown(markdown: str) -> tuple[list[_Block], list[str]]:
             lines = [line.strip() for line in inline.lines]
             # In a tight list the paragraph token is hidden (no <p> rendered); in a loose one it is a paragraph.
             loose = kind == "li" and not opener.hidden
-            blocks.append(_Block(kind, "\n".join(lines), sum(inline.bold), tuple(inline.bold), depth, loose))
+            blocks.append(_Block(kind, "\n".join(lines), sum(inline.bold), tuple(inline.bold), depth, loose,
+                                 list_id if depth else 0))
     return blocks, problems
 
 
@@ -478,7 +481,7 @@ def markdown_px(markdown: str, columns: int, viewport: int, profile: SizingProfi
     measures = profile.markdown
     usable = width_px(columns, viewport, profile, vertical_filter_bar) - 2 * measures.padding
     total = pending_margin = 0.0
-    previous: str | None = None
+    previous_list = 0  # list_id of the previous block (0: not a list item)
     for block in _markdown_blocks(markdown):
         if block.kind == "hr":
             height, top, bottom = measures.rule_height, measures.rule_margin, measures.rule_margin
@@ -491,12 +494,12 @@ def markdown_px(markdown: str, columns: int, viewport: int, profile: SizingProfi
             if block.loose:  # a loose list item is a paragraph inside the item
                 paragraph = measures.styles["p"]
                 top, bottom = max(top, paragraph.margin_top), max(bottom, paragraph.margin_bottom)
-        if (block.kind == "li") != (previous == "li"):  # entering or leaving a list: its margin applies
+        if block.list_id != previous_list:  # entering or leaving a list, or between two lists: its margin applies
             top = max(top, measures.list_margin)
         total += max(pending_margin, top) + height
         pending_margin = bottom
-        previous = block.kind
-    if previous == "li":
+        previous_list = block.list_id
+    if previous_list:
         pending_margin = max(pending_margin, measures.list_margin)
     return 2 * measures.padding + total + pending_margin
 
