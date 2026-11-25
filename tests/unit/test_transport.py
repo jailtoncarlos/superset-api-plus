@@ -93,6 +93,19 @@ def test_the_server_version_request_carries_the_configured_timeouts():
         assert version.last_request.timeout == (TIMEOUT_CONNECT, TIMEOUT_READ)
 
 
+def test_a_version_request_that_times_out_does_not_stop_the_login():
+    with rm.Mocker() as mock:
+        mock.post(f"{API}/security/login", json={"access_token": "access", "refresh_token": "refresh"})
+        mock.get(f"{API}/security/csrf_token/", json={"result": "csrf"})
+        mock.get(f"{HOST}/version", exc=requests.exceptions.ReadTimeout)
+        charts = mock.get(f"{API}/chart/", json={"count": 0, "result": []})
+
+        client = SupersetClient(HOST, "robot", "password")
+        client.get(f"{API}/chart/")
+
+        assert charts.called and client.server_version is None
+
+
 def response(status: int, body: dict) -> requests.Response:
     """A Superset error response as received (no HTTP involved: raise_for_status only reads it)."""
     built = requests.Response()
