@@ -379,7 +379,9 @@ horizontal bars and whether its title is clipped, against the profile's toleranc
 needs the `browser` extra and a Chromium (`CHROME_PATH`, or the one Playwright installs). Superset draws only the
 tabs open when the dashboard loads: components in other tabs are reported as not shown. Each wait (opening the
 dashboard, its charts drawn) may take `SUPERSET_API_PLUS_BROWSER_TIMEOUT` seconds (default 120, or `timeout=`), and
-the browser verifies TLS certificates as the client does (`verify=False` ignores certificate errors).
+the browser verifies TLS certificates as the client does (`verify=False` ignores certificate errors). Bars are found
+on the chart canvas by their saturated color: bars in grey or another low saturation color are not measured, and the
+report says so in the component's `notes`.
 
 ```bash
 pip install "superset-api-plus[browser]" && playwright install chromium

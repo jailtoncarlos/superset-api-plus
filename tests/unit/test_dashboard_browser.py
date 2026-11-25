@@ -155,3 +155,12 @@ def test_the_browser_timeout_comes_from_the_call_or_the_environment(fake_browser
     DashboardBrowserCheck(client_with_layout(MARKDOWN_ONLY)).check(1, timeout=45)
     assert set(fake_browser.timeouts[:len(PROFILE.viewports)]) == {300_000}
     assert set(fake_browser.timeouts[len(PROFILE.viewports):]) == {45_000}
+
+
+def test_bars_whose_thickness_cannot_be_measured_are_noted_not_reported_fine():
+    grey = DashboardBrowserCheck._components([BARS], [measured(chartId=2, title="Bars", bars=[])], 1366, PROFILE, ())
+    assert grey[0].problems == () and grey[0].notes[0].startswith("bar thickness not measured")
+    assert BrowserReport(1, tuple(grey)).summary() == f"Bars @ 1366 px: ok ({grey[0].notes[0]})"
+    blue = DashboardBrowserCheck._components([BARS], [measured(chartId=2, title="Bars", bars=[30, 30])], 1366, PROFILE,
+                                             ())
+    assert (blue[0].bar_px, blue[0].notes) == (30, ())

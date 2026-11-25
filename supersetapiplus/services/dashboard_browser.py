@@ -32,7 +32,8 @@ VIEWPORT_HEIGHT = 4000
 
 # Measures of each chart and markdown holder: chart id (None for markdown), title, whether some content scrolls,
 # the empty px below a table or pivot table, the bar runs of a canvas (y ranges of the saturated pixels on a vertical
-# line through the plot) and whether the title is clipped.
+# line through the plot: bars in a saturated color, as grid and axis lines are grey) and whether the title is
+# clipped.
 MEASURE_JS = """(horizontalBars) => {
   const rect = (e) => e.getBoundingClientRect();
   const out = [];
@@ -94,7 +95,9 @@ class _Client(Protocol):
 @dataclass(frozen=True)
 class BrowserComponent:
     """A chart or markdown component as drawn on one viewport: ``shown`` False when Superset did not draw it (a tab
-    that is not open); the measures; and the problems found against the profile's tolerances."""
+    that is not open); the measures; the problems found against the profile's tolerances; and ``notes`` on what
+    could not be measured (e.g. bars in a low saturation color, which the canvas reading does not tell from the
+    grid), so a component is never reported fine for a measure that was not taken."""
     component_id: str
     title: str
     viewport: int
@@ -104,6 +107,7 @@ class BrowserComponent:
     bar_px: float | None = None
     clipped_title: bool | None = None
     problems: tuple[str, ...] = field(default=())
+    notes: tuple[str, ...] = field(default=())
 
 
 @dataclass(frozen=True)
@@ -121,7 +125,8 @@ class BrowserReport:
         lines = []
         for item in self.components:
             state = "; ".join(item.problems) if item.problems else ("ok" if item.shown else "not shown")
-            lines.append(f"{item.title} @ {item.viewport} px: {state}")
+            notes = f" ({'; '.join(item.notes)})" if item.notes else ""
+            lines.append(f"{item.title} @ {item.viewport} px: {state}{notes}")
         return "\n".join(lines)
 
 
@@ -179,6 +184,13 @@ def _problems(placed: _Placed, measured: dict[str, Any], profile: SizingProfile,
     if measured["clipped"]:
         found.append("the title is clipped")
     return tuple(found)
+
+
+def _notes(placed: _Placed, bar_px: float | None) -> tuple[str, ...]:
+    """What could not be measured on a drawn component."""
+    if placed.shape is ChartShape.HORIZONTAL_BARS and bar_px is None:
+        return ("bar thickness not measured: no bars in a saturated color found on the chart canvas",)
+    return ()
 
 
 def _bar_px(runs: list[float] | None) -> float | None:
@@ -296,5 +308,5 @@ class DashboardBrowserCheck:
                 item.component_id, measured["title"] or item.title, viewport, shown=True,
                 scrolls=measured["scrolls"], empty_px=measured["empty"], bar_px=bar_px,
                 clipped_title=measured["clipped"],
-                problems=_problems(item, measured, profile, by_design, bar_px)))
+                problems=_problems(item, measured, profile, by_design, bar_px), notes=_notes(item, bar_px)))
         return found
