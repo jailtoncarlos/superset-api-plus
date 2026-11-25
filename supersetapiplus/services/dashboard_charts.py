@@ -86,7 +86,7 @@ class DashboardCharts:
             if not isinstance(chart, Chart):
                 raise ChartValidationError("Only a library Chart can be created: save the chart before placing it.")
             # Size and content are checked before creating the chart, so a rejected placement leaves no chart.
-            dashboard.position.chart_height(chart, height, width, content, max_rows, title)
+            dashboard.position.chart_height(chart, height, width, content, max_rows, title, parent)
             self.client.charts.add(chart)
         dashboard.metadata.add_chart(chart)
         dashboard.position.add_chart(chart, title=title, parent=parent, height=height, width=width, id=id,

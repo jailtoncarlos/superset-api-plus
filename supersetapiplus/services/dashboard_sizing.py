@@ -204,16 +204,18 @@ class DashboardSizing:
         items = []
         for component_id in _in_layout_order(layout):
             data = layout.components[component_id]
-            item = self._check_component(component_id, data, profile, max_rows, filter_bar)
+            item = self._check_component(component_id, data, profile, max_rows, filter_bar,
+                                         layout.rendered_width(component_id))
             if item.problem and warn:
                 warnings.warn(f"{item.title}: {item.problem}", SizingWarning, stacklevel=2)
             items.append(item)
         return SizingReport(dashboard_id, tuple(items))
 
     def _check_component(self, component_id: str, data: dict[str, Any], profile: SizingProfile,
-                         max_rows: int | None, filter_bar: bool) -> ComponentSizing:
+                         max_rows: int | None, filter_bar: bool, width: int | None = None) -> ComponentSizing:
+        """`width`: the grid columns the component is drawn on (DashboardLayout.rendered_width), default its own."""
         meta = data.get("meta") or {}
-        width, height = meta.get("width"), meta.get("height")
+        width, height = width or meta.get("width"), meta.get("height")
         if data.get("type") == "MARKDOWN":
             title = f"markdown {component_id}"
             shape: ChartShape | None = ChartShape.MARKDOWN
