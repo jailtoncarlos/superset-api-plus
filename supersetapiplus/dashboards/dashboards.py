@@ -13,7 +13,7 @@ from supersetapiplus.dashboards.layout.sizing import BarsContent, TableContent
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.exceptions import DashboardValidationError, UnsupportedTypeError
-from supersetapiplus.resources.repository import ApiModelFactories, UnsupportedObject
+from supersetapiplus.resources.repository import SoftDeleteRepository, UnsupportedObject
 
 
 def default_metadata() -> Metadata:
@@ -53,6 +53,8 @@ class Dashboard(ApiModel):
     # Subjects who may edit or view the dashboard (Superset 7.0; viewers need the ENABLE_VIEWERS feature flag), as
     # read or their ids; sent as ids. editors absent on create unless set: Superset then makes the current user an
     # editor. owners and roles: deprecated, users and roles turned into editors and viewers when sent.
+    # Read-only (Superset 7.0 restores and purges archived objects by uuid; sending it is #69).
+    uuid: SerializableNotToJson[str | None] = None
     editors: SerializableOptional[list[Any]] = None
     viewers: SerializableOptional[list[Any]] = None
     owners: SerializableNotToJson[list[Any] | None] = None
@@ -173,8 +175,9 @@ class Dashboard(ApiModel):
         return deleted
 
 
-class Dashboards(ApiModelFactories):
+class Dashboards(SoftDeleteRepository):
     endpoint = "dashboard/"
+    DELETED_STATE_FILTER = "dashboard_deleted_state"
 
     def copy(self, dashboard: Dashboard | int | str, dashboard_title: str | None = None,
              duplicate_slices: bool = False, css: str | None = None) -> int:

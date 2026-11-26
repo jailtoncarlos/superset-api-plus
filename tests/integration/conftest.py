@@ -27,6 +27,7 @@ from supersetapiplus.databases import Database
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.exceptions import BadRequestError
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
+from supersetapiplus.resources.repository import SoftDeleteRepository
 
 
 def config(name: str, fallback: str | None = None, default: str | None = None) -> str | None:
@@ -67,6 +68,21 @@ def pytest_collection_modifyitems(config, items):
 
 def unique_name(suffix: str) -> str:
     return f"{PREFIX}-{suffix}-{uuid.uuid4().hex[:6]}"
+
+
+def purge_archived(client: SupersetClient) -> None:
+    """On Superset 7.0 (soft delete), deletes permanently the archived dashboards, charts and datasets the tests
+    created (prefix PREFIX): a deleted object is only archived, and a database whose datasets are archived cannot be
+    deleted. Nothing to do before 7.0."""
+    if int(client.server_version.split(".")[0]) < 7:
+        return
+    for repository, column in ((client.dashboards, "dashboard_title"), (client.charts, "slice_name"),
+                               (client.datasets, "table_name")):
+        for obj in repository.find_archived(name_filter(column, PREFIX, QueryOperator.STARTS_WITH)):
+            try:
+                repository.purge(obj.uuid)
+            except BadRequestError:  # already purged with the dataset it depended on
+                pass
 
 
 def name_filter(column: str, value: str, operator: QueryOperator = QueryOperator.EQUAL) -> QueryStringFilter:
@@ -110,6 +126,7 @@ def database(client):
     db = Database(database_name=unique_name("db"), sqlalchemy_uri=DATABASE_URI, expose_in_sqllab=True)
     client.databases.add(db)
     yield db
+    purge_archived(client)  # archived datasets of the database would block its deletion
     client.databases.delete(db.id)
 
 
@@ -171,9 +188,15 @@ class Cleanup:
                              (self.client.roles, self.roles)):
             for pk in ids:
                 try:
+                    # Read raw: the object may be of a type the library does not model (unmodeled viz_type).
+                    uuid_ = (self.client.get(factory.object_url(pk)).json()["result"].get("uuid")
+                             if isinstance(factory, SoftDeleteRepository) else None)
                     factory.delete(pk)
+                    if uuid_ and int(self.client.server_version.split(".")[0]) >= 7:
+                        factory.purge(uuid_)  # Superset 7.0 archives it: a later run could not reuse its name
                 except BadRequestError:
                     pass
+        purge_archived(self.client)  # what the tests deleted themselves (archived, with the test prefix)
 
 
 @pytest.fixture

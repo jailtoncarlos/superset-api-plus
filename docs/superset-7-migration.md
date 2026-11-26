@@ -39,5 +39,10 @@ Validation: the test stack runs the newest Superset 7.0 release (`7.0.0rc3` toda
 * Editors and viewers: charts, dashboards and datasets have `editors`, and charts and dashboards `viewers` (with the
   `ENABLE_VIEWERS` feature flag; without it Superset refuses to add viewers, `UnprocessableEntityError`): subjects,
   read as objects and sent as ids (#57, #58).
+* Soft delete (`SOFT_DELETE`, on by default in 7.0): a deleted chart, dashboard or dataset is archived.
+  `find_archived()`, `restore(uuid)` and `purge(uuid)` on `client.charts`, `client.dashboards` and `client.datasets`
+  (a dataset is purged with the impact token of `purge-impact`); the three models read their `uuid`. `get_or_create`
+  of a table whose dataset is archived raises `UnprocessableEntityError` naming it. The integration tests purge what
+  they archive, so a database can be deleted and a second run reuses the names (#65).
 * Row level security rules name `subjects`; `users` takes users, sent as their subjects. A Regular rule without any
   subject is refused before sending, as Superset 7.0 requires one (#59).

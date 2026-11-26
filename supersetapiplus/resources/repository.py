@@ -474,6 +474,10 @@ class ApiModelFactories(ABC):
         """
         Remove an object from the remote endpoint.
 
+        On Superset 7.0 charts, dashboards and datasets are soft deleted (the ``SOFT_DELETE`` feature flag, on by
+        default): the object is archived, hidden from reads and lists, and kept recoverable. See
+        :class:`SoftDeleteRepository` (``find_archived``, ``restore``, ``purge``).
+
         Args:
             id (int): object identifier.
 
@@ -557,3 +561,28 @@ def merge_bundles(bundles: list[bytes]) -> bytes:
 
 # Name used by the package reorganization (issue #318); ApiModelFactories stays as the public name.
 Repository = ApiModelFactories
+
+
+class SoftDeleteRepository(ApiModelFactories):
+    """Archived objects of Superset 7.0 (``SOFT_DELETE``): a deleted chart, dashboard or dataset is archived, hidden
+    from reads and lists and recoverable, until it is purged. The repository lists archived objects, restores them and
+    purges them (permanently: a database whose datasets are only archived cannot be deleted until they are purged).
+    Restoring and purging are limited to the object's editors and admins."""
+    #: The list filter of archived objects (``<resource>_deleted_state``, superset/views/filters.py).
+    DELETED_STATE_FILTER: str
+
+    def find_archived(self, filter: QueryStringFilter | None = None) -> list[Any]:
+        """The archived objects (deleted, not purged), matching `filter` when given; each carries its ``uuid``."""
+        query = QueryStringFilter()
+        for item in (filter.filters if filter else []):
+            query.add(item["col"], item["opr"], item["value"])
+        query.add("id", self.DELETED_STATE_FILTER, "only")
+        return list(self.iter_all(query))
+
+    def restore(self, uuid: str) -> None:
+        """Restores an archived object (``POST /<resource>/<uuid>/restore``)."""
+        self.client.post(self.client.join_urls(self.base_url, uuid, "restore"), json={})
+
+    def purge(self, uuid: str) -> None:
+        """Deletes an archived object permanently (``POST /<resource>/<uuid>/purge``)."""
+        self.client.post(self.client.join_urls(self.base_url, uuid, "purge"), json={})

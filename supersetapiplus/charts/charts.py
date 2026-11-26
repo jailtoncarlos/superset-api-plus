@@ -39,7 +39,7 @@ from supersetapiplus.exceptions import (
     ValidationError,
 )
 from supersetapiplus.resources.datasets import Datasets
-from supersetapiplus.resources.repository import ApiModelFactories
+from supersetapiplus.resources.repository import SoftDeleteRepository
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +116,8 @@ class Chart(ApiModel):
     dashboards: SerializableNotToJson[list[Dashboard]] = Field(default_factory=list)
     # Subjects who may edit the chart (Superset 7.0), as read or their ids; absent on create unless set (Superset
     # then makes the current user an editor). owners: deprecated, users turned into editors when sent.
+    # Read-only (Superset 7.0 restores and purges archived objects by uuid; sending it is #69).
+    uuid: SerializableNotToJson[str | None] = None
     editors: SerializableOptional[list[Any]] = None
     # Subjects who may view the chart (Superset 7.0, with the ENABLE_VIEWERS feature flag).
     viewers: SerializableOptional[list[Any]] = None
@@ -509,8 +511,9 @@ def _operator(adhoc_filter: object) -> object:
     return getattr(adhoc_filter, "operator", None)
 
 
-class Charts(ApiModelFactories):
+class Charts(SoftDeleteRepository):
     endpoint = "chart/"
+    DELETED_STATE_FILTER = "chart_deleted_state"
     TYPE_COLUMN = "viz_type"
 
     def _default_object_class(self) -> type[ApiModel]:
