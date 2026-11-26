@@ -62,6 +62,14 @@ def test_users_and_roles_become_their_subjects_and_roles_is_deprecated():
     assert rule.to_json(list(rule.POST_FIELDS))["subjects"] == [7, 202, 101]
 
 
+def test_roles_replace_the_subjects_read_and_users_add_to_them():
+    rule = RowLevelSecurityRule.from_json(READ)  # subject 3 read
+    rule.roles, rule.users = [2], [1]
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(rule, FakeSubjects())
+    assert rule.subjects == [202, 101]
+
+
 def test_empty_roles_clear_the_subjects_of_a_rule_and_empty_users_do_not():
     rule = RowLevelSecurityRule.from_json(READ)
     rule.users = []

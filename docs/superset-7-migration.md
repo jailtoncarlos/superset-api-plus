@@ -21,8 +21,9 @@ Validation: the test stack runs the newest Superset 7.0 release (`7.0.0rc3` toda
 
 * `owners` (users) on charts, dashboards and datasets, and a dashboard's `roles`: the fields Superset 7.0 replaced
   with `editors` and `viewers`; `roles` on row level security rules, replaced with `subjects` (and `users`). They
-  still work: before sending, their users and roles are turned into subjects, with a `DeprecationWarning`; an
-  empty list given to them clears the subjects field it stands for (#57, #58, #59).
+  still work: before sending, their users and roles are turned into subjects, with a `DeprecationWarning`. As on
+  Superset 6.1, assigning them replaces the list (a role left out loses its access; an empty list clears it),
+  keeping the subjects the code itself put in the new field; RLS `users` adds (#57, #58, #59).
 
 ## Added
 

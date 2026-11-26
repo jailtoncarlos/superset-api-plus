@@ -34,6 +34,20 @@ def test_dashboard_roles_is_a_deprecated_alias_of_viewers():
     assert "roles" not in Dashboard.POST_FIELDS + Dashboard.PUT_FIELDS
 
 
+def test_a_deprecated_alias_replaces_the_subjects_read_as_assigning_it_did_on_superset_6_1():
+    """Viewers of roles 4 and 5 read; roles = [5] revokes role 4, as it did on 6.1 (not kept granted)."""
+    dashboard = Dashboard.from_json({"id": 1, "dashboard_title": "P", "position_json": "{}", "json_metadata": "{}",
+                                     "editors": [{"id": 101}], "viewers": [{"id": 204}, {"id": 205}]})
+    dashboard.roles, dashboard.owners = [5], [2]
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(dashboard, FakeSubjects())
+    assert (dashboard.viewers, dashboard.editors) == ([205], [102])
+    dashboard.roles = [6]  # replaced again: what the first resolution wrote is not kept as if set in code
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(dashboard, FakeSubjects())
+    assert dashboard.viewers == [206]
+
+
 def test_an_empty_list_given_to_a_deprecated_alias_clears_the_subjects():
     """dashboard.roles = [] cleared the dashboard roles on Superset 6.1: it clears the viewers, not left granted."""
     dashboard = Dashboard.from_json({"id": 1, "dashboard_title": "P", "position_json": "{}", "json_metadata": "{}",
