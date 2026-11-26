@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import copy
 import warnings
-from dataclasses import dataclass
-from typing import Any, TypeAlias
+from collections.abc import Callable
+from dataclasses import dataclass, replace
+from typing import Any, Literal, TypeAlias
 
 import shortuuid
 from pydantic import Field, PrivateAttr, SerializationInfo, SerializerFunctionWrapHandler, model_serializer, model_validator
@@ -18,8 +19,17 @@ from pydantic import Field, PrivateAttr, SerializationInfo, SerializerFunctionWr
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.enums import StringEnum
 from supersetapiplus.core.references import SavedChart
+from supersetapiplus.dashboards.layout import sizing
+from supersetapiplus.dashboards.layout.sizing import (
+    BarsContent,
+    ChartShape,
+    SizingEstimate,
+    SizingMode,
+    SizingProfile,
+    TableContent,
+)
 from supersetapiplus.dashboards.layout.validation import layout_problems
-from supersetapiplus.exceptions import LayoutWarning, NodePositionValidationError
+from supersetapiplus.exceptions import LayoutWarning, NodePositionValidationError, SizingError, SizingWarning
 
 ROOT_ID = "ROOT_ID"
 GRID_ID = "GRID_ID"
@@ -74,10 +84,15 @@ _ALLOWED_CHILDREN = {
 
 @dataclass(frozen=True)
 class ChartRef:
-    """Reference to a chart already saved in Superset, for placing it in a layout without loading it."""
+    """Reference to a chart already saved in Superset, for placing it in a layout without loading it.
+
+    ``shape``: what the chart draws, for ``add_chart(..., height="auto")``, which has no params to read it from:
+    ``ChartShape.PIVOT_TABLE`` sizes a pivot table with its formula. Without it, the content decides (a table for
+    ``TableContent``, horizontal bars for ``BarsContent``)."""
     id: int
     slice_name: str
     uuid: str | None = None
+    shape: ChartShape | None = None
 
 
 @dataclass(frozen=True)
@@ -108,6 +123,17 @@ class LayoutComponent:
 #: place of each method, e.g. the grid).
 LayoutParent: TypeAlias = LayoutComponent | str | None
 
+#: Height of a chart or markdown component: grid row units, or "auto" (estimated from its content).
+Height: TypeAlias = int | Literal["auto"]
+
+
+@dataclass(frozen=True)
+class _SizingHint:
+    """What the library knows of a component's content, kept outside ``position_json``."""
+    shape: ChartShape
+    content: sizing.Content
+    max_rows: int | None = None
+
 
 class DashboardLayout(ApiModel):
     """`position_json` of a dashboard: the flat component map, its version and any other key Superset stored."""
@@ -117,6 +143,16 @@ class DashboardLayout(ApiModel):
 
     # True for layouts started by the library (empty()): their title header follows the dashboard title.
     _created_by_library: bool = PrivateAttr(default=False)
+    # Content of the components placed with it (add_chart(content=...), add_markdown), by component id: never
+    # written to position_json.
+    _sizing_hints: dict[str, _SizingHint] = PrivateAttr(default_factory=dict)
+    _sizing: SizingMode = PrivateAttr(default=SizingMode.WARN)
+    _sizing_profile: SizingProfile | None = PrivateAttr(default=None)
+    # Whether the grid shares the screen with the vertical native filter bar: set by the user, else by the
+    # dashboard (from its json_metadata), else assumed (the narrower grid, the safe side for heights).
+    _vertical_filter_bar: bool | None = PrivateAttr(default=None)
+    # Asked at each estimate (not copied): filters added to the dashboard after the layout was taken count.
+    _dashboard_filter_bar: Callable[[], bool] | None = PrivateAttr(default=None)
 
     @property
     def created_by_library(self) -> bool:
@@ -125,6 +161,47 @@ class DashboardLayout(ApiModel):
     @created_by_library.setter
     def created_by_library(self, value: bool) -> None:
         self._created_by_library = value
+
+    @property
+    def sizing(self) -> SizingMode:
+        """Check, when the layout is sent, of the components placed with their content: ``"warn"`` (default, a
+        SizingWarning), ``"strict"`` (a SizingError; pivot tables only warn) or ``"off"``."""
+        return self._sizing
+
+    @sizing.setter
+    def sizing(self, value: SizingMode | str) -> None:
+        self._sizing = SizingMode(value)
+
+    @property
+    def sizing_profile(self) -> SizingProfile:
+        """Measures used by ``height="auto"`` and the sizing check: the calibrated profile of the target Superset
+        version with the default theme, unless another one is set (an instance with its own theme or CSS)."""
+        return self._sizing_profile or sizing.calibrated_profile()
+
+    @sizing_profile.setter
+    def sizing_profile(self, value: SizingProfile | None) -> None:
+        self._sizing_profile = value
+
+    @property
+    def vertical_filter_bar(self) -> bool:
+        """Whether the sizing estimates leave room for the vertical native filter bar beside the grid. Set it to
+        force a value; otherwise a dashboard sets it from its ``json_metadata`` (native filters with the default,
+        vertical, orientation), read at each estimate, and a layout on its own assumes the bar. Add the native
+        filters before placing components with ``height="auto"``: their height is computed when they are placed."""
+        if self._vertical_filter_bar is not None:
+            return self._vertical_filter_bar
+        if self._dashboard_filter_bar is not None:
+            return self._dashboard_filter_bar()
+        return True
+
+    @vertical_filter_bar.setter
+    def vertical_filter_bar(self, value: bool | None) -> None:
+        self._vertical_filter_bar = value
+
+    def follow_dashboard_filter_bar(self, shown: Callable[[], bool]) -> None:
+        """Called by the dashboard with how to tell whether it shows the vertical filter bar, asked at each estimate
+        (see :attr:`vertical_filter_bar`)."""
+        self._dashboard_filter_bar = shown
 
     # --- construction and serialization -----------------------------------------------------
 
@@ -173,7 +250,9 @@ class DashboardLayout(ApiModel):
             raise NodePositionValidationError("Invalid dashboard layout: " + " ".join(problems))
 
     def _check_before_sending(self) -> None:
-        """A layout built by the library must be valid; one read from Superset is sent as read, with a warning."""
+        """A layout built by the library must be valid; one read from Superset is sent as read, with a warning.
+        Components placed with their content are checked against it (:attr:`sizing`)."""
+        self._check_sizing()
         if self.created_by_library:
             self.validate()
             return
@@ -181,6 +260,110 @@ class DashboardLayout(ApiModel):
         if problems:
             warnings.warn("Dashboard layout read from Superset breaks renderer rules: " + " ".join(problems),
                           LayoutWarning, stacklevel=2)
+
+    def sizing_problems(self) -> list[tuple[str, SizingEstimate, str]]:
+        """(component id, estimate, problem) of each component placed with its content whose height does not fit
+        it (see :mod:`supersetapiplus.dashboards.layout.sizing`)."""
+        found = []
+        for component_id, hint in self._sizing_hints.items():
+            meta = self.components.get(component_id, {}).get("meta", {})
+            height, width = meta.get("height"), self.rendered_width(component_id)
+            if not isinstance(height, int) or width is None:
+                continue
+            # What the component shows now, also when edited after placing it: the markdown text, the chart title.
+            code, title = meta.get("code"), meta.get("sliceNameOverride") or meta.get("sliceName")
+            if hint.shape is ChartShape.MARKDOWN and isinstance(code, str):
+                hint = replace(hint, content=code)
+            elif isinstance(hint.content, TableContent | BarsContent) and isinstance(title, str):
+                hint = replace(hint, content=replace(hint.content, title=title))
+            estimate = self._estimate(hint, width)
+            problem = estimate.problem(height)
+            if problem:
+                found.append((component_id, estimate, problem))
+        return found
+
+    def rendered_width(self, component_id: str) -> int | None:
+        """Grid columns a chart or markdown component is drawn on, as the dashboard renderer does (Superset 6.1):
+        inside a COLUMN it takes the column's width (ChartHolder.tsx, Markdown.tsx), and a chart nested deeper is at
+        most as wide as its nearest column. None when the component has no width."""
+        data = self.components.get(component_id) or {}
+        width = (data.get("meta") or {}).get("width")
+        if not isinstance(width, int):
+            return None
+        parent = self._parent_of(component_id)
+        return width if parent is None else self._width_in(parent, width, str(data.get("type")))
+
+    def _parent_of(self, component_id: str) -> str | None:
+        return next((cid for cid, data in self.components.items() if component_id in (data.get("children") or [])),
+                    None)
+
+    def _width_in(self, container_id: str, width: int, component_type: str) -> int:
+        """Rendered width of a `component_type` of `width` columns placed in `container_id` (see rendered_width)."""
+        container = self.components.get(container_id) or {}
+        if container.get("type") == "COLUMN":
+            return int((container.get("meta") or {}).get("width") or GRID_MIN_COLUMN_COUNT)
+        if component_type == "CHART":
+            seen = {container_id}  # a cyclic layout (invalid, reported by the validation) must not hang the walk
+            ancestor = self._parent_of(container_id)
+            while ancestor is not None and ancestor not in seen:
+                data = self.components.get(ancestor) or {}
+                if data.get("type") == "COLUMN":
+                    return min(width, int((data.get("meta") or {}).get("width") or GRID_MIN_COLUMN_COUNT))
+                seen.add(ancestor)
+                ancestor = self._parent_of(ancestor)
+        return width
+
+    def _placement_width(self, parent: LayoutParent, width: int, component_type: str) -> int:
+        """Rendered width of a component about to be placed in `parent` (a row, a column or a grid or tab, where it
+        gets a new row), without changing the layout."""
+        return self._width_in(self._resolve(parent or GRID_ID), width, component_type)
+
+    def chart_height(self, chart: SavedChart, height: Height, width: int,
+                     content: TableContent | BarsContent | None = None, max_rows: int | None = None,
+                     title: str | None = None, parent: LayoutParent = None) -> tuple[_SizingHint | None, int]:
+        """The content hint and grid units of a chart placed with these options; raises
+        NodePositionValidationError as :meth:`add_chart` would (e.g. to check before creating the chart). The title
+        measured is the one shown: `title`, else the chart name (not ``content.title``); the width, the one it is
+        drawn on in `parent` (:meth:`rendered_width`)."""
+        if content is not None:
+            content = replace(content, title=title or chart.slice_name)
+        hint = None if content is None else _SizingHint(_shape_of(chart, content), content, max_rows)
+        units = self._height(height, hint, self._placement_width(parent, width, "CHART"))
+        assert units is not None  # a chart always has a height
+        _check_size(width, units)
+        return hint, units
+
+    def _check_sizing(self) -> None:
+        if self.sizing is SizingMode.OFF:
+            return
+        errors = []
+        for component_id, estimate, problem in self.sizing_problems():
+            meta = self.components[component_id]["meta"]
+            name = meta.get("sliceNameOverride") or meta.get("sliceName") or f"markdown {component_id}"
+            message = f"{name}: {problem}" + "".join(f"; {reason}" for reason in estimate.reasons)
+            if self.sizing is SizingMode.STRICT and not estimate.approximate:
+                errors.append(message)
+            else:
+                warnings.warn(message, SizingWarning, stacklevel=4)
+        if errors:
+            raise SizingError("Heights that do not fit their content: " + " ".join(errors),
+                              'Use height="auto", change the height or set position_json.sizing = "warn".')
+
+    def _estimate(self, hint: _SizingHint, width: int) -> SizingEstimate:
+        return sizing.estimate(hint.shape, hint.content, self.sizing_profile,
+                               sizing.Layout(columns=width, vertical_filter_bar=self.vertical_filter_bar), hint.max_rows)
+
+    def _height(self, height: Height | None, hint: _SizingHint | None, width: int) -> int | None:
+        """Grid units of `height`; "auto" is the recommended height of the content."""
+        if height != "auto":
+            return None if height is None else int(height)
+        if hint is None:
+            raise NodePositionValidationError('height="auto" needs the content of the chart (content=...).')
+        estimate = self._estimate(hint, width)
+        if estimate.approximate and hint.shape is ChartShape.MARKDOWN:
+            raise NodePositionValidationError("The markdown cannot be sized automatically (" +
+                                              "; ".join(estimate.reasons) + "): give its height.")
+        return estimate.recommended_units
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, DashboardLayout):
@@ -268,15 +451,20 @@ class DashboardLayout(ApiModel):
     def add_divider(self, parent: LayoutParent = None, id: str | None = None) -> LayoutComponent:
         return self._add("DIVIDER", parent or GRID_ID, {}, id)
 
-    def add_markdown(self, code: str, parent: LayoutParent = None, height: int | None = DEFAULT_HEIGHT,
+    def add_markdown(self, code: str, parent: LayoutParent = None, height: Height | None = DEFAULT_HEIGHT,
                      width: int = DEFAULT_CHART_WIDTH,
                      id: str | None = None) -> LayoutComponent:
-        """Markdown block; ``height=None`` omits the height from ``meta``, as some exports do."""
-        _check_size(width, height)
+        """Markdown block; ``height=None`` omits the height from ``meta``, as some exports do, and ``"auto"`` sizes
+        it from the text. Its height is checked against the text when the layout is sent (:attr:`sizing`)."""
+        hint = _SizingHint(ChartShape.MARKDOWN, code)
+        units = self._height(height, hint, self._placement_width(parent, width, "MARKDOWN"))
+        _check_size(width, units)
         meta: dict[str, Any] = {"code": code, "width": width}
-        if height is not None:
-            meta["height"] = height
-        return self._add("MARKDOWN", self._row_for(parent, width), meta, id)
+        if units is not None:
+            meta["height"] = units
+        component = self._add("MARKDOWN", self._row_for(parent, width), meta, id)
+        self._set_hint(component.id, hint)
+        return component
 
     def add_column(self, parent: LayoutParent = None, width: int = DEFAULT_CHART_WIDTH,
                    background: Background | str = Background.TRANSPARENT, id: str | None = None) -> LayoutComponent:
@@ -288,12 +476,18 @@ class DashboardLayout(ApiModel):
         _check_size(width, None)
         return self._add("COLUMN", self._row_for(parent, width), {"width": width, "background": str(background)}, id)
 
-    def add_chart(self, chart: SavedChart, title: str | None = None, parent: LayoutParent = None, height: int = DEFAULT_HEIGHT,
-                  width: int = DEFAULT_CHART_WIDTH, id: str | None = None,
-                  skip_existing: bool = False) -> LayoutComponent:
+    def add_chart(self, chart: SavedChart, title: str | None = None, parent: LayoutParent = None,
+                  height: Height = DEFAULT_HEIGHT, width: int = DEFAULT_CHART_WIDTH, id: str | None = None,
+                  skip_existing: bool = False, content: TableContent | BarsContent | None = None,
+                  max_rows: int | None = None) -> LayoutComponent:
         """Place a saved chart (a library Chart or a :class:`ChartRef`); `title` becomes ``sliceNameOverride``.
 
         With ``skip_existing=True`` a chart already in the layout is not placed again: its component is returned.
+        `content` describes a table, pivot table or horizontal bars chart (rows or bars, labels, title): with it,
+        ``height="auto"`` gives the height its content needs (at most `max_rows` rows or bars are shown), and the
+        height is checked when the layout is sent (:attr:`sizing`). The title measured is the one the chart shows
+        (`title`, else its name), whatever ``content.title`` says. The content is kept by the library, never
+        written to ``position_json``.
         """
         chart_id = chart.id
         if not chart_id:
@@ -301,14 +495,16 @@ class DashboardLayout(ApiModel):
         existing = self._chart_components(chart_id) if skip_existing else []
         if existing:
             return existing[0]
-        _check_size(width, height)
-        meta: dict[str, Any] = {"chartId": chart_id, "sliceName": chart.slice_name, "width": width, "height": height}
+        hint, units = self.chart_height(chart, height, width, content, max_rows, title, parent)
+        meta: dict[str, Any] = {"chartId": chart_id, "sliceName": chart.slice_name, "width": width, "height": units}
         uuid = getattr(chart, "uuid", None)
         if uuid:
             meta["uuid"] = str(uuid)
         if title and title != chart.slice_name:
             meta["sliceNameOverride"] = title
-        return self._add("CHART", self._row_for(parent, width), meta, id)
+        component = self._add("CHART", self._row_for(parent, width), meta, id)
+        self._set_hint(component.id, hint)
+        return component
 
     def add_chart_grid(self, charts: list[SavedChart], columns: int = 2, parent: LayoutParent = None,
                        height: int = DEFAULT_HEIGHT) -> list[LayoutComponent]:
@@ -353,6 +549,7 @@ class DashboardLayout(ApiModel):
             parent_id = next((cid for cid, data in self.components.items()
                               if component_id in (data.get("children") or [])), None)
             del self.components[component_id]
+            self._sizing_hints.pop(component_id, None)
             if parent_id is None:
                 return
             siblings = self.components[parent_id]["children"]
@@ -360,6 +557,13 @@ class DashboardLayout(ApiModel):
             if siblings or self.components[parent_id]["type"] not in ("ROW", "COLUMN"):
                 return
             component_id = parent_id
+
+    def _set_hint(self, component_id: str, hint: _SizingHint | None) -> None:
+        """The content of a new component; none clears what an earlier component with the same id left."""
+        if hint is None:
+            self._sizing_hints.pop(component_id, None)
+        else:
+            self._sizing_hints[component_id] = hint
 
     def _row_for(self, parent: LayoutParent, width: int) -> str:
         """Charts and markdown live in a ROW or COLUMN; inside a grid or tab, reuse its last row with room."""
@@ -412,6 +616,29 @@ class DashboardLayout(ApiModel):
         }
         parent_data.setdefault("children", []).append(component_id)
         return LayoutComponent(self, component_id)
+
+
+def _shape_of(chart: SavedChart, content: TableContent | BarsContent) -> ChartShape:
+    """The sizing formula of a chart: from its params when it has them (a library Chart), else from the shape a
+    ChartRef declares, else from the content (a table for TableContent, horizontal bars for BarsContent)."""
+    params = getattr(chart, "params", None)
+    if params is not None:
+        viz_type = str(getattr(params, "viz_type", "") or "")
+        shape = sizing.chart_shape({"viz_type": viz_type,
+                                    "orientation": str(getattr(params, "orientation", "") or "")})
+        kind = f"a {viz_type} chart"
+    else:
+        shape = getattr(chart, "shape", None)
+        if shape is None:
+            return ChartShape.HORIZONTAL_BARS if isinstance(content, BarsContent) else ChartShape.TABLE
+        kind = f"a {shape} chart"
+    expected = (ChartShape.HORIZONTAL_BARS,) if isinstance(content, BarsContent) else (ChartShape.TABLE,
+                                                                                       ChartShape.PIVOT_TABLE)
+    if shape is None or shape not in expected:
+        raise NodePositionValidationError(
+            f"{type(content).__name__} describes {' or '.join(map(str, expected))}, not {kind}"
+            + ("" if shape else " (the sizing formulas cover tables, pivot tables and horizontal bars)") + ".")
+    return shape
 
 
 def _check_size(width: int, height: int | None) -> None:

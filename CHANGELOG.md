@@ -1,6 +1,83 @@
 # CHANGELOG
 
-## Unreleased
+## 2.7.0 (2026-11-25)
+
+Improvements of the chart sizing found when the consumer evaluated 2.6.0 and 2.6.1 (#101): components that scroll
+by design in the saved-dashboard check (#119), the shape of a chart placed by reference (#117), the adjusted layout
+from the check (#111), the label column width of the profile (#108), the unfixed label column per viewport (#105),
+bar bounds as thickness (#106), calibration with an instance's CSS (#109), title clamps (#110), the SQL of a wrapped
+label (#107) and an optional browser check of a dashboard (#112).
+
+### Added
+
+* Sizing check of a saved dashboard: `client.dashboard_sizing.check(..., scrolls=...)` takes the components that
+  scroll by design (chart ids or component ids), such as tables whose rows depend on the data or free text tables of
+  fixed height. A height below their content is no longer reported for them; more empty space than tolerated still
+  is, and the report marks them (`ComponentSizing.scrolls`) (#119).
+* The calibration (`bin/scripts/calibrate_sizing.py`) checks a table with a totals row: measured in Chromium on
+  Superset 6.1.0, the totals row is drawn below the body and takes the height of one more row, as the sizing check
+  counts it (#119).
+* Sizing check of a saved dashboard: `SizingReport.adjusted_layout()` returns a copy of the checked layout with the
+  recommended height of each component that does not fit, without writing; save it as the dashboard's
+  `position_json` to apply it (#111).
+* Sizing: `TableChart.fix_label_column_width(column, profile=None)` fixes the label column width
+  (`column_config[column].columnWidth`) to the width the sizing profile was calibrated with, recorded in the profile
+  as `table.label_column_width` (560 px in the 6.1.0 profile; optional in custom profiles) (#108).
+* Sizing: an unfixed table label column widens on larger screens; the profile records its characters per line on
+  each viewport (`TableMeasures.unfixed_label_chars_by_viewport`, 79 and 124 on 1366 and 1920 px), so the upper
+  bound of a table without a fixed label width reflects the widest viewport. The minimum is unchanged (#105).
+* Sizing: bar bounds as the visible bar thickness: the profile records the measured bar/band ratio
+  (`BarMeasures.bar_share`, 0.669) and `BarMeasures.with_thickness(bar=, min_bar=, max_bar=)` converts thicknesses
+  to bands (#106).
+* Calibration: `bin/scripts/calibrate_sizing.py --css FILE --output PATH` calibrates a profile with the CSS of an
+  instance's dashboards (recorded in the provenance; the file name becomes the profile's theme) and writes it
+  outside the package (#109).
+* Sizing: `FrameMeasures.title_max_lines` bounds the title lines of a theme that clamps chart titles. Measured on
+  Superset 6.1.0 with the default theme, titles are not clamped (a title wrapped in 5 lines shows them all), so the
+  calibrated value and the default are None; the calibration measures it on a title of 4 or more lines (#110).
+* Sizing: `wrap_label_sql(expression, chars, dialect="postgresql")` returns the SQL expression that wraps a label as
+  `wrap_label` does, each line prefixed with two spaces, written for Superset 6.1 (`chr(10)`, no `E'...'` string, no
+  backslash before a letter). A word longer than a line stays whole (#107).
+* Browser check of a saved dashboard (optional extra `browser`, Playwright):
+  `client.dashboard_sizing.check_in_browser(dashboard_id, profile=None, scrolls=(), chrome_path=None, timeout=None)`
+  opens it in Chromium on each viewport of the profile and reports, per component drawn, scrolling, empty space
+  below tables, bar thickness and clipped titles against the profile's tolerances (`BrowserReport`). Each wait takes
+  up to `SUPERSET_API_PLUS_BROWSER_TIMEOUT` seconds (default 120, or `timeout=`); TLS is verified as the client
+  does. It never writes (#112).
+* Sizing: a `ChartRef` can declare what it draws (`ChartRef(..., shape=ChartShape.PIVOT_TABLE)`), so
+  `add_chart(..., height="auto")` sizes a pivot table placed by reference with the pivot table formula, as the same
+  chart placed with its params. Without it, a `ChartRef` is still sized as a table or horizontal bars by its
+  content (#117).
+
+### Documentation
+
+* README: the vertical native filter bar in the sizing estimates; add the native filters before placing components
+  with `height="auto"`, or set `layout.vertical_filter_bar` when the layout is built before them (#118).
+
+## 2.6.1 (2026-11-25)
+
+Fixes of the chart sizing found when the consumer evaluated 2.6.0 against its own calculation (#100).
+
+### Fixed
+
+* Sizing: `height="auto"` and the check when the layout is sent assumed the vertical native filter bar beside the
+  grid. They now follow the dashboard: the bar narrows the grid only when the dashboard has native filters with the
+  default (vertical) orientation, so markdown sized for a dashboard with the bar on top, or without filters, is no
+  longer flagged. `position_json.vertical_filter_bar` forces the value; `Metadata.shows_vertical_filter_bar()`
+  tells it (#102).
+* Sizing: a chart or markdown inside a COLUMN was estimated at its own width, while Superset draws it at the
+  column's width (a chart nested deeper is at most as wide as its nearest column). `height="auto"`, the check when
+  the layout is sent and `client.dashboard_sizing.check` now use that width (`position_json.rendered_width()`) (#104).
+* Sizing check of a saved dashboard (`client.dashboard_sizing.check`): the table label, whose wrapping makes rows
+  taller, was always the first result column. It is now the column with a fixed `columnWidth`, else the first
+  dimension (`groupby`, or `all_columns` in raw mode), else the first column (#103).
+
+## 2.6.0 (2026-11-25)
+
+Chart sizing from the content (#77): heights of tables, pivot tables, horizontal bars and markdown estimated from
+what they show, with measures calibrated in a browser for Superset 6.1.0, in the layout builder (`height="auto"`
+and a check when the layout is sent) and as a read-only check of a saved dashboard. Still targets Superset 6.1;
+the migration to 7.0 continues on the `superset-7` branch (3.0.0).
 
 ### Security
 
@@ -14,11 +91,42 @@
 * `client.server_version`: the version the server reports (`GET /version`, `version_string`), read once after the
   first login, which warns with `UnsupportedServerVersionWarning` when the server's major version is not the one the
   release targets: 6 for the 2.x releases from `main` (#54, #85).
+* `supersetapiplus.dashboards.layout.sizing`: heights of tables, pivot tables, horizontal bars and markdown
+  estimated from their content (rows and wrapped labels, title, search and pagination, bars and legend, markdown
+  blocks), as a range in grid units (`SizingEstimate`: minimum, recommended, maximum, with the reasons), from a
+  `SizingProfile` of measures per Superset version, theme and viewports; `SizingWarning` for heights that do not fit
+  their content, not a `LayoutWarning`, so it can be filtered on its own (#78).
+* `bin/scripts/calibrate_sizing.py` and the profile it writes, shipped with the package
+  (`dashboards/layout/profiles/sizing_profile_6.1.0.json`, loaded by `sizing.calibrated_profile()`): the sizing
+  measures of Superset 6.1.0 with the default theme on 1366 and 1920 px, taken in Chromium on a calibration
+  dashboard built on the public examples and checked on it (each table, pivot table and markdown block fits at its
+  estimated minimum height), with the provenance and the values chosen rather than measured (#79, #80).
+* Layout builder sized from the content: `add_chart(..., content=TableContent(...) | BarsContent(...),
+  height="auto", max_rows=...)` (also on `dashboard.add_chart`) and `add_markdown(..., height="auto")` take the
+  recommended height of the content (with the title the chart shows); the content is kept by the library, never
+  written to `position_json`. When the layout is sent, the heights of those components are checked against their
+  content: `position_json.sizing = "warn"` (default, `SizingWarning`), `"strict"` (`SizingError`; pivot tables,
+  whose estimate is approximate, only warn) or `"off"`; `position_json.sizing_profile` sets the measures of an
+  instance with its own theme (#80).
+* `client.dashboard_sizing.check(dashboard_id, profile=None, max_rows=None)`: sizing check of a saved dashboard.
+  It reads the layout and, for each table, pivot table and horizontal bars chart, the data the chart shows (the
+  query the UI builds from its params, on `/api/v1/chart/data`), estimates each height against its content
+  (markdown from its text) and returns a `SizingReport` (`problems`, `summary()`), with a `SizingWarning` per
+  component that does not fit. It never writes. Tables with more than two columns are marked approximate: only the
+  label column's wrapping is known (#81).
+* New runtime dependency: `markdown-it-py>=3.0.0` parses the markdown measured by the sizing estimates with the
+  CommonMark rules Superset renders it with (react-markdown and remark-gfm); Airflow 3.3 already ships it as a
+  dependency of `rich` (#78).
 
 ### Changed
 
 * Superset 7.0 support is developed on the `superset-7` branch, kept in sync with `main`, and will be released as
   3.0.0 after Superset 7.0.0 final; `main` keeps targeting Superset 6.1 and the 2.x releases (#85).
+
+### Fixed
+
+* The server version request made after the first login (`client.server_version`) uses the configured timeouts
+  (`SUPERSET_API_PLUS_TIMEOUT_CONNECT`/`_READ`); a server that did not answer `/version` hung the login (#91).
 
 ## 2.5.0 (2026-11-24)
 

@@ -26,7 +26,7 @@ from supersetapiplus.charts.types.viz import REMOVED_VIZ_TYPES, REMOVED_WITHOUT_
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.core.dicts import detailed_dict_diff
-from supersetapiplus.core.types import DatasourceType
+from supersetapiplus.core.types import DatasourceType, SubjectType
 from supersetapiplus.core.typing import FilterValues, SerializableNotToJson, SerializableOptional
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.layout import LayoutParent
@@ -67,17 +67,22 @@ class Chart(ApiModel):
 
     JSON_FIELDS: ClassVar[list[str]] = ['params', 'query_context']
     PRESERVE_EXTRA_FIELDS: ClassVar[bool] = False
-    # Fields accepted by the API (OpenAPI 6.1.0: ChartRestApi.post / ChartRestApi.put).
+    # Fields accepted by the API (OpenAPI 7.0.0rc3: ChartRestApi.post / ChartRestApi.put).
     POST_FIELDS: ClassVar[tuple[str, ...]] = (
         "cache_timeout", "certification_details", "certified_by", "dashboards", "datasource_id",
-        "datasource_name", "datasource_type", "description", "external_url", "is_managed_externally",
-        "owners", "params", "query_context", "query_context_generation", "slice_name", "viz_type",
+        "datasource_name", "datasource_type", "description", "editors", "external_url", "is_managed_externally",
+        "params", "query_context", "query_context_generation", "slice_name", "viewers", "viz_type",
     )
     PUT_FIELDS: ClassVar[tuple[str, ...]] = (
         "cache_timeout", "certification_details", "certified_by", "dashboards", "datasource_id",
-        "datasource_type", "description", "external_url", "is_managed_externally", "owners", "params",
-        "query_context", "query_context_generation", "slice_name", "tags", "viz_type",
+        "datasource_type", "description", "editors", "external_url", "is_managed_externally", "params",
+        "query_context", "query_context_generation", "slice_name", "tags", "viewers", "viz_type",
     )
+    # Superset 7.0: editors and viewers are subjects, read as objects and sent as ids; owners (users) is a deprecated
+    # alias of editors.
+    ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ("editors", "viewers")
+    SUBJECT_ALIASES: ClassVar[dict[str, tuple[str, SubjectType, bool]]] = {
+        "owners": ("editors", SubjectType.USER, True)}
     # Fields that Superset legitimately keeps different between params and
     # query_context.form_data: identity (stale slice_id after dashboard import/export)
     # and request parameters that the frontend injects only into form_data.
@@ -109,7 +114,12 @@ class Chart(ApiModel):
     cache_timeout: int | None = None
 
     dashboards: SerializableNotToJson[list[Dashboard]] = Field(default_factory=list)
-    owners: SerializableNotToJson[list[dict[str, Any]] | None] = None
+    # Subjects who may edit the chart (Superset 7.0), as read or their ids; absent on create unless set (Superset
+    # then makes the current user an editor). owners: deprecated, users turned into editors when sent.
+    editors: SerializableOptional[list[Any]] = None
+    # Subjects who may view the chart (Superset 7.0, with the ENABLE_VIEWERS feature flag).
+    viewers: SerializableOptional[list[Any]] = None
+    owners: SerializableNotToJson[list[Any] | None] = None
 
     tags: SerializableNotToJson[list[Any] | None] = None
 
@@ -412,15 +422,25 @@ class Chart(ApiModel):
         (`datasource_id`/`datasource_type`), as in the form_data Superset gives Explore (``Slice.form_data``,
         models/slice.py): `params.datasource` may be stale, e.g. in charts imported from another instance.
         """
-        form_data = self.params.to_dict()
-        if isinstance(self.datasource_id, int) and self.datasource_type:
-            form_data["datasource"] = f"{self.datasource_id}__{self.datasource_type}"
+        form_data = self._form_data()
         explored = explore_form_data(form_data, self._control_defaults(), self._dataset_time)
         context = query_context_for(explored)
         # Keys a plugin adds to the form_data for its query (raw tables: include_time) are kept.
         context["form_data"] = {**form_data, **{key: value for key, value in context["form_data"].items()
                                                 if key not in explored}}
         return context
+
+    def explore_params(self) -> dict[str, Any]:
+        """The params as Explore and the chart plugin see them (:func:`explore_form_data`: legacy params migrated,
+        e.g. ``granularity_sqla`` into ``x_axis``, control defaults for null or absent values, keys that are not
+        controls left out): what :meth:`ui_query_context` builds its queries from."""
+        return explore_form_data(self._form_data(), self._control_defaults(), self._dataset_time)
+
+    def _form_data(self) -> dict[str, Any]:
+        form_data: dict[str, Any] = self.params.to_dict()
+        if isinstance(self.datasource_id, int) and self.datasource_type:
+            form_data["datasource"] = f"{self.datasource_id}__{self.datasource_type}"
+        return form_data
 
     @classmethod
     def _control_defaults(cls) -> dict[str, Any]:

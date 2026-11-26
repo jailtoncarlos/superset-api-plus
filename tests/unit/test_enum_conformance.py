@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 
 import supersetapiplus
+from supersetapiplus.dashboards.layout.sizing import ChartShape, SizingMode
 from supersetapiplus import query_string as Q
 from supersetapiplus.charts import types as T
 from supersetapiplus.core import types as B
@@ -28,6 +29,9 @@ from supersetapiplus.dashboards.layout.legacy import items as IP
 
 OFFICIAL = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_enums_6.1.0.json").read_text())
 BACKEND, FRONTEND, CHOICES = OFFICIAL["backend"], OFFICIAL["frontend"], OFFICIAL["choices"]
+# Enums that exist only from Superset 7.0 are checked against the 7.0 excerpt; T-10 (#63) moves every enum to it.
+BACKEND_7 = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_enums_7.0.0rc3.json").read_text())[
+    "backend"]
 
 
 def official(group: dict, name: str) -> set:
@@ -47,6 +51,7 @@ SOURCES = {
     T.ResultFormat: official(BACKEND, "ChartDataResultFormat"),
     T.ResultType: official(BACKEND, "ChartDataResultType"),
     T.GenericDataType: official(BACKEND, "GenericDataType"),
+    B.SubjectType: official(BACKEND_7, "SubjectType"),
     T.ComparisonType: official(FRONTEND, "ComparisonType"),
     T.ComparisonColorScheme: official(FRONTEND, "ColorSchemeEnum"),
     T.ContributionType: official(FRONTEND, "ContributionType"),
@@ -123,6 +128,8 @@ OPEN = {
 LIBRARY_ONLY = {
     T.SqlMapType: "deprecated: a column type is free text (native database type); kept for old imports",
     IP.PositionType: "placement option of the legacy layout builder; never sent to Superset",
+    ChartShape: "what the sizing formulas measure (dashboards/layout/sizing.py); never sent to Superset",
+    SizingMode: "check mode of the layout before it is sent (position_json.sizing); never sent to Superset",
 }
 
 

@@ -1,20 +1,26 @@
 """Dashboards against the real Superset: writing, chart association, layout and native filters."""
 import json
+import warnings
 
 import pytest
 
 from supersetapiplus.charts.build_query import query_context_for
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.core.datasource import DataSource
+from supersetapiplus.core.types import SubjectType
 from supersetapiplus.dashboards.dashboards import Dashboard
+from supersetapiplus.dashboards.layout.sizing import BarsContent, Layout, TableContent, calibrated_profile, estimate_table
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.resources.css_templates import CssTemplate
 from supersetapiplus.dashboards.native_filters import FilterType
 from supersetapiplus.exceptions import (
     DashboardValidationError,
+    NodePositionValidationError,
     NotFound,
     NullQueryContextDatasourceWarning,
     ResourceNotFoundError,
+    SizingError,
+    SizingWarning,
     UnprocessableEntityError,
 )
 from supersetapiplus.query_string import QueryOperator
@@ -98,6 +104,83 @@ def test_add_chart_requires_a_saved_dashboard_before_creating_anything(client, d
 
     with pytest.raises(DashboardValidationError):
         dashboard.add_chart(new_chart("table", dataset, prefix), "Title")
+    assert charts_named(client, prefix) == 0
+
+
+def test_charts_sized_from_their_content_are_stored_without_the_content(client, dataset, add_dashboard, cleanup):
+    dashboard = add_dashboard()
+    dashboard.position_json.sizing = "strict"
+    chart = new_chart("table", dataset)
+    content = TableContent(rows=6, labels=["North", "South", "East", "West", "Center", "Islands"], title="Campus")
+
+    try:
+        dashboard.add_chart(chart, "Campus", width=6, height="auto", content=content)
+    finally:
+        if chart.id:
+            cleanup.chart(chart.id)
+    dashboard.position_json.add_markdown("## Notes\n\nRows by campus.", width=6, height="auto")
+    dashboard.save()
+
+    stored = client.dashboards.get(dashboard.id)
+    assert stored.position_json.to_dict() == dashboard.position_json.to_dict()
+    [component] = stored.position_json.components_of_type("CHART")
+    expected = estimate_table(content, calibrated_profile(), Layout(columns=6)).recommended_units
+    assert component.meta["height"] == expected
+    assert "North" not in json.dumps(stored.position_json.to_dict())
+
+    # A height changed to one that cuts the content is refused before anything is sent.
+    component = dashboard.position_json.components_of_type("CHART")[0]
+    component.meta["height"] = 5
+    with pytest.raises(SizingError):
+        dashboard.save()
+    assert client.dashboards.get(dashboard.id).position_json.components_of_type("CHART")[0].meta["height"] == expected
+
+
+def test_sizing_check_of_a_saved_dashboard_reports_without_writing(client, dataset, add_dashboard, cleanup):
+    dashboard = add_dashboard()
+    table, bars = new_chart("table", dataset), new_chart("echarts_timeseries_bar", dataset)
+    bars.params.groupby = bars.query_context.form_data.groupby = []  # the categories are the x axis
+    bars.set_x_axis("campus")
+    bars.params.orientation = bars.query_context.form_data.orientation = "horizontal"
+    try:
+        dashboard.add_chart(table, "Campus table", width=6, height=100)  # two rows: far too tall
+        dashboard.add_chart(bars, "Campus bars", width=6, height="auto",
+                            content=BarsContent(bars=2, labels=["North", "South"]))
+    finally:
+        for chart in (table, bars):
+            if chart.id:
+                cleanup.chart(chart.id)
+    dashboard.position_json.add_markdown("## Notes\n\nTwo campuses.", width=12, height="auto")
+    dashboard.save()
+    before = client.get(client.join_urls(client.dashboards.base_url, dashboard.id)).json()["result"]
+
+    with pytest.warns(SizingWarning, match="Campus table: height 100 leaves more empty space"):
+        report = client.dashboard_sizing.check(dashboard.id)
+
+    by_title = {item.title: item for item in report.components}
+    assert [item.title for item in report.problems] == ["Campus table"]
+    assert by_title["Campus table"].estimate.max_units < 100
+    assert by_title["Campus bars"].problem is None and by_title["Campus bars"].shape == "horizontal_bars"
+    assert sum(item.shape == "markdown" and item.problem is None for item in report.components) == 1
+    after = client.get(client.join_urls(client.dashboards.base_url, dashboard.id)).json()["result"]
+    assert (after["changed_on"], after["position_json"]) == (before["changed_on"], before["position_json"])
+
+    adjusted = report.adjusted_layout()  # built without writing; applied here to a test dashboard
+    table_id = by_title["Campus table"].component_id
+    assert adjusted.components[table_id]["meta"]["height"] == by_title["Campus table"].estimate.recommended_units
+    dashboard.position_json = adjusted
+    dashboard.save()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SizingWarning)
+        assert client.dashboard_sizing.check(dashboard.id).problems == []
+
+
+def test_content_that_does_not_match_the_chart_is_refused_before_creating_it(client, dataset, add_dashboard):
+    dashboard = add_dashboard()
+    prefix = unique_name("mismatch")
+
+    with pytest.raises(NodePositionValidationError, match="BarsContent"):
+        dashboard.add_chart(new_chart("table", dataset, prefix), "Title", height="auto", content=BarsContent(bars=3))
     assert charts_named(client, prefix) == 0
 
 
@@ -262,21 +345,20 @@ def test_native_filter_problems_report_a_column_missing_from_a_chart_dataset(cli
     assert result["rejected_filters"] == [{"column": "campus", "reason": "not_in_datasource"}]
 
 
-def test_owners_and_roles_are_saved_as_ids_and_read_as_objects(client, add_dashboard):
+def test_editors_are_saved_as_ids_and_read_as_objects(client, add_dashboard):
     me = client.get(client.join_urls(URL, "api/v1/me/")).json()["result"]["id"]
-    roles = client.get(client.join_urls(URL, "api/v1/security/roles/"), params={"q": "(page_size:100)"}).json()
-    gamma = next(role["id"] for role in roles["result"] if role["name"] == "Gamma")
+    mine = client.subjects.for_user(me).id
     dashboard = add_dashboard()
-    dashboard.owners, dashboard.roles = [me], [gamma]
+    dashboard.editors = [mine]
     dashboard.certified_by = "Data team"
     dashboard.save()
 
     stored = client.dashboards.get(dashboard.id)
-    assert [o["id"] for o in stored.owners] == [me] and [r["id"] for r in stored.roles] == [gamma]
+    assert [e["id"] for e in stored.editors] == [mine] and stored.editors[0]["type"] == SubjectType.USER
     assert stored.certified_by == "Data team"
     stored.dashboard_title += "-saved-back"
-    stored.save()  # owners/roles read as objects are sent back as ids
-    assert [r["id"] for r in client.dashboards.get(dashboard.id).roles] == [gamma]
+    stored.save()  # editors read as objects are sent back as ids
+    assert [e["id"] for e in client.dashboards.get(dashboard.id).editors] == [mine]
 
 
 def test_copy_and_delete_many(client, add_chart, add_dashboard, cleanup):
@@ -321,3 +403,76 @@ def test_css_template_created_found_by_name_updated_and_applied_to_a_dashboard(c
     dashboard.css = stored.css
     dashboard.save()
     assert client.dashboards.get(dashboard.id).css == stored.css
+
+
+def test_browser_check_reports_what_the_dashboard_shows(client, dataset, add_dashboard, cleanup, chromium):
+    """client.dashboard_sizing.check_in_browser on each viewport of the profile: a table sized to its content and a
+    short markdown block pass; a table far too tall leaves empty space; markdown taller than its block scrolls,
+    unless it scrolls by design. Nothing is written."""
+    dashboard = add_dashboard()
+    sized, tall = new_chart("table", dataset), new_chart("table", dataset)
+    try:
+        dashboard.add_chart(sized, "Sized table", width=12, height="auto", content=TableContent(rows=2))
+        dashboard.add_chart(tall, "Tall table", width=6, height=100)
+    finally:
+        for chart in (sized, tall):
+            if chart.id:
+                cleanup.chart(chart.id)
+    note = dashboard.position_json.add_markdown("## Notes\n\nTwo campuses.", width=12, height="auto")
+    long = dashboard.position_json.add_markdown("## Long\n\n" + "A line of text that goes on. " * 80, width=4,
+                                                height=20)
+    dashboard.save()
+    before = client.get(client.join_urls(client.dashboards.base_url, dashboard.id)).json()["result"]
+
+    report = client.dashboard_sizing.check_in_browser(dashboard.id)
+
+    profile = calibrated_profile()
+    assert {item.viewport for item in report.components} == set(profile.viewports)
+    by_title = {}
+    for item in report.components:
+        by_title.setdefault(item.title, []).append(item)
+    assert all(item.shown and item.problems == () for item in by_title["Sized table"] + by_title[f"markdown {note.id}"])
+    assert all("empty below the content" in " ".join(item.problems) for item in by_title["Tall table"])
+    assert all(item.problems == ("the content scrolls",) for item in by_title[f"markdown {long.id}"])
+    tolerated = client.dashboard_sizing.check_in_browser(dashboard.id, scrolls={long.id})
+    assert not any(item.component_id == long.id and item.problems for item in tolerated.components)
+    after = client.get(client.join_urls(client.dashboards.base_url, dashboard.id)).json()["result"]
+    assert (after["changed_on"], after["position_json"]) == (before["changed_on"], before["position_json"])
+
+
+def test_browser_check_of_a_dashboard_with_only_markdown(client, add_dashboard, chromium):
+    """Markdown blocks are not always inside a chart holder: a dashboard with only markdown is measured."""
+    dashboard = add_dashboard()
+    note = dashboard.position_json.add_markdown("## Notes\n\nOnly text here.", width=6, height="auto")
+    dashboard.save()
+
+    report = client.dashboard_sizing.check_in_browser(dashboard.id)
+
+    assert [(item.component_id, item.shown, item.problems) for item in report.components] == [
+        (note.id, True, ())] * len(calibrated_profile().viewports)
+
+
+def test_browser_check_tells_apart_a_chart_placed_in_a_closed_and_an_open_tab(client, dataset, add_dashboard,
+                                                                              cleanup, chromium):
+    """The same chart in a closed tab (earlier in the layout) and in an open one: the hidden placement is reported
+    not shown and the drawn one measured; Superset draws only the first tab of each tab group."""
+    dashboard = add_dashboard()
+    chart = new_chart("table", dataset)
+    cleanup.chart(client.charts.add(chart))
+    layout = dashboard.position_json
+    first = layout.add_tabs()
+    layout.add_markdown("## Open tab", parent=layout.add_tab("Open", parent=first), width=6, height=20)
+    hidden = layout.add_chart(chart, "Table", parent=layout.add_row(parent=layout.add_tab("Closed", parent=first)),
+                              width=6, height=40)
+    shown = layout.add_chart(chart, "Table", parent=layout.add_row(parent=layout.add_tab("Open", parent=layout.add_tabs())),
+                             width=6, height=40)
+    dashboard.save()
+    client.dashboards.attach_charts(client.dashboards.get(dashboard.id))
+
+    report = client.dashboard_sizing.check_in_browser(dashboard.id)
+
+    for item in report.components:
+        if item.component_id == hidden.id:
+            assert not item.shown
+        elif item.component_id == shown.id:
+            assert item.shown and item.scrolls is False

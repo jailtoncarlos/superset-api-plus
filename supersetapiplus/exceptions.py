@@ -182,8 +182,19 @@ class NodePositionValidationError(ValidationError):
         super().__init__(message, solution)
 
 
+class SizingError(NodePositionValidationError):
+    """With ``position_json.sizing = "strict"``, a component placed with its content has a height that does not fit
+    it (supersetapiplus.dashboards.layout.sizing); raised before the layout is sent."""
+
+
 class LayoutWarning(UserWarning):
     """A dashboard layout read from Superset breaks a rule of the dashboard renderer; it is sent as read."""
+
+
+class SizingWarning(UserWarning):
+    """A dashboard component's height does not fit its content (supersetapiplus.dashboards.layout.sizing): the
+    content is cut or scrolls, or too much empty space is left. Its own class, not a LayoutWarning, so it can be
+    filtered on its own."""
 
 
 class LegacyChartDataWarning(UserWarning):

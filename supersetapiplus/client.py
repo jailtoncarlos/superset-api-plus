@@ -41,10 +41,11 @@ from supersetapiplus.resources.databases import Databases
 from supersetapiplus.resources.datasets import Datasets
 from supersetapiplus.resources.row_level_security import RowLevelSecurity
 from supersetapiplus.resources.saved_queries import SavedQueries
-from supersetapiplus.resources.security import Permissions, Roles
+from supersetapiplus.resources.security import Permissions, Roles, Subjects
 from supersetapiplus.services.bundle_import import BundleImport
 from supersetapiplus.services.dashboard_charts import DashboardCharts
-from supersetapiplus.transport.http import RequestHandler
+from supersetapiplus.services.dashboard_sizing import DashboardSizing
+from supersetapiplus.transport.http import TIMEOUT_CONNECT, TIMEOUT_READ, RequestHandler
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
     css_templates_cls = CssTemplates
     roles_cls = Roles
     permissions_cls = Permissions
+    subjects_cls = Subjects
     row_level_security_cls = RowLevelSecurity
 
     def __init__(self, host: str, username: str | None = None, password: str | None = None, provider: str = "db",
@@ -109,9 +111,11 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self.css_templates = self.css_templates_cls(self)
         self.roles = self.roles_cls(self)
         self.permissions = self.permissions_cls(self)
+        self.subjects = self.subjects_cls(self)
         self.row_level_security = self.row_level_security_cls(self)
         # Operations across resources (charts and dashboards together).
         self.dashboard_charts = DashboardCharts(self)
+        self.dashboard_sizing = DashboardSizing(self)
         self.bundle_import = BundleImport(self)
 
     @property
@@ -152,8 +156,10 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
     def _read_server_version(self, session: requests.Session) -> None:
         self._server_version_read = True
         try:
+            # The configured timeouts, as every request of the HTTP layer; not through RequestHandler, which logs a
+            # failure as an error: the version is a best-effort check (a server without /version is fine).
             response = session.get(self.join_urls(self.host, "version"), verify=self._verify,
-                                   headers={"Accept": "application/json"})
+                                   headers={"Accept": "application/json"}, timeout=(TIMEOUT_CONNECT, TIMEOUT_READ))
             response.raise_for_status()
             version = response.json().get("version_string")
         except (requests.exceptions.RequestException, ValueError, AttributeError) as error:

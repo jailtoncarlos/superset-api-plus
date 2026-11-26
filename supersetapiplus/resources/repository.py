@@ -4,6 +4,7 @@ import itertools
 import json
 import logging
 import os.path
+import warnings
 import zipfile
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
@@ -16,6 +17,7 @@ import yaml
 
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.masking import mask_data
+from supersetapiplus.core.types import SubjectType
 from supersetapiplus.exceptions import MultipleFound, NotFound, UnsupportedTypeError
 from supersetapiplus.query_string import QueryStringFilter
 
@@ -26,6 +28,8 @@ class HttpClient(Protocol):
     """What a repository needs from SupersetClient (a protocol: resources must not import the client layer)."""
     # Operations across resources (services.DashboardCharts), reached by the resource facades.
     dashboard_charts: Any
+    # Subjects of Superset 7.0 (resources.security.Subjects), to resolve deprecated user and role fields.
+    subjects: Any
     @property
     def base_url(self) -> str: ...
 
@@ -42,6 +46,53 @@ class HttpClient(Protocol):
              order_direction: str | None = None) -> requests.Response: ...
 
     def join_urls(self, *args: object) -> str: ...
+
+
+_SUBJECT_LOOKUP = {SubjectType.USER: "for_user", SubjectType.ROLE: "for_role", SubjectType.GROUP: "for_group"}
+
+
+def _reference_id(item: object) -> object:
+    """The id of a relation item: an id, a dict read from Superset, or a saved object."""
+    if isinstance(item, dict):
+        return item.get("id")
+    return getattr(item, "id", item)
+
+
+def _resolve_subject_aliases(obj: ApiModel, subjects: Any) -> None:
+    """Moves the users or roles of each field of `obj` that refers to them (``SUBJECT_ALIASES``, e.g. ``owners``) into
+    its field of subjects (``editors``) as the ids of their subjects, found through `subjects` (``client.subjects``),
+    with a DeprecationWarning for a deprecated field; that field is emptied, so it is resolved once. A deprecated field
+    replaces the subjects read from Superset (an empty list clears them), as on Superset 6.1, keeping those the code
+    put in the field of subjects; a field that is not deprecated adds to them. No subject is listed twice."""
+    for alias, (target, principal, deprecated) in obj.SUBJECT_ALIASES.items():
+        items = getattr(obj, alias, None)
+        # Unset (None, or the default list) is skipped; an empty list given explicitly to a deprecated field clears
+        # the field of subjects, as clearing owners or roles did on Superset 6.1.
+        if not isinstance(items, list):
+            continue
+        if not items and (alias not in obj.model_fields_set or not deprecated):
+            continue
+        if deprecated:
+            warnings.warn(f"{type(obj).__name__}.{alias} is deprecated since Superset 7.0: use {target}, a list of "
+                          f"subjects (client.subjects.{_SUBJECT_LOOKUP[principal]})", DeprecationWarning,
+                          stacklevel=4)
+        lookup = getattr(subjects, _SUBJECT_LOOKUP[principal])
+        current = getattr(obj, target, None)
+        # A deprecated field replaces the list, as assigning owners or roles did on Superset 6.1 (dropping a role
+        # revokes its access); subjects the code itself put in the new field (not read from Superset) are kept.
+        # A field that is not deprecated (RLS users) adds to the list.
+        set_in_code = target in obj.model_fields_set and target not in obj._read_keys
+        keep = not deprecated or set_in_code
+        ids = [_reference_id(item) for item in current] if keep and isinstance(current, list) else []
+        for item in items:
+            subject_id = lookup(_reference_id(item)).id
+            if subject_id not in ids:
+                ids.append(subject_id)
+        setattr(obj, target, ids)
+        setattr(obj, alias, [] if type(obj).model_fields[alias].default_factory is list else None)
+        # Resolved: the alias is unset again (a later send does not clear the subjects), and the field of subjects
+        # counts as set by the library, not by the code (a later alias replaces it).
+        obj.model_fields_set.difference_update({alias, target})
 
 
 class UnsupportedObject:
@@ -181,6 +232,7 @@ class ApiModelFactories(ABC):
         /_info cannot be used as a filter: in Superset 6.1.0 ChartRestApi declares edit_columns = ['slice_name']
         but validates the body with ChartPutSchema, which requires/accepts datasource_id, params, query_context...
         """
+        _resolve_subject_aliases(obj, self.client.subjects)
         payload = obj.to_json(columns=list(obj.PUT_FIELDS or []))
         payload.pop("id", None)
         logger.debug('payload: %s', mask_data(payload))
@@ -368,6 +420,7 @@ class ApiModelFactories(ABC):
 
         # Model fields, not the add_columns from /_info (see save()): in 6.1.0 the chart _info
         # lists only slice_name and the POST requires datasource_id/datasource_type (ChartPostSchema).
+        _resolve_subject_aliases(obj, self.client.subjects)
         payload = obj.to_json(columns=list(obj.POST_FIELDS or []))
         payload.pop("id", None)
 

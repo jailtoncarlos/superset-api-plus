@@ -41,7 +41,15 @@ python bin/scripts/extract_query_contexts.py <v>   # ui_query_contexts_<v>/ (Exp
 python bin/scripts/extract_ui_defaults.py <v>      # ui_defaults_<v>/ (form_data of a new chart)
 python bin/scripts/extract_ui_controls.py <v>      # ui_controls_<v>.json (controls read by buildQuery)
 python bin/scripts/extract_example_query_contexts.py <v>  # example_query_contexts_<v>.json (example charts)
+python bin/scripts/calibrate_sizing.py <v>         # dashboards/layout/profiles/sizing_profile_<v>.json (package)
 ```
+
+The sizing calibration builds a dashboard on `birth_names`, measures it in Chromium (scrollbars shown) on 1366 and
+1920 px and checks the profile on that dashboard: each table, pivot table and markdown block must fit at its
+estimated minimum height, or the script fails without writing; whether each one still fits one grid unit below is
+recorded in `provenance.verification`. The values it does not measure (tolerated empty space, bar thickness, bar
+label characters, label column width) are in `POLICY` and recorded in the profile's `provenance`. Diff the new
+profile against the previous one: a changed measure usually means a changed theme or font.
 
 Point the tests at the new files (the version appears in the fixture names the tests load) and diff each
 excerpt against the previous version: every difference is a decision.

@@ -6,6 +6,7 @@ the real Superset in tests/integration. What stays here, and why:
   rate limit of a production-mode Superset, reached by bursts; the policy is checked without HTTP);
 - exception hierarchy: no server involved;
 - asynchronous SQL Lab (202): the test stack has no Celery workers to run queries asynchronously;
+- the timeouts of the server version request: the real server cannot hang `/version` on demand;
 - status mapping of error bodies: built responses, no HTTP (the real 403 is in tests/integration/test_errors.py).
 """
 import json
@@ -24,7 +25,7 @@ from supersetapiplus.exceptions import (
     UnauthorizedError,
     UnprocessableEntityError,
 )
-from supersetapiplus.transport.http import IDEMPOTENT_METHODS, RequestHandler
+from supersetapiplus.transport.http import IDEMPOTENT_METHODS, TIMEOUT_CONNECT, TIMEOUT_READ, RequestHandler
 
 HOST = "https://superset.example"
 API = f"{HOST}/api/v1"
@@ -76,6 +77,33 @@ def test_async_sql_lab_run_is_reported_as_not_supported():
 
         with pytest.raises(NotImplementedError):
             SupersetClient(HOST, "robot", "password").run(database_id=3, query="select 1")
+
+
+def test_the_server_version_request_carries_the_configured_timeouts():
+    with rm.Mocker() as mock:
+        mock.post(f"{API}/security/login", json={"access_token": "access", "refresh_token": "refresh"})
+        mock.get(f"{API}/security/csrf_token/", json={"result": "csrf"})
+        version = mock.get(f"{HOST}/version", json={"version_string": "6.1.0"})
+
+        client = SupersetClient(HOST, "robot", "password")
+        client.session  # first login, which reads the version
+
+        assert client.server_version == "6.1.0"
+        assert version.call_count == 1
+        assert version.last_request.timeout == (TIMEOUT_CONNECT, TIMEOUT_READ)
+
+
+def test_a_version_request_that_times_out_does_not_stop_the_login():
+    with rm.Mocker() as mock:
+        mock.post(f"{API}/security/login", json={"access_token": "access", "refresh_token": "refresh"})
+        mock.get(f"{API}/security/csrf_token/", json={"result": "csrf"})
+        mock.get(f"{HOST}/version", exc=requests.exceptions.ReadTimeout)
+        charts = mock.get(f"{API}/chart/", json={"count": 0, "result": []})
+
+        client = SupersetClient(HOST, "robot", "password")
+        client.get(f"{API}/chart/")
+
+        assert charts.called and client.server_version is None
 
 
 def response(status: int, body: dict) -> requests.Response:

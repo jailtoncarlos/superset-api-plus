@@ -6,8 +6,10 @@ from typing_extensions import Self
 
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.references import SavedChart
-from supersetapiplus.core.typing import SerializableOptional
-from supersetapiplus.dashboards.layout import DashboardLayout, LayoutParent
+from supersetapiplus.core.types import SubjectType
+from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
+from supersetapiplus.dashboards.layout import DashboardLayout, Height, LayoutParent
+from supersetapiplus.dashboards.layout.sizing import BarsContent, TableContent
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.exceptions import DashboardValidationError, UnsupportedTypeError
@@ -27,18 +29,20 @@ class Dashboard(ApiModel):
     colors, cross-filters), owners and roles. Read with `client.dashboards.get()`, create with `add()`."""
     JSON_FIELDS: ClassVar[list[str]] = ['json_metadata', 'position_json']
     PRESERVE_EXTRA_FIELDS: ClassVar[bool] = False
-    # Fields accepted by the API (OpenAPI 6.1.0: DashboardRestApi.post / DashboardRestApi.put).
+    # Fields accepted by the API (OpenAPI 7.0.0rc3: DashboardRestApi.post / DashboardRestApi.put).
     POST_FIELDS: ClassVar[tuple[str, ...]] = (
-        "certification_details", "certified_by", "css", "dashboard_title", "external_url",
-        "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
+        "certification_details", "certified_by", "css", "dashboard_title", "editors", "external_url",
+        "is_managed_externally", "json_metadata", "position_json", "published", "slug", "viewers",
     )
     PUT_FIELDS: ClassVar[tuple[str, ...]] = (
-        "certification_details", "certified_by", "css", "dashboard_title", "external_url",
-        "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
-        "tags",
+        "certification_details", "certified_by", "css", "dashboard_title", "editors", "external_url",
+        "is_managed_externally", "json_metadata", "position_json", "published", "slug", "tags", "viewers",
     )
 
-    ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ("owners", "roles")
+    ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ("editors", "viewers")
+    # Superset 7.0: owners (users) and roles (dashboard RBAC) are deprecated aliases of editors and viewers (subjects).
+    SUBJECT_ALIASES: ClassVar[dict[str, tuple[str, SubjectType, bool]]] = {
+        "owners": ("editors", SubjectType.USER, True), "roles": ("viewers", SubjectType.ROLE, True)}
 
     dashboard_title: str = ''
 
@@ -46,10 +50,13 @@ class Dashboard(ApiModel):
     id: int | None = None
     css: SerializableOptional[str] = None
     slug: SerializableOptional[str] = None
-    # Users (owners) and roles (dashboard RBAC) as read from Superset, or their ids; sent as ids.
-    # Absent on create unless set: Superset then makes the current user the owner.
-    owners: SerializableOptional[list[Any]] = None
-    roles: SerializableOptional[list[Any]] = None
+    # Subjects who may edit or view the dashboard (Superset 7.0; viewers need the ENABLE_VIEWERS feature flag), as
+    # read or their ids; sent as ids. editors absent on create unless set: Superset then makes the current user an
+    # editor. owners and roles: deprecated, users and roles turned into editors and viewers when sent.
+    editors: SerializableOptional[list[Any]] = None
+    viewers: SerializableOptional[list[Any]] = None
+    owners: SerializableNotToJson[list[Any] | None] = None
+    roles: SerializableNotToJson[list[Any] | None] = None
     certified_by: SerializableOptional[str] = None
     certification_details: SerializableOptional[str] = None
     external_url: SerializableOptional[str] = None
@@ -61,6 +68,12 @@ class Dashboard(ApiModel):
     def model_post_init(self, context: Any) -> None:
         super().model_post_init(context)
         self._charts_slice_names: list[str] = []
+        self._bind_layout()
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        super().__setattr__(name, value)
+        if name == "position_json":  # every layout this dashboard holds follows its filter bar (see _bind_layout)
+            self._bind_layout()
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> Self:
@@ -88,6 +101,17 @@ class Dashboard(ApiModel):
         self.position_json = DashboardLayout.empty(self.dashboard_title)
         return self.position_json
 
+    def _bind_layout(self) -> None:
+        """The layout's sizing estimates follow whether this dashboard shows the vertical native filter bar. Bound
+        when the dashboard is built and whenever ``position_json`` is assigned, so every builder path
+        (``position_json``, ``position``, ``reset_layout()``) sizes with it."""
+        if isinstance(self.position_json, DashboardLayout):
+            self.position_json.follow_dashboard_filter_bar(self._shows_vertical_filter_bar)
+
+    def _shows_vertical_filter_bar(self) -> bool:
+        """Read at each estimate: the json_metadata as it is now (filters added after the layout was taken count)."""
+        return isinstance(self.json_metadata, Metadata) and self.json_metadata.shows_vertical_filter_bar()
+
     def to_dict(self, columns: list[str] | None = None, convert_to_json: bool = False) -> dict[str, Any]:
         # Native filter scopes (chartsInScope/tabsInScope) are derived from the layout, as the editor does.
         if isinstance(self.position_json, DashboardLayout):
@@ -97,17 +121,19 @@ class Dashboard(ApiModel):
                 self.json_metadata.update_native_filter_scopes(self.position_json)
         return super().to_dict(columns, convert_to_json)
 
-    def add_chart(self, chart: SavedChart, title: str, parent: LayoutParent = None, height: int = 50, width: int = 4,
-                  id: str | None = None) -> None:
+    def add_chart(self, chart: SavedChart, title: str, parent: LayoutParent = None, height: Height = 50, width: int = 4,
+                  id: str | None = None, content: TableContent | BarsContent | None = None,
+                  max_rows: int | None = None) -> None:
         """Places the chart in the layout and associates it with this dashboard in Superset (see DashboardCharts).
 
-        The dashboard must be saved (have an id); a chart without an id is created first.
+        The dashboard must be saved (have an id); a chart without an id is created first. `content`, `max_rows` and
+        ``height="auto"`` size it from its content (DashboardLayout.add_chart).
         """
         if not self.id:
             raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the '
                                            'client.dashboards.add([this-dashboard]) method.')
         self._repository().client.dashboard_charts.add_chart(self, chart, title, parent, height=height, width=width,
-                                                             id=id)
+                                                             id=id, content=content, max_rows=max_rows)
 
     @property
     def colors(self) -> dict[str, str]:

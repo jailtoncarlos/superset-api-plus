@@ -20,7 +20,8 @@ Target of this branch (`superset-7`): **Superset 7.0**, migration in progress, r
 - **Lossless round trip.** Reading an object and saving it back neither loses nor adds data: unmodeled keys
   are preserved and absent keys stay absent.
 - **Dashboards**: layout builder (tabs, rows, markdown, charts) that writes `position_json` as the editor
-  does, native filters with dependencies and chart scopes, chart association.
+  does, native filters with dependencies and chart scopes, chart association, and chart heights sized from the
+  content (rows, bars, markdown text) with measures calibrated in a browser.
 - **Both authentication modes**: JWT, and the login-form session (cookie + CSRF) needed by instances whose
   `Public` role has permissions, also on instances with OAuth login (through a service login route).
 - **Conformance checked in CI and pre-commit** against the OpenAPI specification and the Superset source
@@ -183,14 +184,34 @@ query.add("name", QueryOperator.EQUAL, "Public")
 public = client.roles.find_one(query)
 ```
 
-Row level security rules (the SQL clause Superset adds to the queries of some roles on some datasets):
+Subjects (Superset 7.0): editors, viewers and row level security rules refer to the subject of a user, role or
+group, which Superset keeps for each of them. `client.subjects` reads them (the API is read-only):
+
+```python
+from supersetapiplus import SubjectType
+
+subject = client.subjects.for_role(public.id)      # also for_user(user_id) and for_group(group_id)
+subject.type == SubjectType.ROLE, subject.label    # (True, "Public")
+
+dashboard.editors = [client.subjects.for_user(user_id)]  # charts, dashboards and datasets: subjects or their ids
+dashboard.viewers = [subject]                            # dashboards and charts, with the ENABLE_VIEWERS flag
+dashboard.save()                                         # read back as [{id, label, type}], sent as ids
+```
+
+The fields of Superset 6.1 still work and are deprecated (`DeprecationWarning`): `owners` (users) becomes
+`editors` and a dashboard's `roles` become `viewers`; the library turns the users and roles into their subjects
+before sending. Superset refuses to add viewers while `ENABLE_VIEWERS` is off (`UnprocessableEntityError`).
+
+Row level security rules (the SQL clause Superset adds to the queries of some subjects on some datasets):
 
 ```python
 from supersetapiplus import RowLevelSecurityFilterType, RowLevelSecurityRule
 
 rule = RowLevelSecurityRule(
-    name="Public sees active rows", filter_type=RowLevelSecurityFilterType.REGULAR,  # BASE: every role but these
-    tables=[dataset], roles=[public], clause="status = 'active'")  # datasets, roles or their ids
+    name="Public sees active rows", filter_type=RowLevelSecurityFilterType.REGULAR,  # BASE: everyone but these
+    tables=[dataset], subjects=[subject], clause="status = 'active'")  # datasets, subjects or their ids
+# users=[user_id] takes users (and roles=[...], deprecated, roles): sent as their subjects.
+# A Regular rule needs at least one subject; the library refuses one without it before sending.
 client.row_level_security.add(rule)
 rule.clause = "status <> 'archived'"
 rule.save()
@@ -289,6 +310,116 @@ to be saved; a layout read from Superset is saved as read, with a `LayoutWarning
 `client.dashboard_charts.add_chart(dashboard, chart, ...)` places a chart and associates it in one call;
 `client.dashboards.copy()` copies a dashboard; `delete_many()` removes several objects at once. Dashboards
 read from Superset are written back as read: only filters created by the library get recomputed scopes.
+
+### Sizing charts to their content
+
+A chart's height on a dashboard is fixed: a table with few rows leaves empty space below it, one with many rows
+scrolls, and horizontal bars get thinner as they get more numerous. Give the layout what the chart shows and it
+picks the height:
+
+```python
+from supersetapiplus.dashboards.layout.sizing import BarsContent, TableContent
+
+layout.add_chart(table, "Sales by region", parent=row, width=6, height="auto",
+                 content=TableContent(rows=8, labels=regions), max_rows=15)   # above 15 rows the table scrolls
+layout.add_chart(bars, "Top products", parent=row, width=6, height="auto",
+                 content=BarsContent(bars=10, labels=products))
+layout.add_markdown("## Notes\n\nFigures of the last quarter.", width=12, height="auto")
+```
+
+Tables and pivot tables (`TableContent`: rows, labels, title, search box, pagination) and horizontal bars
+(`BarsContent`: bars, labels, legend) are covered; the content stays in the library and is never written to
+`position_json`. The formula comes from the chart's params; a `ChartRef` has none, so it is sized as a table
+(`TableContent`) or horizontal bars (`BarsContent`) unless it declares its shape:
+`ChartRef(chart_id, "Enrollments", shape=ChartShape.PIVOT_TABLE)` (`ChartShape` from the same `sizing` module).
+A table's rows grow with the lines of its label. When the label column width is left to Superset, it changes with
+the screen; `table.fix_label_column_width("region")` fixes it to the width the profile was calibrated with, and
+`TableContent(..., fixed_label_width=True)` then estimates the rows as drawn.
+Bar labels are wrapped by the query, so the chart shows the lines `BarsContent` was sized with:
+`wrap_label_sql(expression, chars)` (from the `sizing` module) returns the PostgreSQL expression that wraps a label
+as `wrap_label` does, for an adhoc column of the chart. It handles two pitfalls of Superset 6.1, which rewrites the
+chart SQL: the newline is `chr(10)` (an `E'...'` string loses the regular expression backreference), and each line
+starts with two spaces (the bar axis reserves a few px less than the longest label and clips its first letter).
+
+```python
+chart.add_custom_dimension("indicator", sql_expression=wrap_label_sql("indicator_name", 85))
+```
+When the layout is sent, the components placed with their content (and every markdown block)
+are checked against it: `layout.sizing = "warn"` (default) emits a `SizingWarning` when a height cuts the content
+or leaves too much empty space, `"strict"` raises `SizingError` (pivot tables, whose estimate is approximate, only
+warn) and `"off"` skips the check.
+
+The vertical native filter bar takes width from the grid, so text wraps more and charts need more height. The layout
+of a dashboard leaves room for it when the dashboard has native filters shown vertically (the default orientation);
+a layout on its own always does. `height="auto"` is computed when the component is placed, so add the native filters
+first, or set the bar explicitly when the layout is built before them:
+
+```python
+dashboard.json_metadata.add_native_filter("Region", dataset=dataset_id, column="region")  # first the filters
+layout.add_chart(table, "Sales by region", width=6, height="auto", content=TableContent(rows=8, labels=regions))
+
+layout.vertical_filter_bar = True   # or: force it (False: filters on top, or none), then place the components
+```
+
+`client.dashboard_sizing.check(dashboard_id)` checks a dashboard already saved, without writing: it reads the
+data each table, pivot table and bar chart shows and returns a report (`report.problems`, `report.summary()`).
+A table's totals row (`show_totals`) takes the height of one more row. Components that scroll by design, such as a
+table whose rows depend on the data or a free text table of fixed height, are listed in `scrolls` (chart ids or
+component ids): a height below their content is not reported for them, more empty space than tolerated still is.
+
+```python
+report = client.dashboard_sizing.check(dashboard_id, max_rows=15, scrolls={chart_id, "CHART-free-text"})
+```
+
+`report.adjusted_layout()` returns a copy of the layout with the recommended height of each component that does
+not fit; nothing is written until it is saved:
+
+```python
+dashboard = client.dashboards.get(dashboard_id)
+dashboard.position_json = report.adjusted_layout()
+dashboard.save()
+```
+
+The measures (chart frame, table rows, bar band, markdown styles) come from a profile calibrated in Chromium for
+Superset 6.1.0 with the default theme on 1366 and 1920 px screens (`bin/scripts/calibrate_sizing.py`). Measured
+there: a table's label column left to Superset widens on the larger screen (`table.unfixed_label_chars_by_viewport`),
+chart titles are not clamped (`frame.title_max_lines` is None: a long title wraps in as many lines as it needs) and
+a horizontal bar takes 0.669 of its category band (`bars.bar_share`). Bar bounds can be given as the visible bar
+thickness, converted with that ratio:
+
+```python
+profile = calibrated_profile()
+profile = profile.model_copy(update={"bars": profile.bars.with_thickness(bar=30, min_bar=24, max_bar=40)})
+layout.sizing_profile = profile
+```
+
+An instance with its own theme or CSS needs its own profile, calibrated with the CSS of its dashboards and written
+outside the package, then loaded and set on the layout (`layout.sizing_profile = profile`) or passed to
+`client.dashboard_sizing.check(..., profile=profile)`:
+
+```bash
+python bin/scripts/calibrate_sizing.py 6.1.0 --css dashboard.css --output sizing_profile.json
+```
+
+`client.dashboard_sizing.check_in_browser(dashboard_id)` looks at the dashboard itself: it opens it in Chromium on
+each viewport of the profile, with the client's session (`client.enable_session_mode()`), and reports for each chart
+and markdown block drawn whether its content scrolls, the empty space below a table or pivot table, the thickness of
+horizontal bars and whether its title is clipped, against the profile's tolerances (`scrolls=` as in `check`). It
+needs the `browser` extra and a Chromium (`CHROME_PATH`, or the one Playwright installs). Superset draws only the
+tabs open when the dashboard loads: components in other tabs are reported as not shown. Each wait (opening the
+dashboard, its charts drawn) may take `SUPERSET_API_PLUS_BROWSER_TIMEOUT` seconds (default 120, or `timeout=`), and
+the browser verifies TLS certificates as the client does (`verify=False` ignores certificate errors). Bars are found
+on the chart canvas by their saturated color: bars in grey or another low saturation color are not measured, and the
+report says so in the component's `notes`.
+
+```bash
+pip install "superset-api-plus[browser]" && playwright install chromium
+```
+
+```python
+report = client.dashboard_sizing.check_in_browser(dashboard_id)
+print(report.summary())   # "Sales by region @ 1366 px: 180 px empty below the content (tolerated 112)", ...
+```
 
 ## Errors
 

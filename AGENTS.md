@@ -63,6 +63,12 @@ institutional GitLab and is written in Portuguese; that does not change the lang
     form_data); `supersetapiplus/charts/explore.py` holds them (`tests/unit/test_explore_form_data.py`)
   - `bin/scripts/extract_example_layouts.py <version>` → `example_layouts_<version>.json`: the layouts of
     the example dashboards shipped with Superset, which the layout validation must accept
+  - `bin/scripts/calibrate_sizing.py <version>` →
+    `supersetapiplus/dashboards/layout/profiles/sizing_profile_<version>.json` (package data, not a test fixture:
+    `height="auto"` and the sizing check use it): the chart sizing measures
+    (`dashboards/layout/sizing.py`) taken in Chromium on a calibration dashboard built on the examples, checked on
+    that dashboard before writing, with provenance (Chromium version, viewports, theme, font) and the values chosen,
+    not measured (`POLICY`)
   The excerpts downloaded from the tag record their provenance (tag, commit SHA, source paths); an
   extractor that finds nothing for a symbol fails instead of writing an empty set (`tests/unit/test_extractors.py`),
   and every key of the enum excerpt must be named by some test or module (`test_enum_conformance.py`).
@@ -119,6 +125,10 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   Before sending, the layout is checked against the renderer rules (`dashboards/layout/validation.py`, port of
   `isValidChild.ts`): a layout built by the library must be valid (and its `parents` match the tree); a
   layout read from Superset is sent as read, with a `LayoutWarning` (Superset itself saves stale `parents`).
+  Components placed with their content (`add_chart(content=...)`, `add_markdown`) may take `height="auto"` and
+  are checked against it when sent (`position_json.sizing`: `warn` by default, `strict`, `off`;
+  `dashboards/layout/sizing.py`, measures from the calibrated profile shipped in `dashboards/layout/profiles/`).
+  The content is kept by the library (private attribute), never written to `position_json`.
 - **Chart ↔ dashboard association** is done with `Charts.add_to_dashboard` / `Dashboards.attach_charts`
   (PUT of `dashboards` on the chart); `chart.save()` does not send `dashboards`.
 
@@ -136,7 +146,8 @@ institutional GitLab and is written in Portuguese; that does not change the lang
 - CI (`.github/workflows/python-package.yaml`): tests on Python 3.10–3.14 on pull requests and pushes to `main` (a new PR commit cancels the run of the previous one) with `uv sync --locked`
   (fails when `uv.lock` is out of date), the unit tests with the lowest direct dependency versions on 3.10 and
   3.14, the integration tests against the compose stack, the example dashboard tests against the stack with the
-  examples loaded (job `examples`, in parallel), and pre-commit on the PR diff. A weekly job (`superset-drift.yaml`) compares the newest Superset release and master with the
+  examples loaded (job `examples`, in parallel), both with Chromium for the browser check tests
+  (`SUPERSET_BROWSER_REQUIRED=1`), and pre-commit on the PR diff. A weekly job (`superset-drift.yaml`) compares the newest Superset release and master with the
   pinned excerpts and fails when the newest release differs (`docs/superset-version-bump.md`, step 0). Each job is described in `docs/ci-pipeline.md`. CI/CD changes require explicit authorization from the maintainer.
 - The layout of the test suite, its fixtures and how to run each part are in `docs/testing.md`.
 - Every bug fix comes with a test that fails before the fix. Prefer tests of the public contract
@@ -189,7 +200,9 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   below it (`import-layers` hook): `client.py` (facade) → `services/` (operations across resources, e.g.
   `DashboardCharts`) → `charts/` → `dashboards/` (`layout/`, `native_filters`, `metadata`) → `resources/`
   (repositories and the dataset, database, saved query and asset models) → `auth/` → `transport/` (HTTP) →
-  `core/` (models, fields, enums and masking; no HTTP). Old module paths are compatibility modules that warn
+  `core/` (models, fields, enums and masking; no HTTP). The services today: `DashboardCharts`
+  (`client.dashboard_charts`), `DashboardSizing` (`client.dashboard_sizing`, read-only check of the heights of a
+  saved dashboard) and `BundleImport`. Old module paths are compatibility modules that warn
   on import; `supersetapiplus.datasets`, `.databases`, `.saved_queries` and `.assets` stay public paths.
 - Dependency management is **uv** (issue #319): `pyproject.toml` is the single source, `uv.lock` pins the
   development and CI environment. Runtime dependency floors must stay at or below the constraints of the

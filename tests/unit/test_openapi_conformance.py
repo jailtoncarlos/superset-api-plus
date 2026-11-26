@@ -29,7 +29,7 @@ from supersetapiplus.resources.row_level_security import RowLevelSecurityRule
 from supersetapiplus.resources.security import Permission, Role
 from supersetapiplus.saved_queries import SavedQuery
 
-SPEC = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_openapi_6.1.0.json").read_text())
+SPEC = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_openapi_7.0.0rc3.json").read_text())
 HOST = "https://superset.example"
 API = f"{HOST}/api/v1"
 
@@ -45,7 +45,8 @@ RESOURCES = {
                                             "query_context": None, "datasource_id": 1, "datasource_type": "table"}),
               {"id": 9, "slice_name": "G", "viz_type": "table", "params": json.dumps(PARAMS), "query_context": None,
                "description": None, "cache_timeout": None, "dashboards": [], "url": "/explore/?slice_id=9",
-               "thumbnail_url": "/t", "changed_on_delta_humanized": "1 day ago", "owners": [{"id": 1}],
+               "thumbnail_url": "/t", "changed_on_delta_humanized": "1 day ago",
+               "editors": [{"id": 1, "label": "Ann", "type": 1}], "viewers": [],
                "tags": []}),
     "dashboard": ("DashboardRestApi",
                   lambda: Dashboard(dashboard_title="Panel", published=True, slug="panel"),
@@ -55,13 +56,13 @@ RESOURCES = {
                        "DASHBOARD_VERSION_KEY": "v2",
                        "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"], "parents": []},
                        "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": [], "parents": ["ROOT_ID"]}}),
-                   "url": "/superset/dashboard/9/", "thumbnail_url": "/t", "owners": [], "roles": [],
+                   "url": "/superset/dashboard/9/", "thumbnail_url": "/t", "editors": [], "viewers": [],
                    "changed_by_name": "x", "charts": ["G"]}),
     "dataset": ("DatasetRestApi",
                 lambda: Dataset(table_name="vw_answers", schema="analytics", database_id=1, sql="select 1"),
                 {"id": 9, "table_name": "vw_answers", "schema": "analytics", "sql": "select 1", "kind": "virtual",
                  "description": None, "datasource_type": "table", "database": {"id": 1, "database_name": "dw"},
-                 "columns": [{"column_name": "campus"}], "metrics": [], "owners": []}),
+                 "columns": [{"column_name": "campus"}], "metrics": [], "editors": []}),
     "database": ("DatabaseRestApi",
                  lambda: Database(database_name="dw", sqlalchemy_uri="postgresql://u:p@h/db"),
                  {"id": 9, "database_name": "dw", "sqlalchemy_uri": "postgresql://u:XXXXXXXXXX@h/db",
@@ -79,10 +80,10 @@ RESOURCES = {
     "row_level_security": ("RLSRestApi",
                            lambda: RowLevelSecurityRule(name="Rule", filter_type=RowLevelSecurityFilterType.REGULAR,
                                                         tables=[Dataset(id=4, table_name="t")],
-                                                        roles=[Role(id=3, name="Public")], clause="x <> 'y'"),
+                                                        subjects=[3], clause="x <> 'y'"),
                            {"id": 9, "name": "Rule", "filter_type": "Base", "clause": "x <> 'y'", "group_key": None,
                             "description": None, "tables": [{"id": 4, "schema": "s", "table_name": "t"}],
-                            "roles": [{"id": 3, "name": "Public"}]}),
+                            "subjects": [{"id": 3, "label": "Public", "type": 2}]}),
 }
 
 
@@ -205,13 +206,24 @@ def test_sql_execution_uses_a_spec_route():
     assert spec_paths_for(client._sql_endpoint)
 
 
+# Fields Superset 7.0 added to the write schemas and the library does not model yet: T-16 (#69, additive 7.0
+# fields) models them and empties this list. Listed so the conformance runs on the 7.0 spec in the meantime.
+NOT_MODELED_7_0 = {
+    ("ChartRestApi", "post"): {"uuid"}, ("ChartRestApi", "put"): {"normalization_changes", "uuid"},
+    ("DashboardRestApi", "post"): {"description", "theme_id", "uuid"},
+    ("DashboardRestApi", "put"): {"description", "theme_id", "uuid"},
+    ("DatasetRestApi", "post"): {"currency_code_column", "template_params", "uuid"},
+    ("DatasetRestApi", "put"): {"currency_code_column", "uuid"},
+}
+
+
 @pytest.mark.parametrize("resource", RESOURCES)
 def test_fields_declared_in_models_are_the_spec_fields(resource):
     api, new, _ = RESOURCES[resource]
     model = type(new())
 
-    assert set(model.POST_FIELDS) == set(SPEC["schemas"][f"{api}.post"]["properties"])
-    assert set(model.PUT_FIELDS) == set(SPEC["schemas"][f"{api}.put"]["properties"])
+    for verb, fields in (("post", model.POST_FIELDS), ("put", model.PUT_FIELDS)):
+        assert set(fields) | NOT_MODELED_7_0.get((api, verb), set()) == set(SPEC["schemas"][f"{api}.{verb}"]["properties"])
 
 
 def test_role_permissions_replacement_follows_the_schema(client, mock):

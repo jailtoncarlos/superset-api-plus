@@ -25,16 +25,21 @@ dependencies = [
   "anytree>=2.8.0",
   "shortuuid>=1.0.1",
   "typing_extensions>=4.6.0",
-  "pydantic>=2.12.0"
+  "pydantic>=2.12.0",
+  "markdown-it-py>=3.0.0"
 ]
 
 [tool.setuptools.packages.find]
 include = ["supersetapiplus*"]
 
 [tool.setuptools.package-data]
-supersetapiplus = ["py.typed"]
+supersetapiplus = ["py.typed", "dashboards/layout/profiles/*.json"]
 
 [project.optional-dependencies]
+# Browser check of a dashboard (client.dashboard_sizing.check_in_browser); then: playwright install chromium.
+browser = [
+  "playwright>=1.49",
+]
 dev = [
   "ipdb>=0.13.13",
   "ipython>=8.39.0",

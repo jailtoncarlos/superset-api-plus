@@ -34,6 +34,7 @@ ALLOWED = {
     "resources.repository.HttpClient.delete(kwargs)": REQUESTS,
     "services.dashboard_charts._Client.get(kwargs)": REQUESTS,
     "services.dashboard_charts._Client.put(kwargs)": REQUESTS,
+    "services.dashboard_sizing._Client.post(kwargs)": REQUESTS,
     "transport.http.RequestHandler.request_with_retry(kwargs)": REQUESTS,
     "core.encoding.ObjectDecoder.default(obj)": "signature of json.JSONEncoder.default (any object to encode)",
     "core.fields.object_field(default)": DATACLASSES,

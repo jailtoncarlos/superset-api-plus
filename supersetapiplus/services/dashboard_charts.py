@@ -10,7 +10,8 @@ import requests
 from supersetapiplus.charts.charts import Chart, Charts
 from supersetapiplus.core.references import SavedChart
 from supersetapiplus.dashboards.dashboards import Dashboard, Dashboards
-from supersetapiplus.dashboards.layout import DEFAULT_CHART_WIDTH, DEFAULT_HEIGHT, LayoutParent
+from supersetapiplus.dashboards.layout import DEFAULT_CHART_WIDTH, DEFAULT_HEIGHT, Height, LayoutParent
+from supersetapiplus.dashboards.layout.sizing import BarsContent, TableContent
 from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.exceptions import ChartValidationError, DashboardValidationError
 from supersetapiplus.resources.datasets import Datasets
@@ -66,15 +67,17 @@ class DashboardCharts:
         return chart_ids
 
     def add_chart(self, dashboard: Dashboard, chart: Chart | SavedChart, title: str | None = None,
-                  parent: LayoutParent = None, height: int = DEFAULT_HEIGHT, width: int = DEFAULT_CHART_WIDTH,
-                  id: str | None = None, skip_existing: bool = False) -> None:
+                  parent: LayoutParent = None, height: Height = DEFAULT_HEIGHT, width: int = DEFAULT_CHART_WIDTH,
+                  id: str | None = None, skip_existing: bool = False,
+                  content: TableContent | BarsContent | None = None, max_rows: int | None = None) -> None:
         """
         Places the chart in the dashboard layout and associates it with the dashboard in Superset.
 
         The dashboard must be saved (have an id). A chart without an id is created first. The association
         is made by a PUT on the chart; the layout and json_metadata are only stored on the dashboard's
         next save(). `chart` is a library Chart or a saved chart reference (a ChartRef); only a library Chart can
-        be created. `height`, `width`, `id` and `skip_existing` are the layout options of DashboardLayout.add_chart.
+        be created. `height`, `width`, `id`, `skip_existing`, `content` and `max_rows` are the layout options of
+        DashboardLayout.add_chart.
         """
         if not dashboard.id:
             raise DashboardValidationError('To add charts, first save the dashboard. Do this by calling the '
@@ -82,10 +85,12 @@ class DashboardCharts:
         if not chart.id:
             if not isinstance(chart, Chart):
                 raise ChartValidationError("Only a library Chart can be created: save the chart before placing it.")
+            # Size and content are checked before creating the chart, so a rejected placement leaves no chart.
+            dashboard.position.chart_height(chart, height, width, content, max_rows, title, parent)
             self.client.charts.add(chart)
         dashboard.metadata.add_chart(chart)
         dashboard.position.add_chart(chart, title=title, parent=parent, height=height, width=width, id=id,
-                                     skip_existing=skip_existing)
+                                     skip_existing=skip_existing, content=content, max_rows=max_rows)
         self.add_to_dashboard(chart if isinstance(chart, Chart) else int(chart.id or 0), dashboard.id)
 
     def add_and_attach_to_dashboard(self, chart: Chart, title: str, parent: LayoutParent = None) -> int:
