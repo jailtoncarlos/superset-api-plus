@@ -7,6 +7,7 @@ import pytest
 from supersetapiplus.charts.build_query import query_context_for
 from supersetapiplus.charts.charts import Chart
 from supersetapiplus.core.datasource import DataSource
+from supersetapiplus.core.types import SubjectType
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.dashboards.layout.sizing import BarsContent, Layout, TableContent, calibrated_profile, estimate_table
 from supersetapiplus.datasets import Dataset
@@ -344,21 +345,20 @@ def test_native_filter_problems_report_a_column_missing_from_a_chart_dataset(cli
     assert result["rejected_filters"] == [{"column": "campus", "reason": "not_in_datasource"}]
 
 
-def test_owners_and_roles_are_saved_as_ids_and_read_as_objects(client, add_dashboard):
+def test_editors_are_saved_as_ids_and_read_as_objects(client, add_dashboard):
     me = client.get(client.join_urls(URL, "api/v1/me/")).json()["result"]["id"]
-    roles = client.get(client.join_urls(URL, "api/v1/security/roles/"), params={"q": "(page_size:100)"}).json()
-    gamma = next(role["id"] for role in roles["result"] if role["name"] == "Gamma")
+    mine = client.subjects.for_user(me).id
     dashboard = add_dashboard()
-    dashboard.owners, dashboard.roles = [me], [gamma]
+    dashboard.editors = [mine]
     dashboard.certified_by = "Data team"
     dashboard.save()
 
     stored = client.dashboards.get(dashboard.id)
-    assert [o["id"] for o in stored.owners] == [me] and [r["id"] for r in stored.roles] == [gamma]
+    assert [e["id"] for e in stored.editors] == [mine] and stored.editors[0]["type"] == SubjectType.USER
     assert stored.certified_by == "Data team"
     stored.dashboard_title += "-saved-back"
-    stored.save()  # owners/roles read as objects are sent back as ids
-    assert [r["id"] for r in client.dashboards.get(dashboard.id).roles] == [gamma]
+    stored.save()  # editors read as objects are sent back as ids
+    assert [e["id"] for e in client.dashboards.get(dashboard.id).editors] == [mine]
 
 
 def test_copy_and_delete_many(client, add_chart, add_dashboard, cleanup):

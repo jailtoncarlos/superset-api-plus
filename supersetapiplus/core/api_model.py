@@ -36,6 +36,7 @@ from supersetapiplus.core.masking import mask_data
 from supersetapiplus.core.parse import ParseMixin
 from supersetapiplus.core.persistence import PersistenceMixin
 from supersetapiplus.core.sentinels import MissingField
+from supersetapiplus.core.types import SubjectType
 from supersetapiplus.core.typing import NOT_TO_JSON as _NOT_TO_JSON
 from supersetapiplus.core.typing import OPTIONAL as _OPTIONAL
 from supersetapiplus.exceptions import LoadJsonError
@@ -61,8 +62,13 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
     # Fields accepted on create (POST) and update (PUT), per the OpenAPI specification (None: no restriction).
     POST_FIELDS: ClassVar[tuple[str, ...] | None] = None
     PUT_FIELDS: ClassVar[tuple[str, ...] | None] = None
-    # Relations read as objects and sent as ids (owners, roles).
+    # Relations read as objects and sent as ids (editors, viewers, subjects...).
     ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ()
+    # Superset 7.0 refers relations to subjects: field of users or roles -> (field of subjects, principal of its items,
+    # deprecated), e.g. {"owners": ("editors", SubjectType.USER, True)}. Before sending, the repository turns the users
+    # or roles into their subjects in the field of subjects (resources.repository._resolve_subject_aliases), with a
+    # DeprecationWarning for a deprecated field.
+    SUBJECT_ALIASES: ClassVar[dict[str, tuple[str, SubjectType, bool]]] = {}
 
     _factory: Any = None  # repository the object was read or created through (see PersistenceMixin)
     _request_response: Any = None  # HTTP response the object was read from, if any

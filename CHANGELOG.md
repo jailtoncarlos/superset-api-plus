@@ -9,6 +9,24 @@ Migration to Superset 7.0 (#53), prepared on the `superset-7` branch and release
 * Subjects of Superset 7.0: `client.subjects` (read-only, `/api/v1/security/subject/`) with `for_user`, `for_role`
   and `for_group`, the `Subject` model and the `SubjectType` enum (`superset/subjects/types.py`), the principal that
   editors, viewers and row level security rules refer to in 7.0 (#56).
+* Editors and viewers (Superset 7.0): charts, dashboards and datasets have `editors`, and charts and dashboards
+  `viewers` (with the `ENABLE_VIEWERS` feature flag): subjects, read as objects and sent as ids (#57, #58).
+* Row level security rules name `subjects`; `users` takes users, sent as their subjects. A Regular rule without
+  any subject is refused before sending, as Superset 7.0 requires one (#59).
+
+### Changed
+
+* The OpenAPI conformance checks the requests against the Superset 7.0.0rc3 specification. The fields 7.0 added and
+  the library does not model yet (`uuid`, dashboard `description` and `theme_id`, dataset `currency_code_column`...)
+  are listed in the test until #69.
+
+### Deprecated
+
+* `owners` (users) on charts, dashboards and datasets, and a dashboard's `roles`: the fields Superset 7.0 replaced
+  with `editors` and `viewers`. They still work: the users and roles are turned into their subjects before sending,
+  with a `DeprecationWarning` (#57, #58).
+* `roles` on row level security rules, replaced with `subjects` (and `users`), turned into subjects the same way
+  (#59).
 
 ## 2.7.0 (2026-11-25)
 

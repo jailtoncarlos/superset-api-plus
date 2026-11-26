@@ -1,24 +1,71 @@
 """Fields of the REST resources added for Superset 6.1.0 (DashboardRestApi, DatasetRestApi, DatabaseRestApi)."""
 import json
+import warnings
+from types import SimpleNamespace
 
 import pytest
 
+from supersetapiplus.charts.table import TableChart
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.databases import Database
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.exceptions import ValidationError
+from supersetapiplus.resources.repository import _resolve_subject_aliases
 
 
-def test_owners_and_roles_read_as_objects_are_sent_as_ids_and_kept_as_read():
+def test_editors_and_viewers_read_as_objects_are_sent_as_ids_and_kept_as_read():
     dashboard = Dashboard.from_json({"id": 1, "dashboard_title": "P", "position_json": "{}", "json_metadata": "{}",
-                                     "owners": [{"id": 3, "first_name": "A"}], "roles": [{"id": 4, "name": "Gamma"}]})
+                                     "editors": [{"id": 3, "label": "Ann", "type": 1}],
+                                     "viewers": [{"id": 4, "label": "Gamma", "type": 2}]})
 
-    assert (dashboard.to_json()["owners"], dashboard.to_json()["roles"]) == ([3], [4])
-    assert dashboard.owners == [{"id": 3, "first_name": "A"}]
+    assert (dashboard.to_json()["editors"], dashboard.to_json()["viewers"]) == ([3], [4])
+    assert dashboard.editors == [{"id": 3, "label": "Ann", "type": 1}]
 
 
-def test_new_dashboard_does_not_send_owners_so_superset_assigns_the_current_user():
-    assert "owners" not in Dashboard(dashboard_title="P").to_json(columns=list(Dashboard.POST_FIELDS))
+def test_dashboard_roles_is_a_deprecated_alias_of_viewers():
+    dashboard = Dashboard(dashboard_title="P")
+    dashboard.roles = [4]
+
+    with pytest.warns(DeprecationWarning, match="Dashboard.roles is deprecated since Superset 7.0: use viewers"):
+        _resolve_subject_aliases(dashboard, FakeSubjects())
+
+    assert (dashboard.viewers, dashboard.roles) == ([204], None)
+    assert "roles" not in Dashboard.POST_FIELDS + Dashboard.PUT_FIELDS
+
+
+def test_new_dashboard_does_not_send_editors_so_superset_assigns_the_current_user():
+    assert "editors" not in Dashboard(dashboard_title="P").to_json(columns=list(Dashboard.POST_FIELDS))
+
+
+class FakeSubjects:
+    """client.subjects stand-in: the subject of user n is 100 + n, of role n is 200 + n."""
+
+    def for_user(self, user_id):
+        return SimpleNamespace(id=100 + user_id)
+
+    def for_role(self, role_id):
+        return SimpleNamespace(id=200 + role_id)
+
+
+NEW = {"chart": lambda: TableChart.instance(slice_name="C", datasource=DataSource(id=1, type="table")),
+       "dashboard": lambda: Dashboard(dashboard_title="P"), "dataset": lambda: Dataset(table_name="t")}
+
+
+@pytest.mark.parametrize("kind", list(NEW))
+def test_owners_is_a_deprecated_alias_of_editors_turned_into_subjects(kind):
+    obj = NEW[kind]()
+    model = type(obj)
+    obj.editors, obj.owners = [{"id": 101, "label": "Ann"}], [1, {"id": 2}, SimpleNamespace(id=3)]
+
+    with pytest.warns(DeprecationWarning, match="owners is deprecated since Superset 7.0: use editors"):
+        _resolve_subject_aliases(obj, FakeSubjects())
+
+    assert (obj.editors, obj.owners) == ([101, 102, 103], None)  # subject 101 already there: kept once
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        _resolve_subject_aliases(obj, FakeSubjects())  # resolved once: nothing left to warn about
+    assert "owners" not in model.POST_FIELDS + model.PUT_FIELDS and "editors" in model.POST_FIELDS
 
 
 def test_dataset_metrics_are_sent_with_the_update_schema_keys_only():

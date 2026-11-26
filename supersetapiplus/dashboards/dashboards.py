@@ -6,7 +6,8 @@ from typing_extensions import Self
 
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.references import SavedChart
-from supersetapiplus.core.typing import SerializableOptional
+from supersetapiplus.core.types import SubjectType
+from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptional
 from supersetapiplus.dashboards.layout import DashboardLayout, Height, LayoutParent
 from supersetapiplus.dashboards.layout.sizing import BarsContent, TableContent
 from supersetapiplus.dashboards.metadata import Metadata
@@ -28,18 +29,20 @@ class Dashboard(ApiModel):
     colors, cross-filters), owners and roles. Read with `client.dashboards.get()`, create with `add()`."""
     JSON_FIELDS: ClassVar[list[str]] = ['json_metadata', 'position_json']
     PRESERVE_EXTRA_FIELDS: ClassVar[bool] = False
-    # Fields accepted by the API (OpenAPI 6.1.0: DashboardRestApi.post / DashboardRestApi.put).
+    # Fields accepted by the API (OpenAPI 7.0.0rc3: DashboardRestApi.post / DashboardRestApi.put).
     POST_FIELDS: ClassVar[tuple[str, ...]] = (
-        "certification_details", "certified_by", "css", "dashboard_title", "external_url",
-        "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
+        "certification_details", "certified_by", "css", "dashboard_title", "editors", "external_url",
+        "is_managed_externally", "json_metadata", "position_json", "published", "slug", "viewers",
     )
     PUT_FIELDS: ClassVar[tuple[str, ...]] = (
-        "certification_details", "certified_by", "css", "dashboard_title", "external_url",
-        "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
-        "tags",
+        "certification_details", "certified_by", "css", "dashboard_title", "editors", "external_url",
+        "is_managed_externally", "json_metadata", "position_json", "published", "slug", "tags", "viewers",
     )
 
-    ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ("owners", "roles")
+    ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ("editors", "viewers")
+    # Superset 7.0: owners (users) and roles (dashboard RBAC) are deprecated aliases of editors and viewers (subjects).
+    SUBJECT_ALIASES: ClassVar[dict[str, tuple[str, SubjectType, bool]]] = {
+        "owners": ("editors", SubjectType.USER, True), "roles": ("viewers", SubjectType.ROLE, True)}
 
     dashboard_title: str = ''
 
@@ -47,10 +50,13 @@ class Dashboard(ApiModel):
     id: int | None = None
     css: SerializableOptional[str] = None
     slug: SerializableOptional[str] = None
-    # Users (owners) and roles (dashboard RBAC) as read from Superset, or their ids; sent as ids.
-    # Absent on create unless set: Superset then makes the current user the owner.
-    owners: SerializableOptional[list[Any]] = None
-    roles: SerializableOptional[list[Any]] = None
+    # Subjects who may edit or view the dashboard (Superset 7.0; viewers need the ENABLE_VIEWERS feature flag), as
+    # read or their ids; sent as ids. editors absent on create unless set: Superset then makes the current user an
+    # editor. owners and roles: deprecated, users and roles turned into editors and viewers when sent.
+    editors: SerializableOptional[list[Any]] = None
+    viewers: SerializableOptional[list[Any]] = None
+    owners: SerializableNotToJson[list[Any] | None] = None
+    roles: SerializableNotToJson[list[Any] | None] = None
     certified_by: SerializableOptional[str] = None
     certification_details: SerializableOptional[str] = None
     external_url: SerializableOptional[str] = None

@@ -192,16 +192,26 @@ from supersetapiplus import SubjectType
 
 subject = client.subjects.for_role(public.id)      # also for_user(user_id) and for_group(group_id)
 subject.type == SubjectType.ROLE, subject.label    # (True, "Public")
+
+dashboard.editors = [client.subjects.for_user(user_id)]  # charts, dashboards and datasets: subjects or their ids
+dashboard.viewers = [subject]                            # dashboards and charts, with the ENABLE_VIEWERS flag
+dashboard.save()                                         # read back as [{id, label, type}], sent as ids
 ```
 
-Row level security rules (the SQL clause Superset adds to the queries of some roles on some datasets):
+The fields of Superset 6.1 still work and are deprecated (`DeprecationWarning`): `owners` (users) becomes
+`editors` and a dashboard's `roles` become `viewers`; the library turns the users and roles into their subjects
+before sending. Superset refuses to add viewers while `ENABLE_VIEWERS` is off (`UnprocessableEntityError`).
+
+Row level security rules (the SQL clause Superset adds to the queries of some subjects on some datasets):
 
 ```python
 from supersetapiplus import RowLevelSecurityFilterType, RowLevelSecurityRule
 
 rule = RowLevelSecurityRule(
-    name="Public sees active rows", filter_type=RowLevelSecurityFilterType.REGULAR,  # BASE: every role but these
-    tables=[dataset], roles=[public], clause="status = 'active'")  # datasets, roles or their ids
+    name="Public sees active rows", filter_type=RowLevelSecurityFilterType.REGULAR,  # BASE: everyone but these
+    tables=[dataset], subjects=[subject], clause="status = 'active'")  # datasets, subjects or their ids
+# users=[user_id] takes users (and roles=[...], deprecated, roles): sent as their subjects.
+# A Regular rule needs at least one subject; the library refuses one without it before sending.
 client.row_level_security.add(rule)
 rule.clause = "status <> 'archived'"
 rule.save()
