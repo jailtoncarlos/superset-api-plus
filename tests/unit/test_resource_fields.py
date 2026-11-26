@@ -48,6 +48,25 @@ def test_a_deprecated_alias_replaces_the_subjects_read_as_assigning_it_did_on_su
     assert dashboard.viewers == [206]
 
 
+def test_subjects_assigned_or_changed_after_reading_are_kept_with_a_deprecated_alias():
+    """viewers = [subject] with roles = [role] on a dashboard read with viewers: the assigned subject is not taken
+    for the list read from Superset and dropped; the same for a list changed in place."""
+    read = {"id": 1, "dashboard_title": "P", "position_json": "{}", "json_metadata": "{}",
+            "editors": [{"id": 101}], "viewers": [{"id": 204}, {"id": 205}]}
+    dashboard = Dashboard.from_json(read)
+    dashboard.viewers, dashboard.roles = [300], [5]
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(dashboard, FakeSubjects())
+    assert dashboard.viewers == [300, 205]
+
+    dashboard = Dashboard.from_json(read)
+    dashboard.editors.append(300)
+    dashboard.owners = [2]
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(dashboard, FakeSubjects())
+    assert dashboard.editors == [101, 300, 102]
+
+
 def test_an_empty_list_given_to_a_deprecated_alias_clears_the_subjects():
     """dashboard.roles = [] cleared the dashboard roles on Superset 6.1: it clears the viewers, not left granted."""
     dashboard = Dashboard.from_json({"id": 1, "dashboard_title": "P", "position_json": "{}", "json_metadata": "{}",

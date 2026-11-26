@@ -50,6 +50,11 @@ _JSON = CONVERT_TO_JSON
 _SCALARS = (str, int, float, bool)
 
 
+def reference_ids(items: list[object]) -> tuple[object, ...]:
+    """The ids of the items of a relation: ids, dicts read from Superset, or saved objects."""
+    return tuple(item.get("id") if isinstance(item, dict) else getattr(item, "id", item) for item in items)
+
+
 class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
     """A model of the Superset API (see the module docstring for the read and write rules)."""
     model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True, protected_namespaces=(),
@@ -74,6 +79,9 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
     _request_response: Any = None  # HTTP response the object was read from, if any
     _read_from_superset: bool = False
     _read_keys: frozenset[str] = frozenset()  # fields present in the data read from Superset
+    # Ids of the ID_REFERENCE_FIELDS as read from Superset, to tell a list changed by the code from the one read
+    # (only replaced, never mutated).
+    _read_references: dict[str, tuple[object, ...]] = {}
 
     # --- reading -----------------------------------------------------------------------------------
 
@@ -118,6 +126,8 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
         if (context or {}).get(_READ):
             self._read_from_superset = True
             self._read_keys = frozenset(self.model_fields_set)
+            self._read_references = {name: reference_ids(getattr(self, name)) for name in self.ID_REFERENCE_FIELDS
+                                     if name in self._read_keys and isinstance(getattr(self, name), list)}
             for name in type(self).model_fields:
                 if name not in self.model_fields_set:  # absent key: stays absent when written back
                     self.__dict__[name] = MissingField()

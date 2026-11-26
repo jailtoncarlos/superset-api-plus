@@ -15,7 +15,7 @@ from typing import Any, Protocol
 import requests
 import yaml
 
-from supersetapiplus.core.api_model import ApiModel
+from supersetapiplus.core.api_model import ApiModel, reference_ids
 from supersetapiplus.core.masking import mask_data
 from supersetapiplus.core.types import SubjectType
 from supersetapiplus.exceptions import MultipleFound, NotFound, UnsupportedTypeError
@@ -53,9 +53,7 @@ _SUBJECT_LOOKUP = {SubjectType.USER: "for_user", SubjectType.ROLE: "for_role", S
 
 def _reference_id(item: object) -> object:
     """The id of a relation item: an id, a dict read from Superset, or a saved object."""
-    if isinstance(item, dict):
-        return item.get("id")
-    return getattr(item, "id", item)
+    return reference_ids([item])[0]
 
 
 def _resolve_subject_aliases(obj: ApiModel, subjects: Any) -> None:
@@ -79,9 +77,12 @@ def _resolve_subject_aliases(obj: ApiModel, subjects: Any) -> None:
         lookup = getattr(subjects, _SUBJECT_LOOKUP[principal])
         current = getattr(obj, target, None)
         # A deprecated field replaces the list, as assigning owners or roles did on Superset 6.1 (dropping a role
-        # revokes its access); subjects the code itself put in the new field (not read from Superset) are kept.
+        # revokes its access); subjects the code itself put in the new field (not as read from Superset: assigned to
+        # an object built in code, or assigned or changed after reading) are kept.
         # A field that is not deprecated (RLS users) adds to the list.
-        set_in_code = target in obj.model_fields_set and target not in obj._read_keys
+        set_in_code = target in obj.model_fields_set and (
+            target not in obj._read_keys or not isinstance(current, list)
+            or reference_ids(current) != obj._read_references.get(target))
         keep = not deprecated or set_in_code
         ids = [_reference_id(item) for item in current] if keep and isinstance(current, list) else []
         for item in items:
