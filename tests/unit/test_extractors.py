@@ -109,6 +109,13 @@ def test_choices_since_superset_7_read_the_moved_calendar_plugin_without_the_rem
     assert "pivot_table_v2.rowOrder" in controls
 
 
+@pytest.mark.parametrize(("version", "has_subjects"), [("6.1.0", False), ("6.0.0", False), ("7.0.0rc3", True),
+                                                        ("master", True)])
+def test_subject_type_is_extracted_from_superset_7_on(version, has_subjects):
+    """superset/subjects/types.py exists from 7.0: reading it for 6.1.0 would fail the extraction (404)."""
+    assert (("superset/subjects/types.py", "SubjectType") in extract.backend_enums(version)) is has_subjects
+
+
 @pytest.mark.parametrize("function, args", [
     (extract.typescript_enum, ("Operators",)),
     (extract.typescript_numbers, ("^GRID_",)),

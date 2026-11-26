@@ -62,10 +62,13 @@ def _resolve_subject_aliases(obj: ApiModel, subjects: Any) -> None:
     """Moves the users or roles of each field of `obj` that refers to them (``SUBJECT_ALIASES``, e.g. ``owners``) into
     its field of subjects (``editors``) as the ids of their subjects, found through `subjects` (``client.subjects``),
     with a DeprecationWarning for a deprecated field; that field is emptied, so it is resolved once. Subjects already
-    in the field of subjects are kept, without repeats."""
+    in the field of subjects are kept, without repeats; an empty list given to a deprecated field clears the field
+    of subjects."""
     for alias, (target, principal, deprecated) in obj.SUBJECT_ALIASES.items():
         items = getattr(obj, alias, None)
-        if not isinstance(items, list) or not items:
+        # Unset (None, or the default list) is skipped; an empty list given explicitly to a deprecated field clears
+        # the field of subjects, as clearing owners or roles did on Superset 6.1.
+        if not isinstance(items, list) or not items and (alias not in obj.model_fields_set or not deprecated):
             continue
         if deprecated:
             warnings.warn(f"{type(obj).__name__}.{alias} is deprecated since Superset 7.0: use {target}, a list of "
@@ -78,8 +81,9 @@ def _resolve_subject_aliases(obj: ApiModel, subjects: Any) -> None:
             subject_id = lookup(_reference_id(item)).id
             if subject_id not in ids:
                 ids.append(subject_id)
-        setattr(obj, target, ids)
+        setattr(obj, target, ids if items else [])
         setattr(obj, alias, [] if type(obj).model_fields[alias].default_factory is list else None)
+        obj.model_fields_set.discard(alias)  # resolved: unset again, so a later send does not clear the subjects
 
 
 class UnsupportedObject:

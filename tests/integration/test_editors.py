@@ -59,6 +59,10 @@ def test_dashboard_roles_become_viewers_and_chart_viewers_are_saved(client, add_
     with pytest.warns(DeprecationWarning, match="roles is deprecated since Superset 7.0: use viewers"):
         dashboard.save()
     assert [viewer["id"] for viewer in client.dashboards.get(dashboard.id).viewers] == [gamma_subject]
+    dashboard.roles = []  # clearing the roles, as on Superset 6.1, clears the viewers
+    with pytest.warns(DeprecationWarning):
+        dashboard.save()
+    assert client.dashboards.get(dashboard.id).viewers == []
 
     chart = add_chart()
     chart.viewers = [gamma_subject]

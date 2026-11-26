@@ -34,6 +34,26 @@ def test_dashboard_roles_is_a_deprecated_alias_of_viewers():
     assert "roles" not in Dashboard.POST_FIELDS + Dashboard.PUT_FIELDS
 
 
+def test_an_empty_list_given_to_a_deprecated_alias_clears_the_subjects():
+    """dashboard.roles = [] cleared the dashboard roles on Superset 6.1: it clears the viewers, not left granted."""
+    dashboard = Dashboard.from_json({"id": 1, "dashboard_title": "P", "position_json": "{}", "json_metadata": "{}",
+                                     "editors": [{"id": 3}], "viewers": [{"id": 4}]})
+    _resolve_subject_aliases(dashboard, FakeSubjects())
+    assert (dashboard.editors, dashboard.viewers) == ([{"id": 3}], [{"id": 4}])  # aliases unset: nothing changes
+
+    dashboard.roles, dashboard.owners = [], []
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(dashboard, FakeSubjects())
+    assert (dashboard.editors, dashboard.viewers) == ([], [])
+    assert dashboard.to_json(list(Dashboard.PUT_FIELDS))["viewers"] == []
+
+    dashboard.viewers = [204]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        _resolve_subject_aliases(dashboard, FakeSubjects())  # resolved once: a later save keeps the viewers
+    assert dashboard.viewers == [204]
+
+
 def test_new_dashboard_does_not_send_editors_so_superset_assigns_the_current_user():
     assert "editors" not in Dashboard(dashboard_title="P").to_json(columns=list(Dashboard.POST_FIELDS))
 
