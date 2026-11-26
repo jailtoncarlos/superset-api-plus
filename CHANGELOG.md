@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Unreleased (3.0.0, Superset 7.0)
+
+Migration to Superset 7.0 (#53), prepared on the `superset-7` branch and released as 3.0.0 after 7.0.0 final.
+
+### Added
+
+* Subjects of Superset 7.0: `client.subjects` (read-only, `/api/v1/security/subject/`) with `for_user`, `for_role`
+  and `for_group`, the `Subject` model and the `SubjectType` enum (`superset/subjects/types.py`), the principal that
+  editors, viewers and row level security rules refer to in 7.0 (#56).
+
 ## 2.7.0 (2026-11-25)
 
 Improvements of the chart sizing found when the consumer evaluated 2.6.0 and 2.6.1 (#101): components that scroll

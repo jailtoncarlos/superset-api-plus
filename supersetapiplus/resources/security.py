@@ -1,11 +1,14 @@
-"""Roles and permissions (Flask-AppBuilder security API: /api/v1/security/roles/ and permissions-resources/)."""
+"""Roles and permissions (Flask-AppBuilder security API: /api/v1/security/roles/ and permissions-resources/), and the
+subjects of Superset 7.0 (/api/v1/security/subject/)."""
 from collections.abc import Iterable
 from typing import Any, ClassVar
 
 from typing_extensions import Self
 
 from supersetapiplus.core.api_model import ApiModel
+from supersetapiplus.core.types import SubjectType
 from supersetapiplus.exceptions import NotFound
+from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 from supersetapiplus.resources.repository import ApiModelFactories
 
 
@@ -100,3 +103,52 @@ class Permissions(ApiModelFactories):
         if missing:
             raise NotFound(f"No permission named {', '.join(missing)}")
         return [by_name[n] for n in names]
+
+
+class Subject(ApiModel):
+    """A subject (Superset 7.0, `superset/subjects/models.py`): the user, role or group that editors, viewers and row
+    level security rules refer to. Superset creates and keeps one subject per user, role and group; the API only
+    reads them (`SubjectRestApi`: list, get, info), so a subject is found, never written.
+
+    ``type`` tells which of ``user_id``, ``role_id`` and ``group_id`` it stands for; ``label`` is what the UI shows
+    (the user's name, the role or group name)."""
+    JSON_FIELDS: ClassVar[list[str]] = []
+
+    id: int | None = None
+    uuid: str | None = None
+    label: str = ''
+    secondary_label: str | None = None
+    type: SubjectType | None = None
+    active: bool | None = None
+    extra_search: str | None = None
+    img: str | None = None
+    user_id: int | None = None
+    role_id: int | None = None
+    group_id: int | None = None
+
+
+class Subjects(ApiModelFactories):
+    """Repository of the subjects of Superset 7.0 (`client.subjects`, read-only), e.g. the subject of a role, to give
+    it as an editor or viewer: ``client.subjects.for_role(role.id)``."""
+    endpoint = "security/subject/"
+
+    def _default_object_class(self) -> type[ApiModel]:
+        return Subject
+
+    def _for(self, column: str, pk: int) -> Subject:
+        query = QueryStringFilter()
+        query.add(column, QueryOperator.EQUAL, pk)
+        subject: Subject = self.find_one(query)
+        return subject
+
+    def for_user(self, user_id: int) -> Subject:
+        """The subject of a user. Raises NotFound when there is none (a server before 7.0 has no subjects)."""
+        return self._for("user_id", user_id)
+
+    def for_role(self, role_id: int) -> Subject:
+        """The subject of a role. Raises NotFound when there is none."""
+        return self._for("role_id", role_id)
+
+    def for_group(self, group_id: int) -> Subject:
+        """The subject of a group. Raises NotFound when there is none."""
+        return self._for("group_id", group_id)

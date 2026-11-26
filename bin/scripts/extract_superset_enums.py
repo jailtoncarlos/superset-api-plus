@@ -34,6 +34,8 @@ BACKEND = [
     ("superset/models/core.py", "ConfigurationMethod"),
     ("superset/errors.py", "SupersetErrorType"),
     ("superset/errors.py", "ErrorLevel"),
+    # Superset 7.0: the principal (user, role or group) behind editors, viewers and RLS subjects.
+    ("superset/subjects/types.py", "SubjectType"),
 ]
 
 # Backend marshmallow schemas whose field names the library uses (nested items the OpenAPI excerpt does

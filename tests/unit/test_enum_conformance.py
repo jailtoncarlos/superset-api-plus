@@ -29,6 +29,9 @@ from supersetapiplus.dashboards.layout.legacy import items as IP
 
 OFFICIAL = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_enums_6.1.0.json").read_text())
 BACKEND, FRONTEND, CHOICES = OFFICIAL["backend"], OFFICIAL["frontend"], OFFICIAL["choices"]
+# Enums that exist only from Superset 7.0 are checked against the 7.0 excerpt; T-10 (#63) moves every enum to it.
+BACKEND_7 = json.loads((Path(__file__).parent.parent / "fixtures" / "superset_enums_7.0.0rc3.json").read_text())[
+    "backend"]
 
 
 def official(group: dict, name: str) -> set:
@@ -48,6 +51,7 @@ SOURCES = {
     T.ResultFormat: official(BACKEND, "ChartDataResultFormat"),
     T.ResultType: official(BACKEND, "ChartDataResultType"),
     T.GenericDataType: official(BACKEND, "GenericDataType"),
+    B.SubjectType: official(BACKEND_7, "SubjectType"),
     T.ComparisonType: official(FRONTEND, "ComparisonType"),
     T.ComparisonColorScheme: official(FRONTEND, "ColorSchemeEnum"),
     T.ContributionType: official(FRONTEND, "ContributionType"),

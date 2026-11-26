@@ -83,6 +83,11 @@
    "BASE": "Base",
    "REGULAR": "Regular"
   },
+  "SubjectType": {
+   "GROUP": 3,
+   "ROLE": 2,
+   "USER": 1
+  },
   "SupersetErrorType": {
    "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR": "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR",
    "ASYNC_WORKERS_ERROR": "ASYNC_WORKERS_ERROR",
@@ -659,6 +664,7 @@
     "superset/migrations/shared/migrate_viz/processors.py",
     "superset/models/core.py",
     "superset/sqllab/limiting_factor.py",
+    "superset/subjects/types.py",
     "superset/utils/core.py"
    ],
    "repository": "apache/superset",
