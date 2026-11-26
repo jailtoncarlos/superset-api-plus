@@ -175,6 +175,12 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   with one line per related institutional issue: `issue #NNN -- gitlab institucional`, plus the
   co-author line when an agent wrote it. After pushing, comment on the GitLab issue with the GitHub
   commit link.
+- Review threads of a pull request are appraised with the `multi-llm-workflow review-appraisal` facade, configured by
+  `.review-appraisal.yaml`. Run it with `bin/review-appraisal.sh <collect|appraise> jailtoncarlos/superset-api-plus
+  --pr N --platform github-cli`: multi-llm-workflow is private, so it is not declared in `pyproject.toml`/`uv.lock`;
+  the script runs it from a detached worktree (`MLW_PIN_DIR`, default `~/.cache/mlw-pin`) of the commit pinned in
+  `.mlw-pin`, created from the local clone (`MLW_CLONE`) without moving its checkout. Changing the pin is a commit
+  that edits `.mlw-pin`, always to a commit of its `origin/main` validated for this repository.
 - Do not rewrite pushed history or force-push without explicit confirmation from the maintainer.
 - Avoid `git stash` in a shared working tree; compare against `HEAD` with `git archive HEAD | tar -x`
   into a scratch directory.
