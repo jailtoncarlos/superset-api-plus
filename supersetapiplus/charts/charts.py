@@ -43,10 +43,9 @@ from supersetapiplus.resources.repository import SoftDeleteRepository
 
 logger = logging.getLogger(__name__)
 
-# Modeled viz types whose plugin renders through the legacy API (useLegacyApi: true, e.g.
-# legacy-plugin-chart-calendar/src/index.ts): their v1 query context, the one Explore saves, does not compute what
-# the chart shows (cal_heatmap: superset/viz.py CalHeatmapViz buckets the time; the v1 query returns one row).
-LEGACY_API_VIZ_TYPES = frozenset(("cal_heatmap",))
+# Modeled viz types whose plugin does not render from its v1 query context (useLegacyApi: true), so their chart data
+# is not what the chart shows. Empty since Superset 7.0, which moved cal_heatmap to plugin-chart-calendar (v1 API).
+LEGACY_API_VIZ_TYPES: frozenset[str] = frozenset()
 
 
 def _unsupported_message(viz_type: str) -> str:
@@ -544,9 +543,8 @@ class Charts(SoftDeleteRepository):
         """
         Chart data computed by Superset from the saved query_context (GET /chart/{pk}/data/).
 
-        For a legacy viz_type (:data:`LEGACY_API_VIZ_TYPES`, e.g. cal_heatmap) the result is not what the chart
-        shows: the chart renders through /superset/explore_json, and its v1 query context gives one aggregate row
-        (a LegacyChartDataWarning is emitted). Reports and alerts on the v1 endpoint have the same limitation.
+        For a viz_type of :data:`LEGACY_API_VIZ_TYPES` (none since Superset 7.0) the result is not what the chart
+        shows, and a LegacyChartDataWarning is emitted.
 
         Args:
             slice_id: chart id.

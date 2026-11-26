@@ -22,12 +22,10 @@ from supersetapiplus.core.typing import SerializableOptional
 class CalHeatmapOption(Option):
     """Calendar heatmap params; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0).
 
-    Legacy plugin: the backend (superset/viz.py CalHeatmapViz) reads domain_granularity and
-    subdomain_granularity. The time column is granularity_sqla (the UI proposes the dataset's main one).
-
-    The chart renders through /superset/explore_json (useLegacyApi). Its query_context is the one Explore saves (the
-    default buildQuery), but Superset 6.1.0 answers it on /api/v1/chart/data with one aggregate row, not the calendar:
-    ``client.charts.get_chart_data()`` (which warns), reports and alerts do not reproduce what the chart shows.
+    plugin-chart-calendar (Superset 7.0) renders from the v1 chart data API: its buildQuery makes a timeseries query
+    whose time grain comes from subdomain_granularity (charts.build_query.build_cal_heatmap), so
+    ``client.charts.get_chart_data()``, reports and alerts get the calendar series. The time column is
+    granularity_sqla (the UI proposes the dataset's main one).
     """
     viz_type: ChartType = Field(default_factory=lambda: ChartType.CAL_HEATMAP)
     # The plugin has no dimension control: groupby is absent.

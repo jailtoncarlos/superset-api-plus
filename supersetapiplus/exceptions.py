@@ -198,8 +198,9 @@ class SizingWarning(UserWarning):
 
 
 class LegacyChartDataWarning(UserWarning):
-    """The chart data of a legacy viz_type (rendered through /superset/explore_json, e.g. cal_heatmap) computed from
-    its v1 query context: Superset answers it, but it is not what the chart shows."""
+    """The chart data of a viz_type whose plugin does not render from its v1 query context: Superset answers it, but
+    it is not what the chart shows. Superset 7.0 moved the last modeled one (cal_heatmap) to the v1 chart data API,
+    so the library no longer emits it; kept for compatibility."""
 
 
 class UnsupportedServerVersionWarning(UserWarning):
