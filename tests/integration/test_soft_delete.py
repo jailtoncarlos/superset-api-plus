@@ -6,6 +6,7 @@ from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.exceptions import BadRequestError, NotFound, ResourceNotFoundError, UnprocessableEntityError
 
 from .conftest import name_filter, new_chart, unique_name
+from .server_version import is_superset_7
 
 # A physical table every PostgreSQL has (get_or_create takes physical tables only).
 SCHEMA, TABLE = "information_schema", "sql_features"
@@ -13,8 +14,8 @@ SCHEMA, TABLE = "information_schema", "sql_features"
 
 @pytest.fixture(autouse=True)
 def superset_7(client):
-    if int(client.server_version.split(".")[0]) < 7:
-        pytest.skip(f"Superset {client.server_version} has no soft delete (7.0)")
+    if not is_superset_7(client):
+        pytest.skip(f"Superset {client.server_version or '(unknown version)'} has no soft delete (7.0)")
 
 
 def archived_named(repository, column: str, name: str) -> list:

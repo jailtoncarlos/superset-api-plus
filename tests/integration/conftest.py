@@ -29,6 +29,8 @@ from supersetapiplus.exceptions import BadRequestError
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 from supersetapiplus.resources.repository import SoftDeleteRepository
 
+from .server_version import is_superset_7
+
 from .known_7_0_gaps import KNOWN_7_0_GAPS
 
 
@@ -76,7 +78,7 @@ def unique_name(suffix: str) -> str:
 def known_7_0_gap(request, client):
     """Marks the tests of known_7_0_gaps.py xfail(strict=True) on a Superset 7.0 server (see that module)."""
     reason = KNOWN_7_0_GAPS.get(f"{request.node.path.name}::{request.node.originalname}")
-    if reason and int(client.server_version.split(".")[0]) >= 7:
+    if reason and is_superset_7(client):
         request.applymarker(pytest.mark.xfail(reason=f"known Superset 7.0 gap: {reason}", strict=True))
 
 
@@ -84,7 +86,7 @@ def purge_archived(client: SupersetClient) -> None:
     """On Superset 7.0 (soft delete), deletes permanently the archived dashboards, charts and datasets the tests
     created (prefix PREFIX): a deleted object is only archived, and a database whose datasets are archived cannot be
     deleted. Nothing to do before 7.0."""
-    if int(client.server_version.split(".")[0]) < 7:
+    if not is_superset_7(client):
         return
     for repository, column in ((client.dashboards, "dashboard_title"), (client.charts, "slice_name"),
                                (client.datasets, "table_name")):
@@ -202,7 +204,7 @@ class Cleanup:
                     uuid_ = (self.client.get(factory.object_url(pk)).json()["result"].get("uuid")
                              if isinstance(factory, SoftDeleteRepository) else None)
                     factory.delete(pk)
-                    if uuid_ and int(self.client.server_version.split(".")[0]) >= 7:
+                    if uuid_ and is_superset_7(self.client):
                         factory.purge(uuid_)  # Superset 7.0 archives it: a later run could not reuse its name
                 except BadRequestError:
                     pass
