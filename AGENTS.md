@@ -58,6 +58,10 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   - `bin/scripts/extract_ui_controls.py <version>` → `ui_controls_<version>.json`: which keys read by the
     buildQuery port are controls of each supported viz_type (Explore leaves the other stored keys out of the
     form_data); `supersetapiplus/charts/explore.py` holds them (`tests/unit/test_explore_form_data.py`)
+  - `bin/scripts/extract_color_schemes.py <version>` →
+    `supersetapiplus/dashboards/profiles/color_schemes_<version>.json` (package data, read by
+    `supersetapiplus.dashboards.colors`): the categorical color schemes the frontend registers, whose colors a
+    dashboard's `color_scheme_domain` must equal
   - `bin/scripts/extract_example_layouts.py <version>` → `example_layouts_<version>.json`: the layouts of
     the example dashboards shipped with Superset, which the layout validation must accept
   - `bin/scripts/calibrate_sizing.py <version>` →

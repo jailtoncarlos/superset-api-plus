@@ -7,6 +7,7 @@ from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.enums import StringEnum
 from supersetapiplus.core.references import DatasetRef, SavedChart
 from supersetapiplus.core.typing import SerializableOptional
+from supersetapiplus.dashboards import colors as colors_module
 from supersetapiplus.dashboards import native_filters
 from supersetapiplus.dashboards.layout import DashboardLayout
 from supersetapiplus.deprecation import module_aliases
@@ -77,6 +78,26 @@ class Metadata(ApiModel):
     _library_filter_ids: set[str] = PrivateAttr(default_factory=set)
     # Filter id -> chart ids in scope, for filters restricted to some charts (excluded = the others).
     _filter_charts: dict[str, list[int]] = PrivateAttr(default_factory=dict)
+
+    def set_color_scheme(self, scheme: str, colors: Sequence[str] | None = None,
+                         version: str = colors_module.DEFAULT_SCHEMES_VERSION) -> None:
+        """Sets the dashboard's categorical color scheme and its ``color_scheme_domain``: the colors of `scheme` in
+        the frontend registry of Superset `version`, in order, as the dashboard frontend stores them. A stale or
+        missing domain makes the frontend ask to store the fresh one on every visit, which a user who cannot edit the
+        dashboard gets refused (403).
+
+        An empty `scheme` clears both (the frontend stores no domain without a scheme). A scheme configured on the
+        instance (``EXTRA_CATEGORICAL_COLOR_SCHEMES``) is not known to the library: pass its `colors`. Raises
+        ValueError for an unknown scheme without `colors`.
+        """
+        if colors is not None:
+            domain = list(colors)
+        elif scheme:
+            domain = list(colors_module.categorical_scheme(scheme, version).colors)
+        else:
+            domain = []
+        self.color_scheme = scheme
+        self.color_scheme_domain = domain
 
     def shows_vertical_filter_bar(self) -> bool:
         """Whether the dashboard shows the native filter bar beside the grid (narrowing it): it has native filters
