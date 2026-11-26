@@ -80,10 +80,7 @@ def _resolve_subject_aliases(obj: ApiModel, subjects: Any) -> None:
         # revokes its access); subjects the code itself put in the new field (not as read from Superset: assigned to
         # an object built in code, or assigned or changed after reading) are kept.
         # A field that is not deprecated (RLS users) adds to the list.
-        set_in_code = target in obj.model_fields_set and (
-            target not in obj._read_keys or not isinstance(current, list)
-            or reference_ids(current) != obj._read_references.get(target))
-        keep = not deprecated or set_in_code
+        keep = not deprecated or obj.references_set_in_code(target)
         ids = [_reference_id(item) for item in current] if keep and isinstance(current, list) else []
         for item in items:
             subject_id = lookup(_reference_id(item)).id
@@ -94,6 +91,7 @@ def _resolve_subject_aliases(obj: ApiModel, subjects: Any) -> None:
         # Resolved: the alias is unset again (a later send does not clear the subjects), and the field of subjects
         # counts as set by the library, not by the code (a later alias replaces it).
         obj.model_fields_set.difference_update({alias, target})
+        obj._assigned_references = obj._assigned_references - {target}
 
 
 class UnsupportedObject:

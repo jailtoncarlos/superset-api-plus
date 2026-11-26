@@ -60,6 +60,12 @@ def test_subjects_assigned_or_changed_after_reading_are_kept_with_a_deprecated_a
     assert dashboard.viewers == [300, 205]
 
     dashboard = Dashboard.from_json(read)
+    dashboard.viewers, dashboard.roles = [204, 205], [6]  # the ids read, assigned again: kept too
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(dashboard, FakeSubjects())
+    assert dashboard.viewers == [204, 205, 206]
+
+    dashboard = Dashboard.from_json(read)
     dashboard.editors.append(300)
     dashboard.owners = [2]
     with pytest.warns(DeprecationWarning):

@@ -79,9 +79,10 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
     _request_response: Any = None  # HTTP response the object was read from, if any
     _read_from_superset: bool = False
     _read_keys: frozenset[str] = frozenset()  # fields present in the data read from Superset
-    # Ids of the ID_REFERENCE_FIELDS as read from Superset, to tell a list changed by the code from the one read
-    # (only replaced, never mutated).
+    # To tell a list of ID_REFERENCE_FIELDS set by the code from the one read from Superset: the ids as read (only
+    # replaced, never mutated), and the fields assigned after reading.
     _read_references: dict[str, tuple[object, ...]] = {}
+    _assigned_references: frozenset[str] = frozenset()
 
     # --- reading -----------------------------------------------------------------------------------
 
@@ -121,6 +122,21 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
         except ValidationError:
             return value
         return value if isinstance(value, (*_SCALARS, list, dict)) and result == value else result
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        super().__setattr__(name, value)
+        if name in self.ID_REFERENCE_FIELDS and self._read_from_superset:
+            self._assigned_references = self._assigned_references | {name}
+
+    def references_set_in_code(self, name: str) -> bool:
+        """Whether the relation `name` (one of ID_REFERENCE_FIELDS) holds what the code set, not what was read from
+        Superset: set on an object built in code, or assigned or changed in place after reading."""
+        if name not in self.model_fields_set:
+            return False
+        if name not in self._read_keys or name in self._assigned_references:
+            return True
+        current = getattr(self, name)
+        return not isinstance(current, list) or reference_ids(current) != self._read_references.get(name)
 
     def model_post_init(self, context: Any) -> None:
         if (context or {}).get(_READ):
