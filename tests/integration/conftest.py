@@ -29,6 +29,8 @@ from supersetapiplus.exceptions import BadRequestError
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 from supersetapiplus.resources.repository import SoftDeleteRepository
 
+from .known_7_0_gaps import KNOWN_7_0_GAPS
+
 
 def config(name: str, fallback: str | None = None, default: str | None = None) -> str | None:
     return os.getenv(name) or (os.getenv(fallback) if fallback else None) or default
@@ -68,6 +70,14 @@ def pytest_collection_modifyitems(config, items):
 
 def unique_name(suffix: str) -> str:
     return f"{PREFIX}-{suffix}-{uuid.uuid4().hex[:6]}"
+
+
+@pytest.fixture(autouse=True)
+def known_7_0_gap(request, client):
+    """Marks the tests of known_7_0_gaps.py xfail(strict=True) on a Superset 7.0 server (see that module)."""
+    reason = KNOWN_7_0_GAPS.get(f"{request.node.path.name}::{request.node.originalname}")
+    if reason and int(client.server_version.split(".")[0]) >= 7:
+        request.applymarker(pytest.mark.xfail(reason=f"known Superset 7.0 gap: {reason}", strict=True))
 
 
 def purge_archived(client: SupersetClient) -> None:

@@ -17,6 +17,10 @@ Validation: the test stack runs the newest Superset 7.0 release (`7.0.0rc3` toda
   library does not model yet (`uuid`, dashboard `description` and `theme_id`, dataset `currency_code_column`...) are
   listed in the test until #69.
 
+* Test stack and CI on Superset 7.0.0rc3 (`ENABLE_VIEWERS` on, `SOFT_DELETE` at its default). The integration
+  tests that still fail on 7.0 are listed with the task that fixes each in `tests/integration/known_7_0_gaps.py` and
+  marked `xfail(strict=True)` on a 7.0 server, so a fixed test fails until its entry is removed (#66).
+
 ## Deprecated
 
 * `owners` (users) on charts, dashboards and datasets, and a dashboard's `roles`: the fields Superset 7.0 replaced
