@@ -12,6 +12,7 @@ dataclass engine, so what the library writes does not change:
 """
 import json
 import logging
+from collections.abc import Iterable
 from typing import Any, ClassVar
 
 from pydantic import (
@@ -133,10 +134,19 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
         Superset: set on an object built in code, or assigned or changed in place after reading."""
         if name not in self.model_fields_set:
             return False
-        if name not in self._read_keys or name in self._assigned_references:
+        if name not in self._read_references or name in self._assigned_references:
             return True
         current = getattr(self, name)
-        return not isinstance(current, list) or reference_ids(current) != self._read_references.get(name)
+        return not isinstance(current, list) or reference_ids(current) != self._read_references[name]
+
+    def mark_references_read(self, names: Iterable[str]) -> None:
+        """Records the relations `names` (those of ID_REFERENCE_FIELDS) as holding what Superset has: after a
+        reload, or once the library itself wrote them. Later assignments or changes in place count as the code's."""
+        for name in set(names) & set(self.ID_REFERENCE_FIELDS):
+            value = getattr(self, name)
+            if isinstance(value, list):
+                self._read_references = {**self._read_references, name: reference_ids(value)}
+            self._assigned_references = self._assigned_references - {name}
 
     def model_post_init(self, context: Any) -> None:
         if (context or {}).get(_READ):

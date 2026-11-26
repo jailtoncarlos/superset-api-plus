@@ -7,7 +7,7 @@ import pytest
 
 from supersetapiplus.charts.table import TableChart
 from supersetapiplus.core.datasource import DataSource
-from supersetapiplus.dashboards.dashboards import Dashboard
+from supersetapiplus.dashboards.dashboards import Dashboard, Dashboards
 from supersetapiplus.databases import Database
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.exceptions import ValidationError
@@ -71,6 +71,36 @@ def test_subjects_assigned_or_changed_after_reading_are_kept_with_a_deprecated_a
     with pytest.warns(DeprecationWarning):
         _resolve_subject_aliases(dashboard, FakeSubjects())
     assert dashboard.editors == [101, 300, 102]
+
+
+def test_a_list_changed_in_place_after_an_alias_was_resolved_is_kept():
+    dashboard = Dashboard.from_json({"id": 1, "dashboard_title": "P", "position_json": "{}", "json_metadata": "{}",
+                                     "viewers": [{"id": 204}]})
+    dashboard.roles = [5]
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(dashboard, FakeSubjects())
+    dashboard.viewers.append(300)
+    dashboard.roles = [6]
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(dashboard, FakeSubjects())
+    assert dashboard.viewers == [205, 300, 206]
+
+
+def test_a_reloaded_list_is_what_superset_has_so_a_deprecated_alias_replaces_it():
+    """fetch() after the viewers changed on the server, then roles = []: the reloaded viewers are revoked, not kept
+    as if the code had assigned them."""
+    reloaded = {"id": 1, "dashboard_title": "P", "position_json": "{}", "json_metadata": "{}",
+                "viewers": [{"id": 204}, {"id": 207}]}
+    client = SimpleNamespace(base_url="http://superset/api/v1", join_urls=lambda *parts: "/".join(map(str, parts)),
+                             get=lambda url: SimpleNamespace(json=lambda: {"result": reloaded}))
+    dashboards = Dashboards(client)
+    dashboard = Dashboard.from_json({**reloaded, "viewers": [{"id": 204}]})
+    dashboards.fetch(dashboard)
+    assert not dashboard.references_set_in_code("viewers")
+    dashboard.roles = []
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(dashboard, FakeSubjects())
+    assert dashboard.viewers == []
 
 
 def test_an_empty_list_given_to_a_deprecated_alias_clears_the_subjects():

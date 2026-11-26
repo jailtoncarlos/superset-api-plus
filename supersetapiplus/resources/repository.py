@@ -89,9 +89,9 @@ def _resolve_subject_aliases(obj: ApiModel, subjects: Any) -> None:
         setattr(obj, target, ids)
         setattr(obj, alias, [] if type(obj).model_fields[alias].default_factory is list else None)
         # Resolved: the alias is unset again (a later send does not clear the subjects), and the field of subjects
-        # counts as set by the library, not by the code (a later alias replaces it).
-        obj.model_fields_set.difference_update({alias, target})
-        obj._assigned_references = obj._assigned_references - {target}
+        # holds what the library wrote: a later alias replaces it, a later assignment or change in place is kept.
+        obj.model_fields_set.discard(alias)
+        obj.mark_references_read([target])
 
 
 class UnsupportedObject:
@@ -224,6 +224,7 @@ class ApiModelFactories(ABC):
         for key, value in result.items():
             if key in field_names:
                 setattr(obj, key, json.loads(value or "{}") if key in obj.JSON_FIELDS else value)
+        obj.mark_references_read(result)  # what was reloaded is what Superset has, not an assignment of the code
 
     def save(self, obj: ApiModel) -> None:
         """PUT the update-accepted fields of `obj`.
