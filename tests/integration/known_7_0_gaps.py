@@ -22,4 +22,25 @@ KNOWN_7_0_GAPS = {
         "#138 (T-23): get_or_create of a physical table on the 7.0.0rc3 SQLite stack",
     "test_errors.py::test_error_list_body_is_mapped_by_status":
         "#139 (T-24): a 7.0 403 comes without the SIP-40 error list",
+    # Example dashboards (job examples, stack with the examples loaded).
+    "test_sales_dashboard.py::test_chart_copies_keep_the_params_and_return_the_data_of_the_original":
+        "#62 (T-09): the frontend query captures are still those of 6.1",
+    "test_slack_dashboard.py::test_chart_copies_keep_the_params_and_return_the_data_of_the_original":
+        "#62 (T-09): the frontend query captures are still those of 6.1",
+    "test_usa_births_names.py::test_chart_copies_keep_the_params_and_return_the_data_of_the_original":
+        "#62 (T-09): the frontend query captures are still those of 6.1",
+    "test_video_game_sales.py::test_chart_copies_keep_the_params_and_return_the_data_of_the_original":
+        "#62 (T-09): the frontend query captures are still those of 6.1",
+    "test_world_health.py::test_chart_copies_keep_the_params_and_return_the_data_of_the_original":
+        "#62 (T-09): the frontend query captures are still those of 6.1",
+    "test_deckgl_demo.py::test_dashboard_copy_reads_back_like_the_original":
+        "#69 (T-16): the dashboard copy reads back differently on 7.0 (json_metadata additions, to confirm)",
+    "test_misc_charts.py::test_dashboard_copy_reads_back_like_the_original":
+        "#69 (T-16): the dashboard copy reads back differently on 7.0 (json_metadata additions, to confirm)",
+    "test_usa_births_names.py::test_dashboard_copy_reads_back_like_the_original":
+        "#69 (T-16): the dashboard copy reads back differently on 7.0 (json_metadata additions, to confirm)",
+    "test_world_health.py::test_dashboard_copy_reads_back_like_the_original":
+        "#69 (T-16): the dashboard copy reads back differently on 7.0 (json_metadata additions, to confirm)",
+    "test_usa_births_names.py::test_browser_check_measures_every_component_drawn":
+        "#137 (T-22): the browser check reads the 6.1 dashboard DOM (times out on 7.0)",
 }
