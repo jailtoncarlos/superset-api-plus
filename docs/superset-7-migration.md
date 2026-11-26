@@ -22,3 +22,6 @@ Validation: the test stack runs the newest Superset 7.0 release (`7.0.0rc3` toda
   `migrated_viz_types` the migrations behind a feature flag (`table` → `ag-grid-table`); the 6.1.0 excerpts it
   regenerates are unchanged. The conformance tests still read the 6.1.0 excerpts until the models move to 7.0
   (#55).
+* Subjects: `client.subjects` (read-only, `/api/v1/security/subject/`) with `for_user`, `for_role` and `for_group`,
+  the `Subject` model and the `SubjectType` enum (`superset/subjects/types.py`, in the enum extractor from 7.0 on),
+  the principal that editors, viewers and row level security rules refer to in 7.0 (#56).

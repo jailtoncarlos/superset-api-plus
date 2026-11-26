@@ -43,6 +43,14 @@ class LimitingFactor(StringEnum):
     UNKNOWN = "UNKNOWN"
 
 
+class SubjectType(IntEnum):
+    """Kind of principal a Subject stands for (`superset/subjects/types.py` SubjectType, Superset 7.0): the
+    `editors`, `viewers` and row level security `subjects` of 7.0 refer to subjects, not to users or roles."""
+    USER = 1
+    ROLE = 2
+    GROUP = 3
+
+
 class GenericDataType(IntEnum):
     """Generic type of a column (`superset/utils/core.py` GenericDataType, Superset 6.1.0): `type_generic` of
     dataset columns and of query results."""

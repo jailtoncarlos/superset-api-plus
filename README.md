@@ -184,6 +184,16 @@ query.add("name", QueryOperator.EQUAL, "Public")
 public = client.roles.find_one(query)
 ```
 
+Subjects (Superset 7.0): editors, viewers and row level security rules refer to the subject of a user, role or
+group, which Superset keeps for each of them. `client.subjects` reads them (the API is read-only):
+
+```python
+from supersetapiplus import SubjectType
+
+subject = client.subjects.for_role(public.id)      # also for_user(user_id) and for_group(group_id)
+subject.type == SubjectType.ROLE, subject.label    # (True, "Public")
+```
+
 Row level security rules (the SQL clause Superset adds to the queries of some roles on some datasets):
 
 ```python

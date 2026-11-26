@@ -41,7 +41,7 @@ from supersetapiplus.resources.databases import Databases
 from supersetapiplus.resources.datasets import Datasets
 from supersetapiplus.resources.row_level_security import RowLevelSecurity
 from supersetapiplus.resources.saved_queries import SavedQueries
-from supersetapiplus.resources.security import Permissions, Roles
+from supersetapiplus.resources.security import Permissions, Roles, Subjects
 from supersetapiplus.services.bundle_import import BundleImport
 from supersetapiplus.services.dashboard_charts import DashboardCharts
 from supersetapiplus.services.dashboard_sizing import DashboardSizing
@@ -67,6 +67,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
     css_templates_cls = CssTemplates
     roles_cls = Roles
     permissions_cls = Permissions
+    subjects_cls = Subjects
     row_level_security_cls = RowLevelSecurity
 
     def __init__(self, host: str, username: str | None = None, password: str | None = None, provider: str = "db",
@@ -110,6 +111,7 @@ class SupersetClient(CSRFSupportMixin, SessionAuthMixin):
         self.css_templates = self.css_templates_cls(self)
         self.roles = self.roles_cls(self)
         self.permissions = self.permissions_cls(self)
+        self.subjects = self.subjects_cls(self)
         self.row_level_security = self.row_level_security_cls(self)
         # Operations across resources (charts and dashboards together).
         self.dashboard_charts = DashboardCharts(self)
