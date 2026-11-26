@@ -34,9 +34,17 @@ BACKEND = [
     ("superset/models/core.py", "ConfigurationMethod"),
     ("superset/errors.py", "SupersetErrorType"),
     ("superset/errors.py", "ErrorLevel"),
-    # Superset 7.0: the principal (user, role or group) behind editors, viewers and RLS subjects.
+]
+# Backend enums that exist from Superset 7.0 on (the 6.1.0 excerpt is still regenerated without them).
+BACKEND_FROM_7 = [
+    # The principal (user, role or group) behind editors, viewers and row level security subjects.
     ("superset/subjects/types.py", "SubjectType"),
 ]
+
+
+def backend_enums(version: str) -> list[tuple[str, str]]:
+    """The backend enums of a Superset version: BACKEND, plus BACKEND_FROM_7 from 7.0 on."""
+    return BACKEND + ([] if before_7(version) else BACKEND_FROM_7)
 
 # Backend marshmallow schemas whose field names the library uses (nested items the OpenAPI excerpt does
 # not detail): (file, class).
@@ -423,7 +431,7 @@ def main(version: str) -> None:
     fab = fab_version(source("requirements/base.txt"))
     subset = {
         "superset_version": version,
-        "backend": {cls: python_enum(source(file), cls) for file, cls in BACKEND},
+        "backend": {cls: python_enum(source(file), cls) for file, cls in backend_enums(version)},
         "schemas": {cls: schema_fields(source(file), cls) for file, cls in SCHEMAS},
         "frontend": {name: typescript_enum(source(file), name) for file, name in FRONTEND},
         "choices": {**{key: control_choices(source(file), control) for key, file, control in choice_controls(version)},
