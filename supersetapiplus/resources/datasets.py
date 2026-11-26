@@ -11,7 +11,7 @@ from supersetapiplus.core.typing import SerializableNotToJson, SerializableOptio
 from supersetapiplus.exceptions import NotFound, ValidationError
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 from supersetapiplus.resources.databases import Database
-from supersetapiplus.resources.repository import ApiModelFactories
+from supersetapiplus.resources.repository import SoftDeleteRepository
 from supersetapiplus.resources.schema_field import SchemaFieldMixin
 
 
@@ -58,6 +58,8 @@ class Dataset(SchemaFieldMixin):
     main_dttm_col: SerializableOptional[str] = None
     # Subjects who may edit the dataset (Superset 7.0), as read or their ids. owners: deprecated, users turned into
     # editors when sent.
+    # Read-only (Superset 7.0 restores and purges archived objects by uuid; sending it is #69).
+    uuid: SerializableNotToJson[str | None] = None
     editors: SerializableOptional[list[Any]] = None
     owners: SerializableNotToJson[list[Any] | None] = None
     catalog: SerializableOptional[str] = None
@@ -157,9 +159,19 @@ class Dataset(SchemaFieldMixin):
         return self._repository().client.run(database_id=self.database_id, query=self.sql, query_limit=query_limit)
 
 
-class Datasets(ApiModelFactories):
-    """Repository of datasets (`client.datasets`): CRUD and `get_datasource()` by table name."""
+class Datasets(SoftDeleteRepository):
+    """Repository of datasets (`client.datasets`): CRUD and `get_datasource()` by table name; archived datasets of
+    Superset 7.0 through SoftDeleteRepository."""
     endpoint = "dataset/"
+    DELETED_STATE_FILTER = "dataset_deleted_state"
+
+    def purge(self, uuid: str) -> None:
+        """Deletes an archived dataset permanently, with the charts and dashboards that depend on it: Superset asks for
+        the impact token of ``GET /dataset/<uuid>/purge-impact`` back (it refuses with 409 when the dependencies changed
+        in between)."""
+        impact = self.client.get(self.client.join_urls(self.base_url, uuid, "purge-impact")).json()
+        self.client.post(self.client.join_urls(self.base_url, uuid, "purge"),
+                         json={"confirmed_impact_token": impact["impact_token"]})
     # Body fields of POST /dataset/duplicate and /dataset/get_or_create/ (DatasetDuplicateSchema and
     # GetOrCreateDatasetSchema, superset/datasets/schemas.py 6.1.0; checked in test_enum_conformance.py).
     DUPLICATE_FIELDS = ("base_model_id", "table_name")
@@ -194,7 +206,9 @@ class Datasets(ApiModelFactories):
 
         `database` is a Database or its id; `options` are the other fields of GetOrCreateDatasetSchema
         (``template_params``, ``normalize_columns``, ``always_filter_main_dttm``). A table missing from the
-        database raises UnprocessableEntityError.
+        database raises UnprocessableEntityError. So does, on Superset 7.0, a table whose dataset was deleted and is
+        archived (the "hidden twin"): Superset does not create a second one, and its message gives the archived
+        dataset's uuid; ``restore`` it, or ``purge`` it before creating a new one.
         """
         body = {"table_name": table_name, "database_id": database.id if isinstance(database, Database) else database,
                 "schema": schema,

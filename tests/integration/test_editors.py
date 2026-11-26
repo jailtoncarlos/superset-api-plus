@@ -7,12 +7,13 @@ from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.datasets import Dataset
 
 from .conftest import SQL_DATASET, new_chart, unique_name
+from .server_version import is_superset_7
 
 
 @pytest.fixture
 def me(client):
-    if int(client.server_version.split(".")[0]) < 7:
-        pytest.skip(f"Superset {client.server_version} has no editors (7.0)")
+    if not is_superset_7(client):
+        pytest.skip(f"Superset {client.server_version or '(unknown version)'} has no editors (7.0)")
     user_id = client.get(client.join_urls(client.base_url, "me/")).json()["result"]["id"]
     return user_id, client.subjects.for_user(user_id).id
 

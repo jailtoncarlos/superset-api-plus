@@ -7,8 +7,8 @@ services:
       dockerfile: docker/superset/Dockerfile
       args:
         SUPERSET_IMAGE: ${SUPERSET_IMAGE:-apachesuperset.docker.scarf.sh/apache/superset}
-        SUPERSET_VERSION: ${SUPERSET_VERSION:-6.1.0}
-    image: superset-api-plus-test-superset:${SUPERSET_VERSION:-6.1.0}
+        SUPERSET_VERSION: ${SUPERSET_VERSION:-7.0.0rc3}
+    image: superset-api-plus-test-superset:${SUPERSET_VERSION:-7.0.0rc3}
     ports:
       - "127.0.0.1:${SUPERSET_TEST_PORT:-8089}:8088"
     environment:
