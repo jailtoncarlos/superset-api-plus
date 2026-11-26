@@ -13,6 +13,21 @@ Validation: the test stack runs the newest Superset 7.0 release (`7.0.0rc3` toda
 
 * Target: Superset 7.0. `client.server_version` warns (`UnsupportedServerVersionWarning`) on a server whose major
   version is not 7; version `3.0.0.dev0` until the release (#85).
+* The OpenAPI conformance checks the requests against the 7.0.0rc3 specification. The fields 7.0 added that the
+  library does not model yet (`uuid`, dashboard `description` and `theme_id`, dataset `currency_code_column`...) are
+  listed in the test until #69.
+
+* Test stack and CI on Superset 7.0.0rc3 (`ENABLE_VIEWERS` on, `SOFT_DELETE` at its default). The integration
+  tests that still fail on 7.0 are listed with the task that fixes each in `tests/integration/known_7_0_gaps.py` and
+  marked `xfail(strict=True)` on a 7.0 server, so a fixed test fails until its entry is removed (#66).
+
+## Deprecated
+
+* `owners` (users) on charts, dashboards and datasets, and a dashboard's `roles`: the fields Superset 7.0 replaced
+  with `editors` and `viewers`; `roles` on row level security rules, replaced with `subjects` (and `users`). They
+  still work: before sending, their users and roles are turned into subjects, with a `DeprecationWarning`. As on
+  Superset 6.1, assigning them replaces the list (a role left out loses its access; an empty list clears it),
+  keeping the subjects the code itself put in the new field; RLS `users` adds (#57, #58, #59).
 
 ## Added
 
@@ -25,3 +40,13 @@ Validation: the test stack runs the newest Superset 7.0 release (`7.0.0rc3` toda
 * Subjects: `client.subjects` (read-only, `/api/v1/security/subject/`) with `for_user`, `for_role` and `for_group`,
   the `Subject` model and the `SubjectType` enum (`superset/subjects/types.py`, in the enum extractor from 7.0 on),
   the principal that editors, viewers and row level security rules refer to in 7.0 (#56).
+* Editors and viewers: charts, dashboards and datasets have `editors`, and charts and dashboards `viewers` (with the
+  `ENABLE_VIEWERS` feature flag; without it Superset refuses to add viewers, `UnprocessableEntityError`): subjects,
+  read as objects and sent as ids (#57, #58).
+* Soft delete (`SOFT_DELETE`, on by default in 7.0): a deleted chart, dashboard or dataset is archived.
+  `find_archived()`, `restore(uuid)` and `purge(uuid)` on `client.charts`, `client.dashboards` and `client.datasets`
+  (a dataset is purged with the impact token of `purge-impact`); the three models read their `uuid`. `get_or_create`
+  of a table whose dataset is archived raises `UnprocessableEntityError` naming it. The integration tests purge what
+  they archive, so a database can be deleted and a second run reuses the names (#65).
+* Row level security rules name `subjects`; `users` takes users, sent as their subjects. A Regular rule without any
+  subject is refused before sending, as Superset 7.0 requires one (#59).

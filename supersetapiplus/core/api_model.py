@@ -12,6 +12,7 @@ dataclass engine, so what the library writes does not change:
 """
 import json
 import logging
+from collections.abc import Iterable
 from typing import Any, ClassVar
 
 from pydantic import (
@@ -36,6 +37,7 @@ from supersetapiplus.core.masking import mask_data
 from supersetapiplus.core.parse import ParseMixin
 from supersetapiplus.core.persistence import PersistenceMixin
 from supersetapiplus.core.sentinels import MissingField
+from supersetapiplus.core.types import SubjectType
 from supersetapiplus.core.typing import NOT_TO_JSON as _NOT_TO_JSON
 from supersetapiplus.core.typing import OPTIONAL as _OPTIONAL
 from supersetapiplus.exceptions import LoadJsonError
@@ -47,6 +49,11 @@ _READ = "read_from_superset"  # validation context: building from data stored by
 CONVERT_TO_JSON = "convert_to_json"
 _JSON = CONVERT_TO_JSON
 _SCALARS = (str, int, float, bool)
+
+
+def reference_ids(items: list[object]) -> tuple[object, ...]:
+    """The ids of the items of a relation: ids, dicts read from Superset, or saved objects."""
+    return tuple(item.get("id") if isinstance(item, dict) else getattr(item, "id", item) for item in items)
 
 
 class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
@@ -61,13 +68,22 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
     # Fields accepted on create (POST) and update (PUT), per the OpenAPI specification (None: no restriction).
     POST_FIELDS: ClassVar[tuple[str, ...] | None] = None
     PUT_FIELDS: ClassVar[tuple[str, ...] | None] = None
-    # Relations read as objects and sent as ids (owners, roles).
+    # Relations read as objects and sent as ids (editors, viewers, subjects...).
     ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ()
+    # Superset 7.0 refers relations to subjects: field of users or roles -> (field of subjects, principal of its items,
+    # deprecated), e.g. {"owners": ("editors", SubjectType.USER, True)}. Before sending, the repository turns the users
+    # or roles into their subjects in the field of subjects (resources.repository._resolve_subject_aliases), with a
+    # DeprecationWarning for a deprecated field.
+    SUBJECT_ALIASES: ClassVar[dict[str, tuple[str, SubjectType, bool]]] = {}
 
     _factory: Any = None  # repository the object was read or created through (see PersistenceMixin)
     _request_response: Any = None  # HTTP response the object was read from, if any
     _read_from_superset: bool = False
     _read_keys: frozenset[str] = frozenset()  # fields present in the data read from Superset
+    # To tell a list of ID_REFERENCE_FIELDS set by the code from the one read from Superset: the ids as read (only
+    # replaced, never mutated), and the fields assigned after reading.
+    _read_references: dict[str, tuple[object, ...]] = {}
+    _assigned_references: frozenset[str] = frozenset()
 
     # --- reading -----------------------------------------------------------------------------------
 
@@ -108,10 +124,39 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
             return value
         return value if isinstance(value, (*_SCALARS, list, dict)) and result == value else result
 
+    def __setattr__(self, name: str, value: Any) -> None:
+        super().__setattr__(name, value)
+        if name in self.ID_REFERENCE_FIELDS and self._read_from_superset:
+            self._assigned_references = self._assigned_references | {name}
+
+    def references_set_in_code(self, name: str) -> bool:
+        """Whether the relation `name` (one of ID_REFERENCE_FIELDS) holds what the code set, not what was read from
+        Superset: set on an object built in code (given, assigned, or appended to the default list), or assigned or
+        changed in place after reading."""
+        current = getattr(self, name)
+        if name in self._assigned_references:
+            return True
+        if name in self._read_references:
+            return not isinstance(current, list) or reference_ids(current) != self._read_references[name]
+        if name in self.model_fields_set:
+            return name not in self._read_keys
+        return isinstance(current, list) and bool(current)  # the default list, filled in place
+
+    def mark_references_read(self, names: Iterable[str]) -> None:
+        """Records the relations `names` (those of ID_REFERENCE_FIELDS) as holding what Superset has: after a
+        reload, or once the library itself wrote them. Later assignments or changes in place count as the code's."""
+        for name in set(names) & set(self.ID_REFERENCE_FIELDS):
+            value = getattr(self, name)
+            if isinstance(value, list):
+                self._read_references = {**self._read_references, name: reference_ids(value)}
+            self._assigned_references = self._assigned_references - {name}
+
     def model_post_init(self, context: Any) -> None:
         if (context or {}).get(_READ):
             self._read_from_superset = True
             self._read_keys = frozenset(self.model_fields_set)
+            self._read_references = {name: reference_ids(getattr(self, name)) for name in self.ID_REFERENCE_FIELDS
+                                     if name in self._read_keys and isinstance(getattr(self, name), list)}
             for name in type(self).model_fields:
                 if name not in self.model_fields_set:  # absent key: stays absent when written back
                     self.__dict__[name] = MissingField()

@@ -1,36 +1,98 @@
-"""Row level security rules: tables and roles given as saved objects or ids are sent as ids, read ones as read.
+"""Row level security rules (Superset 7.0): tables and subjects given as saved objects or ids are sent as ids, read ones
+as read; users and roles become their subjects; a Regular rule needs a subject.
 
 That the server accepts the requests and applies the clause is tested in tests/integration/test_row_level_security.py;
 the payloads are checked against the specification in test_openapi_conformance.py.
 """
+import warnings
+from types import SimpleNamespace
+
 import pytest
 from pydantic import ValidationError
 
 from supersetapiplus.core.types import RowLevelSecurityFilterType
+from supersetapiplus.exceptions import ValidationError as SupersetApiPlusValidationError
 from supersetapiplus.resources.datasets import Dataset
+from supersetapiplus.resources.repository import _resolve_subject_aliases
 from supersetapiplus.resources.row_level_security import RowLevelSecurityRule
-from supersetapiplus.resources.security import Role
+from supersetapiplus.resources.security import Role, Subject
 
 READ = {"id": 9, "name": "Rule", "filter_type": "Regular", "clause": "category <> 'x'", "group_key": "g",
         "description": "d", "tables": [{"id": 4, "schema": "public", "table_name": "t"}],
-        "roles": [{"id": 3, "name": "Public"}]}
+        "subjects": [{"id": 3, "label": "Public", "type": 2}]}
 
 
-def test_saved_tables_and_roles_are_sent_as_ids():
+class FakeSubjects:
+    """client.subjects stand-in: the subject of user n is 100 + n, of role n is 200 + n."""
+
+    def for_user(self, user_id):
+        return SimpleNamespace(id=100 + user_id)
+
+    def for_role(self, role_id):
+        return SimpleNamespace(id=200 + role_id)
+
+
+def test_saved_tables_and_subjects_are_sent_as_ids():
     rule = RowLevelSecurityRule(name="Rule", filter_type=RowLevelSecurityFilterType.BASE, clause="1 = 1",
-                                tables=[Dataset(id=4, table_name="t"), 5], roles=[Role(id=3, name="Public")])
+                                tables=[Dataset(id=4, table_name="t"), 5], subjects=[Subject(id=3, label="Public")])
 
-    assert rule.to_json(list(rule.POST_FIELDS)) == {"name": "Rule", "filter_type": "Base", "clause": "1 = 1", "tables": [4, 5], "roles": [3],
-                    "group_key": None, "description": None}
+    assert rule.to_json(list(rule.POST_FIELDS)) == {"name": "Rule", "filter_type": "Base", "clause": "1 = 1",
+                                                     "tables": [4, 5], "subjects": [3], "group_key": None,
+                                                     "description": None}
 
 
-def test_a_rule_read_from_superset_keeps_tables_and_roles_and_writes_their_ids():
+def test_a_rule_read_from_superset_keeps_tables_and_subjects_and_writes_their_ids():
     rule = RowLevelSecurityRule.from_json(READ)
 
     assert rule.filter_type == RowLevelSecurityFilterType.REGULAR
-    assert rule.tables == READ["tables"] and rule.roles == READ["roles"]
+    assert rule.tables == READ["tables"] and rule.subjects == READ["subjects"]
     payload = rule.to_json(list(rule.PUT_FIELDS))
-    assert (payload["tables"], payload["roles"]) == ([4], [3])
+    assert (payload["tables"], payload["subjects"]) == ([4], [3])
+
+
+def test_users_and_roles_become_their_subjects_and_roles_is_deprecated():
+    rule = RowLevelSecurityRule(name="Rule", filter_type=RowLevelSecurityFilterType.REGULAR, clause="1 = 1",
+                                tables=[4], subjects=[7], users=[1], roles=[Role(id=2, name="Gamma")])
+
+    with pytest.warns(DeprecationWarning, match="RowLevelSecurityRule.roles is deprecated") as record:
+        _resolve_subject_aliases(rule, FakeSubjects())
+
+    assert len(record) == 1  # users is not deprecated
+    assert (rule.subjects, rule.users, rule.roles) == ([7, 202, 101], [], [])
+    assert rule.to_json(list(rule.POST_FIELDS))["subjects"] == [7, 202, 101]
+
+
+def test_roles_replace_the_subjects_read_and_users_add_to_them():
+    rule = RowLevelSecurityRule.from_json(READ)  # subject 3 read
+    rule.roles, rule.users = [2], [1]
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(rule, FakeSubjects())
+    assert rule.subjects == [202, 101]
+
+
+def test_empty_roles_clear_the_subjects_of_a_rule_and_empty_users_do_not():
+    rule = RowLevelSecurityRule.from_json(READ)
+    rule.users = []
+    _resolve_subject_aliases(rule, FakeSubjects())
+    assert rule.subjects == READ["subjects"]  # users is new: an empty list means no users to add
+
+    rule.roles = []
+    with pytest.warns(DeprecationWarning):
+        _resolve_subject_aliases(rule, FakeSubjects())
+    assert rule.subjects == []
+
+
+def test_a_regular_rule_needs_a_subject_a_base_rule_does_not():
+    regular = RowLevelSecurityRule(name="Rule", filter_type=RowLevelSecurityFilterType.REGULAR, clause="1 = 1",
+                                   tables=[4])
+    with pytest.raises(SupersetApiPlusValidationError, match="a Regular rule needs at least one subject"):
+        regular.to_json(list(regular.POST_FIELDS))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        regular.users = [1]  # a user still to resolve counts
+        regular.to_json(list(regular.POST_FIELDS))
+    base = RowLevelSecurityRule(name="Rule", filter_type=RowLevelSecurityFilterType.BASE, clause="1 = 1", tables=[4])
+    assert base.to_json(list(base.POST_FIELDS))["subjects"] == []
 
 
 def test_an_unsaved_object_cannot_be_referenced():

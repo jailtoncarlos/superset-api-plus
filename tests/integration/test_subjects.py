@@ -7,14 +7,15 @@ from supersetapiplus.exceptions import NotFound
 from supersetapiplus.resources.security import Role, Subject
 
 from .conftest import only_test_stack, unique_name
+from .server_version import is_superset_7
 
 pytestmark = only_test_stack  # creates a role
 
 
 @pytest.fixture
 def superset_7(client):
-    if int(client.server_version.split(".")[0]) < 7:
-        pytest.skip(f"Superset {client.server_version} has no subjects (7.0)")
+    if not is_superset_7(client):
+        pytest.skip(f"Superset {client.server_version or '(unknown version)'} has no subjects (7.0)")
 
 
 def test_a_created_role_has_a_subject(client, cleanup, superset_7):

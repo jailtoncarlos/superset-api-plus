@@ -1,6 +1,6 @@
 # Superset for the superset-api-plus integration test stack.
 ARG SUPERSET_IMAGE=apachesuperset.docker.scarf.sh/apache/superset
-ARG SUPERSET_VERSION=6.1.0
+ARG SUPERSET_VERSION=7.0.0rc3
 FROM ${SUPERSET_IMAGE}:${SUPERSET_VERSION}
 
 # The official 6.x image ships no database drivers; the tests register a Postgres database.
