@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Unreleased
+
+### Added
+
+* Dashboard colors: `client.dashboard_colors.chart_labels(chart)` and `dashboard_labels(dashboard_id)` return the
+  labels each saved chart registers in the dashboard's categorical color scale, from its data through the chart data
+  API and the label rules of the Superset 6.1.0 plugins (`supersetapiplus.charts.color_labels`: series of the ECharts
+  timeseries, groupby labels of box plot, pie, funnel, gauge and histogram, nodes of treemap and sunburst, words of
+  the word cloud; `None` for tables, big numbers and heatmaps) (#134).
+
 ## 2.7.0 (2026-11-25)
 
 Improvements of the chart sizing found when the consumer evaluated 2.6.0 and 2.6.1 (#101): components that scroll
