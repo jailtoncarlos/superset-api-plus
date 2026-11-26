@@ -78,3 +78,27 @@ def test_dashboard_roles_become_viewers_and_chart_viewers_are_saved(client, add_
     stored.description = "saved back"
     stored.save()  # viewers read as objects are sent back as ids
     assert [viewer["id"] for viewer in client.charts.get(chart.id).viewers] == [gamma_subject]
+
+
+def test_viewers_reloaded_with_fetch_are_revoked_by_a_deprecated_alias(client, cleanup, me):
+    """The viewers changed on the server after reading, reloaded with fetch(), are what Superset has: roles = []
+    clears them (not kept as if the code had assigned them)."""
+    roles = client.get(client.join_urls(client.base_url, "security/roles/"), params={"q": "(page_size:100)"}).json()
+    gamma = next(role["id"] for role in roles["result"] if role["name"] == "Gamma")
+    alpha = next(role["id"] for role in roles["result"] if role["name"] == "Alpha")
+    dashboard = Dashboard(dashboard_title=unique_name("dash"))
+    cleanup.dashboard(client.dashboards.add(dashboard))
+    dashboard.viewers = [client.subjects.for_role(gamma).id]
+    dashboard.save()
+    loaded = client.dashboards.get(dashboard.id)
+
+    other = client.dashboards.get(dashboard.id)  # another session adds Alpha
+    other.viewers = [viewer["id"] for viewer in other.viewers] + [client.subjects.for_role(alpha).id]
+    other.save()
+    loaded.fetch()
+    assert len(loaded.viewers) == 2
+
+    loaded.roles = []
+    with pytest.warns(DeprecationWarning):
+        loaded.save()
+    assert client.dashboards.get(dashboard.id).viewers == []

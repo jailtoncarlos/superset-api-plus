@@ -131,13 +131,16 @@ class ApiModel(PersistenceMixin, ParseMixin, BaseModel):
 
     def references_set_in_code(self, name: str) -> bool:
         """Whether the relation `name` (one of ID_REFERENCE_FIELDS) holds what the code set, not what was read from
-        Superset: set on an object built in code, or assigned or changed in place after reading."""
-        if name not in self.model_fields_set:
-            return False
-        if name not in self._read_references or name in self._assigned_references:
-            return True
+        Superset: set on an object built in code (given, assigned, or appended to the default list), or assigned or
+        changed in place after reading."""
         current = getattr(self, name)
-        return not isinstance(current, list) or reference_ids(current) != self._read_references[name]
+        if name in self._assigned_references:
+            return True
+        if name in self._read_references:
+            return not isinstance(current, list) or reference_ids(current) != self._read_references[name]
+        if name in self.model_fields_set:
+            return name not in self._read_keys
+        return isinstance(current, list) and bool(current)  # the default list, filled in place
 
     def mark_references_read(self, names: Iterable[str]) -> None:
         """Records the relations `names` (those of ID_REFERENCE_FIELDS) as holding what Superset has: after a

@@ -7,11 +7,13 @@ import pytest
 
 from supersetapiplus.charts.table import TableChart
 from supersetapiplus.core.datasource import DataSource
-from supersetapiplus.dashboards.dashboards import Dashboard, Dashboards
+from supersetapiplus.core.types import RowLevelSecurityFilterType
+from supersetapiplus.dashboards.dashboards import Dashboard
 from supersetapiplus.databases import Database
 from supersetapiplus.datasets import Dataset
 from supersetapiplus.exceptions import ValidationError
 from supersetapiplus.resources.repository import _resolve_subject_aliases
+from supersetapiplus.resources.row_level_security import RowLevelSecurityRule
 
 
 def test_editors_and_viewers_read_as_objects_are_sent_as_ids_and_kept_as_read():
@@ -86,21 +88,13 @@ def test_a_list_changed_in_place_after_an_alias_was_resolved_is_kept():
     assert dashboard.viewers == [205, 300, 206]
 
 
-def test_a_reloaded_list_is_what_superset_has_so_a_deprecated_alias_replaces_it():
-    """fetch() after the viewers changed on the server, then roles = []: the reloaded viewers are revoked, not kept
-    as if the code had assigned them."""
-    reloaded = {"id": 1, "dashboard_title": "P", "position_json": "{}", "json_metadata": "{}",
-                "viewers": [{"id": 204}, {"id": 207}]}
-    client = SimpleNamespace(base_url="http://superset/api/v1", join_urls=lambda *parts: "/".join(map(str, parts)),
-                             get=lambda url: SimpleNamespace(json=lambda: {"result": reloaded}))
-    dashboards = Dashboards(client)
-    dashboard = Dashboard.from_json({**reloaded, "viewers": [{"id": 204}]})
-    dashboards.fetch(dashboard)
-    assert not dashboard.references_set_in_code("viewers")
-    dashboard.roles = []
+def test_subjects_appended_to_the_default_list_of_a_new_rule_are_kept_with_an_alias():
+    rule = RowLevelSecurityRule(name="r", filter_type=RowLevelSecurityFilterType.REGULAR, clause="1 = 1", tables=[1])
+    rule.subjects.append(300)
+    rule.roles = [5]
     with pytest.warns(DeprecationWarning):
-        _resolve_subject_aliases(dashboard, FakeSubjects())
-    assert dashboard.viewers == []
+        _resolve_subject_aliases(rule, FakeSubjects())
+    assert rule.subjects == [300, 205]
 
 
 def test_an_empty_list_given_to_a_deprecated_alias_clears_the_subjects():
