@@ -47,6 +47,17 @@ def test_a_date_format_is_applied_in_utc():
     assert time_format(JAN_1 + DAY, "%d/%m/%Y") == "02/01/2026"
 
 
+@pytest.mark.parametrize(("epoch_ms", "specifier", "text"), [
+    (JAN_1, "%Y-W%V", "2026-W01"), (JAN_1 + 4 * DAY, "%Y-W%V", "2026-W02"),
+    (JAN_1 + 365 * DAY, "%G-W%V %g %u %w", "2026-W53 26 5 5"),  # 2027-01-01, a Friday in the last ISO week of 2026
+    (JAN_1 + 3 * DAY, "%U %W %j %q", "01 00 004 1"), (JAN_1 + DAY, "%-d/%-m %_d|%e|%0e", "2/1  2| 2|02"),
+    (JAN_1 + DAY + 47107007, "%x %X", "1/2/2026 1:05:07 PM"), (JAN_1 + DAY + 47107007, "%c", "1/2/2026, 1:05:07 PM"),
+    (JAN_1 + 7, "%s %Q %f %L %Z", f"{JAN_1 // 1000} {JAN_1 + 7} 007000 007 +0000"),
+    (JAN_1, "%k%%%", "k%")])
+def test_custom_formats_take_every_d3_directive_and_padding_modifier(epoch_ms, specifier, text):
+    assert time_format(epoch_ms, specifier) == text
+
+
 def test_series_names_are_formatted_as_format_series_name():
     assert [format_series_name(v) for v in (None, False, 7, 2.0, "North")] == ["<NULL>", "false", "7", "2", "North"]
     assert format_series_name(JAN_1, temporal=True) == "2026"

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Iterable, Sequence
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -79,27 +79,64 @@ def js_string(value: object) -> str:
     return str(value)
 
 
-def _directive(char: str, moment: datetime) -> str:
-    hour12 = moment.hour % 12 or 12
-    values = {"a": _WEEKDAYS[moment.weekday()][:3], "A": _WEEKDAYS[moment.weekday()], "b": _MONTHS[moment.month - 1][:3],
-              "B": _MONTHS[moment.month - 1], "d": f"{moment.day:02d}", "e": f"{moment.day:2d}",
-              "H": f"{moment.hour:02d}", "I": f"{hour12:02d}", "j": f"{moment.timetuple().tm_yday:03d}",
-              "L": f"{moment.microsecond // 1000:03d}", "m": f"{moment.month:02d}", "M": f"{moment.minute:02d}",
-              "p": "AM" if moment.hour < 12 else "PM", "S": f"{moment.second:02d}", "y": f"{moment.year % 100:02d}",
-              "Y": str(moment.year), "%": "%"}
-    return values.get(char, f"%{char}")
+def _epoch_ms(moment: datetime) -> int:
+    return (moment - datetime(1970, 1, 1, tzinfo=timezone.utc)) // timedelta(milliseconds=1)
+
+
+#: d3-time-format (locale.js, UTC formats) numeric directives: value and width of the padding.
+_NUMERIC_DIRECTIVES: dict[str, tuple[Callable[[datetime], int], int]] = {
+    "d": (lambda m: m.day, 2), "e": (lambda m: m.day, 2), "f": (lambda m: m.microsecond // 1000 * 1000, 6),
+    "g": (lambda m: m.isocalendar()[0] % 100, 2), "G": (lambda m: m.isocalendar()[0] % 10000, 4),
+    "H": (lambda m: m.hour, 2), "I": (lambda m: m.hour % 12 or 12, 2), "j": (lambda m: m.timetuple().tm_yday, 3),
+    "L": (lambda m: m.microsecond // 1000, 3), "m": (lambda m: m.month, 2), "M": (lambda m: m.minute, 2),
+    "q": (lambda m: (m.month - 1) // 3 + 1, 0), "Q": (_epoch_ms, 0), "s": (lambda m: _epoch_ms(m) // 1000, 0),
+    "S": (lambda m: m.second, 2), "u": (lambda m: m.isoweekday(), 0), "U": (lambda m: int(m.strftime("%U")), 2),
+    "V": (lambda m: m.isocalendar()[1], 2), "w": (lambda m: m.isoweekday() % 7, 0),
+    "W": (lambda m: int(m.strftime("%W")), 2), "y": (lambda m: m.year % 100, 2), "Y": (lambda m: m.year % 10000, 4)}
+#: The other directives (en-US locale of d3-time-format): text, or a specifier of the locale.
+_TEXT_DIRECTIVES: dict[str, Callable[[datetime], str]] = {
+    "a": lambda m: _WEEKDAYS[m.weekday()][:3], "A": lambda m: _WEEKDAYS[m.weekday()],
+    "b": lambda m: _MONTHS[m.month - 1][:3], "B": lambda m: _MONTHS[m.month - 1],
+    "p": lambda m: "AM" if m.hour < 12 else "PM", "Z": lambda m: "+0000", "%": lambda m: "%",
+    "c": lambda m: d3_utc_format("%x, %X", m), "x": lambda m: d3_utc_format("%-m/%-d/%Y", m),
+    "X": lambda m: d3_utc_format("%-I:%M:%S %p", m)}
+#: Padding modifiers after ``%``: none, space, zero.
+_PADS = {"-": "", "_": " ", "0": "0"}
+
+
+def _pad(value: int, fill: str, width: int) -> str:
+    """``pad`` of d3-time-format: the sign, then the digits padded with ``fill`` up to ``width``."""
+    digits = str(abs(value))
+    return ("-" if value < 0 else "") + fill * max(width - len(digits), 0) + digits
+
+
+def _directive(char: str, fill: str, moment: datetime) -> str:
+    """One directive; an unknown one is written as its character, without the ``%``, as d3 does."""
+    if char in _NUMERIC_DIRECTIVES:
+        value, width = _NUMERIC_DIRECTIVES[char]
+        return _pad(value(moment), fill, width)
+    text = _TEXT_DIRECTIVES.get(char)
+    return text(moment) if text is not None else char
 
 
 def d3_utc_format(specifier: str, moment: datetime) -> str:
-    """``d3.utcFormat(specifier)`` for the directives of the Superset date formats (en-US)."""
+    """``d3.utcFormat(specifier)`` (d3-time-format, en-US locale), the formatter createD3TimeFormatter.ts uses for a
+    custom date format: every directive and the ``-``/``_``/``0`` padding modifiers."""
     out, index = [], 0
     while index < len(specifier):
-        if specifier[index] == "%" and index + 1 < len(specifier):
-            out.append(_directive(specifier[index + 1], moment))
-            index += 2
-        else:
+        if specifier[index] != "%":
             out.append(specifier[index])
             index += 1
+            continue
+        char = specifier[index + 1:index + 2]
+        fill = _PADS.get(char)
+        if fill is None:
+            fill = " " if char == "e" else "0"
+        else:
+            index += 1
+            char = specifier[index + 1:index + 2]
+        out.append(_directive(char, fill, moment) if char else "")
+        index += 2
     return "".join(out)
 
 
