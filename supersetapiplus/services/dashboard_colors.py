@@ -46,7 +46,8 @@ class DashboardColors:
     def chart_labels(self, chart: Chart | int) -> list[str] | None:
         """The labels the saved `chart` (or chart id) registers in the categorical color scale of a dashboard, from
         its current data; None for a viz_type that registers none (tables, big numbers, sequential colors). Raises
-        UnsupportedTypeError for a viz_type the library does not model."""
+        UnsupportedTypeError for a viz_type the library does not model, NotImplementedError when Superset answers
+        the chart data asynchronously (``GLOBAL_ASYNC_QUERIES``)."""
         if isinstance(chart, int):
             loaded = self.client.charts.get(chart)
             if not isinstance(loaded, Chart):
@@ -61,7 +62,11 @@ class DashboardColors:
         if LABEL_RULES.get(str(params.get("viz_type")), ...) is None:
             return None
         url = self.client.join_urls(self.client.charts.base_url, "data")
-        results = self.client.post(url, json=chart.ui_query_context()).json().get("result") or []
+        response = self.client.post(url, json=chart.ui_query_context())
+        if response.status_code == 202:  # GLOBAL_ASYNC_QUERIES: a job, not the data (charts/data/api.py)
+            raise NotImplementedError("Superset ran the chart query asynchronously (202); the labels need its data: "
+                                      "use an instance without GLOBAL_ASYNC_QUERIES or a cached chart.")
+        results = response.json().get("result") or []
         return color_labels(params, results, self._verbose_map(dataset))
 
     def dashboard_labels(self, dashboard_id: int) -> dict[int, list[str]]:

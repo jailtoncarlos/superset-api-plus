@@ -5,7 +5,7 @@ the real Superset in tests/integration. What stays here, and why:
 - retry policy and adapter mounting: the server does not produce 5xx/429 on demand (429 comes from the
   rate limit of a production-mode Superset, reached by bursts; the policy is checked without HTTP);
 - exception hierarchy: no server involved;
-- asynchronous SQL Lab (202): the test stack has no Celery workers to run queries asynchronously;
+- asynchronous SQL Lab and chart data (202): the test stack has no Celery workers to run queries asynchronously;
 - the timeouts of the server version request: the real server cannot hang `/version` on demand;
 - status mapping of error bodies: built responses, no HTTP (the real 403 is in tests/integration/test_errors.py).
 """
@@ -15,7 +15,9 @@ import pytest
 import requests
 import requests_mock as rm
 
+from supersetapiplus.charts.pie import PieChart
 from supersetapiplus.client import SupersetClient
+from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.core.types import ErrorLevel, SupersetErrorType
 from supersetapiplus.exceptions import (
     BadRequestError,
@@ -77,6 +79,23 @@ def test_async_sql_lab_run_is_reported_as_not_supported():
 
         with pytest.raises(NotImplementedError):
             SupersetClient(HOST, "robot", "password").run(database_id=3, query="select 1")
+
+
+def test_chart_labels_reject_an_asynchronous_chart_data_response():
+    """With GLOBAL_ASYNC_QUERIES the chart data API may answer 202 with a job instead of the data: the labels must
+    not be taken from it as an empty result."""
+    chart = PieChart.instance(slice_name="pie", datasource=DataSource(id=1, type="table"))
+    chart.add_simple_metric("count")
+    chart.add_simple_dimension("campus")
+    with rm.Mocker() as mock:
+        mock.post(f"{API}/security/login", json={"access_token": "access", "refresh_token": "refresh"})
+        mock.get(f"{API}/security/csrf_token/", json={"result": "csrf"})
+        mock.get(f"{HOST}/version", json={"version_string": "6.1.0"})
+        mock.get(f"{API}/dataset/1", json={"result": {"columns": [], "metrics": []}})
+        mock.post(f"{API}/chart/data", status_code=202, json={"channel_id": "c", "job_id": "j", "status": "pending"})
+
+        with pytest.raises(NotImplementedError, match="asynchronously"):
+            SupersetClient(HOST, "robot", "password").dashboard_colors.chart_labels(chart)
 
 
 def test_the_server_version_request_carries_the_configured_timeouts():
