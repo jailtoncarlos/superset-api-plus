@@ -136,6 +136,9 @@ FREE_TEXT = {
     "dashboards.layout.legacy.items.ItemPosition.id": ID,
     "dashboards.layout.legacy.items.ItemPosition.parents": ID,
     "dashboards.layout.legacy.items.ItemPosition.children": ID,
+    "dashboards.colors.CategoricalColorScheme.colors": "colors (hex) of the scheme, from the frontend registry",
+    "dashboards.colors.CategoricalColorScheme.id": "color scheme id from an extensible registry",
+    "dashboards.colors.CategoricalColorScheme.label": "display name of the color scheme",
     "dashboards.metadata.CrossFilters.scope":
         "'global' or a scope object (frontend ChartConfiguration crossFilters.scope)",
     "dashboards.metadata.GlobalChartConfigurationScope.rootPath": ID,

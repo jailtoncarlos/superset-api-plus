@@ -33,7 +33,7 @@ dependencies = [
 include = ["supersetapiplus*"]
 
 [tool.setuptools.package-data]
-supersetapiplus = ["py.typed", "dashboards/layout/profiles/*.json"]
+supersetapiplus = ["py.typed", "dashboards/layout/profiles/*.json", "dashboards/profiles/*.json"]
 
 [project.optional-dependencies]
 # Browser check of a dashboard (client.dashboard_sizing.check_in_browser); then: playwright install chromium.

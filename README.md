@@ -291,6 +291,12 @@ to be saved; a layout read from Superset is saved as read, with a `LayoutWarning
 `client.dashboards.copy()` copies a dashboard; `delete_many()` removes several objects at once. Dashboards
 read from Superset are written back as read: only filters created by the library get recomputed scopes.
 
+`dashboard.json_metadata.set_color_scheme("supersetColors")` sets the categorical color scheme and its
+`color_scheme_domain`: the scheme's colors in the frontend registry of Superset 6.1.0, shipped with the package
+(`supersetapiplus.dashboards.colors`). With a stale or missing domain the dashboard frontend asks to store it on every
+visit (`PUT /api/v1/dashboard/<id>/colors`), which a user who cannot edit the dashboard gets refused. A scheme
+configured on the instance (`EXTRA_CATEGORICAL_COLOR_SCHEMES`) takes its colors: `set_color_scheme(name, colors=[...])`.
+
 `client.dashboard_colors.chart_labels(chart)` returns the labels a saved chart asks the dashboard color scale for
 (series, slices, nodes or words, from its current data and the label rules of its plugin in Superset 6.1.0), or `None`
 for charts without categorical colors (tables, big numbers, heatmaps); `dashboard_labels(dashboard_id)` gives them per
