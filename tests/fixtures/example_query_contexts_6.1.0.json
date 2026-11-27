@@ -4658,6 +4658,253 @@
     "result_type": "full"
    }
   },
+  "5b629855-f912-4e28-8444-56b9db83e5b3": {
+   "slice_name": "Scatter Plot",
+   "viz_type": "echarts_timeseries_scatter",
+   "params_sha256": "c4884596cde519df35127193828dcf691fd2a7e3be7e7747b88416e052a17cc0",
+   "params": {
+    "adhoc_filters": [
+     {
+      "clause": "WHERE",
+      "comparator": "No filter",
+      "expressionType": "SIMPLE",
+      "operator": "TEMPORAL_RANGE",
+      "subject": "order_date"
+     }
+    ],
+    "annotation_layers": [],
+    "color_scheme": "supersetColors",
+    "comparison_type": "values",
+    "extra_form_data": {},
+    "forecastInterval": 0.8,
+    "forecastPeriods": 10,
+    "groupby": [
+     "deal_size"
+    ],
+    "legendOrientation": "top",
+    "legendType": "scroll",
+    "markerSize": 6,
+    "metrics": [
+     "count"
+    ],
+    "only_total": true,
+    "order_desc": true,
+    "rich_tooltip": true,
+    "row_limit": 10000,
+    "show_empty_columns": true,
+    "show_legend": true,
+    "sort_series_type": "sum",
+    "time_grain_sqla": "P1D",
+    "tooltipTimeFormat": "smart_date",
+    "truncateXAxis": true,
+    "truncate_metric": true,
+    "viz_type": "echarts_timeseries_scatter",
+    "x_axis": "order_date",
+    "x_axis_sort_asc": true,
+    "x_axis_sort_series": "name",
+    "x_axis_sort_series_ascending": true,
+    "x_axis_time_format": "smart_date",
+    "x_axis_title_margin": 15,
+    "y_axis_bounds": [
+     null,
+     null
+    ],
+    "y_axis_format": "SMART_NUMBER",
+    "y_axis_title_margin": 15,
+    "y_axis_title_position": "Left"
+   },
+   "dataset_time": {
+    "columns": [
+     "order_date"
+    ],
+    "main": "order_date"
+   },
+   "query_context": {
+    "datasource": {
+     "type": "table"
+    },
+    "force": false,
+    "queries": [
+     {
+      "filters": [
+       {
+        "col": "order_date",
+        "op": "TEMPORAL_RANGE",
+        "val": "No filter"
+       }
+      ],
+      "extras": {
+       "time_grain_sqla": "P1D",
+       "having": "",
+       "where": ""
+      },
+      "applied_time_extras": {},
+      "columns": [
+       {
+        "timeGrain": "P1D",
+        "columnType": "BASE_AXIS",
+        "sqlExpression": "order_date",
+        "label": "order_date",
+        "expressionType": "SQL",
+        "isColumnReference": true
+       },
+       "deal_size"
+      ],
+      "metrics": [
+       "count"
+      ],
+      "orderby": [
+       [
+        "count",
+        false
+       ]
+      ],
+      "annotation_layers": [],
+      "row_limit": 10000,
+      "series_columns": [
+       "deal_size"
+      ],
+      "series_limit": 0,
+      "group_others_when_limit_reached": false,
+      "order_desc": true,
+      "custom_params": {},
+      "custom_form_data": {},
+      "time_offsets": [],
+      "post_processing": [
+       {
+        "operation": "pivot",
+        "options": {
+         "index": [
+          "order_date"
+         ],
+         "columns": [
+          "deal_size"
+         ],
+         "aggregates": {
+          "count": {
+           "operator": "mean"
+          }
+         },
+         "drop_missing_columns": false
+        }
+       },
+       {
+        "operation": "rename",
+        "options": {
+         "columns": {
+          "count": null
+         },
+         "level": 0,
+         "inplace": true
+        }
+       },
+       {
+        "operation": "flatten"
+       }
+      ]
+     }
+    ],
+    "form_data": {
+     "viz_type": "echarts_timeseries_scatter",
+     "matrixify_enable": false,
+     "matrixify_mode_columns": "disabled",
+     "matrixify_dimension_selection_mode_columns": "members",
+     "matrixify_dimension_columns": {
+      "dimension": "",
+      "values": []
+     },
+     "matrixify_topn_value_columns": 10,
+     "matrixify_all_sort_by_columns": "a_to_z",
+     "matrixify_topn_order_columns": true,
+     "matrixify_show_column_headers": true,
+     "matrixify_fit_columns_dynamically": true,
+     "matrixify_mode_rows": "disabled",
+     "matrixify_dimension_selection_mode_rows": "members",
+     "matrixify_dimension_rows": {
+      "dimension": "",
+      "values": []
+     },
+     "matrixify_topn_value_rows": 10,
+     "matrixify_all_sort_by_rows": "a_to_z",
+     "matrixify_topn_order_rows": true,
+     "matrixify_show_row_labels": true,
+     "matrixify_row_height": 300,
+     "matrixify_charts_per_row": 4,
+     "matrixify_cell_title_template": "",
+     "x_axis": "order_date",
+     "time_grain_sqla": "P1D",
+     "xAxisForceCategorical": false,
+     "metrics": [
+      "count"
+     ],
+     "groupby": [
+      "deal_size"
+     ],
+     "adhoc_filters": [
+      {
+       "clause": "WHERE",
+       "comparator": "No filter",
+       "expressionType": "SIMPLE",
+       "operator": "TEMPORAL_RANGE",
+       "subject": "order_date"
+      }
+     ],
+     "group_others_when_limit_reached": false,
+     "row_limit": 10000,
+     "truncate_metric": true,
+     "show_empty_columns": true,
+     "comparison_type": "values",
+     "annotation_layers": [],
+     "forecastEnabled": false,
+     "forecastPeriods": 10,
+     "forecastInterval": 0.8,
+     "x_axis_title": "",
+     "x_axis_title_margin": 15,
+     "y_axis_title": "",
+     "y_axis_title_margin": 15,
+     "y_axis_title_position": "Left",
+     "sort_series_type": "sum",
+     "sort_series_ascending": false,
+     "color_scheme": "supersetColors",
+     "time_shift_color": true,
+     "show_value": false,
+     "only_total": true,
+     "percentage_threshold": 0,
+     "markerEnabled": false,
+     "markerSize": 6,
+     "zoomable": false,
+     "minorTicks": false,
+     "show_legend": true,
+     "legendType": "scroll",
+     "legendOrientation": "top",
+     "x_axis_time_format": "smart_date",
+     "x_axis_number_format": "~g",
+     "xAxisLabelRotation": 0,
+     "xAxisLabelInterval": "auto",
+     "force_max_interval": false,
+     "rich_tooltip": true,
+     "showTooltipTotal": true,
+     "showTooltipPercentage": false,
+     "tooltipSortByMetric": false,
+     "tooltipTimeFormat": "smart_date",
+     "y_axis_format": "SMART_NUMBER",
+     "logAxis": false,
+     "minorSplitLine": false,
+     "truncateXAxis": true,
+     "truncateYAxis": false,
+     "y_axis_bounds": [
+      null,
+      null
+     ],
+     "extra_form_data": {},
+     "force": false,
+     "result_format": "json",
+     "result_type": "full"
+    },
+    "result_format": "json",
+    "result_type": "full"
+   }
+  },
   "5f1ea868-604e-f69d-a241-5daa83ff33be": {
    "slice_name": "Age distribution of respondents",
    "viz_type": "histogram_v2",

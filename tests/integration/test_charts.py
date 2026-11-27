@@ -8,6 +8,7 @@ import pytest
 from supersetapiplus.resources.repository import UnsupportedObject
 from supersetapiplus.core.datasource import DataSource
 from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.types import AnnotationStyle
 from supersetapiplus.dashboards.layout.sizing import wrap_label, wrap_label_sql
 from supersetapiplus.exceptions import (
     BadRequestError,
@@ -203,7 +204,8 @@ def build_with_ui_defaults(viz_type: str, dataset) -> Chart:
     if viz_type in ("table", "pie", "pivot_table_v2", "treemap_v2", "word_cloud", "funnel", "gauge_chart",
                     "sunburst_v2"):
         chart.add_simple_dimension("campus")
-    elif viz_type in ("mixed_timeseries", "echarts_timeseries_line", "echarts_area", "heatmap_v2"):
+    elif viz_type in ("mixed_timeseries", "echarts_timeseries_line", "echarts_area", "heatmap_v2",
+                      "echarts_timeseries_scatter"):
         chart.set_x_axis("day")
         chart.add_simple_dimension("campus")
     elif viz_type in ("echarts_timeseries_bar", "big_number"):
@@ -216,13 +218,16 @@ def build_with_ui_defaults(viz_type: str, dataset) -> Chart:
         chart.add_distribute_across("campus")
     elif viz_type == "cal_heatmap":
         chart.params.granularity_sqla = chart.query_context.form_data.granularity_sqla = "day"
+    elif viz_type == "handlebars":
+        chart.add_simple_dimension("campus")
     return chart
 
 
 @pytest.mark.parametrize("viz_type", ["big_number_total", "box_plot", "cal_heatmap", "echarts_timeseries_bar",
                                       "mixed_timeseries", "pie", "pivot_table_v2", "table", "treemap_v2",
                                       "word_cloud", "echarts_timeseries_line", "echarts_area", "big_number", "funnel",
-                                      "gauge_chart", "bubble_v2", "histogram_v2", "heatmap_v2", "sunburst_v2"])
+                                      "gauge_chart", "bubble_v2", "histogram_v2", "heatmap_v2", "sunburst_v2",
+                                      "echarts_timeseries_scatter", "handlebars"])
 def test_every_modeled_viz_type_built_on_ui_defaults_returns_data(client, dataset, cleanup, viz_type):
     chart = build_with_ui_defaults(viz_type, dataset)
     cleanup.chart(client.charts.add(chart))
@@ -230,6 +235,37 @@ def test_every_modeled_viz_type_built_on_ui_defaults_returns_data(client, datase
     results = client.charts.get_chart_data(chart.id)
     rows = [row for result in results for row in result["data"]]
     assert rows, f"{viz_type}: no rows"
+    assert client.charts.get(chart.id).params.to_dict() == chart.params.to_dict()
+
+
+def test_scatter_with_formula_reference_lines_reads_back_and_returns_its_points(client, dataset, cleanup):
+    """Formula annotation layers (reference lines such as control limits) are drawn by the frontend: Superset
+    accepts them in the query, and the chart reads back with them."""
+    chart = build_with_ui_defaults("echarts_timeseries_scatter", dataset)
+    chart.add_formula_annotation("Mean", "8.5")
+    chart.add_formula_annotation("Upper limit", "12", style=AnnotationStyle.DASHED, color="#d62728", show_label=True)
+    cleanup.chart(client.charts.add(chart))
+
+    rows = [row for result in client.charts.get_chart_data(chart.id) for row in result["data"]]
+    saved = client.charts.get(chart.id)
+
+    assert len(rows) == 2  # one point per day, one series per campus
+    assert [layer["name"] for layer in saved.params.annotation_layers] == ["Mean", "Upper limit"]
+    assert saved.query_context.queries[0].annotation_layers == chart.params.annotation_layers
+    assert saved.params.to_dict() == chart.params.to_dict()
+
+
+def test_handlebars_raw_mode_returns_the_listed_columns(client, dataset, cleanup):
+    chart = new_chart("handlebars", dataset)
+    chart.params.metrics, chart.params.groupby = [], []
+    chart.add_raw_column("campus")
+    chart.add_raw_column("total")
+    chart.set_template("<ul>{{#each data}}<li>{{campus}}: {{total}}</li>{{/each}}</ul>")
+    cleanup.chart(client.charts.add(chart))
+
+    (result,) = client.charts.get_chart_data(chart.id)
+
+    assert sorted((row["campus"], row["total"]) for row in result["data"]) == [("North", 10), ("South", 7)]
     assert client.charts.get(chart.id).params.to_dict() == chart.params.to_dict()
 
 

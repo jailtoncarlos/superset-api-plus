@@ -41,6 +41,8 @@ Target: **Superset 6.1.0** (Flask-AppBuilder 5; releases 2.x) · Superset 7.0 su
 | `treemap_v2` | `charts.treemap_v2.TreemapChart` | one metric; dimensions nest the rectangles |
 | `echarts_timeseries_line` | `charts.echarts_timeseries_line.EchartsTimeseriesLineChart` | `set_x_axis()` |
 | `echarts_area` | `charts.echarts_area.EchartsAreaChart` | `set_x_axis()` |
+| `echarts_timeseries_scatter` | `charts.echarts_timeseries_scatter.EchartsTimeseriesScatterChart` | `set_x_axis()`; points |
+| `handlebars` | `charts.handlebars.HandlebarsChart` | `set_template()`; aggregate or raw mode (`add_raw_column()`) |
 | `big_number` | `charts.big_number.BigNumberChart` | one metric over `set_x_axis()` (trendline), no dimension |
 | `funnel` | `charts.funnel.FunnelChart` | one metric; dimensions are the steps |
 | `gauge_chart` | `charts.gauge_chart.GaugeChart` | one metric; optional dimensions (one pointer each) |
@@ -245,6 +247,35 @@ calendar = CalHeatmapChart.instance(slice_name="Daily sales", datasource=datasou
 calendar.add_simple_metric("count")
 calendar.params.granularity_sqla = calendar.query_context.form_data.granularity_sqla = "order_date"
 client.charts.add(calendar)
+```
+
+Reference lines over a timeseries chart (scatter, line, bar, area) are formula annotation layers, drawn by the
+frontend from a mathjs expression of `x`; the layer is saved as the Explore annotation popover saves it:
+
+```python
+from supersetapiplus.charts.echarts_timeseries_scatter import EchartsTimeseriesScatterChart
+from supersetapiplus.charts.types import AnnotationStyle
+
+points = EchartsTimeseriesScatterChart.instance(slice_name="Daily orders", datasource=datasource)
+points.set_x_axis("order_date")
+points.add_simple_metric("count")
+points.add_formula_annotation("Mean", "120")
+points.add_formula_annotation("Upper limit", "150", style=AnnotationStyle.DASHED, color="#d62728",
+                              show_label=True)
+client.charts.add(points)
+```
+
+A Handlebars chart renders the rows of its query (`data` in the template) as HTML:
+
+```python
+from supersetapiplus.charts.handlebars import HandlebarsChart
+
+notes = HandlebarsChart.instance(slice_name="Latest orders", datasource=datasource)
+notes.add_raw_column("order_number")       # raw mode: one row per record
+notes.add_raw_column("status")
+notes.set_template("<ul>{{#each data}}<li>{{order_number}}: {{status}}</li>{{/each}}</ul>",
+                   style="ul { margin: 0; }")
+client.charts.add(notes)
 ```
 
 A chart read from Superset keeps its stored `query_context`; call `chart.derive_query_context()` after

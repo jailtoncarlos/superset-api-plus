@@ -3,13 +3,18 @@
 The three plugins use the same buildQuery (Timeseries/buildQuery.ts) and most of the same controls; each chart
 module adds its own (bar: orientation; line: area, markers; area: series style, stack).
 """
-from typing import Any
+import copy
+from typing import Any, Protocol
 
 from pydantic import Field
 
 from supersetapiplus.charts.options import unbounded
 from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.types import (
+    AnnotationOpacity,
+    AnnotationSourceType,
+    AnnotationStyle,
+    AnnotationType,
     ComparisonType,
     ContributionType,
     DateFormatType,
@@ -22,6 +27,36 @@ from supersetapiplus.charts.types import (
 )
 from supersetapiplus.core.api_model import ApiModel
 from supersetapiplus.core.typing import SerializableOptional
+from supersetapiplus.exceptions import ValidationError
+
+
+def formula_annotation_layer(name: str, formula: str, style: AnnotationStyle = AnnotationStyle.SOLID,
+                             width: float = 1, color: str | None = None,
+                             opacity: AnnotationOpacity = AnnotationOpacity.UNDEFINED, show_label: bool = False,
+                             show: bool = True) -> dict[str, Any]:
+    """A formula annotation layer as the Explore annotation popover saves it (AnnotationLayer.tsx, applyAnnotation,
+    Superset 6.1.0): a line drawn over the chart from a mathjs expression of ``x`` (e.g. ``"3000"`` for a
+    horizontal reference line, ``"2 * x"``). The frontend draws it; the query sends it unchanged.
+
+    Args:
+        name: the layer name, shown in the legend and the tooltip.
+        formula: the expression; a constant gives a horizontal line.
+        style: line style.
+        width: line width in px.
+        color: a hex color (``"#ff0000"``); None for the automatic color of the color scheme.
+        opacity: line opacity (the empty value is opaque).
+        show_label: show the name on the line.
+        show: draw the layer (a hidden layer is kept in the params).
+    """
+    if not name.strip() or not formula.strip():
+        raise ValidationError(message="A formula annotation layer needs a name and a formula.",
+                              solution="Pass a non-empty name and expression (e.g. '3000' or '2 * x').")
+    return {
+        "name": name, "annotationType": str(AnnotationType.FORMULA), "sourceType": str(AnnotationSourceType.UNDEFINED),
+        "color": color, "opacity": str(opacity), "style": str(style), "width": width, "showMarkers": False,
+        "hideLine": False, "overrides": {}, "show": show, "showLabel": show_label, "titleColumn": "",
+        "descriptionColumns": [], "timeColumn": "", "intervalEndColumn": "", "value": formula,
+    }
 
 
 class TimeseriesOptionsMixin(ApiModel):
@@ -87,8 +122,41 @@ class TimeseriesOptionsMixin(ApiModel):
             self.x_axis_sort_series = sort_series_by
             self.x_axis_sort_series_ascending = sort_ascending
 
+    def add_annotation_layer(self, layer: dict[str, Any]) -> None:
+        """Appends an annotation layer (e.g. :func:`formula_annotation_layer`). A layer with the same name is
+        replaced: the frontend keys the annotation data and errors by layer name (AnnotationLayerControl), so two
+        layers with one name would collide."""
+        layers = [item for item in self.annotation_layers
+                  if not (isinstance(item, dict) and item.get("name") == layer.get("name"))]
+        self.annotation_layers = [*layers, layer]
+
 
 class TimeseriesQueryObject(Query):
     series_columns: SerializableOptional[list[Any]] = Field(default_factory=list)
     time_offsets: list[str] = Field(default_factory=list)
     post_processing: list[Any] = Field(default_factory=list)
+
+
+class _TimeseriesChart(Protocol):
+    @property
+    def params(self) -> TimeseriesOptionsMixin: ...
+
+    @property
+    def query_context(self) -> object: ...
+
+
+class AnnotationLayersChartMixin:
+    """Annotation layer builders of the timeseries charts (the annotationsAndLayersControls section of their
+    control panels): params and the stored query_context form_data get the same layer."""
+
+    def add_formula_annotation(self: _TimeseriesChart, name: str, formula: str,
+                               style: AnnotationStyle = AnnotationStyle.SOLID, width: float = 1,
+                               color: str | None = None, opacity: AnnotationOpacity = AnnotationOpacity.UNDEFINED,
+                               show_label: bool = False, show: bool = True) -> None:
+        """Adds a formula annotation layer, e.g. a reference line (``formula="3000"``) or a control limit; see
+        :func:`formula_annotation_layer` for the arguments."""
+        layer = formula_annotation_layer(name, formula, style, width, color, opacity, show_label, show)
+        self.params.add_annotation_layer(layer)
+        form_data = getattr(self.query_context, "form_data", None)
+        if isinstance(form_data, TimeseriesOptionsMixin):
+            form_data.add_annotation_layer(copy.deepcopy(layer))

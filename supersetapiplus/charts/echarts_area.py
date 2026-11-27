@@ -7,7 +7,11 @@ from supersetapiplus.charts.charts import Chart
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.timeseries import TimeseriesOptionsMixin, TimeseriesQueryObject
+from supersetapiplus.charts.timeseries import (
+    AnnotationLayersChartMixin,
+    TimeseriesOptionsMixin,
+    TimeseriesQueryObject,
+)
 from supersetapiplus.charts.types import ChartType, SortSeriesType, TimeseriesSeriesType
 from supersetapiplus.core.typing import SerializableOptional
 
@@ -44,7 +48,7 @@ class AreaQueryContext(QueryContext):
         return AreaQueryObject
 
 
-class EchartsAreaChart(Chart):
+class EchartsAreaChart(AnnotationLayersChartMixin, Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.AREA
     viz_type: ChartType = Field(default_factory=lambda: ChartType.AREA)
     params: AreaOption = Field(default_factory=AreaOption)

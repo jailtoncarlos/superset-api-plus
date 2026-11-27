@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## Unreleased
+
+### Added
+
+* Scatter plot chart (`echarts_timeseries_scatter`, `EchartsTimeseriesScatterChart`): the timeseries controls of
+  the line chart, drawn as points; query from the timeseries buildQuery port, checked against the Explore capture
+  of the example chart (#144).
+* Handlebars chart (`handlebars`, `HandlebarsChart`): rows of an aggregate or raw query rendered by a Handlebars
+  template (`set_template()`, `add_raw_column()`), with the buildQuery port of the plugin; checked like the control
+  panel (non-empty template; in aggregate mode, dimensions, metrics or percentage metrics) (#144).
+* Formula annotation layers on the timeseries charts (scatter, line, bar, area): `add_formula_annotation(name,
+  formula, style=, width=, color=, opacity=, show_label=, show=)`, saved as the Explore annotation popover saves
+  them; `formula_annotation_layer()` and the enums `AnnotationType`, `AnnotationSourceType`, `AnnotationOpacity` and
+  `AnnotationStyle` (superset-ui-core `AnnotationLayer.ts`) (#144).
+* `bin/scripts/extract_query_contexts.py` also captures charts it creates with fixed params (`CREATED_CHARTS`): a
+  viz_type without an example chart (handlebars) and controls the examples do not use (a formula layer) (#144).
+
 ## 2.7.0 (2026-11-25)
 
 Improvements of the chart sizing found when the consumer evaluated 2.6.0 and 2.6.1 (#101): components that scroll
