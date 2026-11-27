@@ -14,6 +14,7 @@ import requests
 
 from supersetapiplus.charts.charts import Chart, Charts
 from supersetapiplus.charts.color_labels import LABEL_RULES, color_labels
+from supersetapiplus.charts.explore import DatasetTime
 from supersetapiplus.dashboards.dashboards import Dashboards
 from supersetapiplus.exceptions import UnsupportedTypeError
 from supersetapiplus.resources.datasets import Datasets
@@ -51,12 +52,17 @@ class DashboardColors:
             if not isinstance(loaded, Chart):
                 raise UnsupportedTypeError(f"chart {chart} has a viz_type without a model")
             chart = loaded
+        dataset = self._dataset(chart)
+        if dataset is not None:  # Explore normalizes the params with the dataset's temporal columns
+            chart.use_dataset_time(DatasetTime(
+                columns=tuple(str(c["column_name"]) for c in dataset.get("columns") or [] if c.get("is_dttm")),
+                main=dataset.get("main_dttm_col")))
         params = chart.explore_params()  # as the plugin sees them
         if LABEL_RULES.get(str(params.get("viz_type")), ...) is None:
             return None
         url = self.client.join_urls(self.client.charts.base_url, "data")
         results = self.client.post(url, json=chart.ui_query_context()).json().get("result") or []
-        return color_labels(params, results, self._verbose_map(chart))
+        return color_labels(params, results, self._verbose_map(dataset))
 
     def dashboard_labels(self, dashboard_id: int) -> dict[int, list[str]]:
         """Chart id -> labels, for the charts of the saved dashboard that register labels (the input of the label
@@ -69,14 +75,21 @@ class DashboardColors:
                 labels[int(item["id"])] = chart_labels
         return labels
 
-    def _verbose_map(self, chart: Chart) -> dict[str, str]:
-        """The dataset's verbose names (column or metric name -> verbose name), as the frontend datasource has them."""
+    def _dataset(self, chart: Chart) -> dict[str, Any] | None:
+        """The chart's dataset as the API returns it (None for another datasource type)."""
         if chart.datasource_type != "table" or not isinstance(chart.datasource_id, int):
-            return {}
-        result = self.client.get(self.client.datasets.object_url(chart.datasource_id)).json()["result"]
+            return None
+        result: dict[str, Any] = self.client.get(self.client.datasets.object_url(chart.datasource_id)).json()["result"]
+        return result
+
+    @staticmethod
+    def _verbose_map(dataset: dict[str, Any] | None) -> dict[str, str]:
+        """The dataset's verbose names (column or metric name -> verbose name), as the frontend datasource has them."""
         verbose: dict[str, str] = {}
-        for items, name_key in ((result.get("columns") or [], "column_name"), (result.get("metrics") or [],
-                                                                                 "metric_name")):
+        if dataset is None:
+            return verbose
+        for items, name_key in ((dataset.get("columns") or [], "column_name"), (dataset.get("metrics") or [],
+                                                                                  "metric_name")):
             for item in items:
                 if isinstance(item, dict) and item.get(name_key) and item.get("verbose_name"):
                     verbose[str(item[name_key])] = str(item["verbose_name"])
