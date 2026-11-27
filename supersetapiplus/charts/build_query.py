@@ -944,8 +944,23 @@ def build_heatmap(form_data: dict[str, Any]) -> dict[str, Any]:
         "post_processing": [{"operation": "rank", "options": {"metric": metric, "group_by": group_by}}]}])
 
 
+#: ``SUBDOMAIN_TO_TIME_GRAIN`` of plugin-chart-calendar (buildQuery.ts, Superset 7.0): TimeGranularity values.
+CALENDAR_SUBDOMAIN_TIME_GRAINS = {"min": "PT1M", "hour": "PT1H", "day": "P1D", "week": "P1W", "month": "P1M",
+                                  "year": "P1Y"}
+
+
+def build_cal_heatmap(form_data: dict[str, Any]) -> dict[str, Any]:
+    """plugin-chart-calendar (Superset 7.0, which moved the calendar to the v1 chart data API): a timeseries query
+    whose time grain is forced from ``subdomain_granularity`` (minute when it is absent or unknown), as the legacy
+    CalHeatmapViz.query_obj did."""
+    subdomain = form_data.get("subdomain_granularity")
+    grain = CALENDAR_SUBDOMAIN_TIME_GRAINS.get(str("min" if subdomain is None else subdomain), "PT1M")
+    return build_query_context(form_data, lambda base: [{
+        **base, "is_timeseries": True, "extras": {**(base.get("extras") or {}), "time_grain_sqla": grain}}])
+
+
 def build_default(form_data: dict[str, Any]) -> dict[str, Any]:
-    """Plugins without a buildQuery (e.g. big_number_total) and legacy charts saved from Explore."""
+    """Plugins without a buildQuery (e.g. big_number_total)."""
     return build_query_context(form_data)
 
 
@@ -954,6 +969,7 @@ BUILD_QUERY: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "big_number_total": build_default,
     "box_plot": build_box_plot,
     "bubble_v2": build_bubble,
+    "cal_heatmap": build_cal_heatmap,
     "echarts_area": build_timeseries,
     "echarts_timeseries_bar": build_timeseries,
     "echarts_timeseries_line": build_timeseries,

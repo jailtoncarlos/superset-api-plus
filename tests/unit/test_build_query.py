@@ -45,9 +45,19 @@ def queries(context: dict) -> list:
     return [{k: v for k, v in q.items() if k != "url_params"} for q in context["queries"]]
 
 
+def superset_7_reference(viz_type: str, reference: dict) -> dict:
+    """The 6.1 capture adjusted to what the 7.0 frontend builds, until the captures are taken on 7.0 (#62, T-09):
+    cal_heatmap gained a buildQuery (plugin-chart-calendar/src/buildQuery.ts, 7.0.0rc3), a timeseries query with the
+    time grain of the subdomain granularity (the capture's form_data: day)."""
+    if viz_type == "cal_heatmap":
+        reference["queries"] = [{**query, "is_timeseries": True, "extras": {**query["extras"], "time_grain_sqla": "P1D"}}
+                                for query in reference["queries"]]
+    return reference
+
+
 @pytest.mark.parametrize("viz_type", VIZ_TYPES)
 def test_query_context_is_the_one_built_by_the_frontend(viz_type):
-    reference = json.loads((CAPTURES / f"{viz_type}.json").read_text())
+    reference = superset_7_reference(viz_type, json.loads((CAPTURES / f"{viz_type}.json").read_text()))
 
     context = bq.query_context_for(form_data_of(viz_type))
 
@@ -452,3 +462,16 @@ def test_js_number_is_the_javascript_number(value, expected):
     result = bq.js_number(value)
 
     assert (math.isnan(result) and expected == "NaN") or result == expected
+
+
+@pytest.mark.parametrize(("subdomain", "grain"), [("min", "PT1M"), ("hour", "PT1H"), ("day", "P1D"), ("week", "P1W"),
+                                                  ("month", "P1M"), ("year", "P1Y"), (None, "PT1M"), ("", "PT1M")])
+def test_cal_heatmap_forces_the_time_grain_of_the_subdomain(subdomain, grain):
+    """plugin-chart-calendar buildQuery (Superset 7.0): minute when the subdomain is absent or unknown."""
+    form_data = {**BASE, "viz_type": "cal_heatmap", "metrics": ["count"], "granularity_sqla": "day",
+                 "extras": {"where": "x = 1"}}
+    if subdomain is not None:
+        form_data["subdomain_granularity"] = subdomain
+    (query,) = bq.query_context_for(form_data)["queries"]
+    assert query["is_timeseries"] is True
+    assert query["extras"]["time_grain_sqla"] == grain

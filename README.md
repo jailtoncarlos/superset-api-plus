@@ -54,10 +54,9 @@ Target of this branch (`superset-7`): **Superset 7.0**, migration in progress, r
 Other viz types are listed as read-only `UnsupportedObject` items, and `get()` on them raises
 `UnsupportedTypeError`.
 
-`cal_heatmap` is a legacy chart in Superset 6.1.0: it renders through `/superset/explore_json`, not through the
-query context. The query context the library saves is the one Explore saves, but `/api/v1/chart/data` answers it
-with one aggregate row, so `client.charts.get_chart_data()` (which emits a `LegacyChartDataWarning`), reports and
-alerts built on that endpoint do not reproduce the calendar. This is a limitation of Superset.
+`cal_heatmap` renders from the query context on Superset 7.0 (plugin-chart-calendar): `chart.derive_query_context()`
+builds the timeseries query of its buildQuery (time grain from `subdomain_granularity`), so
+`client.charts.get_chart_data()`, reports and alerts return the calendar series.
 
 ---
 

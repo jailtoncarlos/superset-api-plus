@@ -1,6 +1,7 @@
 """Charts against the real Superset: search, reading, writing, data, export and import."""
 import importlib
 import json
+import warnings
 import zipfile
 
 import pytest
@@ -20,6 +21,7 @@ from supersetapiplus.exceptions import (
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter
 
 from .conftest import name_filter, new_chart, unique_name
+from .server_version import is_superset_7
 
 
 @pytest.fixture
@@ -175,6 +177,25 @@ def test_chart_created_in_code_returns_data_from_its_query_context(client, add_c
     assert {value for row in result["data"] for value in row.values()} >= {"North", "South"}
 
 
+def test_cal_heatmap_returns_the_calendar_series_from_its_query_context(client, dataset, cleanup):
+    """Superset 7.0 renders cal_heatmap from the v1 chart data API (plugin-chart-calendar): the derived query context
+    is a timeseries query with the subdomain time grain, so the chart data is the series per day, not one aggregate
+    row, and no LegacyChartDataWarning is emitted."""
+    if not is_superset_7(client):
+        pytest.skip(f"Superset {client.server_version or '(unknown version)'} renders cal_heatmap through the legacy API")
+    importlib.import_module("supersetapiplus.charts.cal_heatmap")
+    chart = Chart.get_class("cal_heatmap", "supersetapiplus.charts.cal_heatmap").instance(
+        slice_name=unique_name("cal_heatmap"), datasource=DataSource(id=dataset.id, type="table"))
+    chart.add_simple_metric("count")
+    chart.params.granularity_sqla = "day"
+    cleanup.chart(client.charts.add(chart))
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", LegacyChartDataWarning)
+        (result, *_) = client.charts.get_chart_data(chart.id)
+    assert result["rowcount"] == 2  # one row per day of the dataset (2026-01-01 and 2026-01-02)
+
+
 def test_chart_built_in_code_gets_the_time_filter_a_dashboard_time_range_applies_to(client, add_chart):
     """Issue #22: as a new chart in the UI, a chart built in code gets a TEMPORAL_RANGE "No filter" on the dataset's
     temporal column; a time range given to it (as a dashboard time filter does) filters the data."""
@@ -231,18 +252,6 @@ def test_every_modeled_viz_type_built_on_ui_defaults_returns_data(client, datase
     rows = [row for result in results for row in result["data"]]
     assert rows, f"{viz_type}: no rows"
     assert client.charts.get(chart.id).params.to_dict() == chart.params.to_dict()
-
-
-def test_chart_data_of_a_legacy_chart_warns_that_it_is_not_what_the_chart_shows(client, dataset, cleanup):
-    """Issue #27: cal_heatmap renders through /superset/explore_json; the v1 query context Explore saves (the default
-    buildQuery) gives one aggregate row on /chart/{id}/data, not the calendar."""
-    chart = build_with_ui_defaults("cal_heatmap", dataset)
-    cleanup.chart(client.charts.add(chart))
-
-    with pytest.warns(LegacyChartDataWarning, match="legacy API"):
-        (result, *_) = client.charts.get_chart_data(chart.id)
-
-    assert result["rowcount"] == 1
 
 
 # --- Export and import -----------------------------------------------------------------------

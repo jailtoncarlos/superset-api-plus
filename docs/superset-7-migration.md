@@ -21,6 +21,11 @@ Validation: the test stack runs the newest Superset 7.0 release (`7.0.0rc3` toda
   tests that still fail on 7.0 are listed with the task that fixes each in `tests/integration/known_7_0_gaps.py` and
   marked `xfail(strict=True)` on a 7.0 server, so a fixed test fails until its entry is removed (#66).
 
+* `cal_heatmap` renders from the v1 chart data API (plugin-chart-calendar): `derive_query_context()` builds the
+  timeseries query of its 7.0 buildQuery (time grain from `subdomain_granularity`), so `get_chart_data()`, reports and
+  alerts return the calendar series. `LEGACY_API_VIZ_TYPES` is empty and `LegacyChartDataWarning` is no longer
+  emitted (kept for compatibility) (#60).
+
 ## Deprecated
 
 * `owners` (users) on charts, dashboards and datasets, and a dashboard's `roles`: the fields Superset 7.0 replaced
