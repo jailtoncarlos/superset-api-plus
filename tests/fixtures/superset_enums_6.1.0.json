@@ -621,6 +621,7 @@
     "superset-frontend/plugins/plugin-chart-echarts/src/constants.ts",
     "superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx",
     "superset-frontend/plugins/plugin-chart-echarts/src/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/utils/eChartOptionsSchema.ts",
     "superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx",
     "superset-frontend/plugins/plugin-chart-pivot-table/src/types.ts",
     "superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx",
@@ -708,6 +709,35 @@
   "CURRENCY_SYMBOL_POSITION_OPTIONS": [
    "prefix",
    "suffix"
+  ]
+ },
+ "zod_object_keys": {
+  "customEChartOptionsSchema": [
+   "backgroundColor",
+   "darkMode",
+   "textStyle",
+   "useUTC",
+   "animation",
+   "animationThreshold",
+   "animationDuration",
+   "animationEasing",
+   "animationDelay",
+   "animationDurationUpdate",
+   "animationEasingUpdate",
+   "animationDelayUpdate",
+   "stateAnimation",
+   "title",
+   "legend",
+   "grid",
+   "xAxis",
+   "yAxis",
+   "tooltip",
+   "toolbox",
+   "dataZoom",
+   "visualMap",
+   "axisPointer",
+   "graphic",
+   "series"
   ]
  }
 }
