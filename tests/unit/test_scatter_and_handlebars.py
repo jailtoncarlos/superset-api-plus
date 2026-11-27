@@ -116,3 +116,42 @@ def test_handlebars_built_in_code_is_checked_as_the_control_panel_does():
     chart.set_template("  ")
     with pytest.raises(ValidationError, match="handlebarsTemplate cannot be empty"):
         chart.params.validate()
+
+
+def read_chart(viz_type: str, params: dict, form_data: dict | None = None) -> Chart:
+    """A chart as read from Superset (GET /chart/{id}), with a stored query_context when `form_data` is given."""
+    params = {"datasource": "1__table", "viz_type": viz_type, **params}
+    query_context = None if form_data is None else json.dumps({
+        "datasource": {"id": 1, "type": "table"}, "force": False, "queries": [],
+        "form_data": {"datasource": "1__table", "viz_type": viz_type, **form_data},
+        "result_format": "json", "result_type": "full"})
+    return Chart.for_viz_type(viz_type).from_json({
+        "id": 1, "slice_name": "c", "viz_type": viz_type, "datasource_id": 1, "datasource_type": "table",
+        "params": json.dumps(params), "query_context": query_context})
+
+
+@pytest.mark.parametrize("params", [{}, {"handlebarsTemplate": None}, {"handlebarsTemplate": ""},
+                                    {"query_mode": "aggregate", "metrics": [], "groupby": []}])
+def test_a_handlebars_chart_read_from_superset_is_written_back_as_read(params):
+    chart = read_chart("handlebars", params)
+
+    written = json.loads(chart.to_json()["params"])
+
+    assert {key: written.get(key, "<absent>") for key in params} == params
+
+
+def test_a_formula_layer_is_added_to_a_chart_read_without_annotation_layers():
+    chart = read_chart("echarts_timeseries_scatter", {"metrics": ["count"]}, form_data={"metrics": ["count"]})
+
+    chart.add_formula_annotation("Limit", "10")
+
+    assert [layer["value"] for layer in chart.params.annotation_layers] == ["10"]
+    assert chart.query_context.form_data.annotation_layers == chart.params.annotation_layers
+
+
+def test_a_raw_column_is_added_to_a_handlebars_chart_read_without_all_columns():
+    chart = read_chart("handlebars", {"metrics": ["count"]}, form_data={"metrics": ["count"]})
+
+    chart.add_raw_column("campus")
+
+    assert chart.params.all_columns == chart.query_context.form_data.all_columns == ["campus"]

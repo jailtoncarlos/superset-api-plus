@@ -44,6 +44,8 @@ class HandlebarsOption(Option):
 
     def validate(self) -> None:  # type: ignore[override]  # facade method, not pydantic's deprecated classmethod
         super().validate()
+        if self._read_from_superset:  # what Superset stored is written back as read
+            return
         if not self.handlebarsTemplate.strip():  # validateNonEmpty of the template control
             raise ValidationError(message="Field handlebarsTemplate cannot be empty.",
                                   solution="Set the template with set_template().")
@@ -90,7 +92,8 @@ class HandlebarsChart(Chart):
         no aggregation)."""
         for target in self._option_targets():
             target.query_mode = QueryModeType.RAW
-            target.all_columns = [*target.all_columns, column]
+            # absent from a chart read from Superset (MissingField): starts empty
+            target.all_columns = [*(target.all_columns if isinstance(target.all_columns, list) else []), column]
 
     def _option_targets(self) -> list[HandlebarsOption]:
         form_data = getattr(self.query_context, "form_data", None)

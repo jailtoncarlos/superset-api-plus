@@ -126,8 +126,8 @@ class TimeseriesOptionsMixin(ApiModel):
         """Appends an annotation layer (e.g. :func:`formula_annotation_layer`). A layer with the same name is
         replaced: the frontend keys the annotation data and errors by layer name (AnnotationLayerControl), so two
         layers with one name would collide."""
-        layers = [item for item in self.annotation_layers
-                  if not (isinstance(item, dict) and item.get("name") == layer.get("name"))]
+        current = self.annotation_layers if isinstance(self.annotation_layers, list) else []  # absent when read
+        layers = [item for item in current if not (isinstance(item, dict) and item.get("name") == layer.get("name"))]
         self.annotation_layers = [*layers, layer]
 
 
