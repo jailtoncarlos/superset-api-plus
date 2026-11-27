@@ -155,3 +155,12 @@ def test_a_raw_column_is_added_to_a_handlebars_chart_read_without_all_columns():
     chart.add_raw_column("campus")
 
     assert chart.params.all_columns == chart.query_context.form_data.all_columns == ["campus"]
+
+
+def test_the_x_axis_of_a_scatter_read_without_a_query_context_is_set_on_the_params():
+    chart = read_chart("echarts_timeseries_scatter", {"metrics": ["count"]})
+    assert chart.query_context is None
+
+    chart.set_x_axis("order_date")
+
+    assert chart.params.x_axis == "order_date"
