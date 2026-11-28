@@ -9,7 +9,11 @@ from supersetapiplus.charts.echart_options import EChartOptionsChartMixin, EChar
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import AdhocColumn, Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.timeseries import TimeseriesOptionsMixin, TimeseriesQueryObject
+from supersetapiplus.charts.timeseries import (
+    AnnotationLayersChartMixin,
+    TimeseriesOptionsMixin,
+    TimeseriesQueryObject,
+)
 from supersetapiplus.charts.types import ChartType, Orientation, SortSeriesType
 from supersetapiplus.core.typing import SerializableOptional
 
@@ -50,7 +54,7 @@ class TimeSeriesBarQueryContext(QueryContext):
         return TimeSeriesBarQueryObject
 
 
-class EchartsTimeseriesBarChart(EChartOptionsChartMixin, Chart):
+class EchartsTimeseriesBarChart(EChartOptionsChartMixin, AnnotationLayersChartMixin, Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.TIMESERIES_BAR
     viz_type: ChartType = Field(default_factory=lambda: ChartType.TIMESERIES_BAR)
     params: TimeSeriesBarOption = Field(default_factory=TimeSeriesBarOption)

@@ -27,7 +27,7 @@ from supersetapiplus.client import SupersetClient  # noqa: E402
 from supersetapiplus.query_string import QueryOperator, QueryStringFilter  # noqa: E402
 
 # viz_type -> chart title in the "one chart per type" set of the Superset examples
-# (`superset load_examples`). cal_heatmap does not exist in the examples.
+# (`superset load_examples`). cal_heatmap and handlebars do not exist in the examples.
 CHARTS = {
     "big_number": "Big Number with Trendline",
     "big_number_total": "Big Number",
@@ -36,6 +36,7 @@ CHARTS = {
     "echarts_area": "Area",
     "echarts_timeseries_bar": "Bar",
     "echarts_timeseries_line": "Line",
+    "echarts_timeseries_scatter": "Scatter Plot",
     "funnel": "Funnel",
     "gauge_chart": "Gauge",
     "heatmap_v2": "Heatmap",

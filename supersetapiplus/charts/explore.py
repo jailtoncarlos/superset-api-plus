@@ -102,11 +102,23 @@ QUERY_CONTROLS: dict[str, frozenset[str]] = {
         "row_limit", "show_empty_columns", "time_compare", "time_grain_sqla", "timeseries_limit_metric",
         "truncate_metric", "x_axis", "x_axis_sort", "x_axis_sort_asc",
     )),
+    "echarts_timeseries_scatter": frozenset((
+        "adhoc_filters", "annotation_layers", "comparison_type", "contributionMode", "forecastEnabled",
+        "forecastInterval", "forecastPeriods", "forecastSeasonalityDaily", "forecastSeasonalityWeekly",
+        "forecastSeasonalityYearly", "group_others_when_limit_reached", "groupby", "limit", "metrics", "min_periods",
+        "order_desc", "resample_method", "resample_rule", "rolling_periods", "rolling_type", "row_limit",
+        "show_empty_columns", "time_compare", "time_grain_sqla", "timeseries_limit_metric", "truncate_metric", "x_axis",
+        "x_axis_sort", "x_axis_sort_asc",
+    )),
     "funnel": frozenset((
         "adhoc_filters", "groupby", "metric", "row_limit", "sort_by_metric",
     )),
     "gauge_chart": frozenset((
         "adhoc_filters", "groupby", "metric", "row_limit", "sort_by_metric",
+    )),
+    "handlebars": frozenset((
+        "adhoc_filters", "all_columns", "groupby", "metrics", "order_by_cols", "order_desc", "percent_metrics",
+        "query_mode", "row_limit", "show_totals", "timeseries_limit_metric",
     )),
     "heatmap_v2": frozenset((
         "adhoc_filters", "groupby", "metric", "normalize_across", "row_limit", "sort_x_axis", "sort_y_axis",

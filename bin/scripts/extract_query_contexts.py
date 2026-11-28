@@ -7,6 +7,10 @@ in Explore with a headless browser and records the body of the `POST /api/v1/cha
 request. Instance-dependent values (datasource id) are removed, so the output is deterministic
 for the same version and the same example charts.
 
+Viz types without an example chart (handlebars) and controls the examples do not use (a formula annotation layer
+on the scatter chart) are captured the same way on a chart the script creates with the fixed params in
+CREATED_CHARTS on an example dataset (removed afterwards); the capture is named by the key.
+
 Legacy plugins (`useLegacyApi`, e.g. cal_heatmap) do not call /api/v1/chart/data, and the examples have
 no cal_heatmap. For them the script creates a chart with the fixed params in LEGACY_CHARTS on an example
 dataset, saves it through Explore (Save, overwrite) and records the query_context of the PUT the frontend
@@ -41,6 +45,30 @@ LEGACY_CHARTS = {
         "domain_granularity": "month", "subdomain_granularity": "day", "linear_color_scheme": "blue_white_yellow",
         "cell_size": 10, "cell_padding": 2, "cell_radius": 0, "steps": 10, "y_axis_format": "SMART_NUMBER",
         "x_axis_time_format": "smart_date", "show_legend": True, "show_values": False, "show_metric_name": True,
+    },
+}
+# Charts created and opened in Explore: capture name -> params (Superset 6.1.0 controls of the viz_type).
+NO_TIME_FILTER = [{"clause": "WHERE", "comparator": "No filter", "expressionType": "SIMPLE",
+                   "operator": "TEMPORAL_RANGE", "subject": "order_date"}]
+# A formula annotation layer as the Explore annotation popover saves it (AnnotationLayer.tsx, applyAnnotation).
+FORMULA_LAYER = {
+    "name": "Upper limit", "annotationType": "FORMULA", "sourceType": "", "color": None, "opacity": "",
+    "style": "dashed", "width": 2, "showMarkers": False, "hideLine": False, "overrides": {}, "show": True,
+    "showLabel": True, "titleColumn": "", "descriptionColumns": [], "timeColumn": "", "intervalEndColumn": "",
+    "value": "3000",
+}
+CREATED_CHARTS = {
+    "handlebars": {
+        "viz_type": "handlebars", "query_mode": "aggregate", "groupby": ["product_line"], "metrics": ["count"],
+        "all_columns": [], "percent_metrics": [], "order_by_cols": [], "timeseries_limit_metric": "count",
+        "order_desc": True, "row_limit": 10, "include_time": False, "show_totals": False,
+        "adhoc_filters": NO_TIME_FILTER,
+        "handlebarsTemplate": "<ul>{{#each data}}<li>{{product_line}}: {{count}}</li>{{/each}}</ul>",
+    },
+    "echarts_timeseries_scatter_formula_annotation": {
+        "viz_type": "echarts_timeseries_scatter", "x_axis": "order_date", "time_grain_sqla": "P1M",
+        "metrics": ["count"], "groupby": [], "adhoc_filters": NO_TIME_FILTER, "row_limit": 10000,
+        "markerEnabled": True, "markerSize": 6, "annotation_layers": [FORMULA_LAYER],
     },
 }
 TIMEOUT_MS = 60_000
@@ -97,13 +125,27 @@ def capture(page, url: str, pk: int) -> dict:
     return json.loads(info.value.post_data)
 
 
+def create_chart(client: SupersetClient, name: str, params: dict) -> int:
+    """A chart with `params` on the example dataset, through the raw API (the library is not the reference)."""
+    datasource = client.datasets.get_datasource(LEGACY_DATASET)
+    params = {**params, "datasource": f"{datasource.id}__table"}
+    return client.post(client.charts.base_url, json={
+        "slice_name": f"superset-api-plus-reference-{name}", "viz_type": params["viz_type"],
+        "datasource_id": datasource.id, "datasource_type": "table", "params": json.dumps(params)}).json()["id"]
+
+
+def capture_created(client: SupersetClient, page, url: str, name: str, params: dict) -> dict:
+    """Query context sent by Explore when it opens a chart created with `params`."""
+    pk = create_chart(client, name, params)
+    try:
+        return capture(page, f"{url}/explore/?slice_id={pk}", pk)
+    finally:
+        client.charts.delete(pk)
+
+
 def capture_on_save(client: SupersetClient, page, url: str, viz_type: str, params: dict) -> dict:
     """Query context sent by Explore when a legacy chart is saved."""
-    datasource = client.datasets.get_datasource(LEGACY_DATASET)
-    params = {"viz_type": viz_type, "datasource": f"{datasource.id}__table", **params}
-    pk = client.post(client.charts.base_url, json={
-        "slice_name": f"superset-api-plus-reference-{viz_type}", "viz_type": viz_type, "datasource_id": datasource.id,
-        "datasource_type": "table", "params": json.dumps(params)}).json()["id"]
+    pk = create_chart(client, viz_type, {"viz_type": viz_type, **params})
     try:
         page.goto(f"{url}/explore/?slice_id={pk}")
         page.wait_for_load_state("networkidle")
@@ -139,6 +181,9 @@ def main(version: str) -> None:
                 continue
             write_json(target_dir / f"{viz_type}.json", normalize(capture(page, f"{url}/explore/?slice_id={pk}", pk)))
             captured[viz_type] = entry["slice_name"]
+        for name, params in CREATED_CHARTS.items():
+            write_json(target_dir / f"{name}.json", normalize(capture_created(client, page, url, name, params)))
+            captured[name] = f"created and opened in Explore (params in CREATED_CHARTS, dataset {LEGACY_DATASET})"
         for viz_type, params in LEGACY_CHARTS.items():
             write_json(target_dir / f"{viz_type}.json", normalize(capture_on_save(client, page, url, viz_type, params)))
             captured[viz_type] = f"saved from Explore (params in LEGACY_CHARTS, dataset {LEGACY_DATASET})"

@@ -8,7 +8,11 @@ from supersetapiplus.charts.echart_options import EChartOptionsChartMixin, EChar
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
-from supersetapiplus.charts.timeseries import TimeseriesOptionsMixin, TimeseriesQueryObject
+from supersetapiplus.charts.timeseries import (
+    AnnotationLayersChartMixin,
+    TimeseriesOptionsMixin,
+    TimeseriesQueryObject,
+)
 from supersetapiplus.charts.types import ChartType, SortSeriesType
 from supersetapiplus.core.typing import SerializableOptional
 
@@ -45,7 +49,7 @@ class TimeseriesLineQueryContext(QueryContext):
         return TimeseriesLineQueryObject
 
 
-class EchartsTimeseriesLineChart(EChartOptionsChartMixin, Chart):
+class EchartsTimeseriesLineChart(EChartOptionsChartMixin, AnnotationLayersChartMixin, Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.TIMESERIES_LINE
     viz_type: ChartType = Field(default_factory=lambda: ChartType.TIMESERIES_LINE)
     params: TimeseriesLineOption = Field(default_factory=TimeseriesLineOption)

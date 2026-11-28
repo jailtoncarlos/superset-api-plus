@@ -28,9 +28,9 @@ from supersetapiplus.client import SupersetClient  # noqa: E402
 DATASET = "cleaned_sales_data"
 FORM_DATA = "/api/v1/explore/form_data"
 VIZ_TYPES = ["big_number", "big_number_total", "box_plot", "bubble_v2", "cal_heatmap", "echarts_area",
-             "echarts_timeseries_bar", "echarts_timeseries_line", "funnel", "gauge_chart", "heatmap_v2",
-             "histogram_v2", "mixed_timeseries", "pie", "pivot_table_v2", "sunburst_v2", "table", "treemap_v2",
-             "word_cloud"]
+             "echarts_timeseries_bar", "echarts_timeseries_line", "echarts_timeseries_scatter", "funnel",
+             "gauge_chart", "handlebars", "heatmap_v2", "histogram_v2", "mixed_timeseries", "pie", "pivot_table_v2",
+             "sunburst_v2", "table", "treemap_v2", "word_cloud"]
 # form_data keys that identify the instance or depend on the dataset, not on the plugin defaults.
 INSTANCE_KEYS = ("datasource", "slice_id", "url_params", "dashboards")
 TIMEOUT_MS = 60_000
