@@ -37,6 +37,12 @@
 * The weekly Superset drift check also compares the categorical color schemes of the newest release with the ones
   the package ships (`color_schemes_<version>.json`), so a release that changes them fails the check (#150).
 
+### Fixed
+
+* `set_x_axis` of the line, bar, area, mixed timeseries, big number and heatmap charts no longer fails with
+  `AttributeError` on a chart read from Superset without a stored `query_context`: the params get the axis, and the
+  form_data too when there is a query context, as the scatter chart already did (#149).
+
 ## 2.7.0 (2026-11-25)
 
 Improvements of the chart sizing found when the consumer evaluated 2.6.0 and 2.6.1 (#101): components that scroll
