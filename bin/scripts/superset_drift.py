@@ -1,7 +1,8 @@
 """Report how newer Superset sources differ from the excerpts the library is checked against.
 
-Runs the offline extractors (OpenAPI subset, enums, example layouts) on other Superset refs and compares
-each result with the pinned fixture in tests/fixtures, ignoring provenance and version stamps. Run on the
+Runs the offline extractors (OpenAPI subset, enums, example layouts, categorical color schemes) on other Superset
+refs and compares each result with the pinned excerpt (tests/fixtures, or the package data for the color schemes),
+ignoring provenance and version stamps. Run on the
 pinned tag itself it proves the fixtures were not edited by hand; run on the newest release or on master
 it lists what a version bump will have to decide (docs/superset-version-bump.md).
 
@@ -27,6 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "bin" / "scripts"
 FIXTURES = ROOT / "tests" / "fixtures"
+PROFILES = ROOT / "supersetapiplus" / "dashboards" / "profiles"  # excerpts shipped as package data
 LATEST_RELEASE_URL = "https://api.github.com/repos/apache/superset/releases/latest"
 
 # Keys stamped with the ref or the commit: they always differ and say nothing about the contract.
@@ -37,7 +39,10 @@ EXCERPTS = {
     "superset_openapi": ("extract_openapi.py", 4),
     "superset_enums": ("extract_superset_enums.py", 3),
     "example_layouts": ("extract_example_layouts.py", 2),
+    "color_schemes": ("extract_color_schemes.py", 2),
 }
+# Excerpts that are package data, not test fixtures.
+PACKAGE_DATA = {"color_schemes"}
 MAX_LINES = 200
 
 
@@ -129,7 +134,8 @@ def extract(script: str, ref: str, out_dir: Path | None) -> dict:
 def check(ref: str, pinned: str, out_dir: Path | None) -> Result:
     result = Result(ref)
     for prefix, (script, depth) in EXCERPTS.items():
-        fixture = json.loads((FIXTURES / f"{prefix}_{pinned}.json").read_text(encoding="utf-8"))
+        directory = PROFILES if prefix in PACKAGE_DATA else FIXTURES
+        fixture = json.loads((directory / f"{prefix}_{pinned}.json").read_text(encoding="utf-8"))
         try:
             result.differences[prefix] = compare(fixture, extract(script, ref, out_dir), depth)
         except (RuntimeError, ValueError, subprocess.TimeoutExpired) as error:
