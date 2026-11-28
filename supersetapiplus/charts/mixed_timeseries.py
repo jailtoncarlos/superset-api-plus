@@ -80,7 +80,9 @@ class MixedTimeseriesChart(EChartOptionsChartMixin, Chart):
     def set_x_axis(self, column: QueryFormColumn) -> None:
         """X axis column shared by both queries (a column name or an AdhocColumn)."""
         self.params.set_x_axis(column)
-        self.query_context.form_data.set_x_axis(column)
+        form_data = getattr(self.query_context, "form_data", None)  # null when read without a query context
+        if isinstance(form_data, MixedTimeseriesOption):
+            form_data.set_x_axis(column)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:

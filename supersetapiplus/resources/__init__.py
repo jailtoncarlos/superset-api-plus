@@ -7,9 +7,10 @@ from supersetapiplus.resources.repository import ApiModelFactories, Repository, 
 from supersetapiplus.resources.row_level_security import RowLevelSecurity, RowLevelSecurityRule
 from supersetapiplus.resources.saved_queries import SavedQueries, SavedQuery
 from supersetapiplus.resources.security import Permission, Permissions, Role, Roles
+from supersetapiplus.resources.themes import Theme, Themes
 
 __all__ = [
     "Assets", "Database", "Databases", "Dataset", "Datasets", "ApiModelFactories", "Repository",
-    "UnsupportedObject", "SavedQueries", "SavedQuery", "CssTemplate", "CssTemplates",
+    "UnsupportedObject", "SavedQueries", "SavedQuery", "CssTemplate", "CssTemplates", "Theme", "Themes",
     "Permission", "Permissions", "Role", "Roles", "RowLevelSecurity", "RowLevelSecurityRule",
 ]

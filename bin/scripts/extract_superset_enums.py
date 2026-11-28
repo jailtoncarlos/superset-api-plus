@@ -34,6 +34,7 @@ BACKEND = [
     ("superset/models/core.py", "ConfigurationMethod"),
     ("superset/errors.py", "SupersetErrorType"),
     ("superset/errors.py", "ErrorLevel"),
+    ("superset/themes/types.py", "ThemeMode"),
 ]
 # Backend enums that exist from Superset 7.0 on (the 6.1.0 excerpt is still regenerated without them).
 BACKEND_FROM_7 = [
@@ -47,12 +48,18 @@ def backend_enums(version: str) -> list[tuple[str, str]]:
     return BACKEND + ([] if before_7(version) else BACKEND_FROM_7)
 
 # Backend marshmallow schemas whose field names the library uses (nested items the OpenAPI excerpt does
-# not detail): (file, class).
+# not detail, and request bodies the published specification of the tag leaves out although the server accepts
+# them: the theme resource and the dashboard theme_id, absent from docs/static/resources/openapi.json of 6.1.0):
+# (file, class).
 SCHEMAS = [
     ("superset/datasets/schemas.py", "DatasetMetricsPutSchema"),
     ("superset/datasets/schemas.py", "DatasetColumnsPutSchema"),
     ("superset/datasets/schemas.py", "DatasetDuplicateSchema"),
     ("superset/datasets/schemas.py", "GetOrCreateDatasetSchema"),
+    ("superset/themes/schemas.py", "ThemePostSchema"),
+    ("superset/themes/schemas.py", "ThemePutSchema"),
+    ("superset/dashboards/schemas.py", "DashboardPostSchema"),
+    ("superset/dashboards/schemas.py", "DashboardPutSchema"),
 ]
 
 # Frontend TypeScript enums: (file, enum).

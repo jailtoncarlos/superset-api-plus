@@ -145,6 +145,12 @@
    "USER_ACTIVITY_SECURITY_ACCESS_ERROR": "USER_ACTIVITY_SECURITY_ACCESS_ERROR",
    "VIZ_GET_DF_ERROR": "VIZ_GET_DF_ERROR"
   },
+  "ThemeMode": {
+   "COMPACT": "compact",
+   "DARK": "dark",
+   "DEFAULT": "default",
+   "SYSTEM": "system"
+  },
   "TimeGrain": {
    "DAY": "P1D",
    "FIFTEEN_MINUTES": "PT15M",
@@ -290,6 +296,30 @@
   "version": "5.3.0"
  },
  "frontend": {
+  "AnnotationOpacity": {
+   "High": "opacityHigh",
+   "Low": "opacityLow",
+   "Medium": "opacityMedium",
+   "Undefined": ""
+  },
+  "AnnotationSourceType": {
+   "Line": "line",
+   "Native": "NATIVE",
+   "Table": "table",
+   "Undefined": ""
+  },
+  "AnnotationStyle": {
+   "Dashed": "dashed",
+   "Dotted": "dotted",
+   "LongDashed": "longDashed",
+   "Solid": "solid"
+  },
+  "AnnotationType": {
+   "Event": "EVENT",
+   "Formula": "FORMULA",
+   "Interval": "INTERVAL",
+   "Timeseries": "TIME_SERIES"
+  },
   "Clauses": {
    "Having": "HAVING",
    "Where": "WHERE"
@@ -627,6 +657,7 @@
     "superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts",
     "superset-frontend/packages/superset-ui-core/src/currency-format/CurrencyFormats.ts",
     "superset-frontend/packages/superset-ui-core/src/query/types/AdvancedAnalytics.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/AnnotationLayer.ts",
     "superset-frontend/packages/superset-ui-core/src/query/types/Column.ts",
     "superset-frontend/packages/superset-ui-core/src/query/types/Dashboard.ts",
     "superset-frontend/packages/superset-ui-core/src/query/types/Datasource.ts",
@@ -645,6 +676,7 @@
     "superset-frontend/plugins/plugin-chart-echarts/src/constants.ts",
     "superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx",
     "superset-frontend/plugins/plugin-chart-echarts/src/types.ts",
+    "superset-frontend/plugins/plugin-chart-echarts/src/utils/eChartOptionsSchema.ts",
     "superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx",
     "superset-frontend/plugins/plugin-chart-pivot-table/src/types.ts",
     "superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx",
@@ -659,12 +691,15 @@
     "superset/config.py",
     "superset/connectors/sqla/models.py",
     "superset/constants.py",
+    "superset/dashboards/schemas.py",
     "superset/datasets/schemas.py",
     "superset/errors.py",
     "superset/migrations/shared/migrate_viz/processors.py",
     "superset/models/core.py",
     "superset/sqllab/limiting_factor.py",
     "superset/subjects/types.py",
+    "superset/themes/schemas.py",
+    "superset/themes/types.py",
     "superset/utils/core.py"
    ],
    "repository": "apache/superset",
@@ -673,6 +708,40 @@
   }
  },
  "schemas": {
+  "DashboardPostSchema": [
+   "dashboard_title",
+   "slug",
+   "description",
+   "editors",
+   "viewers",
+   "position_json",
+   "css",
+   "theme_id",
+   "json_metadata",
+   "published",
+   "certified_by",
+   "certification_details",
+   "is_managed_externally",
+   "external_url",
+   "uuid"
+  ],
+  "DashboardPutSchema": [
+   "dashboard_title",
+   "description",
+   "slug",
+   "editors",
+   "viewers",
+   "position_json",
+   "css",
+   "theme_id",
+   "json_metadata",
+   "published",
+   "certified_by",
+   "certification_details",
+   "external_url",
+   "tags",
+   "uuid"
+  ],
   "DatasetColumnsPutSchema": [
    "id",
    "column_name",
@@ -715,6 +784,14 @@
    "template_params",
    "normalize_columns",
    "always_filter_main_dttm"
+  ],
+  "ThemePostSchema": [
+   "theme_name",
+   "json_data"
+  ],
+  "ThemePutSchema": [
+   "theme_name",
+   "json_data"
   ]
  },
  "superset_version": "7.0.0rc3",
@@ -733,6 +810,35 @@
   "CURRENCY_SYMBOL_POSITION_OPTIONS": [
    "prefix",
    "suffix"
+  ]
+ },
+ "zod_object_keys": {
+  "customEChartOptionsSchema": [
+   "backgroundColor",
+   "darkMode",
+   "textStyle",
+   "useUTC",
+   "animation",
+   "animationThreshold",
+   "animationDuration",
+   "animationEasing",
+   "animationDelay",
+   "animationDurationUpdate",
+   "animationEasingUpdate",
+   "animationDelayUpdate",
+   "stateAnimation",
+   "title",
+   "legend",
+   "grid",
+   "xAxis",
+   "yAxis",
+   "tooltip",
+   "toolbox",
+   "dataZoom",
+   "visualMap",
+   "axisPointer",
+   "graphic",
+   "series"
   ]
  }
 }

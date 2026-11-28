@@ -46,6 +46,7 @@ SOURCES = {
     B.RowLevelSecurityFilterType: official(BACKEND, "RowLevelSecurityFilterType"),
     B.SupersetErrorType: official(BACKEND, "SupersetErrorType"),
     B.ErrorLevel: official(BACKEND, "ErrorLevel"),
+    B.ThemeAlgorithm: official(BACKEND, "ThemeMode"),
     T.FilterOperatorType: official(BACKEND, "FilterOperator"),
     T.TimeGrain: official(BACKEND, "TimeGrain"),
     T.ResultFormat: official(BACKEND, "ChartDataResultFormat"),

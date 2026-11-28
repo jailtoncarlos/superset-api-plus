@@ -1617,6 +1617,34 @@
    "required": [
     "name"
    ]
+  },
+  "ThemeRestApi.post": {
+   "properties": {
+    "json_data": {
+     "type": "string"
+    },
+    "theme_name": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "json_data",
+    "theme_name"
+   ]
+  },
+  "ThemeRestApi.put": {
+   "properties": {
+    "json_data": {
+     "type": "string"
+    },
+    "theme_name": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "json_data",
+    "theme_name"
+   ]
   }
  },
  "superset_version": "7.0.0rc3"

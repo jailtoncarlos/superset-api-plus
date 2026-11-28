@@ -25,6 +25,14 @@ class ConfigurationMethod(StringEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
+class ThemeAlgorithm(StringEnum):
+    """``algorithm`` of a theme configuration (``ThemeMode``, superset/themes/types.py, Superset 6.1.0)."""
+    DEFAULT = "default"
+    DARK = "dark"
+    SYSTEM = "system"
+    COMPACT = "compact"
+
+
 class RowLevelSecurityFilterType(StringEnum):
     """Kind of a row level security rule (`superset/utils/core.py` RowLevelSecurityFilterType, Superset 6.1.0).
 

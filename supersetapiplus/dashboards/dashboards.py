@@ -1,7 +1,9 @@
 """Dashboards."""
+import json
 from typing import Any, ClassVar
 
 from pydantic import Field
+from pydantic.fields import FieldInfo
 from typing_extensions import Self
 
 from supersetapiplus.core.api_model import ApiModel
@@ -14,6 +16,7 @@ from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.exceptions import DashboardValidationError, UnsupportedTypeError
 from supersetapiplus.resources.repository import SoftDeleteRepository, UnsupportedObject
+from supersetapiplus.resources.themes import Theme
 
 
 def default_metadata() -> Metadata:
@@ -32,11 +35,12 @@ class Dashboard(ApiModel):
     # Fields accepted by the API (OpenAPI 7.0.0rc3: DashboardRestApi.post / DashboardRestApi.put).
     POST_FIELDS: ClassVar[tuple[str, ...]] = (
         "certification_details", "certified_by", "css", "dashboard_title", "editors", "external_url",
-        "is_managed_externally", "json_metadata", "position_json", "published", "slug", "viewers",
+        "is_managed_externally", "json_metadata", "position_json", "published", "slug", "theme_id", "viewers",
     )
     PUT_FIELDS: ClassVar[tuple[str, ...]] = (
         "certification_details", "certified_by", "css", "dashboard_title", "editors", "external_url",
-        "is_managed_externally", "json_metadata", "position_json", "published", "slug", "tags", "viewers",
+        "is_managed_externally", "json_metadata", "position_json", "published", "slug", "tags", "theme_id",
+        "viewers",
     )
 
     ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ("editors", "viewers")
@@ -63,6 +67,9 @@ class Dashboard(ApiModel):
     certification_details: SerializableOptional[str] = None
     external_url: SerializableOptional[str] = None
     is_managed_externally: SerializableOptional[bool] = None
+    # Theme of the dashboard (Superset 6.1 themes, client.themes): read from the `theme` object Superset returns,
+    # sent as `theme_id`. Absent unless read or set, so a save never unbinds a theme chosen in the UI.
+    theme_id: SerializableOptional[int] = None
 
     json_metadata: Metadata = Field(default_factory=Metadata)
     position_json: SerializableOptional[DashboardLayout] = Field(default_factory=DashboardLayout.empty)
@@ -81,7 +88,30 @@ class Dashboard(ApiModel):
     def from_json(cls, data: dict[str, Any]) -> Self:
         obj = super().from_json(data)
         obj._charts_slice_names = obj._extra_fields.get('charts', [])
+        obj._read_theme(obj._extra_fields)
         return obj
+
+    def _read_theme(self, data: dict[str, Any]) -> None:
+        """The theme binding read from Superset: GET /dashboard/{id} returns the bound theme as an object
+        ({"id", "theme_name", ...}) or null, not as theme_id. A pending unbind (set_theme(None)) is dropped."""
+        if "theme" in data:
+            theme = data["theme"]
+            self.__dict__["theme_id"] = theme.get("id") if isinstance(theme, dict) else None
+            self._unbind_theme = False
+
+    def set_theme(self, theme: Theme | int | None) -> None:
+        """Binds the dashboard to a theme (a saved Theme or its id), or unbinds it with None; sent on the next
+        ``save()``/``add()``. The dashboard page then renders inside that theme, ECharts overrides included."""
+        theme_id = theme if theme is None or isinstance(theme, int) else theme.id
+        if theme is not None and theme_id is None:
+            raise UnsupportedTypeError("The theme has no id: save it first (client.themes.add(theme)).")
+        self.theme_id = theme_id
+        self._unbind_theme = theme_id is None
+
+    def _left_out(self, name: str, info: FieldInfo, serialized: Any) -> bool:
+        if name == "theme_id" and getattr(self, "_unbind_theme", False):
+            return False  # unbound with set_theme(None): sent as null
+        return super()._left_out(name, info, serialized)
 
     @property
     def charts_slice_names(self) -> list[str]:
@@ -178,6 +208,17 @@ class Dashboard(ApiModel):
 class Dashboards(SoftDeleteRepository):
     endpoint = "dashboard/"
     DELETED_STATE_FILTER = "dashboard_deleted_state"
+
+    def fetch(self, obj: ApiModel) -> None:
+        """Reloads the fields of `obj` from Superset, its theme binding included (read from the `theme` object, which
+        is not a field), so a save after a fetch keeps the theme the server has."""
+        result = self.client.get(self.object_url(getattr(obj, "id", None))).json().get("result")
+        field_names = obj.field_names()
+        for key, value in result.items():
+            if key in field_names:
+                setattr(obj, key, json.loads(value or "{}") if key in obj.JSON_FIELDS else value)
+        if isinstance(obj, Dashboard):
+            obj._read_theme(result)
 
     def copy(self, dashboard: Dashboard | int | str, dashboard_title: str | None = None,
              duplicate_slices: bool = False, css: str | None = None) -> int:

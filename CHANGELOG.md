@@ -4,6 +4,13 @@
 
 ### Added
 
+* Themes (Superset 6.1): `client.themes` with the `Theme` model (`theme_name`, `json_data`; `config`, `set_config()`
+  checked as the backend checks it, and `set_echarts_overrides(all_charts=, by_chart_type=)` for the
+  `echartsOptionsOverrides` tokens), and the dashboard binding: `Dashboard.theme_id`, read from the `theme` object
+  Superset returns and sent only when read or set, and `Dashboard.set_theme(theme | id | None)`. The theme resource
+  and `theme_id` are absent from the OpenAPI specification published in the 6.1.0 tag; their fields come from the
+  backend schemas (`ThemePostSchema`/`ThemePutSchema`, `DashboardPostSchema`/`DashboardPutSchema`), extracted with the
+  enums. `ThemeAlgorithm` (`ThemeMode`) (#146).
 * Custom ECharts options: the timeseries line, bar and area charts and the mixed timeseries chart model the
   `echart_options` control of Superset 6.1.0 (default `"{}"` on charts built in code, lossless on charts read) and
   take `chart.set_echart_options(options)`, which writes the options as JSON in the params and the stored form_data.
@@ -36,6 +43,12 @@
 
 * The weekly Superset drift check also compares the categorical color schemes of the newest release with the ones
   the package ships (`color_schemes_<version>.json`), so a release that changes them fails the check (#150).
+
+### Fixed
+
+* `set_x_axis` of the line, bar, area, mixed timeseries, big number and heatmap charts no longer fails with
+  `AttributeError` on a chart read from Superset without a stored `query_context`: the params get the axis, and the
+  form_data too when there is a query context, as the scatter chart already did (#149).
 
 ## 2.7.0 (2026-11-25)
 

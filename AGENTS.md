@@ -26,7 +26,10 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   (`components.schemas.{Resource}RestApi.post/.put`). The `/_info` endpoint is **not** a source of
   accepted fields: in 6.1.0 `ChartRestApi` reports `add_columns = edit_columns = ["slice_name"]` while
   validating bodies with `ChartPostSchema`/`ChartPutSchema`. Each REST model declares `POST_FIELDS` and
-  `PUT_FIELDS`; `add()`/`save()` use them.
+  `PUT_FIELDS`; `add()`/`save()` use them. When the specification published in the tag leaves out a request body the server accepts (in 6.1.0, the
+  theme resource and the dashboard `theme_id`), the fields come from the backend marshmallow schemas of the tag
+  (`SCHEMAS` of `bin/scripts/extract_superset_enums.py`), declared in `BACKEND_FIELDS` of
+  `tests/unit/test_openapi_conformance.py`.
 - **Allowed values** come from the Superset **source code**, not from the specification: many fields
   typed as `string` in the spec are enums in the backend (`superset/utils/core.py`, `constants.py`,
   `common/chart_data.py`) or `choices` in frontend control panels (`controlPanel.tsx`) and
