@@ -59,6 +59,7 @@ def excerpts(monkeypatch, tmp_path):
         (tmp_path / f"{prefix}_6.1.0.json").write_text(json.dumps(data), encoding="utf-8")
     by_ref = {}
     monkeypatch.setattr(drift, "FIXTURES", tmp_path)
+    monkeypatch.setattr(drift, "PROFILES", tmp_path)
     monkeypatch.setattr(drift, "resolve", lambda ref: "6.2.0" if ref == "latest" else ref)
     monkeypatch.setattr(drift, "extract", lambda script, ref, out_dir: by_ref.get(ref, {"values": {"A": "a"}}))
     return by_ref
@@ -86,3 +87,15 @@ def test_an_extraction_failure_is_reported_and_fails_a_checked_ref(excerpts, mon
     monkeypatch.setattr(drift, "extract", failing)
     assert drift.main(["--fail-on", "6.1.0"]) == 1
     assert "**extraction failed**: SystemExit: Operators not found" in capsys.readouterr().out
+
+
+def test_the_color_schemes_are_compared_with_the_package_data(monkeypatch, tmp_path):
+    """The color schemes excerpt is package data (supersetapiplus/dashboards/profiles), not a test fixture."""
+    shipped = json.loads((drift.PROFILES / "color_schemes_6.1.0.json").read_text(encoding="utf-8"))
+    monkeypatch.setattr(drift, "EXCERPTS", {"color_schemes": drift.EXCERPTS["color_schemes"]})
+    monkeypatch.setattr(drift, "FIXTURES", tmp_path)  # empty: reading the excerpt from here would fail
+    recolored = {**shipped, "schemes": {**shipped["schemes"], "x": ["#000000"]}}
+    monkeypatch.setattr(drift, "extract", lambda script, ref, out_dir: shipped if ref == "6.1.0" else recolored)
+
+    assert drift.check("6.1.0", "6.1.0", None).differences == {"color_schemes": []}
+    assert drift.check("6.2.0", "6.1.0", None).differences["color_schemes"] != []

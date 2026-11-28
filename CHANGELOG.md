@@ -32,6 +32,11 @@
   timeseries, groupby labels of box plot, pie, funnel, gauge and histogram, nodes of treemap and sunburst, words of
   the word cloud; `None` for tables, big numbers and heatmaps) (#134).
 
+### Changed
+
+* The weekly Superset drift check also compares the categorical color schemes of the newest release with the ones
+  the package ships (`color_schemes_<version>.json`), so a release that changes them fails the check (#150).
+
 ## 2.7.0 (2026-11-25)
 
 Improvements of the chart sizing found when the consumer evaluated 2.6.0 and 2.6.1 (#101): components that scroll
