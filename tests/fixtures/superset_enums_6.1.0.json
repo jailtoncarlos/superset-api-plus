@@ -127,6 +127,12 @@
    "USER_ACTIVITY_SECURITY_ACCESS_ERROR": "USER_ACTIVITY_SECURITY_ACCESS_ERROR",
    "VIZ_GET_DF_ERROR": "VIZ_GET_DF_ERROR"
   },
+  "ThemeMode": {
+   "COMPACT": "compact",
+   "DARK": "dark",
+   "DEFAULT": "default",
+   "SYSTEM": "system"
+  },
   "TimeGrain": {
    "DAY": "P1D",
    "FIFTEEN_MINUTES": "PT15M",
@@ -661,11 +667,14 @@
     "superset/config.py",
     "superset/connectors/sqla/models.py",
     "superset/constants.py",
+    "superset/dashboards/schemas.py",
     "superset/datasets/schemas.py",
     "superset/errors.py",
     "superset/migrations/shared/migrate_viz/processors.py",
     "superset/models/core.py",
     "superset/sqllab/limiting_factor.py",
+    "superset/themes/schemas.py",
+    "superset/themes/types.py",
     "superset/utils/core.py"
    ],
    "repository": "apache/superset",
@@ -674,6 +683,39 @@
   }
  },
  "schemas": {
+  "DashboardPostSchema": [
+   "dashboard_title",
+   "slug",
+   "owners",
+   "roles",
+   "position_json",
+   "css",
+   "theme_id",
+   "json_metadata",
+   "published",
+   "certified_by",
+   "certification_details",
+   "is_managed_externally",
+   "external_url",
+   "uuid"
+  ],
+  "DashboardPutSchema": [
+   "dashboard_title",
+   "slug",
+   "owners",
+   "roles",
+   "position_json",
+   "css",
+   "theme_id",
+   "json_metadata",
+   "published",
+   "certified_by",
+   "certification_details",
+   "is_managed_externally",
+   "external_url",
+   "tags",
+   "uuid"
+  ],
   "DatasetColumnsPutSchema": [
    "id",
    "column_name",
@@ -716,6 +758,14 @@
    "template_params",
    "normalize_columns",
    "always_filter_main_dttm"
+  ],
+  "ThemePostSchema": [
+   "theme_name",
+   "json_data"
+  ],
+  "ThemePutSchema": [
+   "theme_name",
+   "json_data"
   ]
  },
  "superset_version": "6.1.0",

@@ -4,6 +4,13 @@
 
 ### Added
 
+* Themes (Superset 6.1): `client.themes` with the `Theme` model (`theme_name`, `json_data`; `config`, `set_config()`
+  checked as the backend checks it, and `set_echarts_overrides(all_charts=, by_chart_type=)` for the
+  `echartsOptionsOverrides` tokens), and the dashboard binding: `Dashboard.theme_id`, read from the `theme` object
+  Superset returns and sent only when read or set, and `Dashboard.set_theme(theme | id | None)`. The theme resource
+  and `theme_id` are absent from the OpenAPI specification published in the 6.1.0 tag; their fields come from the
+  backend schemas (`ThemePostSchema`/`ThemePutSchema`, `DashboardPostSchema`/`DashboardPutSchema`), extracted with the
+  enums. `ThemeAlgorithm` (`ThemeMode`) (#146).
 * Custom ECharts options: the timeseries line, bar and area charts and the mixed timeseries chart model the
   `echart_options` control of Superset 6.1.0 (default `"{}"` on charts built in code, lossless on charts read) and
   take `chart.set_echart_options(options)`, which writes the options as JSON in the params and the stored form_data.

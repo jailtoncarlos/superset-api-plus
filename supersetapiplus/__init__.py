@@ -14,12 +14,13 @@ from supersetapiplus.resources.datasets import Dataset
 from supersetapiplus.resources.row_level_security import RowLevelSecurityRule
 from supersetapiplus.resources.saved_queries import SavedQuery
 from supersetapiplus.resources.security import Permission, Role
+from supersetapiplus.resources.themes import Theme
 
 # What applications import; the modules keep their own paths (e.g. supersetapiplus.charts.charts.Chart).
 __all__ = [
     "Chart", "ChartRef", "CssTemplate", "Dashboard", "DashboardLayout", "DataSource", "Database", "Dataset",
     "DatasourceType", "Permission", "QueryOperator", "QueryStringFilter", "Role", "RowLevelSecurityFilterType",
-    "RowLevelSecurityRule", "SavedQuery", "SupersetClient",
+    "RowLevelSecurityRule", "SavedQuery", "SupersetClient", "Theme",
 ]
 
 # The library does not configure application logging (no basicConfig); it only avoids the

@@ -2,6 +2,7 @@
 from typing import Any, ClassVar
 
 from pydantic import Field
+from pydantic.fields import FieldInfo
 from typing_extensions import Self
 
 from supersetapiplus.core.api_model import ApiModel
@@ -13,6 +14,7 @@ from supersetapiplus.dashboards.metadata import Metadata
 from supersetapiplus.deprecation import module_aliases
 from supersetapiplus.exceptions import DashboardValidationError, UnsupportedTypeError
 from supersetapiplus.resources.repository import ApiModelFactories, UnsupportedObject
+from supersetapiplus.resources.themes import Theme
 
 
 def default_metadata() -> Metadata:
@@ -28,15 +30,18 @@ class Dashboard(ApiModel):
     colors, cross-filters), owners and roles. Read with `client.dashboards.get()`, create with `add()`."""
     JSON_FIELDS: ClassVar[list[str]] = ['json_metadata', 'position_json']
     PRESERVE_EXTRA_FIELDS: ClassVar[bool] = False
-    # Fields accepted by the API (OpenAPI 6.1.0: DashboardRestApi.post / DashboardRestApi.put).
+    # Fields accepted by the API (OpenAPI 6.1.0: DashboardRestApi.post / DashboardRestApi.put), plus theme_id, which
+    # the published specification of the tag leaves out although the server accepts it (DashboardPostSchema /
+    # DashboardPutSchema, superset/dashboards/schemas.py).
     POST_FIELDS: ClassVar[tuple[str, ...]] = (
         "certification_details", "certified_by", "css", "dashboard_title", "external_url",
         "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
+        "theme_id",
     )
     PUT_FIELDS: ClassVar[tuple[str, ...]] = (
         "certification_details", "certified_by", "css", "dashboard_title", "external_url",
         "is_managed_externally", "json_metadata", "owners", "position_json", "published", "roles", "slug",
-        "tags",
+        "tags", "theme_id",
     )
 
     ID_REFERENCE_FIELDS: ClassVar[tuple[str, ...]] = ("owners", "roles")
@@ -55,6 +60,9 @@ class Dashboard(ApiModel):
     certification_details: SerializableOptional[str] = None
     external_url: SerializableOptional[str] = None
     is_managed_externally: SerializableOptional[bool] = None
+    # Theme of the dashboard (Superset 6.1 themes, client.themes): read from the `theme` object Superset returns,
+    # sent as `theme_id`. Absent unless read or set, so a save never unbinds a theme chosen in the UI.
+    theme_id: SerializableOptional[int] = None
 
     json_metadata: Metadata = Field(default_factory=Metadata)
     position_json: SerializableOptional[DashboardLayout] = Field(default_factory=DashboardLayout.empty)
@@ -73,7 +81,24 @@ class Dashboard(ApiModel):
     def from_json(cls, data: dict[str, Any]) -> Self:
         obj = super().from_json(data)
         obj._charts_slice_names = obj._extra_fields.get('charts', [])
+        if "theme" in obj._extra_fields:  # GET /dashboard/{id} returns the bound theme as {"id", "theme_name", ...}
+            theme = obj._extra_fields["theme"]
+            obj.__dict__["theme_id"] = theme.get("id") if isinstance(theme, dict) else None
         return obj
+
+    def set_theme(self, theme: Theme | int | None) -> None:
+        """Binds the dashboard to a theme (a saved Theme or its id), or unbinds it with None; sent on the next
+        ``save()``/``add()``. The dashboard page then renders inside that theme, ECharts overrides included."""
+        theme_id = theme if theme is None or isinstance(theme, int) else theme.id
+        if theme is not None and theme_id is None:
+            raise UnsupportedTypeError("The theme has no id: save it first (client.themes.add(theme)).")
+        self.theme_id = theme_id
+        self._unbind_theme = theme_id is None
+
+    def _left_out(self, name: str, info: FieldInfo, serialized: Any) -> bool:
+        if name == "theme_id" and getattr(self, "_unbind_theme", False):
+            return False  # unbound with set_theme(None): sent as null
+        return super()._left_out(name, info, serialized)
 
     @property
     def charts_slice_names(self) -> list[str]:
