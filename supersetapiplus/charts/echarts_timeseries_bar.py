@@ -63,7 +63,9 @@ class EchartsTimeseriesBarChart(EChartOptionsChartMixin, AnnotationLayersChartMi
     def set_x_axis(self, column: QueryFormColumn, sort_series_by: SortSeriesType | None = None,
                    sort_ascending: bool = True) -> None:
         self.params.set_x_axis(column, sort_series_by, sort_ascending)
-        self.query_context.form_data.set_x_axis(column, sort_series_by, sort_ascending)
+        form_data = getattr(self.query_context, "form_data", None)  # null when read without a query context
+        if isinstance(form_data, TimeseriesOptionsMixin):
+            form_data.set_x_axis(column, sort_series_by, sort_ascending)
 
     def y_axis(self, label: str,
                sql_expression: str | None = None,

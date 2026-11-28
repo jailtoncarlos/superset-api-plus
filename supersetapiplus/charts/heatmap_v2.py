@@ -116,7 +116,9 @@ class HeatmapChart(Chart):
 
     def set_x_axis(self, column: QueryFormColumn) -> None:
         self.params.set_x_axis(column)
-        self.query_context.form_data.set_x_axis(column)
+        form_data = getattr(self.query_context, "form_data", None)  # null when read without a query context
+        if isinstance(form_data, HeatmapOption):
+            form_data.set_x_axis(column)
 
     @classmethod
     def _default_option_class(cls) -> type[Option]:
