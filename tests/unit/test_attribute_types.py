@@ -34,6 +34,8 @@ FREE_TEXT = {
     "charts.charts.Chart.changed_on_delta_humanized": "read-only text computed by Superset",
     "charts.charts.Chart.thumbnail_url": "read-only URL",
     "charts.charts.Chart.url": "read-only URL",
+    "charts.echart_options.EChartOptionsMixin.echart_options":
+        "text of a JavaScript object literal (JSEditorControl), checked as JSON by EChartOptionsMixin.validate",
     "charts.options.Option.datasource": "'<id>__<type>' reference to the instance's dataset",
     "charts.options.ChartVisualOptionsMixin.color_scheme":
         "color scheme id from a registry that instances extend (EXTRA_CATEGORICAL_COLOR_SCHEMES)",

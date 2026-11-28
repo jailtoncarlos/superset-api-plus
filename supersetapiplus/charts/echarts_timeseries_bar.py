@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 from pydantic import Field
 
 from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.echart_options import EChartOptionsChartMixin, EChartOptionsMixin
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import AdhocColumn, Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
@@ -17,7 +18,7 @@ from supersetapiplus.charts.types import ChartType, Orientation, SortSeriesType
 from supersetapiplus.core.typing import SerializableOptional
 
 
-class TimeSeriesBarOption(TimeseriesOptionsMixin, ChartVisualOptionsMixin, Option):
+class TimeSeriesBarOption(EChartOptionsMixin, TimeseriesOptionsMixin, ChartVisualOptionsMixin, Option):
     """Bar chart params; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0)."""
     viz_type: ChartType = Field(default_factory=lambda: ChartType.TIMESERIES_BAR)
     _require_groupby: ClassVar[bool] = False  # groupby (series breakdown) is optional
@@ -53,7 +54,7 @@ class TimeSeriesBarQueryContext(QueryContext):
         return TimeSeriesBarQueryObject
 
 
-class EchartsTimeseriesBarChart(AnnotationLayersChartMixin, Chart):
+class EchartsTimeseriesBarChart(EChartOptionsChartMixin, AnnotationLayersChartMixin, Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.TIMESERIES_BAR
     viz_type: ChartType = Field(default_factory=lambda: ChartType.TIMESERIES_BAR)
     params: TimeSeriesBarOption = Field(default_factory=TimeSeriesBarOption)

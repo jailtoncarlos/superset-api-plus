@@ -4,6 +4,7 @@ from typing import Any, ClassVar
 from pydantic import Field
 
 from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.echart_options import EChartOptionsChartMixin, EChartOptionsMixin
 from supersetapiplus.charts.options import ChartVisualOptionsMixin, Option
 from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
@@ -16,7 +17,7 @@ from supersetapiplus.charts.types import ChartType, SortSeriesType, TimeseriesSe
 from supersetapiplus.core.typing import SerializableOptional
 
 
-class AreaOption(TimeseriesOptionsMixin, ChartVisualOptionsMixin, Option):
+class AreaOption(EChartOptionsMixin, TimeseriesOptionsMixin, ChartVisualOptionsMixin, Option):
     """Area chart params; defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0).
 
     Same query as the line chart; `stack` takes StackStyleType (Expand only here: AreaChartStackControlOptions).
@@ -48,7 +49,7 @@ class AreaQueryContext(QueryContext):
         return AreaQueryObject
 
 
-class EchartsAreaChart(AnnotationLayersChartMixin, Chart):
+class EchartsAreaChart(EChartOptionsChartMixin, AnnotationLayersChartMixin, Chart):
     VIZ_TYPE: ClassVar[ChartType] = ChartType.AREA
     viz_type: ChartType = Field(default_factory=lambda: ChartType.AREA)
     params: AreaOption = Field(default_factory=AreaOption)

@@ -162,6 +162,11 @@ OBJECT_KEYS = [
      "aggregationChoices"),
 ]
 
+# Keys of a zod object schema (`export const NAME = z.object({ key: ..., ... });`).
+ZOD_OBJECT_KEYS = [
+    ("superset-frontend/plugins/plugin-chart-echarts/src/utils/eChartOptionsSchema.ts", "customEChartOptionsSchema"),
+]
+
 # Controls whose config is a named constant (`const NAME: ControlConfig = { ..., choices: [...] }`).
 CONST_CHOICES = [
     ("table.percent_metric_calculation", "superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx",
@@ -293,6 +298,14 @@ def object_keys(source: str, name: str) -> list[str]:
 
 
 @non_empty
+def zod_object_keys(source: str, name: str) -> list[str]:
+    body = re.search(rf"export const {name} = z\.object\(\{{\n(.*?)\n\}}\);", source, re.S)
+    if not body:
+        raise ValueError(f"zod object {name} not found")
+    return re.findall(r"^  (\w+):", body.group(1), re.M)
+
+
+@non_empty
 def typescript_object(source: str, name: str) -> dict[str, str]:
     body = re.search(rf"export const {name} = \{{(.*?)\}};", source, re.S)
     if not body:
@@ -413,6 +426,7 @@ def main(version: str) -> None:
                     **{key: array_choices(source(file), name) for key, file, name in ARRAY_CHOICES}},
         "numeric_enums": {name: numeric_enum(source(file), name) for file, name in NUMERIC_ENUMS},
         "object_keys": {name: object_keys(source(file), name) for file, name in OBJECT_KEYS},
+        "zod_object_keys": {name: zod_object_keys(source(file), name) for file, name in ZOD_OBJECT_KEYS},
         "constants": {key: typescript_constants(source(file), pattern) for key, file, pattern in CONSTANTS},
         "objects": {name: typescript_object(source(file), name) for file, name in OBJECTS},
         "numbers": {key: typescript_numbers(source(file), pattern) for key, file, pattern in NUMBERS},
