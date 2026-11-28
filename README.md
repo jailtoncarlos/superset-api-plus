@@ -143,8 +143,9 @@ chart.save()  # PUT with the fields the API accepts on update
 ```
 
 `find_all()` walks every page and `count()` returns the total for a filter. The same methods exist on
-`client.dashboards`, `client.datasets`, `client.databases`, `client.saved_queries` and `client.css_templates`
-(CSS templates, applied to a dashboard through its `css` field).
+`client.dashboards`, `client.datasets`, `client.databases`, `client.saved_queries`, `client.css_templates`
+(CSS templates, applied to a dashboard through its `css` field) and `client.themes` (Superset 6.1 themes, see
+"Dashboard themes").
 
 Datasets:
 
@@ -344,6 +345,29 @@ configured on the instance (`EXTRA_CATEGORICAL_COLOR_SCHEMES`) takes its colors:
 for charts without categorical colors (tables, big numbers, heatmaps); `dashboard_labels(dashboard_id)` gives them per
 chart of a dashboard. They are what the dashboard's `map_label_colors` and `shared_label_colors` must cover. A word
 cloud colors only the words that fit on the screen, so all the words of its query are returned.
+
+### Dashboard themes
+
+A Superset 6.1 theme (an Ant Design configuration) can be bound to one dashboard. Its ECharts override tokens change
+the charts drawn on that dashboard only: for every chart, or for one `viz_type`. An object given for `series` is
+merged into each series of the chart, so its data and the Superset value formatter are kept:
+
+```python
+from supersetapiplus import Theme
+
+theme = Theme(theme_name="Stacked bar labels")
+theme.set_echarts_overrides(by_chart_type={
+    "echarts_timeseries_bar": {"series": {"label": {"show": True, "position": "inside", "color": "#fff"}}},
+})
+client.themes.add(theme)
+
+dashboard.set_theme(theme)   # or a theme id; set_theme(None) unbinds it
+dashboard.save()
+```
+
+A dashboard saved without `set_theme` keeps the theme it has. A label placed inside the bar keeps the dark text
+color of the theme unless the rule sets `color`. The theme configuration is checked as the 6.1 backend checks it
+(`Theme.set_config`); the overrides take static values only, no formatter functions.
 
 ### Sizing charts to their content
 
