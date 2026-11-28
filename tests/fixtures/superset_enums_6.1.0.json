@@ -292,6 +292,30 @@
   "version": "5.0.2"
  },
  "frontend": {
+  "AnnotationOpacity": {
+   "High": "opacityHigh",
+   "Low": "opacityLow",
+   "Medium": "opacityMedium",
+   "Undefined": ""
+  },
+  "AnnotationSourceType": {
+   "Line": "line",
+   "Native": "NATIVE",
+   "Table": "table",
+   "Undefined": ""
+  },
+  "AnnotationStyle": {
+   "Dashed": "dashed",
+   "Dotted": "dotted",
+   "LongDashed": "longDashed",
+   "Solid": "solid"
+  },
+  "AnnotationType": {
+   "Event": "EVENT",
+   "Formula": "FORMULA",
+   "Interval": "INTERVAL",
+   "Timeseries": "TIME_SERIES"
+  },
   "Clauses": {
    "Having": "HAVING",
    "Where": "WHERE"
@@ -603,6 +627,7 @@
     "superset-frontend/packages/superset-ui-core/src/chart/types/VizType.ts",
     "superset-frontend/packages/superset-ui-core/src/currency-format/CurrencyFormats.ts",
     "superset-frontend/packages/superset-ui-core/src/query/types/AdvancedAnalytics.ts",
+    "superset-frontend/packages/superset-ui-core/src/query/types/AnnotationLayer.ts",
     "superset-frontend/packages/superset-ui-core/src/query/types/Column.ts",
     "superset-frontend/packages/superset-ui-core/src/query/types/Dashboard.ts",
     "superset-frontend/packages/superset-ui-core/src/query/types/Datasource.ts",

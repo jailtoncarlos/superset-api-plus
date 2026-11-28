@@ -959,6 +959,12 @@ def build_cal_heatmap(form_data: dict[str, Any]) -> dict[str, Any]:
         **base, "is_timeseries": True, "extras": {**(base.get("extras") or {}), "time_grain_sqla": grain}}])
 
 
+def build_handlebars(form_data: dict[str, Any]) -> dict[str, Any]:
+    """plugin-chart-handlebars/src/plugin/buildQuery.ts: the base query with its order normalized."""
+    return build_query_context(form_data, lambda base: [{
+        **base, "orderby": normalize_orderby(base).get("orderby", UNSET)}])
+
+
 def build_default(form_data: dict[str, Any]) -> dict[str, Any]:
     """Plugins without a buildQuery (e.g. big_number_total)."""
     return build_query_context(form_data)
@@ -973,9 +979,11 @@ BUILD_QUERY: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "echarts_area": build_timeseries,
     "echarts_timeseries_bar": build_timeseries,
     "echarts_timeseries_line": build_timeseries,
+    "echarts_timeseries_scatter": build_timeseries,
     "echarts_timeseries": build_timeseries,
     "funnel": build_sorted_by_metric,
     "gauge_chart": build_sorted_by_metric,
+    "handlebars": build_handlebars,
     "heatmap_v2": build_heatmap,
     "histogram_v2": build_histogram,
     "mixed_timeseries": build_mixed_timeseries,

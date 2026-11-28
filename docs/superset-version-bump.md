@@ -9,8 +9,9 @@ re-checks one of them. `<v>` is the new version tag.
 ## 0. Start from the drift report
 
 The scheduled workflow `.github/workflows/superset-drift.yaml` (Mondays, or run by hand with other refs)
-runs `bin/scripts/superset_drift.py`: the offline extractors (OpenAPI subset, enums, example layouts) on the
-newest Superset release and on master, compared with the pinned excerpts without provenance and version
+runs `bin/scripts/superset_drift.py`: the offline extractors (OpenAPI subset, enums, example layouts,
+categorical color schemes) on the newest Superset release and on master, compared with the pinned excerpts
+(the color schemes are package data, `supersetapiplus/dashboards/profiles/`) without provenance and version
 stamps. It fails when the newest release differs (a new release to support, or a fixture edited by hand);
 master is reported only. The job summary lists each difference by path (`+` added, `-` removed, `~`
 changed) and an extraction that fails names the symbol that disappeared. Locally:

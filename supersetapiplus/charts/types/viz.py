@@ -24,6 +24,8 @@ class ChartType(StringEnum):
     HISTOGRAM_V2 = 'histogram_v2'
     HEATMAP_V2 = 'heatmap_v2'
     SUNBURST_V2 = 'sunburst_v2'
+    TIMESERIES_SCATTER = 'echarts_timeseries_scatter'
+    HANDLEBARS = 'handlebars'
 
 
 # Legacy viz types removed from Superset -> the type Superset migrated their charts to
@@ -249,3 +251,38 @@ class CalendarSubdomain(StringEnum):
 # Old names, kept as aliases that emit DeprecationWarning.
 deprecate_members(ChartType, {"PIVOT_TALBE_V2": "PIVOT_TABLE_V2"})
 deprecate_members(LabelType, {"CATEGORI_VALUE_AND_PERCENTAG": "CATEGORY_VALUE_AND_PERCENTAGE"})
+
+
+class AnnotationType(StringEnum):
+    """annotationType of an annotation layer (AnnotationType, superset-ui-core query/types/AnnotationLayer.ts,
+    Superset 6.1.0)."""
+    EVENT = 'EVENT'
+    FORMULA = 'FORMULA'
+    INTERVAL = 'INTERVAL'
+    TIME_SERIES = 'TIME_SERIES'
+
+
+class AnnotationSourceType(StringEnum):
+    """sourceType of an annotation layer (AnnotationSourceType, AnnotationLayer.ts, Superset 6.1.0); a formula
+    layer has none (the empty string)."""
+    UNDEFINED = ''
+    LINE = 'line'
+    NATIVE = 'NATIVE'
+    TABLE = 'table'
+
+
+class AnnotationOpacity(StringEnum):
+    """opacity of an annotation layer (AnnotationOpacity, AnnotationLayer.ts, Superset 6.1.0); the empty string is
+    the solid default of the Explore popover."""
+    UNDEFINED = ''
+    LOW = 'opacityLow'
+    MEDIUM = 'opacityMedium'
+    HIGH = 'opacityHigh'
+
+
+class AnnotationStyle(StringEnum):
+    """style (line style) of an annotation layer (AnnotationStyle, AnnotationLayer.ts, Superset 6.1.0)."""
+    SOLID = 'solid'
+    DASHED = 'dashed'
+    LONG_DASHED = 'longDashed'
+    DOTTED = 'dotted'

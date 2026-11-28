@@ -34,6 +34,11 @@
   "query_context": "null",
   "slice_name": "Line"
  },
+ "echarts_timeseries_scatter": {
+  "dataset": "main.cleaned_sales_data",
+  "query_context": "null",
+  "slice_name": "Scatter Plot"
+ },
  "funnel": {
   "dataset": "main.cleaned_sales_data",
   "query_context": "null",

@@ -15,7 +15,8 @@ from supersetapiplus.exceptions import NodePositionValidationError
 # Every modeled type with a metric (histogram_v2 has none: its bins count rows).
 VIZ_TYPES = ["table", "pie", "pivot_table_v2", "echarts_timeseries_bar", "big_number_total",
              "box_plot", "cal_heatmap", "mixed_timeseries", "word_cloud", "treemap_v2", "echarts_timeseries_line",
-             "echarts_area", "big_number", "funnel", "gauge_chart", "bubble_v2", "heatmap_v2", "sunburst_v2"]
+             "echarts_area", "big_number", "funnel", "gauge_chart", "bubble_v2", "heatmap_v2", "sunburst_v2",
+             "echarts_timeseries_scatter", "handlebars"]
 
 
 def new_chart(viz_type: str) -> Chart:

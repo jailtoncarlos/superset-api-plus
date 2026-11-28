@@ -114,8 +114,9 @@ where to read what the library does not cover yet. Logs on failure, stack always
 
 ## Superset drift (`superset-drift.yaml`)
 
-Runs `bin/scripts/superset_drift.py`: the offline extractors (OpenAPI subset, enums, example layouts) on the
-newest Superset release and on the extra refs, compared with the pinned excerpts in `tests/fixtures/`. It fails
+Runs `bin/scripts/superset_drift.py`: the offline extractors (OpenAPI subset, enums, example layouts,
+categorical color schemes) on the newest Superset release and on the extra refs, compared with the pinned excerpts
+in `tests/fixtures/` (the color schemes with the package data in `supersetapiplus/dashboards/profiles/`). It fails
 when the newest release differs from them (a new release to support, or a fixture edited by hand); the extra
 refs (`master` by default) are reported only.
 
