@@ -1,4 +1,5 @@
 """Dashboards."""
+import json
 from typing import Any, ClassVar
 
 from pydantic import Field
@@ -81,10 +82,16 @@ class Dashboard(ApiModel):
     def from_json(cls, data: dict[str, Any]) -> Self:
         obj = super().from_json(data)
         obj._charts_slice_names = obj._extra_fields.get('charts', [])
-        if "theme" in obj._extra_fields:  # GET /dashboard/{id} returns the bound theme as {"id", "theme_name", ...}
-            theme = obj._extra_fields["theme"]
-            obj.__dict__["theme_id"] = theme.get("id") if isinstance(theme, dict) else None
+        obj._read_theme(obj._extra_fields)
         return obj
+
+    def _read_theme(self, data: dict[str, Any]) -> None:
+        """The theme binding read from Superset: GET /dashboard/{id} returns the bound theme as an object
+        ({"id", "theme_name", ...}) or null, not as theme_id. A pending unbind (set_theme(None)) is dropped."""
+        if "theme" in data:
+            theme = data["theme"]
+            self.__dict__["theme_id"] = theme.get("id") if isinstance(theme, dict) else None
+            self._unbind_theme = False
 
     def set_theme(self, theme: Theme | int | None) -> None:
         """Binds the dashboard to a theme (a saved Theme or its id), or unbinds it with None; sent on the next
@@ -194,6 +201,17 @@ class Dashboard(ApiModel):
 
 class Dashboards(ApiModelFactories):
     endpoint = "dashboard/"
+
+    def fetch(self, obj: ApiModel) -> None:
+        """Reloads the fields of `obj` from Superset, its theme binding included (read from the `theme` object, which
+        is not a field), so a save after a fetch keeps the theme the server has."""
+        result = self.client.get(self.object_url(getattr(obj, "id", None))).json().get("result")
+        field_names = obj.field_names()
+        for key, value in result.items():
+            if key in field_names:
+                setattr(obj, key, json.loads(value or "{}") if key in obj.JSON_FIELDS else value)
+        if isinstance(obj, Dashboard):
+            obj._read_theme(result)
 
     def copy(self, dashboard: Dashboard | int | str, dashboard_title: str | None = None,
              duplicate_slices: bool = False, css: str | None = None) -> int:

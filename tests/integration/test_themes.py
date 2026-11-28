@@ -132,3 +132,23 @@ def test_a_chart_type_override_of_the_theme_applies_to_that_type_on_the_bound_da
     assert {color for text, color in on_themed["Bars"] if text in values} == {"#ffffff"}  # the color of the rule
     assert not values & texts["Lines"], texts["Lines"]
     assert not values & {text for text, _ in on_plain["Bars"]}, on_plain["Bars"]
+
+
+@pytest.mark.parametrize("change_to_b", [True, False])
+def test_a_fetch_reads_the_current_binding_so_the_next_save_keeps_it(client, add_theme, cleanup, change_to_b):
+    """Loaded with theme A, changed on the server to theme B (or unbound), fetched and saved: the server's binding
+    stays."""
+    theme_a, theme_b = add_theme(), add_theme()
+    dashboard = Dashboard(dashboard_title=unique_name("dash"))
+    dashboard.set_theme(theme_a)
+    cleanup.dashboard(client.dashboards.add(dashboard))
+    loaded = client.dashboards.get(dashboard.id)
+    elsewhere = client.dashboards.get(dashboard.id)
+    elsewhere.set_theme(theme_b if change_to_b else None)
+    elsewhere.save()
+
+    loaded.fetch()
+    loaded.dashboard_title = f"{dashboard.dashboard_title}-changed"
+    loaded.save()
+
+    assert client.dashboards.get(dashboard.id).theme_id == (theme_b.id if change_to_b else None)
