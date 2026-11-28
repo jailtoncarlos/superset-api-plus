@@ -61,6 +61,10 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   - `bin/scripts/extract_ui_controls.py <version>` → `ui_controls_<version>.json`: which keys read by the
     buildQuery port are controls of each supported viz_type (Explore leaves the other stored keys out of the
     form_data); `supersetapiplus/charts/explore.py` holds them (`tests/unit/test_explore_form_data.py`)
+  - `bin/scripts/extract_color_schemes.py <version>` →
+    `supersetapiplus/dashboards/profiles/color_schemes_<version>.json` (package data, read by
+    `supersetapiplus.dashboards.colors`): the categorical color schemes the frontend registers, whose colors a
+    dashboard's `color_scheme_domain` must equal
   - `bin/scripts/extract_example_layouts.py <version>` → `example_layouts_<version>.json`: the layouts of
     the example dashboards shipped with Superset, which the layout validation must accept
   - `bin/scripts/calibrate_sizing.py <version>` →
@@ -178,6 +182,12 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   with one line per related institutional issue: `issue #NNN -- gitlab institucional`, plus the
   co-author line when an agent wrote it. After pushing, comment on the GitLab issue with the GitHub
   commit link.
+- Review threads of a pull request are appraised with the `multi-llm-workflow review-appraisal` facade, configured by
+  `.review-appraisal.yaml`. Run it with `bin/review-appraisal.sh <collect|appraise> jailtoncarlos/superset-api-plus
+  --pr N --platform github-cli`: multi-llm-workflow is private, so it is not declared in `pyproject.toml`/`uv.lock`;
+  the script runs it with `uvx` at the commit pinned in `.mlw-pin`, from the git URL in the local `MLW_GIT_URL`
+  (not recorded in this public repository). Changing the pin is a commit that edits `.mlw-pin`, always to a commit
+  of its `origin/main` validated for this repository.
 - Do not rewrite pushed history or force-push without explicit confirmation from the maintainer.
 - Avoid `git stash` in a shared working tree; compare against `HEAD` with `git archive HEAD | tar -x`
   into a scratch directory.
@@ -202,7 +212,7 @@ institutional GitLab and is written in Portuguese; that does not change the lang
   (repositories and the dataset, database, saved query and asset models) → `auth/` → `transport/` (HTTP) →
   `core/` (models, fields, enums and masking; no HTTP). The services today: `DashboardCharts`
   (`client.dashboard_charts`), `DashboardSizing` (`client.dashboard_sizing`, read-only check of the heights of a
-  saved dashboard) and `BundleImport`. Old module paths are compatibility modules that warn
+  saved dashboard), `DashboardColors` (`client.dashboard_colors`, the color labels of saved charts) and `BundleImport`. Old module paths are compatibility modules that warn
   on import; `supersetapiplus.datasets`, `.databases`, `.saved_queries` and `.assets` stay public paths.
 - Dependency management is **uv** (issue #319): `pyproject.toml` is the single source, `uv.lock` pins the
   development and CI environment. Runtime dependency floors must stay at or below the constraints of the

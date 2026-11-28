@@ -197,6 +197,12 @@ def test_dataset_metric_and_column_keys_are_those_of_the_update_schemas():
     assert set(Datasets.GET_OR_CREATE_FIELDS) == set(OFFICIAL["schemas"]["GetOrCreateDatasetSchema"])
 
 
+def test_echart_option_keys_are_those_of_the_frontend_schema():
+    from supersetapiplus.charts.echart_options import ECHART_OPTION_KEYS
+
+    assert ECHART_OPTION_KEYS == set(OFFICIAL["zod_object_keys"]["customEChartOptionsSchema"])
+
+
 def test_every_key_of_the_excerpt_is_checked_somewhere():
     """A key of the excerpt that no test or module names is checked by nothing: either a conformance test
     lost it or the extraction keeps a symbol the library no longer uses (remove it from the script)."""
@@ -204,7 +210,7 @@ def test_every_key_of_the_excerpt_is_checked_somewhere():
     sources = [*Path(__file__).parent.glob("*.py"), *(root / "supersetapiplus").rglob("*.py")]
     literals = {m for p in sources for m in re.findall(r"""["']([^"'\n]+)["']""", p.read_text(encoding="utf-8"))}
     sections = ("backend", "frontend", "choices", "constants", "objects", "numbers", "options", "unions",
-                "value_options", "schemas", "config", "operator_groups")
+                "value_options", "schemas", "config", "operator_groups", "zod_object_keys")
     orphans = [f"{section}.{key}" for section in sections for key in OFFICIAL[section] if key not in literals]
     assert orphans == []
 

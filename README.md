@@ -269,6 +269,17 @@ client.charts.add(calendar)
 A chart read from Superset keeps its stored `query_context`; call `chart.derive_query_context()` after
 changing its `params` to store the one the UI would derive.
 
+The timeseries line, bar and area charts and the mixed timeseries chart take custom ECharts options (the
+"ECharts Options" control of Superset 6.1), merged by the frontend into the options the chart builds:
+
+```python
+mixed.set_echart_options({"legend": {"show": False}, "yAxis": {"axisLabel": {"color": "#666"}}})
+mixed.set_echart_options(None)             # back to the default "{}"
+```
+
+Only the top-level keys Superset 6.1 accepts and static values are allowed (no formatter functions). Superset merges
+objects key by key but replaces arrays and other values, so a `series` given there replaces the series of the chart.
+
 ## Building a dashboard
 
 ```python
@@ -309,6 +320,18 @@ to be saved; a layout read from Superset is saved as read, with a `LayoutWarning
 `client.dashboard_charts.add_chart(dashboard, chart, ...)` places a chart and associates it in one call;
 `client.dashboards.copy()` copies a dashboard; `delete_many()` removes several objects at once. Dashboards
 read from Superset are written back as read: only filters created by the library get recomputed scopes.
+
+`dashboard.json_metadata.set_color_scheme("supersetColors")` sets the categorical color scheme and its
+`color_scheme_domain`: the scheme's colors in the frontend registry of Superset 6.1.0, shipped with the package
+(`supersetapiplus.dashboards.colors`). With a stale or missing domain the dashboard frontend asks to store it on every
+visit (`PUT /api/v1/dashboard/<id>/colors`), which a user who cannot edit the dashboard gets refused. A scheme
+configured on the instance (`EXTRA_CATEGORICAL_COLOR_SCHEMES`) takes its colors: `set_color_scheme(name, colors=[...])`.
+
+`client.dashboard_colors.chart_labels(chart)` returns the labels a saved chart asks the dashboard color scale for
+(series, slices, nodes or words, from its current data and the label rules of its plugin in Superset 6.1.0), or `None`
+for charts without categorical colors (tables, big numbers, heatmaps); `dashboard_labels(dashboard_id)` gives them per
+chart of a dashboard. They are what the dashboard's `map_label_colors` and `shared_label_colors` must cover. A word
+cloud colors only the words that fit on the screen, so all the words of its query are returned.
 
 ### Sizing charts to their content
 

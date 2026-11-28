@@ -254,6 +254,26 @@ def test_every_modeled_viz_type_built_on_ui_defaults_returns_data(client, datase
     assert client.charts.get(chart.id).params.to_dict() == chart.params.to_dict()
 
 
+@pytest.mark.parametrize("viz_type", ["echarts_timeseries_bar", "echarts_timeseries_line", "echarts_area",
+                                      "mixed_timeseries"])
+def test_echart_options_are_saved_read_back_and_leave_the_data_query_unchanged(client, dataset, cleanup, viz_type):
+    chart = build_with_ui_defaults(viz_type, dataset)
+    chart.set_echart_options({"legend": {"show": False}, "series": {"label": {"show": True, "position": "inside"}}})
+    cleanup.chart(client.charts.add(chart))
+
+    fetched = client.charts.get(chart.id)
+    assert json.loads(fetched.params.echart_options) == json.loads(chart.params.echart_options)
+    assert fetched.query_context.form_data.echart_options == chart.params.echart_options
+    plain = build_with_ui_defaults(viz_type, dataset)
+    cleanup.chart(client.charts.add(plain))
+    plain_rows = [r["data"] for r in client.charts.get_chart_data(plain.id)]
+    assert [r["data"] for r in client.charts.get_chart_data(chart.id)] == plain_rows
+
+    fetched.set_echart_options(None)
+    fetched.save()
+    assert client.charts.get(chart.id).params.echart_options == "{}"
+
+
 # --- Export and import -----------------------------------------------------------------------
 
 def test_chart_saved_without_query_context_has_no_data_endpoint_in_6_1(client, dataset, cleanup):
