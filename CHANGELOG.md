@@ -1,6 +1,11 @@
 # CHANGELOG
 
-## Unreleased
+## 2.8.0 (2026-11-28)
+
+Features asked by the dashboard built in code (#638): scatter and Handlebars charts with formula annotation layers
+(#144), typed ECharts options (#147), Superset 6.1 themes bound to a dashboard (#146), dashboard colors from the
+categorical registry and the labels each chart asks a color for (#133, #134), the drift check of the color schemes
+(#150) and the x axis of charts read without a query context (#149).
 
 ### Added
 
