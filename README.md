@@ -297,6 +297,12 @@ read from Superset are written back as read: only filters created by the library
 visit (`PUT /api/v1/dashboard/<id>/colors`), which a user who cannot edit the dashboard gets refused. A scheme
 configured on the instance (`EXTRA_CATEGORICAL_COLOR_SCHEMES`) takes its colors: `set_color_scheme(name, colors=[...])`.
 
+`client.dashboard_colors.chart_labels(chart)` returns the labels a saved chart asks the dashboard color scale for
+(series, slices, nodes or words, from its current data and the label rules of its plugin in Superset 6.1.0), or `None`
+for charts without categorical colors (tables, big numbers, heatmaps); `dashboard_labels(dashboard_id)` gives them per
+chart of a dashboard. They are what the dashboard's `map_label_colors` and `shared_label_colors` must cover. A word
+cloud colors only the words that fit on the screen, so all the words of its query are returned.
+
 ### Sizing charts to their content
 
 A chart's height on a dashboard is fixed: a table with few rows leaves empty space below it, one with many rows
