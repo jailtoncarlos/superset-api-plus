@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 from pydantic import Field
 
 from supersetapiplus.charts.charts import Chart
+from supersetapiplus.charts.echart_options import EChartOptionsChartMixin, EChartOptionsMixin
 from supersetapiplus.charts.options import Option
 from supersetapiplus.charts.queries import Query, QueryFormColumn
 from supersetapiplus.charts.query_context import QueryContext
@@ -12,7 +13,7 @@ from supersetapiplus.charts.types import ChartType, ComparisonType, TimeGrain
 from supersetapiplus.core.typing import SerializableOptional
 
 
-class MixedTimeseriesOption(Option):
+class MixedTimeseriesOption(EChartOptionsMixin, Option):
     """Mixed Time Series params: query A uses the plain keys, query B the `_b` keys (buildQuery of the plugin).
 
     Defaults are the ones the UI gives a new chart (tests/fixtures/ui_defaults_6.1.0) for the keys read by
@@ -62,7 +63,7 @@ class MixedTimeseriesQueryContext(QueryContext):
         return MixedTimeseriesQueryObject
 
 
-class MixedTimeseriesChart(Chart):
+class MixedTimeseriesChart(EChartOptionsChartMixin, Chart):
     """
     Chart class for Mixed Time Series. Bundles:
       - params: MixedTimeseriesOption

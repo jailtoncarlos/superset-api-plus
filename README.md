@@ -250,6 +250,17 @@ client.charts.add(calendar)
 A chart read from Superset keeps its stored `query_context`; call `chart.derive_query_context()` after
 changing its `params` to store the one the UI would derive.
 
+The timeseries line, bar and area charts and the mixed timeseries chart take custom ECharts options (the
+"ECharts Options" control of Superset 6.1), merged by the frontend into the options the chart builds:
+
+```python
+mixed.set_echart_options({"legend": {"show": False}, "yAxis": {"axisLabel": {"color": "#666"}}})
+mixed.set_echart_options(None)             # back to the default "{}"
+```
+
+Only the top-level keys Superset 6.1 accepts and static values are allowed (no formatter functions). Superset merges
+objects key by key but replaces arrays and other values, so a `series` given there replaces the series of the chart.
+
 ## Building a dashboard
 
 ```python

@@ -79,6 +79,27 @@ def test_typescript_symbols_are_extracted(function, args, expected):
     assert function(CONSTANTS_TS, *args) == expected
 
 
+ZOD_TS = """
+export const customEChartOptionsSchema = z.object({
+  // Global options
+  backgroundColor: colorSchema.optional(),
+  stateAnimation: z
+    .object({
+      duration: z.number().optional(),
+    })
+    .optional(),
+  series: objectOrArray(seriesSchema).optional(),
+});
+"""
+
+
+def test_zod_object_keys_are_the_top_level_ones():
+    assert extract.zod_object_keys(ZOD_TS, "customEChartOptionsSchema") == ["backgroundColor", "stateAnimation",
+                                                                            "series"]
+    with pytest.raises(ValueError, match="customEChartOptionsSchema"):
+        extract.zod_object_keys("export const SOMETHING_ELSE = 1;\n", "customEChartOptionsSchema")
+
+
 def test_choices_and_python_symbols_are_extracted():
     assert extract.control_choices(CONTROL_PANEL_TS, "legendType") == ["scroll", "plain"]
     assert extract.python_enum(PYTHON, "ErrorLevel") == {"INFO": "info"}
